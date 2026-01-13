@@ -1,0 +1,13 @@
+# Supabase configuration
+# See: https://supabase.com/docs/guides/cli/config
+
+[project]
+id = ""  # Set your Supabase project ID
+
+[db]
+# Port to use for the local database
+port = 54322
+
+[api]
+# Port to use for the API
+port = 54321

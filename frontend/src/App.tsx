@@ -17,7 +17,7 @@ function Home() {
 
 function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/project/2025/60021/g256002102/web">
       <Routes>
         <Route path="/" element={<Home />} />
       </Routes>

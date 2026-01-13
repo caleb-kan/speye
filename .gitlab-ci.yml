@@ -7,6 +7,7 @@ stages:
 variables:
   npm_config_cache: '$CI_PROJECT_DIR/.npm'
   DEPLOY_PATH: /vol/project/2025/60021/g256002102/web
+  VITE_BASE_PATH: /project/2025/60021/g256002102/web/
 
 cache:
   key: ${CI_COMMIT_REF_SLUG}

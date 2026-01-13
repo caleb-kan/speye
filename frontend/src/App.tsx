@@ -17,7 +17,7 @@ function Home() {
 
 function App() {
   return (
-    <BrowserRouter basename="/project/2025/60021/g256002102/web">
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
       <Routes>
         <Route path="/" element={<Home />} />
       </Routes>

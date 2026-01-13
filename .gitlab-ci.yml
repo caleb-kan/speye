@@ -20,8 +20,8 @@ install:
   tags:
     - build
   script:
-    - npm ci --prefix frontend
-    - npm ci
+    - npm ci --prefix frontend --cache .npm --prefer-offline
+    - npm ci --cache .npm --prefer-offline
   artifacts:
     paths:
       - frontend/node_modules/
@@ -64,5 +64,5 @@ deploy:
   script:
     - ssh cmk123@shell1.doc.ic.ac.uk "mkdir -p ${DEPLOY_PATH}"
     - rsync -avz --delete --exclude='.htaccess' frontend/dist/ cmk123@shell1.doc.ic.ac.uk:${DEPLOY_PATH}/
-  only:
-    - master
+  rules:
+    - if: $CI_COMMIT_BRANCH == "master"

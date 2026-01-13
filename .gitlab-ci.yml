@@ -63,6 +63,6 @@ deploy:
   needs: [build]
   script:
     - ssh cmk123@shell1.doc.ic.ac.uk "mkdir -p ${DEPLOY_PATH}"
-    - rsync -avz --delete --exclude='.htaccess' frontend/dist/ cmk123@shell1.doc.ic.ac.uk:${DEPLOY_PATH}/
+    - scp -r frontend/dist/* cmk123@shell1.doc.ic.ac.uk:${DEPLOY_PATH}/
   rules:
     - if: $CI_COMMIT_BRANCH == "master"

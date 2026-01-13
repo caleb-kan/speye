@@ -1,0 +1,68 @@
+stages:
+  - install
+  - quality
+  - build
+  - deploy
+
+variables:
+  npm_config_cache: '$CI_PROJECT_DIR/.npm'
+  DEPLOY_PATH: /vol/project/2025/60021/g256002102/web
+
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - .npm/
+    - frontend/node_modules/
+    - node_modules/
+
+install:
+  stage: install
+  tags:
+    - build
+  script:
+    - npm ci --prefix frontend
+    - npm ci
+  artifacts:
+    paths:
+      - frontend/node_modules/
+      - node_modules/
+    expire_in: 1 hour
+
+lint:
+  stage: quality
+  tags:
+    - build
+  needs: [install]
+  script:
+    - npm run lint
+
+format-check:
+  stage: quality
+  tags:
+    - build
+  needs: [install]
+  script:
+    - npm run format:check
+
+build:
+  stage: build
+  tags:
+    - build
+  needs: [install, lint, format-check]
+  script:
+    - npm run build
+  artifacts:
+    paths:
+      - frontend/dist/
+    expire_in: 1 week
+
+deploy:
+  stage: deploy
+  tags:
+    - build
+  needs: [build]
+  script:
+    - ssh cmk123@shell1.doc.ic.ac.uk "mkdir -p ${DEPLOY_PATH}"
+    - rsync -avz --delete --exclude='.htaccess' frontend/dist/ cmk123@shell1.doc.ic.ac.uk:${DEPLOY_PATH}/
+  only:
+    - master

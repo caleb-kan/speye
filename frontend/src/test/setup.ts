@@ -10,7 +10,9 @@ const localStorageMock = {
   key: vi.fn(),
 }
 
-const globalWithStorage = globalThis as typeof globalThis & { localStorage: Storage }
+const globalWithStorage = globalThis as typeof globalThis & {
+  localStorage: Storage
+}
 globalWithStorage.localStorage = localStorageMock as Storage
 
 Element.prototype.scrollTo = vi.fn()

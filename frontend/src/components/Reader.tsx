@@ -2,13 +2,16 @@ import { TextDisplay } from './TextDisplay'
 import { ReadingControls } from './ReadingControls'
 import { useReader } from '../hooks/useReader'
 
+type ReadingType = 'dynamic' | 'static'
+
 type ReaderProps = {
   text: string
   wpm: number
+  readingType: ReadingType
   onNewText: () => void
 }
 
-export function Reader({ text, wpm, onNewText }: ReaderProps) {
+export function Reader({ text, wpm, readingType, onNewText }: ReaderProps) {
   const {
     currentWordIndex,
     isPlaying,
@@ -26,6 +29,7 @@ export function Reader({ text, wpm, onNewText }: ReaderProps) {
           text={text}
           currentWordIndex={currentWordIndex}
           isPlaying={isPlaying}
+          readingType={readingType}
         />
       </div>
 

@@ -1,21 +1,26 @@
 import { useState } from 'react'
 
 type Mode = 'standard' | 'adaptive' | 'summarized'
+type ReadingType = 'dynamic' | 'static'
 
 type SettingsBarProps = {
   wpm: number
   onWpmChange: (wpm: number) => void
   mode: Mode
   onModeChange: (mode: Mode) => void
+  readingType: ReadingType
+  onReadingTypeChange: (type: ReadingType) => void
 }
 
-const WPM_PRESETS = [100, 150, 200, 250, 300, 400, 500]
+const WPM_PRESETS = [100, 200, 300, 400]
 
 export function SettingsBar({
   wpm,
   onWpmChange,
   mode,
   onModeChange,
+  readingType,
+  onReadingTypeChange,
 }: SettingsBarProps) {
   const [customWpm, setCustomWpm] = useState('')
   const [showCustomInput, setShowCustomInput] = useState(false)
@@ -42,11 +47,12 @@ export function SettingsBar({
     <div className="flex flex-wrap items-center justify-center gap-8 py-6 text-sm">
       {/* Mode Selection */}
       <div className="flex items-center gap-2">
+        <span className="text-[var(--color-text-secondary)] mr-1">mode:</span>
         <button
           onClick={() => onModeChange('standard')}
-          className={`px-3 py-1.5 rounded transition-all ${
+          className={`px-3 py-1.5 transition-all ${
             mode === 'standard'
-              ? 'bg-[var(--color-bg-secondary)] text-[var(--color-primary)]'
+              ? 'text-[var(--color-primary)]'
               : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
           }`}
         >
@@ -73,16 +79,44 @@ export function SettingsBar({
       {/* Divider */}
       <div className="w-px h-6 bg-[var(--color-text-secondary)] opacity-30" />
 
+      {/* Reading Type Selection */}
+      <div className="flex items-center gap-2">
+        <span className="text-[var(--color-text-secondary)] mr-1">type:</span>
+        <button
+          onClick={() => onReadingTypeChange('dynamic')}
+          className={`px-3 py-1.5 transition-all ${
+            readingType === 'dynamic'
+              ? 'text-[var(--color-primary)]'
+              : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
+          }`}
+        >
+          dynamic
+        </button>
+        <button
+          onClick={() => onReadingTypeChange('static')}
+          className={`px-3 py-1.5 transition-all ${
+            readingType === 'static'
+              ? 'text-[var(--color-primary)]'
+              : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
+          }`}
+        >
+          static
+        </button>
+      </div>
+
+      {/* Divider */}
+      <div className="w-px h-6 bg-[var(--color-text-secondary)] opacity-30" />
+
       {/* WPM Selection */}
       <div className="flex items-center gap-2">
-        <span className="text-[var(--color-text-secondary)] mr-1">wpm</span>
+        <span className="text-[var(--color-text-secondary)] mr-1">wpm:</span>
         {WPM_PRESETS.map((preset) => (
           <button
             key={preset}
             onClick={() => onWpmChange(preset)}
-            className={`px-2 py-1 rounded transition-all ${
+            className={`px-2 py-1 transition-all ${
               wpm === preset
-                ? 'bg-[var(--color-bg-secondary)] text-[var(--color-primary)]'
+                ? 'text-[var(--color-primary)]'
                 : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
             }`}
           >
@@ -92,24 +126,25 @@ export function SettingsBar({
 
         {/* Custom WPM */}
         {showCustomInput ? (
-          <input
-            type="number"
-            value={customWpm}
-            onChange={(e) => setCustomWpm(e.target.value)}
-            onKeyDown={handleKeyDown}
-            onBlur={handleCustomWpmSubmit}
-            placeholder="50-1000"
-            min={50}
-            max={1000}
-            autoFocus
-            className="w-20 px-2 py-1 rounded bg-[var(--color-bg-secondary)] text-[var(--color-text)] border border-[var(--color-text-secondary)] focus:border-[var(--color-primary)] focus:outline-none text-center"
-          />
+          <span className="relative px-2 py-1">
+            <input
+              type="number"
+              value={customWpm}
+              onChange={(e) => setCustomWpm(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onBlur={handleCustomWpmSubmit}
+              min={50}
+              max={1000}
+              autoFocus
+              className="w-12 bg-transparent text-[var(--color-primary)] border-b border-[var(--color-primary)] focus:outline-none text-center appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+            />
+          </span>
         ) : (
           <button
             onClick={() => setShowCustomInput(true)}
-            className={`px-2 py-1 rounded transition-all ${
+            className={`px-2 py-1 transition-all ${
               !WPM_PRESETS.includes(wpm)
-                ? 'bg-[var(--color-bg-secondary)] text-[var(--color-primary)]'
+                ? 'text-[var(--color-primary)]'
                 : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
             }`}
             title="Enter custom WPM"

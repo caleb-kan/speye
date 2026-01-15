@@ -197,18 +197,18 @@ describe('Home Page', () => {
       })
     })
 
-    // Verifies the "wpm" label is displayed next to the controls
+    // Verifies the "wpm:" label is displayed next to the controls
     it('renders WPM label', () => {
       renderWithRouter(<Home />)
 
-      expect(screen.getByText('wpm')).toBeInTheDocument()
+      expect(screen.getByText('wpm:')).toBeInTheDocument()
     })
 
     // Verifies all preset WPM buttons are rendered
     it('renders all WPM preset buttons', () => {
       renderWithRouter(<Home />)
 
-      const presets = [100, 150, 200, 250, 300, 400, 500]
+      const presets = [100, 200, 300, 400]
       presets.forEach((preset) => {
         expect(screen.getByText(preset.toString())).toBeInTheDocument()
       })
@@ -248,7 +248,9 @@ describe('Home Page', () => {
       const customButton = screen.getByText('custom')
       await user.click(customButton)
 
-      expect(screen.getByPlaceholderText('50-1000')).toBeInTheDocument()
+      // Input should be visible (no placeholder, just a number input)
+      const input = screen.getByRole('spinbutton')
+      expect(input).toBeInTheDocument()
     })
 
     // Verifies that entering a valid custom WPM value is accepted and reflected in the UI
@@ -258,7 +260,7 @@ describe('Home Page', () => {
 
       await user.click(screen.getByText('custom'))
 
-      const input = screen.getByPlaceholderText('50-1000')
+      const input = screen.getByRole('spinbutton')
       await user.type(input, '350')
       await user.keyboard('{Enter}')
 
@@ -319,7 +321,9 @@ describe('Home Page', () => {
       renderWithRouter(<Home />)
 
       // Should have a new text button (uses aria-label)
-      expect(screen.getByRole('button', { name: 'New text' })).toBeInTheDocument()
+      expect(
+        screen.getByRole('button', { name: 'New text' })
+      ).toBeInTheDocument()
     })
   })
 })

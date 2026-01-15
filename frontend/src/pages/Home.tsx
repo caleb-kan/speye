@@ -5,10 +5,12 @@ import { Reader } from '../components/Reader'
 import { useTexts } from '../hooks/useTexts'
 
 type Mode = 'standard' | 'adaptive' | 'summarized'
+type ReadingType = 'dynamic' | 'static'
 
 export function Home() {
   const [wpm, setWpm] = useState(200)
   const [mode, setMode] = useState<Mode>('standard')
+  const [readingType, setReadingType] = useState<ReadingType>('dynamic')
 
   const { currentText, loading, error, selectRandomText } = useTexts()
 
@@ -23,6 +25,8 @@ export function Home() {
           onWpmChange={setWpm}
           mode={mode}
           onModeChange={setMode}
+          readingType={readingType}
+          onReadingTypeChange={setReadingType}
         />
 
         {/* Spacer */}
@@ -49,6 +53,7 @@ export function Home() {
               key={currentText.id}
               text={currentText.content}
               wpm={wpm}
+              readingType={readingType}
               onNewText={selectRandomText}
             />
           ) : (

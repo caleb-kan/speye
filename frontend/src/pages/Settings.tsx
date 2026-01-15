@@ -8,7 +8,7 @@ export function Settings() {
     <div className="min-h-screen bg-[var(--color-bg)] flex flex-col">
       <Header />
 
-      <main className="flex-1 flex flex-col items-center px-8 pt-36 pb-16">
+      <main className="flex-1 flex flex-col items-center px-8 pt-44 pb-16">
         <div className="w-full max-w-xl">
           {/* Page Title */}
           <h1 className="text-2xl font-semibold text-[var(--color-text)] mb-10 text-center">

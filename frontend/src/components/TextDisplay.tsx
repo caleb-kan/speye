@@ -12,6 +12,9 @@ type TextDisplayProps = {
 // For static mode: ~24 words to fill 3 lines at 2xl font
 const WORDS_PER_CHUNK = 24
 
+// Smooth highlight: number of words the highlight spans
+const HIGHLIGHT_WIDTH = 6
+
 export function TextDisplay({
   text,
   currentWordIndex,
@@ -37,6 +40,28 @@ export function TextDisplay({
     }
     return result
   }, [words])
+
+  // Get word style: read (white), highlighted (blue gradient), unread (dim)
+  const getWordStyle = (
+    index: number
+  ): { color: string; opacity: number } => {
+    const distance = index - currentWordIndex
+
+    if (distance <= 0) {
+      // Already read (including current word) - white/normal
+      return { color: 'var(--color-text)', opacity: 1 }
+    } else if (distance <= HIGHLIGHT_WIDTH) {
+      // Upcoming highlight zone - primary color fading to secondary
+      const t = (distance - 1) / HIGHLIGHT_WIDTH
+      return {
+        color: `color-mix(in srgb, var(--color-primary) ${Math.round((1 - t) * 100)}%, var(--color-text-secondary))`,
+        opacity: 1,
+      }
+    } else {
+      // Not yet read - dimmed
+      return { color: 'var(--color-text-secondary)', opacity: 0.6 }
+    }
+  }
 
   // Dynamic mode scrolling
   useEffect(() => {
@@ -72,19 +97,32 @@ export function TextDisplay({
         >
           {chunkWords.map((word, index) => {
             const globalIndex = chunkStartIndex + index
-            const isActive = globalIndex === currentWordIndex
-            const isPast = globalIndex < currentWordIndex
+            const localDistance = index - (currentWordIndex - chunkStartIndex)
+
+            let style: { color: string; opacity: number }
+            if (localDistance <= 0) {
+              // Already read (including current word) - white/normal
+              style = { color: 'var(--color-text)', opacity: 1 }
+            } else if (localDistance <= HIGHLIGHT_WIDTH) {
+              // Upcoming highlight zone - primary color fading to secondary
+              const t = (localDistance - 1) / HIGHLIGHT_WIDTH
+              style = {
+                color: `color-mix(in srgb, var(--color-primary) ${Math.round((1 - t) * 100)}%, var(--color-text-secondary))`,
+                opacity: 1,
+              }
+            } else {
+              // Not yet read - dimmed
+              style = { color: 'var(--color-text-secondary)', opacity: 0.6 }
+            }
 
             return (
               <span
                 key={globalIndex}
-                className={`transition-colors duration-100 ${
-                  isActive
-                    ? 'text-[var(--color-primary)] font-semibold'
-                    : isPast
-                      ? 'text-[var(--color-text)]'
-                      : 'text-[var(--color-text-secondary)]'
-                }`}
+                style={{
+                  color: style.color,
+                  opacity: style.opacity,
+                  transition: 'color 400ms cubic-bezier(0.4, 0, 0.2, 1), opacity 400ms cubic-bezier(0.4, 0, 0.2, 1)',
+                }}
               >
                 {word}{' '}
               </span>
@@ -95,7 +133,7 @@ export function TextDisplay({
     )
   }
 
-  // Dynamic mode (original behavior)
+  // Dynamic mode with smooth highlight
   return (
     <div className="relative max-w-5xl mx-auto w-full">
       {/* Scrolling text container */}
@@ -107,19 +145,17 @@ export function TextDisplay({
         <div className="pb-16">
           {words.map((word, index) => {
             const isActive = index === currentWordIndex
-            const isPast = index < currentWordIndex
+            const style = getWordStyle(index)
 
             return (
               <span
                 key={index}
                 ref={isActive ? activeWordRef : null}
-                className={`transition-colors duration-100 ${
-                  isActive
-                    ? 'text-[var(--color-primary)] font-semibold'
-                    : isPast
-                      ? 'text-[var(--color-text)]'
-                      : 'text-[var(--color-text-secondary)]'
-                }`}
+                style={{
+                  color: style.color,
+                  opacity: style.opacity,
+                  transition: 'color 400ms cubic-bezier(0.4, 0, 0.2, 1), opacity 400ms cubic-bezier(0.4, 0, 0.2, 1)',
+                }}
               >
                 {word}{' '}
               </span>

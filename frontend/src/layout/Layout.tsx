@@ -1,18 +1,16 @@
-import Navbar from '../components/navbar/Navbar'
+import { Navbar } from '../components/navbar/Navbar'
 import { Outlet } from 'react-router-dom'
 
-const Layout = () => {
+export function Layout() {
   return (
-    <div className="flex min-h-screen bg-neutral-950 text-white">
+    <div className="flex min-h-screen bg-[var(--color-bg)] text-[var(--color-text)]">
       {/* Left sidebar */}
       <Navbar />
 
-      {/* Main content area; v6 layout pattern with Outlet */}
+      {/* Main content area */}
       <main className="flex-1 ml-20 p-8">
         <Outlet />
       </main>
     </div>
   )
 }
-
-export default Layout

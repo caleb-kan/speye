@@ -4,28 +4,27 @@ import type { ReactNode } from 'react'
 type NavItemProps = {
   to: string
   icon: ReactNode
+  label: string
 }
 
-const NavItem = ({ to, icon }: NavItemProps) => {
-  // Give access to the current URL path
+export function NavItem({ to, icon, label }: NavItemProps) {
   const location = useLocation()
-
-  // Highlight active navigation item
   const isActive = location.pathname === to
 
   return (
     <Link
       to={to}
+      aria-label={label}
+      aria-current={isActive ? 'page' : undefined}
       className={`
         flex justify-center items-center
         w-full h-12
         rounded-full transition-colors
-        ${isActive ? 'text-white' : 'text-gray-400 hover:text-white'}
+        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]
+        ${isActive ? 'text-[var(--color-primary)]' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'}
       `}
     >
       {icon}
     </Link>
   )
 }
-
-export default NavItem

@@ -3,9 +3,7 @@ import { Header } from '../components/Header'
 import { SettingsBar } from '../components/SettingsBar'
 import { Reader } from '../components/Reader'
 import { useTexts } from '../hooks/useTexts'
-
-type Mode = 'standard' | 'adaptive' | 'summarized'
-type ReadingType = 'dynamic' | 'static'
+import type { Mode, ReadingType } from '../types/reading'
 
 export function Home() {
   const [wpm, setWpm] = useState(200)
@@ -13,7 +11,7 @@ export function Home() {
   const [readingType, setReadingType] = useState<ReadingType>('dynamic')
   const [blurEnabled, setBlurEnabled] = useState(false)
 
-  const { currentText, loading, error, selectRandomText } = useTexts()
+  const { currentText, loading, error, selectRandomText, refetch } = useTexts()
 
   return (
     <div className="min-h-screen bg-[var(--color-bg)] flex flex-col">
@@ -45,7 +43,7 @@ export function Home() {
             <div className="text-center">
               <p className="text-[var(--color-error)] mb-4">{error}</p>
               <button
-                onClick={() => window.location.reload()}
+                onClick={refetch}
                 className="text-[var(--color-primary)] hover:underline"
               >
                 Try again
@@ -70,5 +68,3 @@ export function Home() {
     </div>
   )
 }
-
-export default Home

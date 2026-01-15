@@ -7,6 +7,7 @@ type TextDisplayProps = {
   currentWordIndex: number
   isPlaying: boolean
   readingType: ReadingType
+  blurEnabled: boolean
 }
 
 // For static mode: ~24 words to fill 3 lines at 2xl font
@@ -15,11 +16,16 @@ const WORDS_PER_CHUNK = 24
 // Smooth highlight: number of words the highlight spans
 const HIGHLIGHT_WIDTH = 6
 
+// Blur effect: how many words ahead to start unblurring
+const BLUR_RADIUS = 8
+const MAX_BLUR = 4 // pixels
+
 export function TextDisplay({
   text,
   currentWordIndex,
   isPlaying,
   readingType,
+  blurEnabled,
 }: TextDisplayProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const activeWordRef = useRef<HTMLSpanElement>(null)
@@ -42,22 +48,38 @@ export function TextDisplay({
   }, [words])
 
   // Get word style: read (white), highlighted (blue gradient), unread (dim)
-  const getWordStyle = (index: number): { color: string; opacity: number } => {
+  // Also calculates blur amount if blur is enabled
+  const getWordStyle = (
+    index: number
+  ): { color: string; opacity: number; blur: number } => {
     const distance = index - currentWordIndex
+
+    // Calculate blur: 0 for read words, gradually increases for unread
+    let blur = 0
+    if (blurEnabled && distance > 0) {
+      if (distance <= BLUR_RADIUS) {
+        // Gradually unblur as we approach
+        blur = (distance / BLUR_RADIUS) * MAX_BLUR
+      } else {
+        // Full blur for words far ahead
+        blur = MAX_BLUR
+      }
+    }
 
     if (distance <= 0) {
       // Already read (including current word) - white/normal
-      return { color: 'var(--color-text)', opacity: 1 }
+      return { color: 'var(--color-text)', opacity: 1, blur: 0 }
     } else if (distance <= HIGHLIGHT_WIDTH) {
       // Upcoming highlight zone - primary color fading to secondary
       const t = (distance - 1) / HIGHLIGHT_WIDTH
       return {
         color: `color-mix(in srgb, var(--color-primary) ${Math.round((1 - t) * 100)}%, var(--color-text-secondary))`,
         opacity: 1,
+        blur,
       }
     } else {
       // Not yet read - dimmed
-      return { color: 'var(--color-text-secondary)', opacity: 0.6 }
+      return { color: 'var(--color-text-secondary)', opacity: 0.6, blur }
     }
   }
 
@@ -97,6 +119,16 @@ export function TextDisplay({
             const globalIndex = chunkStartIndex + index
             const localDistance = index - (currentWordIndex - chunkStartIndex)
 
+            // Calculate blur for static mode
+            let blur = 0
+            if (blurEnabled && localDistance > 0) {
+              if (localDistance <= BLUR_RADIUS) {
+                blur = (localDistance / BLUR_RADIUS) * MAX_BLUR
+              } else {
+                blur = MAX_BLUR
+              }
+            }
+
             let style: { color: string; opacity: number }
             if (localDistance <= 0) {
               // Already read (including current word) - white/normal
@@ -119,8 +151,9 @@ export function TextDisplay({
                 style={{
                   color: style.color,
                   opacity: style.opacity,
+                  filter: blur > 0 ? `blur(${blur}px)` : 'none',
                   transition:
-                    'color 400ms cubic-bezier(0.4, 0, 0.2, 1), opacity 400ms cubic-bezier(0.4, 0, 0.2, 1)',
+                    'color 400ms cubic-bezier(0.4, 0, 0.2, 1), opacity 400ms cubic-bezier(0.4, 0, 0.2, 1), filter 400ms cubic-bezier(0.4, 0, 0.2, 1)',
                 }}
               >
                 {word}{' '}
@@ -153,8 +186,9 @@ export function TextDisplay({
                 style={{
                   color: style.color,
                   opacity: style.opacity,
+                  filter: style.blur > 0 ? `blur(${style.blur}px)` : 'none',
                   transition:
-                    'color 400ms cubic-bezier(0.4, 0, 0.2, 1), opacity 400ms cubic-bezier(0.4, 0, 0.2, 1)',
+                    'color 400ms cubic-bezier(0.4, 0, 0.2, 1), opacity 400ms cubic-bezier(0.4, 0, 0.2, 1), filter 400ms cubic-bezier(0.4, 0, 0.2, 1)',
                 }}
               >
                 {word}{' '}

@@ -11,6 +11,7 @@ export function Home() {
   const [wpm, setWpm] = useState(200)
   const [mode, setMode] = useState<Mode>('standard')
   const [readingType, setReadingType] = useState<ReadingType>('dynamic')
+  const [blurEnabled, setBlurEnabled] = useState(false)
 
   const { currentText, loading, error, selectRandomText } = useTexts()
 
@@ -27,6 +28,8 @@ export function Home() {
           onModeChange={setMode}
           readingType={readingType}
           onReadingTypeChange={setReadingType}
+          blurEnabled={blurEnabled}
+          onBlurChange={setBlurEnabled}
         />
 
         {/* Spacer */}
@@ -54,6 +57,7 @@ export function Home() {
               text={currentText.content}
               wpm={wpm}
               readingType={readingType}
+              blurEnabled={blurEnabled}
               onNewText={selectRandomText}
             />
           ) : (

@@ -3,7 +3,7 @@ import { Outlet } from 'react-router-dom'
 
 export function Layout() {
   return (
-    <div className="flex min-h-screen bg-[var(--color-bg)] text-[var(--color-text)]">
+    <div className="flex min-h-screen bg-bg text-text">
       {/* Left sidebar */}
       <Navbar />
 

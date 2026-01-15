@@ -21,13 +21,13 @@ export function ReadingControls({
     <div className="flex flex-col items-center gap-4">
       {/* Progress Bar */}
       <div className="w-full max-w-md">
-        <div className="h-1 bg-[var(--color-bg-secondary)] rounded-full overflow-hidden">
+        <div className="h-1 bg-bg-secondary rounded-full overflow-hidden">
           <div
-            className="h-full bg-[var(--color-primary)] transition-all duration-100"
+            className="h-full bg-primary transition-all duration-100"
             style={{ width: `${progress}%` }}
           />
         </div>
-        <div className="flex justify-between mt-2 text-xs text-[var(--color-text-secondary)]">
+        <div className="flex justify-between mt-2 text-xs text-text-secondary">
           <span>
             {currentWord} / {totalWords} words
           </span>
@@ -39,7 +39,7 @@ export function ReadingControls({
       <div className="flex items-center gap-4">
         <button
           onClick={onRestart}
-          className="w-10 h-10 flex items-center justify-center rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-text)] hover:bg-[var(--color-bg-secondary)] transition-all"
+          className="w-10 h-10 flex items-center justify-center rounded-lg text-text-secondary hover:text-text hover:bg-bg-secondary transition-all"
           aria-label="Restart"
         >
           <RestartIcon />
@@ -47,7 +47,7 @@ export function ReadingControls({
 
         <button
           onClick={onPlayPause}
-          className="w-14 h-14 flex items-center justify-center rounded-full bg-[var(--color-primary)] text-[var(--color-bg)] hover:opacity-90 transition-all"
+          className="w-14 h-14 flex items-center justify-center rounded-full bg-primary text-bg hover:opacity-90 transition-all"
           aria-label={isPlaying ? 'Pause' : 'Play'}
         >
           {isPlaying ? <PauseIcon /> : <PlayIcon />}
@@ -55,7 +55,7 @@ export function ReadingControls({
 
         <button
           onClick={onNewText}
-          className="w-10 h-10 flex items-center justify-center rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-text)] hover:bg-[var(--color-bg-secondary)] transition-all"
+          className="w-10 h-10 flex items-center justify-center rounded-lg text-text-secondary hover:text-text hover:bg-bg-secondary transition-all"
           aria-label="New text"
         >
           <RefreshIcon />
@@ -63,11 +63,8 @@ export function ReadingControls({
       </div>
 
       {/* Keyboard Hint */}
-      <p className="text-xs text-[var(--color-text-secondary)]">
-        press{' '}
-        <kbd className="px-1.5 py-0.5 bg-[var(--color-bg-secondary)] rounded">
-          space
-        </kbd>{' '}
+      <p className="text-xs text-text-secondary">
+        press <kbd className="px-1.5 py-0.5 bg-bg-secondary rounded">space</kbd>{' '}
         to {isPlaying ? 'pause' : 'start'}
       </p>
     </div>

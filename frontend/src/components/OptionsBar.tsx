@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import type { Mode, ReadingType } from '../types/reading'
+import type { Mode, ReadingType } from '../types'
 
-type SettingsBarProps = {
+type OptionsBarProps = {
   wpm: number
   onWpmChange: (wpm: number) => void
   mode: Mode
@@ -14,7 +14,7 @@ type SettingsBarProps = {
 
 const WPM_PRESETS = [100, 200, 300, 400]
 
-export function SettingsBar({
+export function OptionsBar({
   wpm,
   onWpmChange,
   mode,
@@ -23,7 +23,7 @@ export function SettingsBar({
   onReadingTypeChange,
   blurEnabled,
   onBlurChange,
-}: SettingsBarProps) {
+}: OptionsBarProps) {
   const [customWpm, setCustomWpm] = useState('')
   const [showCustomInput, setShowCustomInput] = useState(false)
 
@@ -49,20 +49,22 @@ export function SettingsBar({
     <div className="flex flex-wrap items-center justify-center gap-8 py-6 text-sm">
       {/* Mode Selection */}
       <div className="flex items-center gap-2">
-        <span className="text-[var(--color-text-secondary)] mr-1">mode:</span>
+        <span className="text-text-secondary mr-1">mode:</span>
         <button
           onClick={() => onModeChange('standard')}
-          className={`px-3 py-1.5 transition-all ${
+          className={`px-3 py-1.5 transition-colors ${
             mode === 'standard'
-              ? 'text-[var(--color-primary)]'
-              : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
+              ? 'text-primary'
+              : 'text-text-secondary hover:text-text'
           }`}
+          aria-label="Standard mode"
+          aria-pressed={mode === 'standard'}
         >
           standard
         </button>
         <button
           disabled
-          className="px-3 py-1.5 rounded text-[var(--color-text-secondary)] opacity-50 cursor-not-allowed flex items-center gap-1"
+          className="px-3 py-1.5 rounded text-text-secondary opacity-50 cursor-not-allowed flex items-center gap-1"
           title="Coming soon - requires sign in"
           aria-label="Adaptive mode (coming soon, requires sign in)"
         >
@@ -71,7 +73,7 @@ export function SettingsBar({
         </button>
         <button
           disabled
-          className="px-3 py-1.5 rounded text-[var(--color-text-secondary)] opacity-50 cursor-not-allowed flex items-center gap-1"
+          className="px-3 py-1.5 rounded text-text-secondary opacity-50 cursor-not-allowed flex items-center gap-1"
           title="Coming soon - requires sign in"
           aria-label="Summarized mode (coming soon, requires sign in)"
         >
@@ -81,74 +83,96 @@ export function SettingsBar({
       </div>
 
       {/* Divider */}
-      <div className="w-px h-6 bg-[var(--color-text-secondary)] opacity-30" />
+      <div className="w-px h-6 bg-text-secondary opacity-30" />
 
       {/* Reading Type Selection */}
       <div className="flex items-center gap-2">
-        <span className="text-[var(--color-text-secondary)] mr-1">type:</span>
+        <span className="text-text-secondary mr-1">type:</span>
         <button
           onClick={() => onReadingTypeChange('dynamic')}
-          className={`px-3 py-1.5 transition-all ${
+          className={`px-3 py-1.5 transition-colors ${
             readingType === 'dynamic'
-              ? 'text-[var(--color-primary)]'
-              : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
+              ? 'text-primary'
+              : 'text-text-secondary hover:text-text'
           }`}
+          aria-label="Dynamic reading type"
+          aria-pressed={readingType === 'dynamic'}
         >
           dynamic
         </button>
         <button
           onClick={() => onReadingTypeChange('static')}
-          className={`px-3 py-1.5 transition-all ${
+          className={`px-3 py-1.5 transition-colors ${
             readingType === 'static'
-              ? 'text-[var(--color-primary)]'
-              : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
+              ? 'text-primary'
+              : 'text-text-secondary hover:text-text'
           }`}
+          aria-label="Static reading type"
+          aria-pressed={readingType === 'static'}
         >
           static
         </button>
       </div>
 
       {/* Divider */}
-      <div className="w-px h-6 bg-[var(--color-text-secondary)] opacity-30" />
+      <div className="w-px h-6 bg-text-secondary opacity-30" />
 
       {/* Blur Toggle */}
       <div className="flex items-center gap-2">
-        <span className="text-[var(--color-text-secondary)] mr-1">blur:</span>
+        <span className="text-text-secondary mr-1">blur:</span>
         <button
           onClick={() => onBlurChange(!blurEnabled)}
-          className={`px-3 py-1.5 transition-all ${
-            blurEnabled
-              ? 'text-[var(--color-primary)]'
-              : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
+          className={`px-3 py-1.5 transition-colors ${
+            blurEnabled ? 'text-primary' : 'text-text-secondary hover:text-text'
           }`}
+          aria-label={`Blur unread text: ${blurEnabled ? 'enabled' : 'disabled'}`}
+          aria-pressed={blurEnabled}
         >
           {blurEnabled ? 'on' : 'off'}
         </button>
       </div>
 
       {/* Divider */}
-      <div className="w-px h-6 bg-[var(--color-text-secondary)] opacity-30" />
+      <div className="w-px h-6 bg-text-secondary opacity-30" />
 
       {/* WPM Selection */}
       <div className="flex items-center gap-2">
-        <span className="text-[var(--color-text-secondary)] mr-1">wpm:</span>
+        <span className="text-text-secondary mr-1">wpm:</span>
         {WPM_PRESETS.map((preset) => (
           <button
             key={preset}
             onClick={() => onWpmChange(preset)}
-            className={`px-2 py-1 transition-all ${
+            className={`px-2 py-1 transition-colors ${
               wpm === preset
-                ? 'text-[var(--color-primary)]'
-                : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
+                ? 'text-primary'
+                : 'text-text-secondary hover:text-text'
             }`}
+            aria-label={`Set reading speed to ${preset} words per minute`}
+            aria-pressed={wpm === preset}
           >
             {preset}
           </button>
         ))}
 
         {/* Custom WPM */}
-        {showCustomInput ? (
-          <span className="relative px-2 py-1">
+        <button
+          onClick={() => !showCustomInput && setShowCustomInput(true)}
+          className={`flex items-center px-2 py-1 transition-colors ${
+            !WPM_PRESETS.includes(wpm) || showCustomInput
+              ? 'text-primary'
+              : 'text-text-secondary hover:text-text'
+          }`}
+          title={
+            showCustomInput
+              ? undefined
+              : !WPM_PRESETS.includes(wpm)
+                ? `Click to change custom WPM (currently ${wpm})`
+                : 'Click to set a custom WPM'
+          }
+          aria-label="Enter custom words per minute value"
+        >
+          <span>custom:&nbsp;</span>
+          {showCustomInput ? (
             <input
               type="number"
               value={customWpm}
@@ -159,23 +183,15 @@ export function SettingsBar({
               max={1000}
               autoFocus
               aria-label="Custom words per minute value"
-              className="w-12 bg-transparent text-[var(--color-primary)] border-b border-[var(--color-primary)] focus:outline-none text-center appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+              className="bg-transparent border-b border-current focus:outline-none text-center appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+              style={{ width: `${Math.max(2, customWpm.length || 1)}ch` }}
             />
-          </span>
-        ) : (
-          <button
-            onClick={() => setShowCustomInput(true)}
-            className={`px-2 py-1 transition-all ${
-              !WPM_PRESETS.includes(wpm)
-                ? 'text-[var(--color-primary)]'
-                : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
-            }`}
-            title="Enter custom WPM"
-            aria-label="Enter custom words per minute value"
-          >
-            {!WPM_PRESETS.includes(wpm) ? wpm : 'custom'}
-          </button>
-        )}
+          ) : (
+            <span className="border-b border-current inline-block min-w-[2ch]">
+              {!WPM_PRESETS.includes(wpm) ? wpm : '\u00A0'}
+            </span>
+          )}
+        </button>
       </div>
     </div>
   )

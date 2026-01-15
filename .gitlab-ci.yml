@@ -1,6 +1,7 @@
 stages:
   - install
   - quality
+  - test
   - build
   - deploy
 
@@ -45,11 +46,20 @@ format-check:
   script:
     - npm run format:check
 
+test:
+  stage: test
+  tags:
+    - build
+  needs: [install]
+  script:
+    - cd frontend
+    - npm test -- src/test
+
 build:
   stage: build
   tags:
     - build
-  needs: [install, lint, format-check]
+  needs: [install, lint, format-check, test]
   script:
     - npm run build
   artifacts:

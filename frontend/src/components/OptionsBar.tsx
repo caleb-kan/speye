@@ -28,6 +28,12 @@ export function OptionsBar({
   const [showCustomInput, setShowCustomInput] = useState(false)
 
   const handleCustomWpmSubmit = () => {
+    if (!customWpm.trim()) {
+      setShowCustomInput(false)
+      setCustomWpm('')
+      return
+    }
+
     const value = parseInt(customWpm, 10)
     if (value >= 50 && value <= 1000) {
       onWpmChange(value)
@@ -141,7 +147,11 @@ export function OptionsBar({
         {WPM_PRESETS.map((preset) => (
           <button
             key={preset}
-            onClick={() => onWpmChange(preset)}
+            onClick={() => {
+              onWpmChange(preset)
+              setShowCustomInput(false)
+              setCustomWpm('')
+            }}
             className={`px-2 py-1 transition-colors ${
               wpm === preset
                 ? 'text-primary'

@@ -42,9 +42,7 @@ export function TextDisplay({
   }, [words])
 
   // Get word style: read (white), highlighted (blue gradient), unread (dim)
-  const getWordStyle = (
-    index: number
-  ): { color: string; opacity: number } => {
+  const getWordStyle = (index: number): { color: string; opacity: number } => {
     const distance = index - currentWordIndex
 
     if (distance <= 0) {
@@ -121,7 +119,8 @@ export function TextDisplay({
                 style={{
                   color: style.color,
                   opacity: style.opacity,
-                  transition: 'color 400ms cubic-bezier(0.4, 0, 0.2, 1), opacity 400ms cubic-bezier(0.4, 0, 0.2, 1)',
+                  transition:
+                    'color 400ms cubic-bezier(0.4, 0, 0.2, 1), opacity 400ms cubic-bezier(0.4, 0, 0.2, 1)',
                 }}
               >
                 {word}{' '}
@@ -154,7 +153,8 @@ export function TextDisplay({
                 style={{
                   color: style.color,
                   opacity: style.opacity,
-                  transition: 'color 400ms cubic-bezier(0.4, 0, 0.2, 1), opacity 400ms cubic-bezier(0.4, 0, 0.2, 1)',
+                  transition:
+                    'color 400ms cubic-bezier(0.4, 0, 0.2, 1), opacity 400ms cubic-bezier(0.4, 0, 0.2, 1)',
                 }}
               >
                 {word}{' '}

@@ -124,7 +124,7 @@ describe('Home Page', () => {
     })
   })
 
-  describe('SettingsBar - Mode Selection', () => {
+  describe('OptionsBar - Mode Selection', () => {
     // Reset useTexts mock before each mode selection test
     beforeEach(() => {
       mockUseTexts.mockReturnValue({
@@ -151,7 +151,7 @@ describe('Home Page', () => {
       renderWithRouter(<Home />)
 
       const standardButton = screen.getByText('standard')
-      expect(standardButton).toHaveClass('text-[var(--color-primary)]')
+      expect(standardButton).toHaveClass('text-primary')
     })
 
     // Verifies that adaptive and summarized modes are disabled by default
@@ -166,7 +166,7 @@ describe('Home Page', () => {
     })
   })
 
-  describe('SettingsBar - WPM Selection', () => {
+  describe('OptionsBar - WPM Selection', () => {
     // Reset useTexts mock before each WPM selection test
     beforeEach(() => {
       mockUseTexts.mockReturnValue({
@@ -201,7 +201,7 @@ describe('Home Page', () => {
       renderWithRouter(<Home />)
 
       const wpm200Button = screen.getByText('200')
-      expect(wpm200Button).toHaveClass('text-[var(--color-primary)]')
+      expect(wpm200Button).toHaveClass('text-primary')
     })
 
     // Verifies that clicking another preset WPM changes the selection
@@ -212,14 +212,14 @@ describe('Home Page', () => {
       const wpm300Button = screen.getByText('300')
       await user.click(wpm300Button)
 
-      expect(wpm300Button).toHaveClass('text-[var(--color-primary)]')
+      expect(wpm300Button).toHaveClass('text-primary')
     })
 
     // Verifies the custom WPM button is rendered
     it('renders custom WPM button', () => {
       renderWithRouter(<Home />)
 
-      expect(screen.getByText('custom')).toBeInTheDocument()
+      expect(screen.getByText(/custom:/i)).toBeInTheDocument()
     })
 
     // Verifies that clicking the custom button reveals the numeric input
@@ -227,7 +227,7 @@ describe('Home Page', () => {
       const user = userEvent.setup()
       renderWithRouter(<Home />)
 
-      const customButton = screen.getByText('custom')
+      const customButton = screen.getByText(/custom:/i)
       await user.click(customButton)
 
       // Input should be visible (no placeholder, just a number input)
@@ -240,7 +240,7 @@ describe('Home Page', () => {
       const user = userEvent.setup()
       renderWithRouter(<Home />)
 
-      await user.click(screen.getByText('custom'))
+      await user.click(screen.getByText(/custom:/i))
 
       const input = screen.getByRole('spinbutton')
       await user.type(input, '350')

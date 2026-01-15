@@ -20,8 +20,8 @@ export function NavItem({ to, icon, label }: NavItemProps) {
         flex justify-center items-center
         w-full h-12
         rounded-full transition-colors
-        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]
-        ${isActive ? 'text-[var(--color-primary)]' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'}
+        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary
+        ${isActive ? 'text-primary' : 'text-text-secondary hover:text-text'}
       `}
     >
       {icon}

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Header } from '../components/Header'
-import { SettingsBar } from '../components/SettingsBar'
+import { OptionsBar } from '../components/OptionsBar'
 import { Reader } from '../components/Reader'
 import { useTexts } from '../hooks/useTexts'
 import type { Mode, ReadingType } from '../types/reading'
@@ -14,12 +14,12 @@ export function Home() {
   const { currentText, loading, error, selectRandomText, refetch } = useTexts()
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg)] flex flex-col">
+    <div className="min-h-screen bg-bg flex flex-col">
       <Header />
 
       <main className="flex-1 flex flex-col items-center justify-center px-8">
-        {/* Settings Bar */}
-        <SettingsBar
+        {/* Options Bar */}
+        <OptionsBar
           wpm={wpm}
           onWpmChange={setWpm}
           mode={mode}
@@ -36,15 +36,15 @@ export function Home() {
         {/* Main Content */}
         <div className="w-full max-w-3xl">
           {loading ? (
-            <div className="text-[var(--color-text-secondary)] text-center">
+            <div className="text-text-secondary text-center">
               Loading texts...
             </div>
           ) : error ? (
             <div className="text-center">
-              <p className="text-[var(--color-error)] mb-4">{error}</p>
+              <p className="text-error mb-4">{error}</p>
               <button
                 onClick={refetch}
-                className="text-[var(--color-primary)] hover:underline"
+                className="text-primary hover:underline"
               >
                 Try again
               </button>
@@ -59,7 +59,7 @@ export function Home() {
               onNewText={selectRandomText}
             />
           ) : (
-            <div className="text-[var(--color-text-secondary)] text-center">
+            <div className="text-text-secondary text-center">
               No texts available
             </div>
           )}

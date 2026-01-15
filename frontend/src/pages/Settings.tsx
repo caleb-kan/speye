@@ -5,19 +5,19 @@ export function Settings() {
   const { theme, setTheme, themes } = useTheme()
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg)] flex flex-col">
+    <div className="min-h-screen bg-bg flex flex-col">
       <Header />
 
       <main className="flex-1 flex flex-col items-center px-8 pt-44 pb-16">
         <div className="w-full max-w-xl">
           {/* Page Title */}
-          <h1 className="text-2xl font-semibold text-[var(--color-text)] mb-10 text-center">
+          <h1 className="text-2xl font-semibold text-text mb-10 text-center">
             settings
           </h1>
 
           {/* Theme Section */}
           <section className="mb-10">
-            <h2 className="text-sm text-[var(--color-text-secondary)] mb-3 text-center">
+            <h2 className="text-sm text-text-secondary mb-3 text-center">
               theme
             </h2>
             <div className="grid grid-cols-3 gap-3">
@@ -27,10 +27,11 @@ export function Settings() {
                   onClick={() => setTheme(t.id)}
                   className={`group relative p-4 rounded-lg border-2 transition-all ${
                     theme.id === t.id
-                      ? 'border-[var(--color-primary)]'
-                      : 'border-transparent hover:border-[var(--color-text-secondary)]/30'
+                      ? 'border-primary'
+                      : 'border-transparent hover:border-text-secondary/30'
                   }`}
                   style={{ backgroundColor: t.colors.bgSecondary }}
+                  aria-label={`Select ${t.name} theme${theme.id === t.id ? ' (currently selected)' : ''}`}
                 >
                   {/* Theme Preview */}
                   <div className="flex gap-1.5 mb-3 justify-center">
@@ -80,15 +81,13 @@ export function Settings() {
 
           {/* Keyboard Shortcuts */}
           <section className="mb-10">
-            <h2 className="text-sm text-[var(--color-text-secondary)] mb-3 text-center">
+            <h2 className="text-sm text-text-secondary mb-3 text-center">
               keyboard shortcuts
             </h2>
-            <div className="bg-[var(--color-bg-secondary)] rounded-lg p-5">
+            <div className="bg-bg-secondary rounded-lg p-5">
               <div className="flex items-center justify-between">
-                <span className="text-[var(--color-text)]">
-                  Start / Pause reading
-                </span>
-                <kbd className="px-3 py-1.5 bg-[var(--color-bg)] rounded text-sm text-[var(--color-text-secondary)] font-mono">
+                <span className="text-text">Start / Pause reading</span>
+                <kbd className="px-3 py-1.5 bg-bg rounded text-sm text-text-secondary font-mono">
                   Space
                 </kbd>
               </div>
@@ -97,34 +96,34 @@ export function Settings() {
 
           {/* About Section */}
           <section>
-            <h2 className="text-sm text-[var(--color-text-secondary)] mb-3 text-center">
+            <h2 className="text-sm text-text-secondary mb-3 text-center">
               about
             </h2>
-            <div className="bg-[var(--color-bg-secondary)] rounded-lg p-5">
-              <p className="text-[var(--color-text)] mb-5 text-center">
+            <div className="bg-bg-secondary rounded-lg p-5">
+              <p className="text-text mb-5 text-center">
                 sp(eye) is an adaptive speed reading platform that helps you
                 read faster while maintaining comprehension.
               </p>
-              <div className="text-sm text-[var(--color-text-secondary)] space-y-3">
+              <div className="text-sm text-text-secondary space-y-3">
                 <div className="flex gap-3">
-                  <span className="text-[var(--color-primary)] font-medium shrink-0">
+                  <span className="text-primary font-medium shrink-0">
                     standard
                   </span>
                   <span>Fixed WPM speed reading with word highlighting</span>
                 </div>
                 <div className="flex gap-3">
-                  <span className="text-[var(--color-text-secondary)]/50 font-medium shrink-0">
+                  <span className="text-text-secondary/50 font-medium shrink-0">
                     adaptive
                   </span>
-                  <span className="text-[var(--color-text-secondary)]/50">
+                  <span className="text-text-secondary/50">
                     Eye-tracking based adaptive speed (coming soon)
                   </span>
                 </div>
                 <div className="flex gap-3">
-                  <span className="text-[var(--color-text-secondary)]/50 font-medium shrink-0">
+                  <span className="text-text-secondary/50 font-medium shrink-0">
                     summarized
                   </span>
-                  <span className="text-[var(--color-text-secondary)]/50">
+                  <span className="text-text-secondary/50">
                     AI-powered summarization for non-fiction (coming soon)
                   </span>
                 </div>

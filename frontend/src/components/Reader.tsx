@@ -1,8 +1,7 @@
 import { TextDisplay } from './TextDisplay'
 import { ReadingControls } from './ReadingControls'
 import { useReader } from '../hooks/useReader'
-
-type ReadingType = 'dynamic' | 'static'
+import type { ReadingType } from '../types/reading'
 
 type ReaderProps = {
   text: string
@@ -38,6 +37,7 @@ export function Reader({
           isPlaying={isPlaying}
           readingType={readingType}
           blurEnabled={blurEnabled}
+          wpm={wpm}
         />
       </div>
 

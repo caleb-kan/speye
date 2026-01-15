@@ -1,7 +1,5 @@
 import { useState } from 'react'
-
-type Mode = 'standard' | 'adaptive' | 'summarized'
-type ReadingType = 'dynamic' | 'static'
+import type { Mode, ReadingType } from '../types/reading'
 
 type SettingsBarProps = {
   wpm: number
@@ -66,6 +64,7 @@ export function SettingsBar({
           disabled
           className="px-3 py-1.5 rounded text-[var(--color-text-secondary)] opacity-50 cursor-not-allowed flex items-center gap-1"
           title="Coming soon - requires sign in"
+          aria-label="Adaptive mode (coming soon, requires sign in)"
         >
           adaptive
           <LockIcon />
@@ -74,6 +73,7 @@ export function SettingsBar({
           disabled
           className="px-3 py-1.5 rounded text-[var(--color-text-secondary)] opacity-50 cursor-not-allowed flex items-center gap-1"
           title="Coming soon - requires sign in"
+          aria-label="Summarized mode (coming soon, requires sign in)"
         >
           summarized
           <LockIcon />
@@ -158,6 +158,7 @@ export function SettingsBar({
               min={50}
               max={1000}
               autoFocus
+              aria-label="Custom words per minute value"
               className="w-12 bg-transparent text-[var(--color-primary)] border-b border-[var(--color-primary)] focus:outline-none text-center appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
             />
           </span>
@@ -170,6 +171,7 @@ export function SettingsBar({
                 : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
             }`}
             title="Enter custom WPM"
+            aria-label="Enter custom words per minute value"
           >
             {!WPM_PRESETS.includes(wpm) ? wpm : 'custom'}
           </button>
@@ -191,6 +193,7 @@ function LockIcon() {
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
+      aria-hidden="true"
     >
       <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
       <path d="M7 11V7a5 5 0 0 1 10 0v4" />

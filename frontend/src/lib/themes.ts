@@ -1,16 +1,6 @@
-export type Theme = {
-  name: string
-  id: string
-  colors: {
-    bg: string
-    bgSecondary: string
-    text: string
-    textSecondary: string
-    primary: string
-    error: string
-    success: string
-  }
-}
+import type { Theme } from '../types/theme'
+
+export type { Theme }
 
 export const themes: Theme[] = [
   {

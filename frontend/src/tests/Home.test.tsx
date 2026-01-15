@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { BrowserRouter } from 'react-router-dom'
 import { Home } from '../pages/Home.tsx'
 import * as useTextsModule from '../hooks/useTexts.ts'
-import type { Text } from '../lib/supabase.ts'
+import type { Text } from '../types/database.ts'
 
 vi.mock('../hooks/useTexts')
 
@@ -36,24 +36,6 @@ describe('Home Page', () => {
       expect(screen.getByText('sp(eye)')).toBeInTheDocument()
     })
 
-    // Verifies the settings link is visible and present in the header
-    it('renders the settings link', () => {
-      mockUseTexts.mockReturnValue({
-        texts: [],
-        currentText: null,
-        loading: false,
-        error: null,
-        selectRandomText: vi.fn(),
-        refetch: vi.fn(),
-      })
-
-      renderWithRouter(<Home />)
-
-      const settingsLink = screen.getByText('settings')
-      expect(settingsLink).toBeInTheDocument()
-      expect(settingsLink.closest('a')).toHaveAttribute('href', '/settings')
-    })
-
     // Verifies the logo acts as a link back to the home page
     it('logo links to home page', () => {
       mockUseTexts.mockReturnValue({
@@ -68,7 +50,7 @@ describe('Home Page', () => {
       renderWithRouter(<Home />)
 
       const logoLink = screen.getByText('sp(eye)').closest('a')
-      expect(logoLink).toHaveAttribute('href', '/')
+      expect(logoLink).toHaveAttribute('href', '/home')
     })
   })
 

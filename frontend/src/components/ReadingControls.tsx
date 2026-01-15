@@ -83,6 +83,7 @@ function PlayIcon() {
       viewBox="0 0 24 24"
       fill="currentColor"
       className="block"
+      aria-hidden="true"
     >
       <path d="M6 4v16l14-8z" />
     </svg>
@@ -98,6 +99,7 @@ function PauseIcon() {
       viewBox="0 0 24 24"
       fill="currentColor"
       className="block"
+      aria-hidden="true"
     >
       <path d="M6 4h4v16H6zM14 4h4v16h-4z" />
     </svg>
@@ -117,6 +119,7 @@ function RestartIcon() {
       strokeLinecap="round"
       strokeLinejoin="round"
       className="block"
+      aria-hidden="true"
     >
       <polyline points="1 4 1 10 7 10" />
       <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
@@ -137,6 +140,7 @@ function RefreshIcon() {
       strokeLinecap="round"
       strokeLinejoin="round"
       className="block"
+      aria-hidden="true"
     >
       <polyline points="23 4 23 10 17 10" />
       <polyline points="1 20 1 14 7 14" />

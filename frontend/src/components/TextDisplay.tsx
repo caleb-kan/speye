@@ -1,6 +1,6 @@
 import { useEffect, useRef, useMemo } from 'react'
-
-type ReadingType = 'dynamic' | 'static'
+import type { ReadingType } from '../types/reading'
+import { getWordStyle } from '../utils/wordStyle'
 
 type TextDisplayProps = {
   text: string
@@ -8,17 +8,22 @@ type TextDisplayProps = {
   isPlaying: boolean
   readingType: ReadingType
   blurEnabled: boolean
+  wpm: number
 }
 
 // For static mode: ~24 words to fill 3 lines at 2xl font
 const WORDS_PER_CHUNK = 24
+// Number of words from end to hide the fade gradient
+const WORDS_NEAR_END_THRESHOLD = 10
+// Scroll target position as fraction from top (1/3 = upper third of viewport)
+const SCROLL_POSITION_DIVISOR = 3
+// Fixed height for dynamic mode container (fits ~3 lines at 2xl font)
+const DYNAMIC_MODE_HEIGHT = '280px'
 
-// Smooth highlight: number of words the highlight spans
-const HIGHLIGHT_WIDTH = 6
-
-// Blur effect: how many words ahead to start unblurring
-const BLUR_RADIUS = 8
-const MAX_BLUR = 4 // pixels
+// Minimum transition duration for smoothness (ms)
+const MIN_TRANSITION_MS = 50
+// Maximum transition duration (ms)
+const MAX_TRANSITION_MS = 400
 
 export function TextDisplay({
   text,
@@ -26,7 +31,16 @@ export function TextDisplay({
   isPlaying,
   readingType,
   blurEnabled,
+  wpm,
 }: TextDisplayProps) {
+  // Calculate transition duration based on WPM
+  // Transition should be at most 80% of time per word for smooth highlighting
+  const msPerWord = (60 / wpm) * 1000
+  const transitionMs = Math.max(
+    MIN_TRANSITION_MS,
+    Math.min(MAX_TRANSITION_MS, msPerWord * 0.8)
+  )
+  const wordTransition = `color ${transitionMs}ms cubic-bezier(0.4, 0, 0.2, 1), opacity ${transitionMs}ms cubic-bezier(0.4, 0, 0.2, 1), filter ${transitionMs}ms cubic-bezier(0.4, 0, 0.2, 1)`
   const containerRef = useRef<HTMLDivElement>(null)
   const activeWordRef = useRef<HTMLSpanElement>(null)
 
@@ -34,7 +48,7 @@ export function TextDisplay({
     () => text.split(/\s+/).filter((w) => w.length > 0),
     [text]
   )
-  const isNearEnd = currentWordIndex >= words.length - 10
+  const isNearEnd = currentWordIndex >= words.length - WORDS_NEAR_END_THRESHOLD
 
   // Compute current chunk from word index
   const currentChunk = Math.floor(currentWordIndex / WORDS_PER_CHUNK)
@@ -46,45 +60,6 @@ export function TextDisplay({
     }
     return result
   }, [words])
-
-  // Get word style: read (normal), current (primary), upcoming (gradient), unread (dim)
-  // Also calculates blur amount if blur is enabled
-  const getWordStyle = (
-    index: number
-  ): { color: string; opacity: number; blur: number } => {
-    const distance = index - currentWordIndex
-
-    // Calculate blur: 0 for read/current words, gradually increases for unread
-    let blur = 0
-    if (blurEnabled && distance > 0) {
-      if (distance <= BLUR_RADIUS) {
-        // Gradually unblur as we approach
-        blur = (distance / BLUR_RADIUS) * MAX_BLUR
-      } else {
-        // Full blur for words far ahead
-        blur = MAX_BLUR
-      }
-    }
-
-    if (distance < 0) {
-      // Already read - normal text color
-      return { color: 'var(--color-text)', opacity: 1, blur: 0 }
-    } else if (distance === 0) {
-      // Current word - highlighted in primary color
-      return { color: 'var(--color-primary)', opacity: 1, blur: 0 }
-    } else if (distance <= HIGHLIGHT_WIDTH) {
-      // Upcoming highlight zone - primary fading to secondary
-      const t = distance / HIGHLIGHT_WIDTH
-      return {
-        color: `color-mix(in srgb, var(--color-primary) ${Math.round((1 - t) * 100)}%, var(--color-text-secondary))`,
-        opacity: 1,
-        blur,
-      }
-    } else {
-      // Not yet read - dimmed
-      return { color: 'var(--color-text-secondary)', opacity: 0.6, blur }
-    }
-  }
 
   // Dynamic mode scrolling
   useEffect(() => {
@@ -99,7 +74,8 @@ export function TextDisplay({
       const wordRect = activeWord.getBoundingClientRect()
 
       const relativeTop = wordRect.top - containerRect.top + container.scrollTop
-      const targetScroll = relativeTop - containerRect.height / 3
+      const targetScroll =
+        relativeTop - containerRect.height / SCROLL_POSITION_DIVISOR
 
       container.scrollTo({
         top: Math.max(0, targetScroll),
@@ -121,35 +97,7 @@ export function TextDisplay({
           {chunkWords.map((word, index) => {
             const globalIndex = chunkStartIndex + index
             const localDistance = index - (currentWordIndex - chunkStartIndex)
-
-            // Calculate blur for static mode
-            let blur = 0
-            if (blurEnabled && localDistance > 0) {
-              if (localDistance <= BLUR_RADIUS) {
-                blur = (localDistance / BLUR_RADIUS) * MAX_BLUR
-              } else {
-                blur = MAX_BLUR
-              }
-            }
-
-            let style: { color: string; opacity: number }
-            if (localDistance < 0) {
-              // Already read - normal text color
-              style = { color: 'var(--color-text)', opacity: 1 }
-            } else if (localDistance === 0) {
-              // Current word - highlighted in primary color
-              style = { color: 'var(--color-primary)', opacity: 1 }
-            } else if (localDistance <= HIGHLIGHT_WIDTH) {
-              // Upcoming highlight zone - primary fading to secondary
-              const t = localDistance / HIGHLIGHT_WIDTH
-              style = {
-                color: `color-mix(in srgb, var(--color-primary) ${Math.round((1 - t) * 100)}%, var(--color-text-secondary))`,
-                opacity: 1,
-              }
-            } else {
-              // Not yet read - dimmed
-              style = { color: 'var(--color-text-secondary)', opacity: 0.6 }
-            }
+            const style = getWordStyle(localDistance, blurEnabled)
 
             return (
               <span
@@ -157,9 +105,8 @@ export function TextDisplay({
                 style={{
                   color: style.color,
                   opacity: style.opacity,
-                  filter: blur > 0 ? `blur(${blur}px)` : 'none',
-                  transition:
-                    'color 400ms cubic-bezier(0.4, 0, 0.2, 1), opacity 400ms cubic-bezier(0.4, 0, 0.2, 1), filter 400ms cubic-bezier(0.4, 0, 0.2, 1)',
+                  filter: style.blur > 0 ? `blur(${style.blur}px)` : 'none',
+                  transition: wordTransition,
                 }}
               >
                 {word}{' '}
@@ -178,23 +125,23 @@ export function TextDisplay({
       <div
         ref={containerRef}
         className="text-2xl leading-relaxed select-none overflow-hidden"
-        style={{ height: '280px' }}
+        style={{ height: DYNAMIC_MODE_HEIGHT }}
       >
         <div className="pb-16">
           {words.map((word, index) => {
             const isActive = index === currentWordIndex
-            const style = getWordStyle(index)
+            const distance = index - currentWordIndex
+            const style = getWordStyle(distance, blurEnabled)
 
             return (
               <span
-                key={index}
+                key={`${word}-${index}`}
                 ref={isActive ? activeWordRef : null}
                 style={{
                   color: style.color,
                   opacity: style.opacity,
                   filter: style.blur > 0 ? `blur(${style.blur}px)` : 'none',
-                  transition:
-                    'color 400ms cubic-bezier(0.4, 0, 0.2, 1), opacity 400ms cubic-bezier(0.4, 0, 0.2, 1), filter 400ms cubic-bezier(0.4, 0, 0.2, 1)',
+                  transition: wordTransition,
                 }}
               >
                 {word}{' '}

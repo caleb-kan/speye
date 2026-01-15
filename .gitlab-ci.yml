@@ -53,7 +53,7 @@ test:
   needs: [install, lint, format-check]
   script:
     - cd frontend
-    - npm test -- src/test
+    - npm run test:run
 
 build:
   stage: build

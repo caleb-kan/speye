@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
-import type { Text } from '../lib/supabase'
+import type { Text } from '../types/database'
 
 export function useTexts() {
   const [texts, setTexts] = useState<Text[]>([])

@@ -10,6 +10,8 @@ type SettingsBarProps = {
   onModeChange: (mode: Mode) => void
   readingType: ReadingType
   onReadingTypeChange: (type: ReadingType) => void
+  blurEnabled: boolean
+  onBlurChange: (enabled: boolean) => void
 }
 
 const WPM_PRESETS = [100, 200, 300, 400]
@@ -21,6 +23,8 @@ export function SettingsBar({
   onModeChange,
   readingType,
   onReadingTypeChange,
+  blurEnabled,
+  onBlurChange,
 }: SettingsBarProps) {
   const [customWpm, setCustomWpm] = useState('')
   const [showCustomInput, setShowCustomInput] = useState(false)
@@ -101,6 +105,24 @@ export function SettingsBar({
           }`}
         >
           static
+        </button>
+      </div>
+
+      {/* Divider */}
+      <div className="w-px h-6 bg-[var(--color-text-secondary)] opacity-30" />
+
+      {/* Blur Toggle */}
+      <div className="flex items-center gap-2">
+        <span className="text-[var(--color-text-secondary)] mr-1">blur:</span>
+        <button
+          onClick={() => onBlurChange(!blurEnabled)}
+          className={`px-3 py-1.5 transition-all ${
+            blurEnabled
+              ? 'text-[var(--color-primary)]'
+              : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
+          }`}
+        >
+          {blurEnabled ? 'on' : 'off'}
         </button>
       </div>
 

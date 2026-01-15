@@ -8,10 +8,17 @@ type ReaderProps = {
   text: string
   wpm: number
   readingType: ReadingType
+  blurEnabled: boolean
   onNewText: () => void
 }
 
-export function Reader({ text, wpm, readingType, onNewText }: ReaderProps) {
+export function Reader({
+  text,
+  wpm,
+  readingType,
+  blurEnabled,
+  onNewText,
+}: ReaderProps) {
   const {
     currentWordIndex,
     isPlaying,
@@ -30,6 +37,7 @@ export function Reader({ text, wpm, readingType, onNewText }: ReaderProps) {
           currentWordIndex={currentWordIndex}
           isPlaying={isPlaying}
           readingType={readingType}
+          blurEnabled={blurEnabled}
         />
       </div>
 

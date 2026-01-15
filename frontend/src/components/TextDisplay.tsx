@@ -47,7 +47,7 @@ export function TextDisplay({
     return result
   }, [words])
 
-  // Get word style: read (white), current (blue), upcoming (gradient), unread (dim)
+  // Get word style: read (normal), current (primary), upcoming (gradient), unread (dim)
   // Also calculates blur amount if blur is enabled
   const getWordStyle = (
     index: number
@@ -67,13 +67,13 @@ export function TextDisplay({
     }
 
     if (distance < 0) {
-      // Already read - white/normal
+      // Already read - normal text color
       return { color: 'var(--color-text)', opacity: 1, blur: 0 }
     } else if (distance === 0) {
-      // Current word - highlighted primary color
+      // Current word - highlighted in primary color
       return { color: 'var(--color-primary)', opacity: 1, blur: 0 }
     } else if (distance <= HIGHLIGHT_WIDTH) {
-      // Upcoming highlight zone - primary color fading to secondary
+      // Upcoming highlight zone - primary fading to secondary
       const t = distance / HIGHLIGHT_WIDTH
       return {
         color: `color-mix(in srgb, var(--color-primary) ${Math.round((1 - t) * 100)}%, var(--color-text-secondary))`,
@@ -134,13 +134,13 @@ export function TextDisplay({
 
             let style: { color: string; opacity: number }
             if (localDistance < 0) {
-              // Already read - white/normal
+              // Already read - normal text color
               style = { color: 'var(--color-text)', opacity: 1 }
             } else if (localDistance === 0) {
-              // Current word - highlighted primary color
+              // Current word - highlighted in primary color
               style = { color: 'var(--color-primary)', opacity: 1 }
             } else if (localDistance <= HIGHLIGHT_WIDTH) {
-              // Upcoming highlight zone - primary color fading to secondary
+              // Upcoming highlight zone - primary fading to secondary
               const t = localDistance / HIGHLIGHT_WIDTH
               style = {
                 color: `color-mix(in srgb, var(--color-primary) ${Math.round((1 - t) * 100)}%, var(--color-text-secondary))`,

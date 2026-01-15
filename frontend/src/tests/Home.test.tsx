@@ -5,8 +5,11 @@ import { BrowserRouter } from 'react-router-dom'
 import { Home } from '../pages/Home.tsx'
 import * as useTextsModule from '../hooks/useTexts.ts'
 import type { Text } from '../types/database.ts'
+import '@testing-library/jest-dom'
 
 vi.mock('../hooks/useTexts')
+Element.prototype.scrollTo = vi.fn()
+window.scrollTo = vi.fn()
 
 const mockUseTexts = vi.mocked(useTextsModule.useTexts)
 

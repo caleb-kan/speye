@@ -1,6 +1,7 @@
 stages:
   - install
-  - quality
+  - format
+  - test
   - build
   - deploy
 
@@ -30,7 +31,7 @@ install:
     expire_in: 1 hour
 
 lint:
-  stage: quality
+  stage: format
   tags:
     - build
   needs: [install]
@@ -38,18 +39,27 @@ lint:
     - npm run lint
 
 format-check:
-  stage: quality
+  stage: format
   tags:
     - build
   needs: [install]
   script:
     - npm run format:check
 
+test:
+  stage: test
+  tags:
+    - build
+  needs: [install, lint, format-check]
+  script:
+    - cd frontend
+    - npm test -- src/test
+
 build:
   stage: build
   tags:
     - build
-  needs: [install, lint, format-check]
+  needs: [install, test]
   script:
     - npm run build
   artifacts:

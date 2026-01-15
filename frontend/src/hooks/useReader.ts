@@ -16,7 +16,8 @@ export function useReader({ text, wpm }: UseReaderOptions) {
     [text]
   )
   const totalWords = words.length
-  const progress = totalWords > 0 ? ((currentWordIndex + 1) / totalWords) * 100 : 0
+  const progress =
+    totalWords > 0 ? ((currentWordIndex + 1) / totalWords) * 100 : 0
 
   const msPerWord = (60 / wpm) * 1000
 

@@ -1,5 +1,5 @@
-import { Link, useLocation } from "react-router-dom"
-import type { ReactNode } from "react"
+import { Link, useLocation } from 'react-router-dom'
+import type { ReactNode } from 'react'
 
 type NavItemProps = {
   to: string
@@ -20,7 +20,7 @@ const NavItem = ({ to, icon }: NavItemProps) => {
         flex justify-center items-center
         w-full h-12
         rounded-full transition-colors
-        ${isActive ? "text-white" : "text-gray-400 hover:text-white"}
+        ${isActive ? 'text-white' : 'text-gray-400 hover:text-white'}
       `}
     >
       {icon}

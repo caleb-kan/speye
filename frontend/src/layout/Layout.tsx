@@ -1,5 +1,5 @@
-import Navbar from "../components/navbar/Navbar"
-import { Outlet } from "react-router-dom"
+import Navbar from '../components/navbar/Navbar'
+import { Outlet } from 'react-router-dom'
 
 type LayoutProps = {
   children: React.ReactNode
@@ -8,7 +8,6 @@ type LayoutProps = {
 const Layout = () => {
   return (
     <div className="flex min-h-screen bg-neutral-950 text-white">
-      
       {/* Left sidebar */}
       <Navbar />
 

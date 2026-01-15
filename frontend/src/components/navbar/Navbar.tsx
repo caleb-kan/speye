@@ -1,5 +1,5 @@
-import NavItem from "./NavItem"
-import { Home, BookOpen, Settings } from "lucide-react"
+import NavItem from './NavItem'
+import { Home, BookOpen, Settings } from 'lucide-react'
 
 const Navbar = () => {
   return (

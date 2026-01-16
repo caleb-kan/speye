@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { Theme } from '../lib/themes'
 import { getThemeById, themes } from '../lib/themes'
-import { ThemeContext } from './ThemeContextDef'
+import { ThemeContext } from './themeContext'
 
 const THEME_STORAGE_KEY = 'speye-theme'
 

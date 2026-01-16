@@ -1,4 +1,4 @@
-import { useEffect, useRef, useMemo } from 'react'
+import { useEffect, useRef, useMemo, useCallback } from 'react'
 import type { ReadingType } from '../types/reading'
 import { getWordStyle } from '../utils/wordStyle'
 
@@ -13,12 +13,12 @@ type TextDisplayProps = {
 
 // For static mode: ~24 words to fill 3 lines at 2xl font
 const WORDS_PER_CHUNK = 24
-// Number of words from end to hide the fade gradient
-const WORDS_NEAR_END_THRESHOLD = 10
 // Scroll target position as fraction from top (1/3 = upper third of viewport)
 const SCROLL_POSITION_DIVISOR = 3
 // Fixed height for dynamic mode container (fits ~3 lines at 2xl font)
 const DYNAMIC_MODE_HEIGHT = '280px'
+// Fade gradient height in pixels for dynamic mode
+const FADE_HEIGHT = 64
 
 // Minimum transition duration for smoothness (ms)
 const MIN_TRANSITION_MS = 50
@@ -48,18 +48,6 @@ export function TextDisplay({
     () => text.split(/\s+/).filter((w) => w.length > 0),
     [text]
   )
-  const isNearEnd = currentWordIndex >= words.length - WORDS_NEAR_END_THRESHOLD
-
-  // Compute current chunk from word index
-  const currentChunk = Math.floor(currentWordIndex / WORDS_PER_CHUNK)
-
-  const chunks = useMemo(() => {
-    const result: string[][] = []
-    for (let i = 0; i < words.length; i += WORDS_PER_CHUNK) {
-      result.push(words.slice(i, i + WORDS_PER_CHUNK))
-    }
-    return result
-  }, [words])
 
   // Dynamic mode scrolling
   useEffect(() => {
@@ -84,9 +72,47 @@ export function TextDisplay({
     }
   }, [currentWordIndex, isPlaying, readingType])
 
+  // Update fade masks based on scroll position using CSS custom properties (no React state)
+  const updateFades = useCallback(() => {
+    const container = containerRef.current
+    if (!container) return
+
+    const { scrollTop, scrollHeight, clientHeight } = container
+    const maxScroll = scrollHeight - clientHeight
+
+    // Top fade: only when there's content above
+    const topFade = scrollTop > 0 ? FADE_HEIGHT : 0
+    container.style.setProperty('--top-fade', `${topFade}px`)
+
+    // Bottom fade: only when there's content below
+    const bottomFade = scrollTop < maxScroll - 1 ? FADE_HEIGHT : 0
+    container.style.setProperty('--bottom-fade', `${bottomFade}px`)
+  }, [])
+
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container || readingType !== 'dynamic') return
+
+    // Set initial state (no top fade, bottom fade present if content overflows)
+    container.style.setProperty('--top-fade', '0px')
+    const hasOverflow = container.scrollHeight > container.clientHeight
+    container.style.setProperty(
+      '--bottom-fade',
+      hasOverflow ? `${FADE_HEIGHT}px` : '0px'
+    )
+
+    container.addEventListener('scroll', updateFades, { passive: true })
+    return () => container.removeEventListener('scroll', updateFades)
+  }, [readingType, updateFades, words])
+
+  // Static mode: display words in chunks
   if (readingType === 'static') {
-    const chunkWords = chunks[currentChunk] || []
+    const currentChunk = Math.floor(currentWordIndex / WORDS_PER_CHUNK)
     const chunkStartIndex = currentChunk * WORDS_PER_CHUNK
+    const chunkWords = words.slice(
+      chunkStartIndex,
+      chunkStartIndex + WORDS_PER_CHUNK
+    )
 
     return (
       <div className="relative max-w-5xl mx-auto w-full">
@@ -118,14 +144,19 @@ export function TextDisplay({
     )
   }
 
-  // Dynamic mode with smooth highlight
+  // Dynamic mode with CSS mask for fade edges
+  // --top-fade: 0px initially, 64px when scrolled (content above)
+  // --bottom-fade: 64px initially if overflow, 0px when at end (no content below)
   return (
     <div className="relative max-w-5xl mx-auto w-full">
-      {/* Scrolling text container */}
       <div
         ref={containerRef}
         className="text-2xl leading-relaxed select-none overflow-hidden"
-        style={{ height: DYNAMIC_MODE_HEIGHT }}
+        style={{
+          height: DYNAMIC_MODE_HEIGHT,
+          maskImage: `linear-gradient(to bottom, transparent 0%, black var(--top-fade, 0px), black calc(100% - var(--bottom-fade, 0px)), transparent 100%)`,
+          WebkitMaskImage: `linear-gradient(to bottom, transparent 0%, black var(--top-fade, 0px), black calc(100% - var(--bottom-fade, 0px)), transparent 100%)`,
+        }}
       >
         <div className="pb-16">
           {words.map((word, index) => {
@@ -150,16 +181,6 @@ export function TextDisplay({
           })}
         </div>
       </div>
-
-      {/* Bottom fade - hide when near end */}
-      {!isNearEnd && (
-        <div
-          className="absolute bottom-0 left-0 right-0 h-16 z-10 pointer-events-none"
-          style={{
-            background: `linear-gradient(to top, var(--color-bg) 0%, transparent 100%)`,
-          }}
-        />
-      )}
     </div>
   )
 }

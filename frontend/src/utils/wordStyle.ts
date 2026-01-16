@@ -1,7 +1,8 @@
-// Constants for word styling
-export const HIGHLIGHT_WIDTH = 6
-export const BLUR_RADIUS = 8
-export const MAX_BLUR = 4 // pixels
+export const HIGHLIGHT_WIDTH = 6 // Number of upcoming words with color gradient
+export const FORWARD_BLUR_RADIUS = 8 // Number of upcoming words for gradual blur
+export const BACKWARD_VISIBLE_COUNT = 5 // Number of past words to keep visible
+export const BACKWARD_BLUR_TRANSITION = 3 // Number of past words for gradual blur
+export const MAX_BLUR = 4 // Maximum blur in pixels
 
 export type WordStyle = {
   color: string
@@ -13,23 +14,36 @@ export function getWordStyle(
   distance: number,
   blurEnabled: boolean
 ): WordStyle {
-  // Calculate blur: 0 for read/current words, gradually increases for unread
+  if (distance < 0) {
+    let blur = 0
+    if (blurEnabled) {
+      const absDistance = Math.abs(distance)
+      if (absDistance > BACKWARD_VISIBLE_COUNT + BACKWARD_BLUR_TRANSITION) {
+        // Older words are fully blurred
+        blur = MAX_BLUR
+      } else if (absDistance > BACKWARD_VISIBLE_COUNT) {
+        // Transition zone: gradually increase blur
+        const transitionProgress =
+          (absDistance - BACKWARD_VISIBLE_COUNT) / BACKWARD_BLUR_TRANSITION
+        blur = transitionProgress * MAX_BLUR
+      }
+    }
+    return { color: 'var(--color-text)', opacity: 1, blur }
+  } else if (distance === 0) {
+    // Current word - highlighted in primary color
+    return { color: 'var(--color-primary)', opacity: 1, blur: 0 }
+  }
+
   let blur = 0
-  if (blurEnabled && distance > 0) {
-    if (distance <= BLUR_RADIUS) {
-      blur = (distance / BLUR_RADIUS) * MAX_BLUR
+  if (blurEnabled) {
+    if (distance <= FORWARD_BLUR_RADIUS) {
+      blur = (distance / FORWARD_BLUR_RADIUS) * MAX_BLUR
     } else {
       blur = MAX_BLUR
     }
   }
 
-  if (distance < 0) {
-    // Already read - normal text color
-    return { color: 'var(--color-text)', opacity: 1, blur: 0 }
-  } else if (distance === 0) {
-    // Current word - highlighted in primary color
-    return { color: 'var(--color-primary)', opacity: 1, blur: 0 }
-  } else if (distance <= HIGHLIGHT_WIDTH) {
+  if (distance <= HIGHLIGHT_WIDTH) {
     // Upcoming highlight zone - primary fading to secondary
     const t = distance / HIGHLIGHT_WIDTH
     return {
@@ -42,6 +56,3 @@ export function getWordStyle(
     return { color: 'var(--color-text-secondary)', opacity: 0.6, blur }
   }
 }
-
-export const WORD_TRANSITION =
-  'color 400ms cubic-bezier(0.4, 0, 0.2, 1), opacity 400ms cubic-bezier(0.4, 0, 0.2, 1), filter 400ms cubic-bezier(0.4, 0, 0.2, 1)'

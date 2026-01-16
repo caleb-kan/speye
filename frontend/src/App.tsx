@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { ThemeProvider } from './context/ThemeContext'
+import { ThemeProvider } from './context/ThemeProvider'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { Home } from './pages/Home'
 import { Settings } from './pages/Settings'

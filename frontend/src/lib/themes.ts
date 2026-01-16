@@ -146,6 +146,19 @@ export const themes: Theme[] = [
       success: '#99c794',
     },
   },
+  {
+    name: 'Sepia',
+    id: 'sepia',
+    colors: {
+      bg: '#f4ecd8',
+      bgSecondary: '#e8dcc8',
+      text: '#5c4b37',
+      textSecondary: '#8b7355',
+      primary: '#b8860b',
+      error: '#c0392b',
+      success: '#27ae60',
+    },
+  },
 ]
 
 export const getThemeById = (id: string): Theme => {

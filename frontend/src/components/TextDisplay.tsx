@@ -96,7 +96,10 @@ export function TextDisplay({
     // Set initial state (no top fade, bottom fade present if content overflows)
     container.style.setProperty('--top-fade', '0px')
     const hasOverflow = container.scrollHeight > container.clientHeight
-    container.style.setProperty('--bottom-fade', hasOverflow ? `${FADE_HEIGHT}px` : '0px')
+    container.style.setProperty(
+      '--bottom-fade',
+      hasOverflow ? `${FADE_HEIGHT}px` : '0px'
+    )
 
     container.addEventListener('scroll', updateFades, { passive: true })
     return () => container.removeEventListener('scroll', updateFades)
@@ -106,7 +109,10 @@ export function TextDisplay({
   if (readingType === 'static') {
     const currentChunk = Math.floor(currentWordIndex / WORDS_PER_CHUNK)
     const chunkStartIndex = currentChunk * WORDS_PER_CHUNK
-    const chunkWords = words.slice(chunkStartIndex, chunkStartIndex + WORDS_PER_CHUNK)
+    const chunkWords = words.slice(
+      chunkStartIndex,
+      chunkStartIndex + WORDS_PER_CHUNK
+    )
 
     return (
       <div className="relative max-w-5xl mx-auto w-full">

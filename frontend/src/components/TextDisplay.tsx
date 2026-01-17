@@ -148,7 +148,7 @@ export function TextDisplay({
   // --top-fade: 0px initially, 64px when scrolled (content above)
   // --bottom-fade: 64px initially if overflow, 0px when at end (no content below)
   return (
-    <div className="relative max-w-5xl mx-auto w-full">
+    <div className="relative max-w-5xl mx-auto w-full animate-fade-in">
       <div
         ref={containerRef}
         className="text-2xl leading-relaxed select-none overflow-hidden"

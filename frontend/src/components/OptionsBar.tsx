@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { Mode, ReadingType } from '../types'
 
 type OptionsBarProps = {
@@ -12,9 +12,12 @@ type OptionsBarProps = {
   onBlurChange: (enabled: boolean) => void
   fiction: boolean
   onFictionChange: (fiction: boolean) => void
+  onInputBlockingChange?: (isBlocking: boolean) => void
 }
 
 const WPM_PRESETS = [100, 200, 300, 400]
+const MIN_WPM = 10
+const MAX_WPM = 2000
 
 export function OptionsBar({
   wpm,
@@ -27,23 +30,44 @@ export function OptionsBar({
   onBlurChange,
   fiction,
   onFictionChange,
+  onInputBlockingChange,
 }: OptionsBarProps) {
   const [customWpm, setCustomWpm] = useState('')
   const [showCustomInput, setShowCustomInput] = useState(false)
+  const [isInvalid, setIsInvalid] = useState(false)
+
+  useEffect(() => {
+    onInputBlockingChange?.(showCustomInput && isInvalid)
+  }, [showCustomInput, isInvalid, onInputBlockingChange])
+
+  const isValueInvalid = (value: string) => {
+    if (!value.trim()) return false
+    const num = parseInt(value, 10)
+    return isNaN(num) || num < MIN_WPM || num > MAX_WPM
+  }
+
+  const handleCustomWpmChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/[^0-9]/g, '')
+    setCustomWpm(value)
+    setIsInvalid(isValueInvalid(value))
+  }
 
   const handleCustomWpmSubmit = () => {
     if (!customWpm.trim()) {
       setShowCustomInput(false)
       setCustomWpm('')
+      setIsInvalid(false)
       return
     }
 
     const value = parseInt(customWpm, 10)
-    if (value >= 50 && value <= 1000) {
-      onWpmChange(value)
-      setShowCustomInput(false)
-      setCustomWpm('')
+    if (!isNaN(value)) {
+      const clampedValue = Math.min(Math.max(value, MIN_WPM), MAX_WPM)
+      onWpmChange(clampedValue)
     }
+    setShowCustomInput(false)
+    setCustomWpm('')
+    setIsInvalid(false)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -52,6 +76,7 @@ export function OptionsBar({
     } else if (e.key === 'Escape') {
       setShowCustomInput(false)
       setCustomWpm('')
+      setIsInvalid(false)
     }
   }
 
@@ -186,6 +211,7 @@ export function OptionsBar({
                 onWpmChange(preset)
                 setShowCustomInput(false)
                 setCustomWpm('')
+                setIsInvalid(false)
               }}
               className={`px-2 py-1 transition-colors ${
                 wpm === preset
@@ -203,13 +229,17 @@ export function OptionsBar({
           <button
             onClick={() => !showCustomInput && setShowCustomInput(true)}
             className={`flex items-center px-2 py-1 transition-colors ${
-              !WPM_PRESETS.includes(wpm) || showCustomInput
-                ? 'text-primary'
-                : 'text-text-secondary hover:text-text'
+              isInvalid
+                ? 'text-error animate-shake'
+                : !WPM_PRESETS.includes(wpm) || showCustomInput
+                  ? 'text-primary'
+                  : 'text-text-secondary hover:text-text'
             }`}
             title={
               showCustomInput
-                ? undefined
+                ? isInvalid
+                  ? `Value must be between ${MIN_WPM} and ${MAX_WPM}`
+                  : undefined
                 : !WPM_PRESETS.includes(wpm)
                   ? `Click to change custom WPM (currently ${wpm})`
                   : 'Click to set a custom WPM'
@@ -219,16 +249,18 @@ export function OptionsBar({
             <span>custom:&nbsp;</span>
             {showCustomInput ? (
               <input
-                type="number"
+                type="text"
+                inputMode="numeric"
                 value={customWpm}
-                onChange={(e) => setCustomWpm(e.target.value)}
+                onChange={handleCustomWpmChange}
                 onKeyDown={handleKeyDown}
                 onBlur={handleCustomWpmSubmit}
-                min={50}
-                max={1000}
                 autoFocus
                 aria-label="Custom words per minute value"
-                className="bg-transparent border-b border-current focus:outline-none text-center appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                aria-invalid={isInvalid}
+                className={`bg-transparent border-b focus:outline-none text-center ${
+                  isInvalid ? 'border-error' : 'border-current'
+                }`}
                 style={{ width: `${Math.max(2, customWpm.length || 1)}ch` }}
               />
             ) : (

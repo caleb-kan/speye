@@ -6,6 +6,7 @@ type ReadingControlsProps = {
   progress: number
   currentWord: number
   totalWords: number
+  disabled?: boolean
 }
 
 export function ReadingControls({
@@ -16,6 +17,7 @@ export function ReadingControls({
   progress,
   currentWord,
   totalWords,
+  disabled = false,
 }: ReadingControlsProps) {
   return (
     <div className="flex flex-col items-center gap-4">
@@ -47,7 +49,12 @@ export function ReadingControls({
 
         <button
           onClick={onPlayPause}
-          className="w-14 h-14 flex items-center justify-center rounded-full bg-primary text-bg hover:opacity-90 transition-all"
+          disabled={disabled}
+          className={`w-14 h-14 flex items-center justify-center rounded-full transition-all ${
+            disabled
+              ? 'bg-text-secondary opacity-50 cursor-not-allowed text-bg'
+              : 'bg-primary text-bg hover:opacity-90'
+          }`}
           aria-label={isPlaying ? 'Pause' : 'Play'}
         >
           {isPlaying ? <PauseIcon /> : <PlayIcon />}
@@ -63,10 +70,12 @@ export function ReadingControls({
       </div>
 
       {/* Keyboard Hint */}
-      <p className="text-xs text-text-secondary">
-        press <kbd className="px-1.5 py-0.5 bg-bg-secondary rounded">space</kbd>{' '}
-        to {isPlaying ? 'pause' : 'start'}
-      </p>
+      {!disabled && (
+        <p className="text-xs text-text-secondary">
+          press <kbd className="px-1.5 py-0.5 bg-bg-secondary rounded">space</kbd>{' '}
+          to {isPlaying ? 'pause' : 'start'}
+        </p>
+      )}
     </div>
   )
 }

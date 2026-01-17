@@ -3,9 +3,10 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 type UseReaderOptions = {
   text: string
   wpm: number
+  disabled?: boolean
 }
 
-export function useReader({ text, wpm }: UseReaderOptions) {
+export function useReader({ text, wpm, disabled = false }: UseReaderOptions) {
   const [currentWordIndex, setCurrentWordIndex] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
   const [isComplete, setIsComplete] = useState(false)
@@ -76,13 +77,15 @@ export function useReader({ text, wpm }: UseReaderOptions) {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code === 'Space' && e.target === document.body) {
         e.preventDefault()
-        togglePlayPause()
+        if (!disabled) {
+          togglePlayPause()
+        }
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [togglePlayPause])
+  }, [togglePlayPause, disabled])
 
   return {
     currentWordIndex,

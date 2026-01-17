@@ -11,6 +11,7 @@ export function Home() {
   const [readingType, setReadingType] = useState<ReadingType>('dynamic')
   const [blurEnabled, setBlurEnabled] = useState(false)
   const [fiction, setFiction] = useState(false)
+  const [inputBlocking, setInputBlocking] = useState(false)
 
   const { currentText, loading, error, selectRandomText, refetch } = useTexts({
     fiction,
@@ -30,6 +31,7 @@ export function Home() {
         onBlurChange={setBlurEnabled}
         fiction={fiction}
         onFictionChange={setFiction}
+        onInputBlockingChange={setInputBlocking}
       />
 
       <main className="min-h-screen flex flex-col items-center justify-center px-8 pt-32">
@@ -56,6 +58,7 @@ export function Home() {
               readingType={readingType}
               blurEnabled={blurEnabled}
               onNewText={selectRandomText}
+              disabled={inputBlocking}
             />
           ) : (
             <div className="text-text-secondary text-center">

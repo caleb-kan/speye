@@ -225,7 +225,7 @@ describe('Home Page', () => {
       expect(screen.getByText(/custom:/i)).toBeInTheDocument()
     })
 
-    // Verifies that clicking the custom button reveals the numeric input
+    // Verifies that clicking the custom button reveals the text input
     it('clicking custom button shows input field', async () => {
       const user = userEvent.setup()
       renderWithRouter(<Home />)
@@ -233,8 +233,9 @@ describe('Home Page', () => {
       const customButton = screen.getByText(/custom:/i)
       await user.click(customButton)
 
-      // Input should be visible (no placeholder, just a number input)
-      const input = screen.getByRole('spinbutton')
+      const input = screen.getByRole('textbox', {
+        name: 'Custom words per minute value',
+      })
       expect(input).toBeInTheDocument()
     })
 
@@ -245,7 +246,9 @@ describe('Home Page', () => {
 
       await user.click(screen.getByText(/custom:/i))
 
-      const input = screen.getByRole('spinbutton')
+      const input = screen.getByRole('textbox', {
+        name: 'Custom words per minute value',
+      })
       await user.type(input, '350')
       await user.keyboard('{Enter}')
 

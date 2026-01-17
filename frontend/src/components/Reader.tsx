@@ -9,6 +9,7 @@ type ReaderProps = {
   readingType: ReadingType
   blurEnabled: boolean
   onNewText: () => void
+  disabled?: boolean
 }
 
 export function Reader({
@@ -17,6 +18,7 @@ export function Reader({
   readingType,
   blurEnabled,
   onNewText,
+  disabled = false,
 }: ReaderProps) {
   const {
     currentWordIndex,
@@ -25,7 +27,7 @@ export function Reader({
     progress,
     togglePlayPause,
     restart,
-  } = useReader({ text, wpm })
+  } = useReader({ text, wpm, disabled })
 
   return (
     <>
@@ -53,6 +55,7 @@ export function Reader({
         progress={progress}
         currentWord={currentWordIndex + 1}
         totalWords={totalWords}
+        disabled={disabled}
       />
     </>
   )

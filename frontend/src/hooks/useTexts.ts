@@ -1,13 +1,16 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import type { Text } from '../types/database'
 
-export function useTexts() {
+type UseTextsOptions = {
+  fiction: boolean
+}
+
+export function useTexts({ fiction }: UseTextsOptions) {
   const [texts, setTexts] = useState<Text[]>([])
   const [currentText, setCurrentText] = useState<Text | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const initialFetchDone = useRef(false)
 
   const fetchTexts = useCallback(async () => {
     try {
@@ -18,6 +21,7 @@ export function useTexts() {
         .from('texts')
         .select('*')
         .eq('is_public', true)
+        .eq('fiction', fiction)
 
       if (fetchError) {
         throw fetchError
@@ -25,17 +29,18 @@ export function useTexts() {
 
       setTexts(data || [])
 
-      if (data && data.length > 0 && !initialFetchDone.current) {
+      if (data && data.length > 0) {
         const randomIndex = Math.floor(Math.random() * data.length)
         setCurrentText(data[randomIndex])
-        initialFetchDone.current = true
+      } else {
+        setCurrentText(null)
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch texts')
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [fiction])
 
   const selectRandomText = useCallback(() => {
     if (texts.length === 0) return

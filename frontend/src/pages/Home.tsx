@@ -10,30 +10,29 @@ export function Home() {
   const [mode, setMode] = useState<Mode>('standard')
   const [readingType, setReadingType] = useState<ReadingType>('dynamic')
   const [blurEnabled, setBlurEnabled] = useState(false)
+  const [fiction, setFiction] = useState(false)
 
-  const { currentText, loading, error, selectRandomText, refetch } = useTexts()
+  const { currentText, loading, error, selectRandomText, refetch } = useTexts({
+    fiction,
+  })
 
   return (
     <div className="min-h-screen bg-bg flex flex-col">
       <Header />
+      <OptionsBar
+        wpm={wpm}
+        onWpmChange={setWpm}
+        mode={mode}
+        onModeChange={setMode}
+        readingType={readingType}
+        onReadingTypeChange={setReadingType}
+        blurEnabled={blurEnabled}
+        onBlurChange={setBlurEnabled}
+        fiction={fiction}
+        onFictionChange={setFiction}
+      />
 
-      <main className="flex-1 flex flex-col items-center justify-center px-8">
-        {/* Options Bar */}
-        <OptionsBar
-          wpm={wpm}
-          onWpmChange={setWpm}
-          mode={mode}
-          onModeChange={setMode}
-          readingType={readingType}
-          onReadingTypeChange={setReadingType}
-          blurEnabled={blurEnabled}
-          onBlurChange={setBlurEnabled}
-        />
-
-        {/* Spacer */}
-        <div className="h-12" />
-
-        {/* Main Content */}
+      <main className="min-h-screen flex flex-col items-center justify-center px-8 pt-32">
         <div className="w-full max-w-3xl">
           {loading ? (
             <div className="text-text-secondary text-center">

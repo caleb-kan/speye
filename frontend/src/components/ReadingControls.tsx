@@ -72,8 +72,9 @@ export function ReadingControls({
       {/* Keyboard Hint */}
       {!disabled && (
         <p className="text-xs text-text-secondary">
-          press <kbd className="px-1.5 py-0.5 bg-bg-secondary rounded">space</kbd>{' '}
-          to {isPlaying ? 'pause' : 'start'}
+          press{' '}
+          <kbd className="px-1.5 py-0.5 bg-bg-secondary rounded">space</kbd> to{' '}
+          {isPlaying ? 'pause' : 'start'}
         </p>
       )}
     </div>

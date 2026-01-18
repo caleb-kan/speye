@@ -17,48 +17,56 @@ const renderWithRouter = (ui: React.ReactElement) => {
   return render(<BrowserRouter>{ui}</BrowserRouter>)
 }
 
+const mockDefaultUseTexts = () => {
+  mockUseTexts.mockReturnValue({
+    texts: [],
+    currentText: null,
+    loading: false,
+    error: null,
+    selectRandomText: vi.fn(),
+    refetch: vi.fn(),
+  })
+}
+
+const createMockText = (content: string): Text => ({
+  id: '1',
+  content,
+  is_public: true,
+  uploaded_at: new Date().toISOString(),
+  owner_id: null,
+  quiz: null,
+  fiction: false,
+  category: null,
+  readability: null,
+})
+
 describe('Home Page', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
   describe('Header', () => {
-    // Verifies the main logo text is rendered in the header
-    it('renders the logo text "sp(eye)"', () => {
-      mockUseTexts.mockReturnValue({
-        texts: [],
-        currentText: null,
-        loading: false,
-        error: null,
-        selectRandomText: vi.fn(),
-        refetch: vi.fn(),
-      })
+    beforeEach(() => {
+      mockDefaultUseTexts()
+    })
 
+    it('renders the logo text', () => {
       renderWithRouter(<Home />)
 
       expect(screen.getByText('sp(eye)')).toBeInTheDocument()
     })
 
-    // Verifies the logo acts as a link back to the home page
     it('logo links to home page', () => {
-      mockUseTexts.mockReturnValue({
-        texts: [],
-        currentText: null,
-        loading: false,
-        error: null,
-        selectRandomText: vi.fn(),
-        refetch: vi.fn(),
-      })
-
       renderWithRouter(<Home />)
 
-      const logoLink = screen.getByText('sp(eye)').closest('a')
-      expect(logoLink).toHaveAttribute('href', '/home')
+      expect(screen.getByRole('link', { name: 'sp(eye)' })).toHaveAttribute(
+        'href',
+        '/home'
+      )
     })
   })
 
   describe('Loading State', () => {
-    // Verifies a loading message is shown while texts are being fetched
     it('displays loading message when fetching texts', () => {
       mockUseTexts.mockReturnValue({
         texts: [],
@@ -76,24 +84,7 @@ describe('Home Page', () => {
   })
 
   describe('Error State', () => {
-    // Verifies the error message is displayed when the hook reports an error
-    it('displays error message when there is an error', () => {
-      mockUseTexts.mockReturnValue({
-        texts: [],
-        currentText: null,
-        loading: false,
-        error: 'Failed to fetch texts',
-        selectRandomText: vi.fn(),
-        refetch: vi.fn(),
-      })
-
-      renderWithRouter(<Home />)
-
-      expect(screen.getByText('Failed to fetch texts')).toBeInTheDocument()
-    })
-
-    // Verifies a retry button is shown when the hook reports an error
-    it('displays "Try again" button when there is an error', () => {
+    beforeEach(() => {
       mockUseTexts.mockReturnValue({
         texts: [],
         currentText: null,
@@ -102,25 +93,48 @@ describe('Home Page', () => {
         selectRandomText: vi.fn(),
         refetch: vi.fn(),
       })
+    })
 
+    it('displays error message', () => {
       renderWithRouter(<Home />)
 
-      expect(screen.getByText('Try again')).toBeInTheDocument()
+      expect(screen.getByText('Network error')).toBeInTheDocument()
     })
-  })
 
-  describe('Empty State', () => {
-    // Verifies the empty state message is shown when there are no texts
-    it('displays "No texts available" when texts array is empty', () => {
+    it('displays "Try again" button', () => {
+      renderWithRouter(<Home />)
+
+      expect(
+        screen.getByRole('button', { name: 'Try again' })
+      ).toBeInTheDocument()
+    })
+
+    it('clicking "Try again" calls refetch', async () => {
+      const mockRefetch = vi.fn()
       mockUseTexts.mockReturnValue({
         texts: [],
         currentText: null,
         loading: false,
-        error: null,
+        error: 'Network error',
         selectRandomText: vi.fn(),
-        refetch: vi.fn(),
+        refetch: mockRefetch,
       })
 
+      const user = userEvent.setup()
+      renderWithRouter(<Home />)
+
+      await user.click(screen.getByRole('button', { name: 'Try again' }))
+
+      expect(mockRefetch).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  describe('Empty State', () => {
+    beforeEach(() => {
+      mockDefaultUseTexts()
+    })
+
+    it('displays "No texts available" message', () => {
       renderWithRouter(<Home />)
 
       expect(screen.getByText('No texts available')).toBeInTheDocument()
@@ -128,147 +142,330 @@ describe('Home Page', () => {
   })
 
   describe('OptionsBar - Mode Selection', () => {
-    // Reset useTexts mock before each mode selection test
     beforeEach(() => {
-      mockUseTexts.mockReturnValue({
-        texts: [],
-        currentText: null,
-        loading: false,
-        error: null,
-        selectRandomText: vi.fn(),
-        refetch: vi.fn(),
-      })
+      mockDefaultUseTexts()
     })
 
-    // Verifies all three mode buttons are rendered
-    it('renders mode selection buttons', () => {
+    it('renders mode label', () => {
       renderWithRouter(<Home />)
 
-      expect(screen.getByText('standard')).toBeInTheDocument()
-      expect(screen.getByText('adaptive')).toBeInTheDocument()
-      expect(screen.getByText('summarized')).toBeInTheDocument()
+      expect(screen.getByText('mode:')).toBeInTheDocument()
     })
 
-    // Verifies that "standard" mode is the default active mode
+    it('renders all mode buttons', () => {
+      renderWithRouter(<Home />)
+
+      expect(
+        screen.getByRole('button', { name: /standard/i })
+      ).toBeInTheDocument()
+      expect(
+        screen.getByRole('button', { name: /adaptive/i })
+      ).toBeInTheDocument()
+      expect(
+        screen.getByRole('button', { name: /summarized/i })
+      ).toBeInTheDocument()
+    })
+
     it('standard mode is selected by default', () => {
       renderWithRouter(<Home />)
 
-      const standardButton = screen.getByText('standard')
-      expect(standardButton).toHaveClass('text-primary')
+      expect(screen.getByRole('button', { name: /standard/i })).toHaveClass(
+        'text-primary'
+      )
+      expect(screen.getByRole('button', { name: /adaptive/i })).not.toHaveClass(
+        'text-primary'
+      )
+      expect(
+        screen.getByRole('button', { name: /summarized/i })
+      ).not.toHaveClass('text-primary')
     })
 
-    // Verifies that adaptive and summarized modes are disabled by default
     it('adaptive and summarized modes are disabled', () => {
       renderWithRouter(<Home />)
 
-      const adaptiveButton = screen.getByText('adaptive').closest('button')
-      const summarizedButton = screen.getByText('summarized').closest('button')
+      expect(screen.getByRole('button', { name: /adaptive/i })).toBeDisabled()
+      expect(screen.getByRole('button', { name: /summarized/i })).toBeDisabled()
+    })
+  })
 
-      expect(adaptiveButton).toBeDisabled()
-      expect(summarizedButton).toBeDisabled()
+  describe('OptionsBar - Genre Selection', () => {
+    beforeEach(() => {
+      mockDefaultUseTexts()
+    })
+
+    it('renders genre label', () => {
+      renderWithRouter(<Home />)
+
+      expect(screen.getByText('genre:')).toBeInTheDocument()
+    })
+
+    it('non-fiction is selected by default', () => {
+      renderWithRouter(<Home />)
+
+      expect(screen.getByRole('button', { name: /non-fiction/i })).toHaveClass(
+        'text-primary'
+      )
+      expect(screen.getByRole('button', { name: /^fiction/i })).not.toHaveClass(
+        'text-primary'
+      )
+    })
+
+    it('clicking fiction changes the selected genre', async () => {
+      const user = userEvent.setup()
+      renderWithRouter(<Home />)
+
+      await user.click(screen.getByRole('button', { name: /^fiction/i }))
+
+      expect(screen.getByRole('button', { name: /^fiction/i })).toHaveClass(
+        'text-primary'
+      )
+      expect(
+        screen.getByRole('button', { name: /non-fiction/i })
+      ).not.toHaveClass('text-primary')
+    })
+
+    it('calls useTexts with fiction = false on initial render', () => {
+      renderWithRouter(<Home />)
+
+      expect(mockUseTexts).toHaveBeenCalledWith({ fiction: false })
+    })
+
+    it('calls useTexts with fiction = true after selecting fiction', async () => {
+      const user = userEvent.setup()
+      renderWithRouter(<Home />)
+
+      await user.click(screen.getByRole('button', { name: /^fiction/i }))
+
+      expect(mockUseTexts).toHaveBeenLastCalledWith({ fiction: true })
+    })
+  })
+
+  describe('OptionsBar - Reading Type Selection', () => {
+    beforeEach(() => {
+      mockDefaultUseTexts()
+    })
+
+    it('renders type label', () => {
+      renderWithRouter(<Home />)
+
+      expect(screen.getByText('type:')).toBeInTheDocument()
+    })
+
+    it('dynamic is selected by default', () => {
+      renderWithRouter(<Home />)
+
+      expect(screen.getByRole('button', { name: /dynamic/i })).toHaveClass(
+        'text-primary'
+      )
+      expect(screen.getByRole('button', { name: /static/i })).not.toHaveClass(
+        'text-primary'
+      )
+    })
+
+    it('clicking static changes the selected type', async () => {
+      const user = userEvent.setup()
+      renderWithRouter(<Home />)
+
+      await user.click(screen.getByRole('button', { name: /static/i }))
+
+      expect(screen.getByRole('button', { name: /static/i })).toHaveClass(
+        'text-primary'
+      )
+      expect(screen.getByRole('button', { name: /dynamic/i })).not.toHaveClass(
+        'text-primary'
+      )
+    })
+  })
+
+  describe('OptionsBar - Blur Toggle', () => {
+    beforeEach(() => {
+      mockDefaultUseTexts()
+    })
+
+    it('renders blur label', () => {
+      renderWithRouter(<Home />)
+
+      expect(screen.getByText('blur:')).toBeInTheDocument()
+    })
+
+    it('blur is off by default', () => {
+      renderWithRouter(<Home />)
+
+      expect(
+        screen.getByRole('button', { name: /blur unread text/i })
+      ).toHaveTextContent('off')
+    })
+
+    it('clicking blur button toggles it on', async () => {
+      const user = userEvent.setup()
+      renderWithRouter(<Home />)
+
+      const blurButton = screen.getByRole('button', {
+        name: /blur unread text/i,
+      })
+      await user.click(blurButton)
+
+      expect(blurButton).toHaveTextContent('on')
+      expect(blurButton).toHaveClass('text-primary')
+    })
+
+    it('clicking blur button twice toggles it back off', async () => {
+      const user = userEvent.setup()
+      renderWithRouter(<Home />)
+
+      const blurButton = screen.getByRole('button', {
+        name: /blur unread text/i,
+      })
+      await user.click(blurButton)
+      await user.click(blurButton)
+
+      expect(blurButton).toHaveTextContent('off')
     })
   })
 
   describe('OptionsBar - WPM Selection', () => {
-    // Reset useTexts mock before each WPM selection test
     beforeEach(() => {
-      mockUseTexts.mockReturnValue({
-        texts: [],
-        currentText: null,
-        loading: false,
-        error: null,
-        selectRandomText: vi.fn(),
-        refetch: vi.fn(),
-      })
+      mockDefaultUseTexts()
     })
 
-    // Verifies the "wpm:" label is displayed next to the controls
     it('renders WPM label', () => {
       renderWithRouter(<Home />)
 
       expect(screen.getByText('wpm:')).toBeInTheDocument()
     })
 
-    // Verifies all preset WPM buttons are rendered
-    it('renders all WPM preset buttons', () => {
+    it('renders all preset WPM buttons', () => {
       renderWithRouter(<Home />)
-
-      const presets = [100, 200, 300, 400]
-      presets.forEach((preset) => {
-        expect(screen.getByText(preset.toString())).toBeInTheDocument()
+      ;[100, 200, 300, 400].forEach((preset) => {
+        expect(
+          screen.getByRole('button', { name: new RegExp(`${preset} words`) })
+        ).toBeInTheDocument()
       })
     })
 
-    // Verifies that 200 WPM is selected by default
     it('200 WPM is selected by default', () => {
       renderWithRouter(<Home />)
 
-      const wpm200Button = screen.getByText('200')
-      expect(wpm200Button).toHaveClass('text-primary')
+      expect(screen.getByRole('button', { name: /200 words/ })).toHaveClass(
+        'text-primary'
+      )
     })
 
-    // Verifies that clicking another preset WPM changes the selection
     it('clicking a WPM button changes the selection', async () => {
       const user = userEvent.setup()
       renderWithRouter(<Home />)
 
-      const wpm300Button = screen.getByText('300')
-      await user.click(wpm300Button)
+      await user.click(screen.getByRole('button', { name: /300 words/ }))
 
-      expect(wpm300Button).toHaveClass('text-primary')
+      expect(screen.getByRole('button', { name: /300 words/ })).toHaveClass(
+        'text-primary'
+      )
+      expect(screen.getByRole('button', { name: /200 words/ })).not.toHaveClass(
+        'text-primary'
+      )
     })
 
-    // Verifies the custom WPM button is rendered
-    it('renders custom WPM button', () => {
+    it('renders custom WPM control', () => {
       renderWithRouter(<Home />)
 
       expect(screen.getByText(/custom:/i)).toBeInTheDocument()
     })
 
-    // Verifies that clicking the custom button reveals the text input
-    it('clicking custom button shows input field', async () => {
+    it('clicking custom control shows input field', async () => {
       const user = userEvent.setup()
       renderWithRouter(<Home />)
 
-      const customButton = screen.getByText(/custom:/i)
-      await user.click(customButton)
+      await user.click(screen.getByRole('button', { name: /custom/i }))
 
-      const input = screen.getByRole('textbox', {
-        name: 'Custom words per minute value',
-      })
-      expect(input).toBeInTheDocument()
+      expect(
+        screen.getByRole('textbox', { name: 'Custom words per minute value' })
+      ).toBeInTheDocument()
     })
 
-    // Verifies that entering a valid custom WPM value is accepted and reflected in the UI
     it('custom WPM input accepts valid values', async () => {
       const user = userEvent.setup()
       renderWithRouter(<Home />)
 
-      await user.click(screen.getByText(/custom:/i))
-
-      const input = screen.getByRole('textbox', {
-        name: 'Custom words per minute value',
-      })
-      await user.type(input, '350')
+      await user.click(screen.getByRole('button', { name: /custom/i }))
+      await user.type(
+        screen.getByRole('textbox', { name: 'Custom words per minute value' }),
+        '350'
+      )
       await user.keyboard('{Enter}')
 
-      // After entering custom WPM, it should show the value instead of "custom"
       expect(screen.getByText('350')).toBeInTheDocument()
+    })
+
+    it('custom WPM values below 10 are clamped to 10', async () => {
+      const user = userEvent.setup()
+      renderWithRouter(<Home />)
+
+      await user.click(screen.getByRole('button', { name: /custom/i }))
+      await user.type(
+        screen.getByRole('textbox', { name: 'Custom words per minute value' }),
+        '5'
+      )
+      await user.keyboard('{Enter}')
+
+      expect(screen.getByText('10')).toBeInTheDocument()
+    })
+
+    it('custom WPM values above 2000 are clamped to 2000', async () => {
+      const user = userEvent.setup()
+      renderWithRouter(<Home />)
+
+      await user.click(screen.getByRole('button', { name: /custom/i }))
+      await user.type(
+        screen.getByRole('textbox', { name: 'Custom words per minute value' }),
+        '5000'
+      )
+      await user.keyboard('{Enter}')
+
+      expect(screen.getByText('2000')).toBeInTheDocument()
+    })
+
+    it('pressing Escape cancels custom WPM input', async () => {
+      const user = userEvent.setup()
+      renderWithRouter(<Home />)
+
+      await user.click(screen.getByRole('button', { name: /custom/i }))
+      await user.type(
+        screen.getByRole('textbox', { name: 'Custom words per minute value' }),
+        '999'
+      )
+      await user.keyboard('{Escape}')
+
+      expect(
+        screen.queryByRole('textbox', { name: 'Custom words per minute value' })
+      ).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /200 words/ })).toHaveClass(
+        'text-primary'
+      )
+    })
+
+    it('empty input reverts to previous WPM', async () => {
+      const user = userEvent.setup()
+      renderWithRouter(<Home />)
+
+      await user.click(screen.getByRole('button', { name: /custom/i }))
+      expect(
+        screen.getByRole('textbox', { name: 'Custom words per minute value' })
+      ).toBeInTheDocument()
+
+      await user.keyboard('{Enter}')
+
+      expect(
+        screen.queryByRole('textbox', { name: 'Custom words per minute value' })
+      ).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /200 words/ })).toHaveClass(
+        'text-primary'
+      )
     })
   })
 
   describe('Reader Integration', () => {
-    // Verifies the Reader text display renders when useTexts returns a current text
-    it('renders Reader component when text is available', () => {
-      const mockText: Text = {
-        id: '1',
-        content: 'Hello world testing',
-        is_public: true,
-        uploaded_at: new Date().toISOString(),
-        owner_id: null,
-        quiz: null,
-      }
-
+    it('renders text content when available', () => {
+      const mockText = createMockText('Hello world testing')
       mockUseTexts.mockReturnValue({
         texts: [mockText],
         currentText: mockText,
@@ -280,23 +477,13 @@ describe('Home Page', () => {
 
       renderWithRouter(<Home />)
 
-      // Words are rendered in separate spans, so check for individual words
       expect(screen.getByText('Hello')).toBeInTheDocument()
       expect(screen.getByText('world')).toBeInTheDocument()
       expect(screen.getByText('testing')).toBeInTheDocument()
     })
 
-    // Verifies the Reader controls (like new text button) are available when text exists
-    it('renders play/pause controls when text is available', () => {
-      const mockText: Text = {
-        id: '1',
-        content: 'Test content here',
-        is_public: true,
-        uploaded_at: new Date().toISOString(),
-        owner_id: null,
-        quiz: null,
-      }
-
+    it('renders "New text" button when text is available', () => {
+      const mockText = createMockText('Test content')
       mockUseTexts.mockReturnValue({
         texts: [mockText],
         currentText: mockText,
@@ -308,10 +495,29 @@ describe('Home Page', () => {
 
       renderWithRouter(<Home />)
 
-      // Should have a new text button (uses aria-label)
       expect(
         screen.getByRole('button', { name: 'New text' })
       ).toBeInTheDocument()
+    })
+
+    it('clicking "New text" calls selectRandomText', async () => {
+      const mockSelectRandomText = vi.fn()
+      const mockText = createMockText('Test content')
+      mockUseTexts.mockReturnValue({
+        texts: [mockText],
+        currentText: mockText,
+        loading: false,
+        error: null,
+        selectRandomText: mockSelectRandomText,
+        refetch: vi.fn(),
+      })
+
+      const user = userEvent.setup()
+      renderWithRouter(<Home />)
+
+      await user.click(screen.getByRole('button', { name: 'New text' }))
+
+      expect(mockSelectRandomText).toHaveBeenCalledTimes(1)
     })
   })
 })

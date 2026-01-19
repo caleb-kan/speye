@@ -36,6 +36,8 @@ const createMockText = (content: string): Text => ({
   owner_id: null,
   quiz: null,
   fiction: false,
+  difficultyMin: 8,
+  difficultyMax: 12,
   category: null,
   readability: null,
 })

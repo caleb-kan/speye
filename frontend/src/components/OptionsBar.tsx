@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import type { Mode, ReadingType } from '../types'
+import noUiSlider from 'nouislider';
 
 type OptionsBarProps = {
   wpm: number
@@ -12,12 +13,18 @@ type OptionsBarProps = {
   onBlurChange: (enabled: boolean) => void
   fiction: boolean
   onFictionChange: (fiction: boolean) => void
+  difficultyMin: number
+  difficultyMax: number
+  onDifficultyMinChange: (min: number) => void
+  onDifficultyMaxChange: (max: number) => void
   onInputBlockingChange?: (isBlocking: boolean) => void
 }
 
 const WPM_PRESETS = [100, 200, 300, 400]
 const MIN_WPM = 10
 const MAX_WPM = 2000
+const DEFAULT_MIN_DIFFICULTY = 8
+const DEFAULT_MAX_DIFFICULTY = 12
 
 export function OptionsBar({
   wpm,
@@ -30,11 +37,66 @@ export function OptionsBar({
   onBlurChange,
   fiction,
   onFictionChange,
+  difficultyMin,
+  difficultyMax,
+  onDifficultyMinChange,
+  onDifficultyMaxChange,
   onInputBlockingChange,
 }: OptionsBarProps) {
   const [customWpm, setCustomWpm] = useState('')
   const [showCustomInput, setShowCustomInput] = useState(false)
   const [isInvalid, setIsInvalid] = useState(false)
+
+  const sliderRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (sliderRef.current) {
+      if (sliderRef.current!.hasChildNodes()) {
+        return;
+      }
+
+      noUiSlider.create(sliderRef.current, {
+        start: [DEFAULT_MIN_DIFFICULTY, DEFAULT_MAX_DIFFICULTY],
+        connect: true,
+        range: {
+          min: 0,
+          max: 15,
+        },
+        tooltips: true,
+        step: 1,
+        format: {
+          to: value => {
+            const intValue = Math.round(value);
+            if (intValue === 15) {
+            return '15+';
+          } else {
+            return intValue.toString();
+          }
+          },
+          from: value => {
+            return Number(value);
+          }
+        },
+      });
+      
+      const slider = sliderRef.current.noUiSlider;
+
+      // prevent min slider from being set to 0
+      slider.on('update', (values: { [x: string]: string; }, handle: string | number) => {
+        const value = parseInt(values[handle]);
+        if (value === 0) {
+          slider.set([1, values[1]]);
+        }
+      });
+
+      const handleUpdate = (values: { [x: string]: string }) => {
+        onDifficultyMinChange(parseInt(values[0]));
+        onDifficultyMaxChange(parseInt(values[1]));
+      };
+
+      slider.on('set', handleUpdate);
+    }
+  }, [difficultyMin, difficultyMax, onDifficultyMinChange, onDifficultyMaxChange]);
 
   useEffect(() => {
     onInputBlockingChange?.(showCustomInput && isInvalid)
@@ -144,6 +206,16 @@ export function OptionsBar({
           >
             fiction
           </button>
+        </div>
+
+        {/* Divider */}
+        <div className="w-px h-6 bg-text-secondary opacity-30" />
+
+        {/* Difficulty Selection */}
+        {/* range slider from 0 to 15+ with tooltips, set to difficultyMin and difficultyMax*/}
+        <div className="flex items-center gap-2">
+          <span className="text-text-secondary mr-1">difficulty:</span>
+          <div ref={sliderRef} style={{ width: '200px' }}></div>
         </div>
 
         {/* Divider */}

@@ -11,10 +11,14 @@ export function Home() {
   const [readingType, setReadingType] = useState<ReadingType>('dynamic')
   const [blurEnabled, setBlurEnabled] = useState(false)
   const [fiction, setFiction] = useState(false)
+  const [difficultyMin, setDifficultyMin] = useState(8)
+  const [difficultyMax, setDifficultyMax] = useState(12)
   const [inputBlocking, setInputBlocking] = useState(false)
 
   const { currentText, loading, error, selectRandomText, refetch } = useTexts({
     fiction,
+    difficultyMin,
+    difficultyMax,
   })
 
   return (
@@ -31,6 +35,10 @@ export function Home() {
         onBlurChange={setBlurEnabled}
         fiction={fiction}
         onFictionChange={setFiction}
+        difficultyMin={difficultyMin}
+        difficultyMax={difficultyMax}
+        onDifficultyMinChange={setDifficultyMin}
+        onDifficultyMaxChange={setDifficultyMax}
         onInputBlockingChange={setInputBlocking}
       />
 

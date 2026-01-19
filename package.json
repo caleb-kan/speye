@@ -13,6 +13,7 @@
     "prettier": "^3.5.3"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.90.1"
+    "@supabase/supabase-js": "^2.90.1",
+    "nouislider": "^15.8.1"
   }
 }

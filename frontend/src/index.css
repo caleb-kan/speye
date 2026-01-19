@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import 'nouislider/dist/nouislider.css';
 
 :root {
   --color-bg: #1a1a2e;
@@ -77,4 +78,21 @@ body {
 
 .animate-shake {
   animation: shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+
+.noUi-base {
+  background-color: var(--color-bg-secondary);
+}
+
+.noUi-connect {
+  background: var(--color-primary);
+}
+.noUi-horizontal .noUi-handle, .noUi-vertical .noUi-handle {
+  background: var(--color-secondary);
+}
+.noUi-target.noUi-horizontal .noUi-tooltip {
+  padding-bottom: 0;
+  color: var(--color-text);
+  background: transparent;
+  border: none;
 }

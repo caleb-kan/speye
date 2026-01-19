@@ -1,0 +1,97 @@
+model: openai/gpt-oss-120b
+temperature: 0.1
+max_tokens: 2000
+top_p: 1
+
+system_message: |
+  You are an expert educational quiz generator. You respond with valid JSON only - no markdown code blocks, no explanations, no text before or after the JSON object.
+
+user_message: |
+  Generate 5 multiple-choice questions to test reading comprehension of this text:
+
+  {text_content}
+
+  ---
+
+  OUTPUT SCHEMA:
+  {
+    "questions": Question[]
+  }
+
+  Question object:
+    - question: string (the question text, clear and unambiguous)
+    - options: string[4] (exactly 4 answer choices)
+    - correctAnswer: integer (index 0-3 of the correct option)
+
+  ---
+
+  QUALITY REQUIREMENTS:
+  1. Questions must be answerable solely from the text provided
+  2. Cover different sections of the text, not just the beginning
+  3. Test comprehension of key concepts, not trivial details
+  4. All 4 options must be plausible - no obviously wrong answers
+  5. Options should be similar in length and grammatical structure
+  6. Randomize correct answer positions across questions (use 0, 1, 2, and 3)
+  7. Avoid "all of the above", "none of the above", or negative phrasing ("Which is NOT...")
+
+  ---
+
+  EXAMPLE OUTPUT:
+  {
+    "questions": [
+      {
+        "question": "What is the primary function of mitochondria in cells?",
+        "options": [
+          "Storing genetic information",
+          "Producing energy through ATP synthesis",
+          "Breaking down waste products",
+          "Synthesizing proteins"
+        ],
+        "correctAnswer": 1
+      },
+      {
+        "question": "According to the text, where does glycolysis occur?",
+        "options": [
+          "Mitochondrial matrix",
+          "Cell nucleus",
+          "Endoplasmic reticulum",
+          "Cytoplasm"
+        ],
+        "correctAnswer": 3
+      },
+      {
+        "question": "What molecule is produced as the final product of the electron transport chain?",
+        "options": [
+          "Water",
+          "Carbon dioxide",
+          "Glucose",
+          "Pyruvate"
+        ],
+        "correctAnswer": 0
+      },
+      {
+        "question": "How many ATP molecules are generated from one glucose molecule during cellular respiration?",
+        "options": [
+          "2 ATP",
+          "4 ATP",
+          "18 ATP",
+          "36-38 ATP"
+        ],
+        "correctAnswer": 3
+      },
+      {
+        "question": "Which process can occur without the presence of oxygen?",
+        "options": [
+          "Krebs cycle",
+          "Electron transport chain",
+          "Glycolysis",
+          "Oxidative phosphorylation"
+        ],
+        "correctAnswer": 2
+      }
+    ]
+  }
+
+  ---
+
+  Now generate 5 questions for the text above. Output valid JSON only:

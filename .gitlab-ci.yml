@@ -15,6 +15,7 @@ cache:
   paths:
     - .npm/
     - frontend/node_modules/
+    - backend/node_modules/
     - node_modules/
 
 install:
@@ -23,10 +24,12 @@ install:
     - build
   script:
     - npm ci --prefix frontend --cache .npm --prefer-offline
+    - npm ci --prefix backend --cache .npm --prefer-offline
     - npm ci --cache .npm --prefer-offline
   artifacts:
     paths:
       - frontend/node_modules/
+      - backend/node_modules/
       - node_modules/
     expire_in: 1 hour
 
@@ -53,6 +56,8 @@ test:
   needs: [install, lint, format-check]
   script:
     - cd frontend
+    - npm run test:run
+    - cd ../backend
     - npm run test:run
 
 build:

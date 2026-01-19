@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import type { Mode, ReadingType } from '../types'
-import noUiSlider from 'nouislider';
+import noUiSlider from 'nouislider'
 
 type OptionsBarProps = {
   wpm: number
@@ -47,12 +47,12 @@ export function OptionsBar({
   const [showCustomInput, setShowCustomInput] = useState(false)
   const [isInvalid, setIsInvalid] = useState(false)
 
-  const sliderRef = useRef<HTMLDivElement>(null);
+  const sliderRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (sliderRef.current) {
       if (sliderRef.current!.hasChildNodes()) {
-        return;
+        return
       }
 
       noUiSlider.create(sliderRef.current, {
@@ -65,38 +65,46 @@ export function OptionsBar({
         tooltips: true,
         step: 1,
         format: {
-          to: value => {
-            const intValue = Math.round(value);
+          to: (value) => {
+            const intValue = Math.round(value)
             if (intValue === 15) {
-            return '15+';
-          } else {
-            return intValue.toString();
-          }
+              return '15+'
+            } else {
+              return intValue.toString()
+            }
           },
-          from: value => {
-            return Number(value);
-          }
+          from: (value) => {
+            return Number(value)
+          },
         },
-      });
-      
-      const slider = sliderRef.current.noUiSlider;
+      })
+
+      const slider = sliderRef.current.noUiSlider
 
       // prevent min slider from being set to 0
-      slider.on('update', (values: { [x: string]: string; }, handle: string | number) => {
-        const value = parseInt(values[handle]);
-        if (value === 0) {
-          slider.set([1, values[1]]);
+      slider.on(
+        'update',
+        (values: { [x: string]: string }, handle: string | number) => {
+          const value = parseInt(values[handle])
+          if (value === 0) {
+            slider.set([1, values[1]])
+          }
         }
-      });
+      )
 
       const handleUpdate = (values: { [x: string]: string }) => {
-        onDifficultyMinChange(parseInt(values[0]));
-        onDifficultyMaxChange(parseInt(values[1]));
-      };
+        onDifficultyMinChange(parseInt(values[0]))
+        onDifficultyMaxChange(parseInt(values[1]))
+      }
 
-      slider.on('set', handleUpdate);
+      slider.on('set', handleUpdate)
     }
-  }, [difficultyMin, difficultyMax, onDifficultyMinChange, onDifficultyMaxChange]);
+  }, [
+    difficultyMin,
+    difficultyMax,
+    onDifficultyMinChange,
+    onDifficultyMaxChange,
+  ])
 
   useEffect(() => {
     onInputBlockingChange?.(showCustomInput && isInvalid)

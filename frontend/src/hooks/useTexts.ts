@@ -8,7 +8,11 @@ type UseTextsOptions = {
   difficultyMax: number
 }
 
-export function useTexts({ fiction, difficultyMin, difficultyMax }: UseTextsOptions) {
+export function useTexts({
+  fiction,
+  difficultyMin,
+  difficultyMax,
+}: UseTextsOptions) {
   const [texts, setTexts] = useState<Text[]>([])
   const [currentText, setCurrentText] = useState<Text | null>(null)
   const [loading, setLoading] = useState(true)
@@ -19,7 +23,14 @@ export function useTexts({ fiction, difficultyMin, difficultyMax }: UseTextsOpti
       setLoading(true)
       setError(null)
 
-      console.log("Fetching texts with fiction=", fiction, " difficultyMin=", difficultyMin, " difficultyMax=", difficultyMax);
+      console.log(
+        'Fetching texts with fiction=',
+        fiction,
+        ' difficultyMin=',
+        difficultyMin,
+        ' difficultyMax=',
+        difficultyMax
+      )
 
       const { data, error: fetchError } = await supabase
         .from('texts')

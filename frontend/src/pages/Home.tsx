@@ -1,18 +1,7 @@
 import { Reader } from '../components/Reader'
 import { useTexts } from '../hooks/useTexts'
 import { useOutletContext } from 'react-router-dom'
-import type { Mode, ReadingType } from '../types/reading'
-
-type ReadingContext = {
-  wpm: number
-  mode: Mode
-  readingType: ReadingType
-  blurEnabled: boolean
-  fiction: boolean
-  inputBlocking: boolean
-  difficultyMin: number
-  difficultyMax: number
-}
+import type { ReadingContext } from '../types/reading'
 
 export function Home() {
   const {

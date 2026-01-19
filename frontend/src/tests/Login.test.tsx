@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { BrowserRouter } from 'react-router-dom'
 import { Login } from '../pages/Login'
@@ -230,9 +230,11 @@ describe('Login Page', () => {
 
       expect(screen.getByRole('button', { name: /loading/i })).toBeDisabled()
 
-      resolvePromise!({
-        data: { user: null, session: null },
-        error: null,
+      await act(async () => {
+        resolvePromise!({
+          data: { user: null, session: null },
+          error: null,
+        })
       })
     })
 
@@ -370,7 +372,7 @@ describe('Login Page', () => {
       renderLogin()
 
       await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('/home')
+        expect(mockNavigate).toHaveBeenCalledWith('/home', { replace: true })
       })
     })
 

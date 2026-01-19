@@ -79,6 +79,38 @@ describe('Navbar', () => {
     })
   })
 
+  describe('Auth Section - Loading', () => {
+    beforeEach(() => {
+      mockUseAuth.mockReturnValue({
+        user: null,
+        session: null,
+        loading: true,
+        signOut: vi.fn(),
+      })
+    })
+
+    it('shows loading placeholder while auth is loading', () => {
+      renderNavbar()
+      expect(
+        screen.getByLabelText('Loading authentication status')
+      ).toBeInTheDocument()
+    })
+
+    it('does not show login link while loading', () => {
+      renderNavbar()
+      expect(
+        screen.queryByRole('link', { name: 'Log in' })
+      ).not.toBeInTheDocument()
+    })
+
+    it('does not show profile link while loading', () => {
+      renderNavbar()
+      expect(
+        screen.queryByRole('link', { name: 'Profile settings' })
+      ).not.toBeInTheDocument()
+    })
+  })
+
   describe('Auth Section - Logged In', () => {
     beforeEach(() => {
       mockUseAuth.mockReturnValue({
@@ -113,6 +145,13 @@ describe('Navbar', () => {
     it('shows default avatar with user initial', () => {
       renderNavbar()
       expect(screen.getByText('T')).toBeInTheDocument()
+    })
+
+    it('avatar has accessible label', () => {
+      renderNavbar()
+      expect(
+        screen.getByRole('img', { name: 'Avatar for test@example.com' })
+      ).toBeInTheDocument()
     })
   })
 })

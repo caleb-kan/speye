@@ -1,3 +1,5 @@
+import { useMemo } from 'react'
+
 interface DefaultAvatarProps {
   email?: string
   size?: 'sm' | 'md' | 'lg'
@@ -29,11 +31,13 @@ const textSizeClasses = {
  * Uses w-full h-full to fill parent container - parent should define dimensions.
  */
 export function DefaultAvatar({ email, size = 'md' }: DefaultAvatarProps) {
-  const initial = email?.charAt(0).toUpperCase() || '?'
-  const bgColor = getColorFromEmail(email)
+  const initial = useMemo(() => email?.charAt(0).toUpperCase() || '?', [email])
+  const bgColor = useMemo(() => getColorFromEmail(email), [email])
 
   return (
     <div
+      role="img"
+      aria-label={email ? `Avatar for ${email}` : 'Default avatar'}
       className={`w-full h-full flex items-center justify-center text-white font-bold rounded-full ${textSizeClasses[size]}`}
       style={{ backgroundColor: bgColor }}
     >

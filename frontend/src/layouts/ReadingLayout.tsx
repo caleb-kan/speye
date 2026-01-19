@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { OptionsBar } from '../components/OptionsBar'
 import { Outlet } from 'react-router-dom'
-import type { Mode, ReadingType } from '../types/reading'
+import type { Mode, ReadingType, ReadingContext } from '../types/reading'
 import {
   DEFAULT_MIN_DIFFICULTY,
   DEFAULT_MAX_DIFFICULTY,
@@ -42,16 +42,18 @@ export function ReadingLayout() {
       <div className="flex-1 flex flex-col items-center justify-center px-8">
         {/* Nested page content */}
         <Outlet
-          context={{
-            wpm,
-            mode,
-            readingType,
-            blurEnabled,
-            fiction,
-            difficultyMin,
-            difficultyMax,
-            inputBlocking,
-          }}
+          context={
+            {
+              wpm,
+              mode,
+              readingType,
+              blurEnabled,
+              fiction,
+              difficultyMin,
+              difficultyMax,
+              inputBlocking,
+            } satisfies ReadingContext
+          }
         />
       </div>
     </div>

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
+import { REDIRECT_DELAY_LOGIN, REDIRECT_DELAY_SIGNUP } from '../constants/auth'
 
 export function Login() {
   const [email, setEmail] = useState('')
@@ -19,7 +20,7 @@ export function Login() {
   // Redirect if already logged in
   useEffect(() => {
     if (user) {
-      navigate('/home')
+      navigate('/home', { replace: true })
     }
   }, [user, navigate])
 
@@ -57,7 +58,10 @@ export function Login() {
             if (timeoutRef.current) {
               clearTimeout(timeoutRef.current)
             }
-            timeoutRef.current = setTimeout(() => navigate('/home'), 2000)
+            timeoutRef.current = setTimeout(
+              () => navigate('/home', { replace: true }),
+              REDIRECT_DELAY_SIGNUP
+            )
           }
         }
       } else {
@@ -74,7 +78,10 @@ export function Login() {
           if (timeoutRef.current) {
             clearTimeout(timeoutRef.current)
           }
-          timeoutRef.current = setTimeout(() => navigate('/home'), 1000)
+          timeoutRef.current = setTimeout(
+            () => navigate('/home', { replace: true }),
+            REDIRECT_DELAY_LOGIN
+          )
         }
       }
     } catch (err: unknown) {
@@ -148,13 +155,19 @@ export function Login() {
           </div>
 
           {error && (
-            <div className="mb-8 p-4 text-sm text-error bg-error/10 rounded-lg">
+            <div
+              role="alert"
+              className="mb-8 p-4 text-sm text-error bg-error/10 rounded-lg"
+            >
               {error}
             </div>
           )}
 
           {message && (
-            <div className="mb-8 p-4 text-sm text-success bg-success/10 rounded-lg">
+            <div
+              role="status"
+              className="mb-8 p-4 text-sm text-success bg-success/10 rounded-lg"
+            >
               {message}
             </div>
           )}

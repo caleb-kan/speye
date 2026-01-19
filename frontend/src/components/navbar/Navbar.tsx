@@ -6,7 +6,7 @@ import { DefaultAvatar } from '../DefaultAvatar'
 
 export function Navbar() {
   const location = useLocation()
-  const { user } = useAuth()
+  const { user, loading } = useAuth()
 
   const isLoginActive = location.pathname === '/login'
   const isSettingsActive = location.pathname === '/settings'
@@ -31,7 +31,12 @@ export function Navbar() {
       <div className="w-8 h-px bg-text-secondary/30" />
 
       {/* Auth Section */}
-      {user ? (
+      {loading ? (
+        <div
+          className="w-10 h-10 rounded-full bg-text-secondary/20 animate-pulse"
+          aria-label="Loading authentication status"
+        />
+      ) : user ? (
         <Link
           to="/settings"
           aria-label="Profile settings"

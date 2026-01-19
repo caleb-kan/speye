@@ -1,4 +1,3 @@
-import { Header } from '../components/Header'
 import { useTheme } from '../hooks/useTheme'
 
 export function Settings() {
@@ -6,8 +5,6 @@ export function Settings() {
 
   return (
     <div className="min-h-screen bg-bg flex flex-col">
-      <Header />
-
       <main className="flex-1 flex flex-col items-center px-8 pt-44 pb-16">
         <div className="w-full max-w-xl">
           {/* Page Title */}

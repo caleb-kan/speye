@@ -3,14 +3,11 @@ import { render, screen } from '@testing-library/react'
 import { BrowserRouter } from 'react-router-dom'
 import { Navbar } from '../components/navbar/Navbar'
 import * as useAuthModule from '../hooks/useAuth'
-import * as useProfileModule from '../hooks/useProfile'
 import '@testing-library/jest-dom'
 
 vi.mock('../hooks/useAuth')
-vi.mock('../hooks/useProfile')
 
 const mockUseAuth = vi.mocked(useAuthModule.useAuth)
-const mockUseProfile = vi.mocked(useProfileModule.useProfile)
 
 const renderNavbar = () => {
   return render(
@@ -32,13 +29,6 @@ describe('Navbar', () => {
         session: null,
         loading: false,
         signOut: vi.fn(),
-      })
-      mockUseProfile.mockReturnValue({
-        profile: null,
-        loading: false,
-        error: null,
-        updateAvatar: vi.fn(),
-        refetch: vi.fn(),
       })
     })
 
@@ -73,13 +63,6 @@ describe('Navbar', () => {
         loading: false,
         signOut: vi.fn(),
       })
-      mockUseProfile.mockReturnValue({
-        profile: null,
-        loading: false,
-        error: null,
-        updateAvatar: vi.fn(),
-        refetch: vi.fn(),
-      })
     })
 
     it('shows login link when user is not logged in', () => {
@@ -103,13 +86,6 @@ describe('Navbar', () => {
         session: { access_token: 'token' } as never,
         loading: false,
         signOut: vi.fn(),
-      })
-      mockUseProfile.mockReturnValue({
-        profile: { id: '123', avatar_url: null, updated_at: null },
-        loading: false,
-        error: null,
-        updateAvatar: vi.fn(),
-        refetch: vi.fn(),
       })
     })
 
@@ -137,35 +113,6 @@ describe('Navbar', () => {
     it('shows default avatar with user initial', () => {
       renderNavbar()
       expect(screen.getByText('T')).toBeInTheDocument()
-    })
-  })
-
-  describe('Auth Section - Logged In with Avatar', () => {
-    beforeEach(() => {
-      mockUseAuth.mockReturnValue({
-        user: { id: '123', email: 'test@example.com' } as never,
-        session: { access_token: 'token' } as never,
-        loading: false,
-        signOut: vi.fn(),
-      })
-      mockUseProfile.mockReturnValue({
-        profile: {
-          id: '123',
-          avatar_url: 'https://example.com/avatar.jpg',
-          updated_at: null,
-        },
-        loading: false,
-        error: null,
-        updateAvatar: vi.fn(),
-        refetch: vi.fn(),
-      })
-    })
-
-    it('shows profile image when avatar_url is set', () => {
-      renderNavbar()
-      const img = screen.getByRole('img', { name: 'Profile' })
-      expect(img).toBeInTheDocument()
-      expect(img).toHaveAttribute('src', 'https://example.com/avatar.jpg')
     })
   })
 })

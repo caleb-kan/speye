@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
@@ -13,12 +13,24 @@ export function Login() {
   const navigate = useNavigate()
   const { user } = useAuth()
 
+  // Track timeout for cleanup
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   // Redirect if already logged in
   useEffect(() => {
     if (user) {
       navigate('/home')
     }
   }, [user, navigate])
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
+    }
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -42,7 +54,10 @@ export function Login() {
           )
           // If email confirmation is disabled, redirect to home
           if (data.session) {
-            setTimeout(() => navigate('/home'), 2000)
+            if (timeoutRef.current) {
+              clearTimeout(timeoutRef.current)
+            }
+            timeoutRef.current = setTimeout(() => navigate('/home'), 2000)
           }
         }
       } else {
@@ -56,11 +71,13 @@ export function Login() {
 
         if (data.user) {
           setMessage('Login successful!')
-          setTimeout(() => navigate('/home'), 1000)
+          if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current)
+          }
+          timeoutRef.current = setTimeout(() => navigate('/home'), 1000)
         }
       }
     } catch (err: unknown) {
-      // Handle both Error instances and Supabase's AuthError objects
       const message =
         err instanceof Error
           ? err.message
@@ -72,7 +89,7 @@ export function Login() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-[80vh] px-4">
+    <div className="flex items-center justify-center min-h-[80vh] px-8">
       <div className="w-full max-w-lg p-16 bg-bg-secondary rounded-2xl shadow-lg">
         {/* Header */}
         <div className="text-center mb-16">

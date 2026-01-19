@@ -7,8 +7,8 @@ import { Settings } from './pages/Settings'
 import { Library } from './pages/Library'
 import { NotFound } from './pages/NotFound'
 import { Login } from './pages/Login'
-import { RootLayout } from './layout/RootLayout'
-import { ReadingLayout } from './layout/ReadingLayout'
+import { RootLayout } from './layouts/RootLayout'
+import { ReadingLayout } from './layouts/ReadingLayout'
 
 function App() {
   return (
@@ -18,7 +18,7 @@ function App() {
           <BrowserRouter basename={import.meta.env.BASE_URL}>
             <Routes>
               <Route path="/" element={<RootLayout />}>
-                <Route index element={<Navigate to="/home" />} />
+                <Route index element={<Navigate to="/home" replace />} />
 
                 {/* Pages with OptionsBar */}
                 <Route element={<ReadingLayout />}>

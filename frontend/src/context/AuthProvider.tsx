@@ -10,11 +10,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      setLoading(false)
-    })
+    supabase.auth
+      .getSession()
+      .then(({ data: { session }, error }) => {
+        if (error) {
+          console.error('Failed to get session:', error.message)
+        }
+        setSession(session)
+        setUser(session?.user ?? null)
+      })
+      .catch((error) => {
+        console.error('Failed to get session:', error)
+      })
+      .finally(() => {
+        setLoading(false)
+      })
 
     // Listen for auth changes
     const {
@@ -29,7 +39,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const signOut = async () => {
-    await supabase.auth.signOut()
+    try {
+      const { error } = await supabase.auth.signOut()
+      if (error) {
+        console.error('Failed to sign out:', error.message)
+      }
+    } catch (error) {
+      console.error('Failed to sign out:', error)
+    }
     // State is automatically updated via onAuthStateChange listener
   }
 

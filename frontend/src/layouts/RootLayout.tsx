@@ -16,7 +16,7 @@ export function RootLayout() {
         <div className="h-20" />
 
         {/* Page content */}
-        <main className="flex-1 flex flex-col px-8">
+        <main className="flex-1 flex flex-col">
           <Outlet />
         </main>
       </div>

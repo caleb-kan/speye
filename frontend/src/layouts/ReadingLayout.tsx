@@ -20,7 +20,7 @@ export function ReadingLayout() {
   const [difficultyMax, setDifficultyMax] = useState(DEFAULT_MAX_DIFFICULTY)
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex-1 flex flex-col">
       <OptionsBar
         wpm={wpm}
         onWpmChange={setWpm}
@@ -39,7 +39,7 @@ export function ReadingLayout() {
 
       <div className="h-18" />
 
-      <main className="mt-4">
+      <div className="flex-1 flex flex-col items-center justify-center px-8">
         {/* Nested page content */}
         <Outlet
           context={{
@@ -53,7 +53,7 @@ export function ReadingLayout() {
             inputBlocking,
           }}
         />
-      </main>
+      </div>
     </div>
   )
 }

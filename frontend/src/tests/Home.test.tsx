@@ -6,6 +6,11 @@ import { Home } from '../pages/Home.tsx'
 import * as useTextsModule from '../hooks/useTexts.ts'
 import type { Text } from '../types/database.ts'
 import '@testing-library/jest-dom'
+import {
+  DEFAULT_MIN_DIFFICULTY,
+  DEFAULT_MAX_DIFFICULTY,
+} from '../constants/difficulty'
+import { WPM_PRESETS, DEFAULT_WPM, MIN_WPM, MAX_WPM } from '../constants/wpm'
 
 vi.mock('../hooks/useTexts')
 Element.prototype.scrollTo = vi.fn()
@@ -36,8 +41,6 @@ const createMockText = (content: string): Text => ({
   owner_id: null,
   quiz: null,
   fiction: false,
-  difficultyMin: 8,
-  difficultyMax: 12,
   category: null,
   readability: null,
 })
@@ -231,8 +234,8 @@ describe('Home Page', () => {
 
       expect(mockUseTexts).toHaveBeenCalledWith({
         fiction: false,
-        difficultyMin: 8,
-        difficultyMax: 12,
+        difficultyMin: DEFAULT_MIN_DIFFICULTY,
+        difficultyMax: DEFAULT_MAX_DIFFICULTY,
       })
     })
 
@@ -244,8 +247,8 @@ describe('Home Page', () => {
 
       expect(mockUseTexts).toHaveBeenLastCalledWith({
         fiction: true,
-        difficultyMin: 8,
-        difficultyMax: 12,
+        difficultyMin: DEFAULT_MIN_DIFFICULTY,
+        difficultyMax: DEFAULT_MAX_DIFFICULTY,
       })
     })
   })
@@ -346,33 +349,41 @@ describe('Home Page', () => {
 
     it('renders all preset WPM buttons', () => {
       renderWithRouter(<Home />)
-      ;[100, 200, 300, 400].forEach((preset) => {
+      WPM_PRESETS.forEach((preset) => {
         expect(
           screen.getByRole('button', { name: new RegExp(`${preset} words`) })
         ).toBeInTheDocument()
       })
     })
 
-    it('200 WPM is selected by default', () => {
+    it(`${DEFAULT_WPM} WPM is selected by default`, () => {
       renderWithRouter(<Home />)
 
-      expect(screen.getByRole('button', { name: /200 words/ })).toHaveClass(
-        'text-primary'
-      )
+      expect(
+        screen.getByRole('button', { name: new RegExp(`${DEFAULT_WPM} words`) })
+      ).toHaveClass('text-primary')
     })
 
     it('clicking a WPM button changes the selection', async () => {
       const user = userEvent.setup()
       renderWithRouter(<Home />)
 
-      await user.click(screen.getByRole('button', { name: /300 words/ }))
+      // Click a different preset than the default
+      const differentPreset = WPM_PRESETS.find((p) => p !== DEFAULT_WPM)!
+      await user.click(
+        screen.getByRole('button', {
+          name: new RegExp(`${differentPreset} words`),
+        })
+      )
 
-      expect(screen.getByRole('button', { name: /300 words/ })).toHaveClass(
-        'text-primary'
-      )
-      expect(screen.getByRole('button', { name: /200 words/ })).not.toHaveClass(
-        'text-primary'
-      )
+      expect(
+        screen.getByRole('button', {
+          name: new RegExp(`${differentPreset} words`),
+        })
+      ).toHaveClass('text-primary')
+      expect(
+        screen.getByRole('button', { name: new RegExp(`${DEFAULT_WPM} words`) })
+      ).not.toHaveClass('text-primary')
     })
 
     it('renders custom WPM control', () => {
@@ -406,7 +417,7 @@ describe('Home Page', () => {
       expect(screen.getByText('350')).toBeInTheDocument()
     })
 
-    it('custom WPM values below 10 are clamped to 10', async () => {
+    it(`custom WPM values below ${MIN_WPM} are clamped to ${MIN_WPM}`, async () => {
       const user = userEvent.setup()
       renderWithRouter(<Home />)
 
@@ -417,10 +428,10 @@ describe('Home Page', () => {
       )
       await user.keyboard('{Enter}')
 
-      expect(screen.getByText('10')).toBeInTheDocument()
+      expect(screen.getByText(String(MIN_WPM))).toBeInTheDocument()
     })
 
-    it('custom WPM values above 2000 are clamped to 2000', async () => {
+    it(`custom WPM values above ${MAX_WPM} are clamped to ${MAX_WPM}`, async () => {
       const user = userEvent.setup()
       renderWithRouter(<Home />)
 
@@ -431,7 +442,7 @@ describe('Home Page', () => {
       )
       await user.keyboard('{Enter}')
 
-      expect(screen.getByText('2000')).toBeInTheDocument()
+      expect(screen.getByText(String(MAX_WPM))).toBeInTheDocument()
     })
 
     it('pressing Escape cancels custom WPM input', async () => {
@@ -448,9 +459,9 @@ describe('Home Page', () => {
       expect(
         screen.queryByRole('textbox', { name: 'Custom words per minute value' })
       ).not.toBeInTheDocument()
-      expect(screen.getByRole('button', { name: /200 words/ })).toHaveClass(
-        'text-primary'
-      )
+      expect(
+        screen.getByRole('button', { name: new RegExp(`${DEFAULT_WPM} words`) })
+      ).toHaveClass('text-primary')
     })
 
     it('empty input reverts to previous WPM', async () => {
@@ -467,9 +478,9 @@ describe('Home Page', () => {
       expect(
         screen.queryByRole('textbox', { name: 'Custom words per minute value' })
       ).not.toBeInTheDocument()
-      expect(screen.getByRole('button', { name: /200 words/ })).toHaveClass(
-        'text-primary'
-      )
+      expect(
+        screen.getByRole('button', { name: new RegExp(`${DEFAULT_WPM} words`) })
+      ).toHaveClass('text-primary')
     })
   })
 

@@ -23,15 +23,6 @@ export function useTexts({
       setLoading(true)
       setError(null)
 
-      console.log(
-        'Fetching texts with fiction=',
-        fiction,
-        ' difficultyMin=',
-        difficultyMin,
-        ' difficultyMax=',
-        difficultyMax
-      )
-
       const { data, error: fetchError } = await supabase
         .from('texts')
         .select('*')

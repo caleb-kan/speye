@@ -14,8 +14,6 @@ export type Text = {
   owner_id: string | null
   quiz: Quiz | null
   fiction: boolean
-  difficultyMin: number
-  difficultyMax: number
   category: string | null
   readability: number | null
 }

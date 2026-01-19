@@ -97,3 +97,14 @@ body {
   background: transparent;
   border: none;
 }
+
+/* Fix overlapping handles - hover brings handle to front so either can be selected */
+.noUi-handle {
+  z-index: 1 !important;
+}
+.noUi-handle:hover {
+  z-index: 3 !important;
+}
+.noUi-handle.noUi-active {
+  z-index: 2 !important;
+}

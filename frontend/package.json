@@ -13,7 +13,6 @@
     "test:run": "vitest run"
   },
   "dependencies": {
-    "@preline/range-slider": "^3.2.3",
     "@supabase/supabase-js": "^2.90.1",
     "@tailwindcss/vite": "^4.1.18",
     "lucide-react": "^0.562.0",

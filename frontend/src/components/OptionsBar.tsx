@@ -1,6 +1,13 @@
 import { useState, useEffect, useRef } from 'react'
 import type { Mode, ReadingType } from '../types'
 import noUiSlider from 'nouislider'
+import {
+  DEFAULT_MIN_DIFFICULTY,
+  DEFAULT_MAX_DIFFICULTY,
+  MIN_DIFFICULTY,
+  MAX_DIFFICULTY,
+} from '../constants/difficulty'
+import { WPM_PRESETS, MIN_WPM, MAX_WPM } from '../constants/wpm'
 
 type OptionsBarProps = {
   wpm: number
@@ -13,18 +20,10 @@ type OptionsBarProps = {
   onBlurChange: (enabled: boolean) => void
   fiction: boolean
   onFictionChange: (fiction: boolean) => void
-  difficultyMin: number
-  difficultyMax: number
   onDifficultyMinChange: (min: number) => void
   onDifficultyMaxChange: (max: number) => void
   onInputBlockingChange?: (isBlocking: boolean) => void
 }
-
-const WPM_PRESETS = [100, 200, 300, 400]
-const MIN_WPM = 10
-const MAX_WPM = 2000
-const DEFAULT_MIN_DIFFICULTY = 8
-const DEFAULT_MAX_DIFFICULTY = 12
 
 export function OptionsBar({
   wpm,
@@ -37,8 +36,6 @@ export function OptionsBar({
   onBlurChange,
   fiction,
   onFictionChange,
-  difficultyMin,
-  difficultyMax,
   onDifficultyMinChange,
   onDifficultyMaxChange,
   onInputBlockingChange,
@@ -48,27 +45,32 @@ export function OptionsBar({
   const [isInvalid, setIsInvalid] = useState(false)
 
   const sliderRef = useRef<HTMLDivElement>(null)
+  const onDifficultyMinChangeRef = useRef(onDifficultyMinChange)
+  const onDifficultyMaxChangeRef = useRef(onDifficultyMaxChange)
+
+  // Keep refs up to date with latest callbacks
+  useEffect(() => {
+    onDifficultyMinChangeRef.current = onDifficultyMinChange
+    onDifficultyMaxChangeRef.current = onDifficultyMaxChange
+  }, [onDifficultyMinChange, onDifficultyMaxChange])
 
   useEffect(() => {
-    if (sliderRef.current) {
-      if (sliderRef.current!.hasChildNodes()) {
-        return
-      }
-
+    if (sliderRef.current && !sliderRef.current.hasChildNodes()) {
       noUiSlider.create(sliderRef.current, {
         start: [DEFAULT_MIN_DIFFICULTY, DEFAULT_MAX_DIFFICULTY],
         connect: true,
+        behaviour: 'unconstrained-tap', // Allow handles to cross each other
         range: {
-          min: 0,
-          max: 15,
+          min: MIN_DIFFICULTY,
+          max: MAX_DIFFICULTY,
         },
         tooltips: true,
         step: 1,
         format: {
           to: (value) => {
             const intValue = Math.round(value)
-            if (intValue === 15) {
-              return '15+'
+            if (intValue === MAX_DIFFICULTY) {
+              return `${MAX_DIFFICULTY}+`
             } else {
               return intValue.toString()
             }
@@ -79,34 +81,20 @@ export function OptionsBar({
         },
       })
 
-      // const slider = sliderRef.current.noUiSlider
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const slider = (sliderRef.current as any).noUiSlider
 
-      // prevent min slider from being set to 0
-      slider.on(
-        'update',
-        (values: { [x: string]: string }, handle: string | number) => {
-          const value = parseInt(values[handle])
-          if (value === 0) {
-            slider.set([1, values[1]])
-          }
-        }
-      )
-
-      const handleUpdate = (values: { [x: string]: string }) => {
-        onDifficultyMinChange(parseInt(values[0]))
-        onDifficultyMaxChange(parseInt(values[1]))
-      }
-
-      slider.on('set', handleUpdate)
+      // Sort values so min <= max (handles can cross with unconstrained behaviour)
+      slider.on('set', (values: (string | number)[]) => {
+        const val0 = parseInt(String(values[0]))
+        const val1 = parseInt(String(values[1]))
+        const minVal = Math.min(val0, val1)
+        const maxVal = Math.max(val0, val1)
+        onDifficultyMinChangeRef.current(minVal)
+        onDifficultyMaxChangeRef.current(maxVal)
+      })
     }
-  }, [
-    difficultyMin,
-    difficultyMax,
-    onDifficultyMinChange,
-    onDifficultyMaxChange,
-  ])
+  }, [])
 
   useEffect(() => {
     onInputBlockingChange?.(showCustomInput && isInvalid)
@@ -222,7 +210,7 @@ export function OptionsBar({
         <div className="w-px h-6 bg-text-secondary opacity-30" />
 
         {/* Difficulty Selection */}
-        {/* range slider from 0 to 15+ with tooltips, set to difficultyMin and difficultyMax*/}
+        {/* range slider from 1 to 15+ with tooltips, set to difficultyMin and difficultyMax*/}
         <div className="flex items-center gap-2">
           <span className="text-text-secondary mr-1">difficulty:</span>
           <div ref={sliderRef} style={{ width: '200px' }}></div>

@@ -1,0 +1,2 @@
+export const REDIRECT_DELAY_LOGIN = 1000
+export const REDIRECT_DELAY_SIGNUP = 2000

@@ -1,7 +1,7 @@
 import { render } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { Home } from '../pages/Home.tsx'
-import { ReadingLayout } from '../layout/ReadingLayout.tsx'
+import { ReadingLayout } from '../layouts/ReadingLayout.tsx'
 import '@testing-library/jest-dom'
 
 export const renderWithReadingLayout = () => {

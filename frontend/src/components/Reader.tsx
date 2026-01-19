@@ -30,9 +30,9 @@ export function Reader({
   } = useReader({ text, wpm, disabled })
 
   return (
-    <>
+    <div className="w-full flex flex-col items-center">
       {/* Text Display */}
-      <div className="w-full max-w-3xl">
+      <div className="w-full">
         <TextDisplay
           text={text}
           currentWordIndex={currentWordIndex}
@@ -57,6 +57,6 @@ export function Reader({
         totalWords={totalWords}
         disabled={disabled}
       />
-    </>
+    </div>
   )
 }

@@ -20,10 +20,17 @@ export function ReadingControls({
   disabled = false,
 }: ReadingControlsProps) {
   return (
-    <div className="flex flex-col items-center gap-4">
+    <div className="w-full flex flex-col items-center gap-4">
       {/* Progress Bar */}
       <div className="w-full max-w-md">
-        <div className="h-1 bg-bg-secondary rounded-full overflow-hidden">
+        <div
+          role="progressbar"
+          aria-valuenow={Math.round(progress)}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label={`Reading progress: ${Math.round(progress)}%`}
+          className="h-1 bg-bg-secondary rounded-full overflow-hidden"
+        >
           <div
             className="h-full bg-primary transition-all duration-100"
             style={{ width: `${progress}%` }}
@@ -40,6 +47,7 @@ export function ReadingControls({
       {/* Control Buttons */}
       <div className="flex items-center gap-4">
         <button
+          type="button"
           onClick={onRestart}
           className="w-10 h-10 flex items-center justify-center rounded-lg text-text-secondary hover:text-text hover:bg-bg-secondary transition-all"
           aria-label="Restart"
@@ -48,6 +56,7 @@ export function ReadingControls({
         </button>
 
         <button
+          type="button"
           onClick={onPlayPause}
           disabled={disabled}
           className={`w-14 h-14 flex items-center justify-center rounded-full transition-all ${
@@ -61,6 +70,7 @@ export function ReadingControls({
         </button>
 
         <button
+          type="button"
           onClick={onNewText}
           className="w-10 h-10 flex items-center justify-center rounded-lg text-text-secondary hover:text-text hover:bg-bg-secondary transition-all"
           aria-label="New text"

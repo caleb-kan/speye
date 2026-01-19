@@ -7,7 +7,8 @@ import { Settings } from './pages/Settings'
 import { Library } from './pages/Library'
 import { NotFound } from './pages/NotFound'
 import { Login } from './pages/Login'
-import { Layout } from './layout/Layout'
+import { RootLayout } from './layout/RootLayout'
+import { ReadingLayout } from './layout/ReadingLayout'
 
 function App() {
   return (
@@ -16,16 +17,19 @@ function App() {
         <AuthProvider>
           <BrowserRouter basename={import.meta.env.BASE_URL}>
             <Routes>
-              <Route path="/" element={<Layout />}>
-                {/* Nested routes render into Layout's <Outlet> */}
+              <Route path="/" element={<RootLayout />}>
                 <Route index element={<Navigate to="/home" />} />
 
-                <Route path="home" element={<Home />} />
+                {/* Pages with OptionsBar */}
+                <Route element={<ReadingLayout />}>
+                  <Route path="home" element={<Home />} />
+                </Route>
+
+                {/* Pages without OptionsBar */}
                 <Route path="library" element={<Library />} />
                 <Route path="settings" element={<Settings />} />
                 <Route path="login" element={<Login />} />
 
-                {/* Catch-all for 404 */}
                 <Route path="*" element={<NotFound />} />
               </Route>
             </Routes>

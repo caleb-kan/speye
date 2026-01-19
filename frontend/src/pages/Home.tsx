@@ -1,24 +1,28 @@
-import { useState } from 'react'
-import { Header } from '../components/Header'
-import { OptionsBar } from '../components/OptionsBar'
 import { Reader } from '../components/Reader'
 import { useTexts } from '../hooks/useTexts'
-import type { Mode, ReadingType } from '../types/reading'
-import {
-  DEFAULT_MIN_DIFFICULTY,
-  DEFAULT_MAX_DIFFICULTY,
-} from '../constants/difficulty'
-import { DEFAULT_WPM } from '../constants/wpm'
+import { useOutletContext } from 'react-router-dom'
+import type { ReadingType } from '../types/reading'
+
+type ReadingContext = {
+  wpm: number
+  readingType: ReadingType
+  blurEnabled: boolean
+  fiction: boolean
+  inputBlocking: boolean
+  difficultyMin: number
+  difficultyMax: number
+}
 
 export function Home() {
-  const [wpm, setWpm] = useState(DEFAULT_WPM)
-  const [mode, setMode] = useState<Mode>('standard')
-  const [readingType, setReadingType] = useState<ReadingType>('dynamic')
-  const [blurEnabled, setBlurEnabled] = useState(false)
-  const [fiction, setFiction] = useState(false)
-  const [difficultyMin, setDifficultyMin] = useState(DEFAULT_MIN_DIFFICULTY)
-  const [difficultyMax, setDifficultyMax] = useState(DEFAULT_MAX_DIFFICULTY)
-  const [inputBlocking, setInputBlocking] = useState(false)
+  const {
+    wpm,
+    readingType,
+    blurEnabled,
+    fiction,
+    inputBlocking,
+    difficultyMin,
+    difficultyMax,
+  } = useOutletContext<ReadingContext>()
 
   const { currentText, loading, error, selectRandomText, refetch } = useTexts({
     fiction,
@@ -27,25 +31,8 @@ export function Home() {
   })
 
   return (
-    <div className="min-h-screen bg-bg flex flex-col">
-      <Header />
-      <OptionsBar
-        wpm={wpm}
-        onWpmChange={setWpm}
-        mode={mode}
-        onModeChange={setMode}
-        readingType={readingType}
-        onReadingTypeChange={setReadingType}
-        blurEnabled={blurEnabled}
-        onBlurChange={setBlurEnabled}
-        fiction={fiction}
-        onFictionChange={setFiction}
-        onDifficultyMinChange={setDifficultyMin}
-        onDifficultyMaxChange={setDifficultyMax}
-        onInputBlockingChange={setInputBlocking}
-      />
-
-      <main className="min-h-screen flex flex-col items-center justify-center px-8 pt-32">
+    <div className="flex flex-col items-center w-full">
+      <main className="flex flex-col items-center justify-center w-full max-w-3xl px-8 py-16">
         <div className="w-full max-w-3xl">
           {loading ? (
             <div className="text-text-secondary text-center">

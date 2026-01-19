@@ -1,7 +1,6 @@
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { LogOut, Upload, X } from 'lucide-react'
-import { Header } from '../components/Header'
 import { useTheme } from '../hooks/useTheme'
 import { useAuth } from '../hooks/useAuth'
 import { useProfile } from '../hooks/useProfile'
@@ -88,8 +87,6 @@ export function Settings() {
 
   return (
     <div className="min-h-screen bg-bg flex flex-col">
-      <Header />
-
       <main className="flex-1 flex flex-col items-center px-8 pt-44 pb-16">
         <div className="w-full max-w-xl">
           {/* Page Title */}

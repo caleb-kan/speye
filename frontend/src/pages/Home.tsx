@@ -4,17 +4,26 @@ import { OptionsBar } from '../components/OptionsBar'
 import { Reader } from '../components/Reader'
 import { useTexts } from '../hooks/useTexts'
 import type { Mode, ReadingType } from '../types/reading'
+import {
+  DEFAULT_MIN_DIFFICULTY,
+  DEFAULT_MAX_DIFFICULTY,
+} from '../constants/difficulty'
+import { DEFAULT_WPM } from '../constants/wpm'
 
 export function Home() {
-  const [wpm, setWpm] = useState(200)
+  const [wpm, setWpm] = useState(DEFAULT_WPM)
   const [mode, setMode] = useState<Mode>('standard')
   const [readingType, setReadingType] = useState<ReadingType>('dynamic')
   const [blurEnabled, setBlurEnabled] = useState(false)
   const [fiction, setFiction] = useState(false)
+  const [difficultyMin, setDifficultyMin] = useState(DEFAULT_MIN_DIFFICULTY)
+  const [difficultyMax, setDifficultyMax] = useState(DEFAULT_MAX_DIFFICULTY)
   const [inputBlocking, setInputBlocking] = useState(false)
 
   const { currentText, loading, error, selectRandomText, refetch } = useTexts({
     fiction,
+    difficultyMin,
+    difficultyMax,
   })
 
   return (
@@ -31,6 +40,8 @@ export function Home() {
         onBlurChange={setBlurEnabled}
         fiction={fiction}
         onFictionChange={setFiction}
+        onDifficultyMinChange={setDifficultyMin}
+        onDifficultyMaxChange={setDifficultyMax}
         onInputBlockingChange={setInputBlocking}
       />
 

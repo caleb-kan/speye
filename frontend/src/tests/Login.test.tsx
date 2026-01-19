@@ -1,0 +1,414 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { BrowserRouter } from 'react-router-dom'
+import { Login } from '../pages/Login'
+import * as useAuthModule from '../hooks/useAuth'
+import * as supabaseModule from '../lib/supabase'
+import '@testing-library/jest-dom'
+
+vi.mock('../hooks/useAuth')
+vi.mock('../lib/supabase', () => ({
+  supabase: {
+    auth: {
+      signUp: vi.fn(),
+      signInWithPassword: vi.fn(),
+    },
+  },
+}))
+
+const mockNavigate = vi.fn()
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom')
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+  }
+})
+
+const mockUseAuth = vi.mocked(useAuthModule.useAuth)
+const mockSupabase = vi.mocked(supabaseModule.supabase)
+
+const renderLogin = () => {
+  return render(
+    <BrowserRouter>
+      <Login />
+    </BrowserRouter>
+  )
+}
+
+describe('Login Page', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockUseAuth.mockReturnValue({
+      user: null,
+      session: null,
+      loading: false,
+      signOut: vi.fn(),
+    })
+  })
+
+  describe('Rendering', () => {
+    it('renders login form by default', () => {
+      renderLogin()
+
+      expect(
+        screen.getByRole('heading', { name: /login/i })
+      ).toBeInTheDocument()
+      expect(screen.getByText('Welcome back!')).toBeInTheDocument()
+    })
+
+    it('renders email input', () => {
+      renderLogin()
+
+      expect(screen.getByLabelText(/email/i)).toBeInTheDocument()
+      expect(screen.getByPlaceholderText('you@example.com')).toBeInTheDocument()
+    })
+
+    it('renders password input', () => {
+      renderLogin()
+
+      expect(screen.getByLabelText(/password/i)).toBeInTheDocument()
+      expect(screen.getByPlaceholderText('••••••••')).toBeInTheDocument()
+    })
+
+    it('renders login button', () => {
+      renderLogin()
+
+      expect(
+        screen.getByRole('button', { name: /^login$/i })
+      ).toBeInTheDocument()
+    })
+
+    it('renders sign up toggle link', () => {
+      renderLogin()
+
+      expect(
+        screen.getByRole('button', { name: /don't have an account\? sign up/i })
+      ).toBeInTheDocument()
+    })
+
+    it('renders continue without logging in link', () => {
+      renderLogin()
+
+      expect(
+        screen.getByRole('button', { name: /continue without logging in/i })
+      ).toBeInTheDocument()
+    })
+  })
+
+  describe('Sign Up Toggle', () => {
+    it('switches to sign up mode when clicking sign up link', async () => {
+      const user = userEvent.setup()
+      renderLogin()
+
+      await user.click(
+        screen.getByRole('button', { name: /don't have an account\? sign up/i })
+      )
+
+      expect(
+        screen.getByRole('heading', { name: /sign up/i })
+      ).toBeInTheDocument()
+      expect(screen.getByText('Create a new account')).toBeInTheDocument()
+    })
+
+    it('shows password requirements in sign up mode', async () => {
+      const user = userEvent.setup()
+      renderLogin()
+
+      await user.click(
+        screen.getByRole('button', { name: /don't have an account\? sign up/i })
+      )
+
+      expect(
+        screen.getByText('Password must be at least 6 characters')
+      ).toBeInTheDocument()
+    })
+
+    it('switches back to login mode', async () => {
+      const user = userEvent.setup()
+      renderLogin()
+
+      await user.click(
+        screen.getByRole('button', { name: /don't have an account\? sign up/i })
+      )
+      await user.click(
+        screen.getByRole('button', { name: /already have an account\? login/i })
+      )
+
+      expect(
+        screen.getByRole('heading', { name: /login/i })
+      ).toBeInTheDocument()
+    })
+
+    it('clears error when toggling modes', async () => {
+      mockSupabase.auth.signInWithPassword.mockResolvedValue({
+        data: { user: null, session: null },
+        error: { message: 'Invalid credentials', name: 'AuthError' } as never,
+      })
+
+      const user = userEvent.setup()
+      renderLogin()
+
+      await user.type(screen.getByLabelText(/email/i), 'test@example.com')
+      await user.type(screen.getByLabelText(/password/i), 'password')
+      await user.click(screen.getByRole('button', { name: /^login$/i }))
+
+      await waitFor(() => {
+        expect(screen.getByText('Invalid credentials')).toBeInTheDocument()
+      })
+
+      await user.click(
+        screen.getByRole('button', { name: /don't have an account\? sign up/i })
+      )
+
+      expect(screen.queryByText('Invalid credentials')).not.toBeInTheDocument()
+    })
+  })
+
+  describe('Form Validation', () => {
+    it('email input is required', () => {
+      renderLogin()
+
+      expect(screen.getByLabelText(/email/i)).toBeRequired()
+    })
+
+    it('password input is required', () => {
+      renderLogin()
+
+      expect(screen.getByLabelText(/password/i)).toBeRequired()
+    })
+
+    it('password has minimum length of 6', () => {
+      renderLogin()
+
+      expect(screen.getByLabelText(/password/i)).toHaveAttribute(
+        'minLength',
+        '6'
+      )
+    })
+  })
+
+  describe('Login Flow', () => {
+    it('calls signInWithPassword with form data', async () => {
+      mockSupabase.auth.signInWithPassword.mockResolvedValue({
+        data: {
+          user: { id: '123', email: 'test@example.com' } as never,
+          session: { access_token: 'token' } as never,
+        },
+        error: null,
+      })
+
+      const user = userEvent.setup()
+      renderLogin()
+
+      await user.type(screen.getByLabelText(/email/i), 'test@example.com')
+      await user.type(screen.getByLabelText(/password/i), 'password123')
+      await user.click(screen.getByRole('button', { name: /^login$/i }))
+
+      expect(mockSupabase.auth.signInWithPassword).toHaveBeenCalledWith({
+        email: 'test@example.com',
+        password: 'password123',
+      })
+    })
+
+    it('shows loading state while submitting', async () => {
+      let resolvePromise: (value: unknown) => void
+      mockSupabase.auth.signInWithPassword.mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            resolvePromise = resolve
+          })
+      )
+
+      const user = userEvent.setup()
+      renderLogin()
+
+      await user.type(screen.getByLabelText(/email/i), 'test@example.com')
+      await user.type(screen.getByLabelText(/password/i), 'password123')
+      await user.click(screen.getByRole('button', { name: /^login$/i }))
+
+      expect(screen.getByRole('button', { name: /loading/i })).toBeDisabled()
+
+      resolvePromise!({
+        data: { user: null, session: null },
+        error: null,
+      })
+    })
+
+    it('shows success message on successful login', async () => {
+      mockSupabase.auth.signInWithPassword.mockResolvedValue({
+        data: {
+          user: { id: '123' } as never,
+          session: { access_token: 'token' } as never,
+        },
+        error: null,
+      })
+
+      const user = userEvent.setup()
+      renderLogin()
+
+      await user.type(screen.getByLabelText(/email/i), 'test@example.com')
+      await user.type(screen.getByLabelText(/password/i), 'password123')
+      await user.click(screen.getByRole('button', { name: /^login$/i }))
+
+      await waitFor(() => {
+        expect(screen.getByText('Login successful!')).toBeInTheDocument()
+      })
+    })
+
+    it('shows error message on login failure', async () => {
+      mockSupabase.auth.signInWithPassword.mockResolvedValue({
+        data: { user: null, session: null },
+        error: {
+          message: 'Invalid login credentials',
+          name: 'AuthError',
+        } as never,
+      })
+
+      const user = userEvent.setup()
+      renderLogin()
+
+      await user.type(screen.getByLabelText(/email/i), 'test@example.com')
+      await user.type(screen.getByLabelText(/password/i), 'wrongpassword')
+      await user.click(screen.getByRole('button', { name: /^login$/i }))
+
+      await waitFor(() => {
+        expect(
+          screen.getByText('Invalid login credentials')
+        ).toBeInTheDocument()
+      })
+    })
+  })
+
+  describe('Sign Up Flow', () => {
+    const switchToSignUp = async (user: ReturnType<typeof userEvent.setup>) => {
+      await user.click(
+        screen.getByRole('button', { name: /don't have an account\? sign up/i })
+      )
+    }
+
+    it('calls signUp with form data', async () => {
+      mockSupabase.auth.signUp.mockResolvedValue({
+        data: {
+          user: { id: '123', email: 'new@example.com' } as never,
+          session: null,
+        },
+        error: null,
+      })
+
+      const user = userEvent.setup()
+      renderLogin()
+      await switchToSignUp(user)
+
+      await user.type(screen.getByLabelText(/email/i), 'new@example.com')
+      await user.type(screen.getByLabelText(/password/i), 'password123')
+      await user.click(screen.getByRole('button', { name: /^sign up$/i }))
+
+      expect(mockSupabase.auth.signUp).toHaveBeenCalledWith({
+        email: 'new@example.com',
+        password: 'password123',
+      })
+    })
+
+    it('shows verification message on successful sign up', async () => {
+      mockSupabase.auth.signUp.mockResolvedValue({
+        data: {
+          user: { id: '123' } as never,
+          session: null,
+        },
+        error: null,
+      })
+
+      const user = userEvent.setup()
+      renderLogin()
+      await switchToSignUp(user)
+
+      await user.type(screen.getByLabelText(/email/i), 'new@example.com')
+      await user.type(screen.getByLabelText(/password/i), 'password123')
+      await user.click(screen.getByRole('button', { name: /^sign up$/i }))
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/check your email to verify your account/i)
+        ).toBeInTheDocument()
+      })
+    })
+
+    it('shows error message on sign up failure', async () => {
+      mockSupabase.auth.signUp.mockResolvedValue({
+        data: { user: null, session: null },
+        error: {
+          message: 'User already registered',
+          name: 'AuthError',
+        } as never,
+      })
+
+      const user = userEvent.setup()
+      renderLogin()
+      await switchToSignUp(user)
+
+      await user.type(screen.getByLabelText(/email/i), 'existing@example.com')
+      await user.type(screen.getByLabelText(/password/i), 'password123')
+      await user.click(screen.getByRole('button', { name: /^sign up$/i }))
+
+      await waitFor(() => {
+        expect(screen.getByText('User already registered')).toBeInTheDocument()
+      })
+    })
+  })
+
+  describe('Navigation', () => {
+    it('redirects to home if already logged in', async () => {
+      mockUseAuth.mockReturnValue({
+        user: { id: '123', email: 'test@example.com' } as never,
+        session: { access_token: 'token' } as never,
+        loading: false,
+        signOut: vi.fn(),
+      })
+
+      renderLogin()
+
+      await waitFor(() => {
+        expect(mockNavigate).toHaveBeenCalledWith('/home')
+      })
+    })
+
+    it('navigates to home when clicking "Continue without logging in"', async () => {
+      const user = userEvent.setup()
+      renderLogin()
+
+      await user.click(
+        screen.getByRole('button', { name: /continue without logging in/i })
+      )
+
+      expect(mockNavigate).toHaveBeenCalledWith('/home')
+    })
+  })
+
+  describe('Accessibility', () => {
+    it('has proper form labels', () => {
+      renderLogin()
+
+      const emailInput = screen.getByLabelText(/email/i)
+      const passwordInput = screen.getByLabelText(/password/i)
+
+      expect(emailInput).toHaveAttribute('type', 'email')
+      expect(passwordInput).toHaveAttribute('type', 'password')
+    })
+
+    it('email input has correct id for label association', () => {
+      renderLogin()
+
+      const emailInput = screen.getByLabelText(/email/i)
+      expect(emailInput).toHaveAttribute('id', 'email')
+    })
+
+    it('password input has correct id for label association', () => {
+      renderLogin()
+
+      const passwordInput = screen.getByLabelText(/password/i)
+      expect(passwordInput).toHaveAttribute('id', 'password')
+    })
+  })
+})

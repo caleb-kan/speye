@@ -13,6 +13,14 @@ import {
 import { WPM_PRESETS, DEFAULT_WPM, MIN_WPM, MAX_WPM } from '../constants/wpm'
 
 vi.mock('../hooks/useTexts')
+vi.mock('../hooks/useAuth', () => ({
+  useAuth: () => ({
+    user: null,
+    session: null,
+    loading: false,
+    signOut: vi.fn(),
+  }),
+}))
 Element.prototype.scrollTo = vi.fn()
 window.scrollTo = vi.fn()
 

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
-import { Header } from '../components/Header'
 
 export function Login() {
   const [email, setEmail] = useState('')
@@ -60,116 +59,125 @@ export function Login() {
           setTimeout(() => navigate('/home'), 1000)
         }
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+    } catch (err: unknown) {
+      // Handle both Error instances and Supabase's AuthError objects
+      const message =
+        err instanceof Error
+          ? err.message
+          : ((err as { message?: string })?.message ?? 'An error occurred')
+      setError(message)
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-bg text-text">
-      <Header />
-      <div className="flex items-center justify-center min-h-[80vh] pt-28 px-4">
-        <div className="w-full max-w-md p-8 space-y-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg">
-          <div className="text-center">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-              {isSignUp ? 'Sign Up' : 'Login'}
-            </h1>
-            <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-              {isSignUp ? 'Create a new account' : 'Welcome back!'}
-            </p>
+    <div className="flex items-center justify-center min-h-[80vh] px-4">
+      <div className="w-full max-w-lg p-16 bg-bg-secondary rounded-2xl shadow-lg">
+        {/* Header */}
+        <div className="text-center mb-16">
+          <h1 className="text-4xl font-bold text-text mb-4">
+            {isSignUp ? 'Sign Up' : 'Login'}
+          </h1>
+          <p className="text-base text-text-secondary">
+            {isSignUp ? 'Create a new account' : 'Welcome back!'}
+          </p>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit}>
+          {/* Email Field */}
+          <div className="mb-10">
+            <label
+              htmlFor="email"
+              className="block text-sm font-medium text-text-secondary mb-3"
+            >
+              Email
+            </label>
+            <input
+              id="email"
+              type="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="w-full px-5 py-4 border border-text-secondary/30 rounded-xl bg-bg text-text placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
+            />
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-              >
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="w-full px-3 py-2 mt-1 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-              >
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-                className="w-full px-3 py-2 mt-1 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-              />
-              {isSignUp && (
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  Password must be at least 6 characters
-                </p>
-              )}
-            </div>
-
-            {error && (
-              <div className="p-3 text-sm text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-md">
-                {error}
-              </div>
+          {/* Password Field */}
+          <div className="mb-12">
+            <label
+              htmlFor="password"
+              className="block text-sm font-medium text-text-secondary mb-3"
+            >
+              Password
+            </label>
+            <input
+              id="password"
+              type="password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={6}
+              className="w-full px-5 py-4 border border-text-secondary/30 rounded-xl bg-bg text-text placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
+            />
+            {isSignUp && (
+              <p className="mt-3 text-xs text-text-secondary">
+                Password must be at least 6 characters
+              </p>
             )}
-
-            {message && (
-              <div className="p-3 text-sm text-green-600 bg-green-50 dark:bg-green-900/20 dark:text-green-400 rounded-md">
-                {message}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full mt-6 px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {loading ? 'Loading...' : isSignUp ? 'Sign Up' : 'Login'}
-            </button>
-          </form>
-
-          <div className="text-center">
-            <button
-              type="button"
-              onClick={() => {
-                setIsSignUp(!isSignUp)
-                setError(null)
-                setMessage(null)
-              }}
-              className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
-            >
-              {isSignUp
-                ? 'Already have an account? Login'
-                : "Don't have an account? Sign up"}
-            </button>
           </div>
 
-          <div className="text-center pt-4 border-t border-gray-200 dark:border-gray-700">
-            <button
-              type="button"
-              onClick={() => navigate('/home')}
-              className="text-sm text-gray-600 dark:text-gray-400 hover:underline"
-            >
-              Continue without logging in
-            </button>
-          </div>
+          {error && (
+            <div className="mb-8 p-4 text-sm text-error bg-error/10 rounded-lg">
+              {error}
+            </div>
+          )}
+
+          {message && (
+            <div className="mb-8 p-4 text-sm text-success bg-success/10 rounded-lg">
+              {message}
+            </div>
+          )}
+
+          {/* Submit Button */}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full px-5 py-4 text-bg font-semibold bg-primary rounded-xl hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-bg-secondary disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          >
+            {loading ? 'Loading...' : isSignUp ? 'Sign Up' : 'Login'}
+          </button>
+        </form>
+
+        {/* Toggle Sign Up / Login */}
+        <div className="text-center mt-12">
+          <button
+            type="button"
+            onClick={() => {
+              setIsSignUp(!isSignUp)
+              setError(null)
+              setMessage(null)
+            }}
+            className="text-sm text-primary hover:underline transition-colors"
+          >
+            {isSignUp
+              ? 'Already have an account? Login'
+              : "Don't have an account? Sign up"}
+          </button>
+        </div>
+
+        {/* Continue without login */}
+        <div className="text-center mt-10 pt-10 border-t border-text-secondary/20">
+          <button
+            type="button"
+            onClick={() => navigate('/home')}
+            className="text-sm text-text-secondary hover:text-text hover:underline transition-colors"
+          >
+            Continue without logging in
+          </button>
         </div>
       </div>
     </div>

@@ -1,0 +1,176 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import * as useTextsModule from '../hooks/useTexts.ts'
+import type { Text } from '../types/database.ts'
+import '@testing-library/jest-dom'
+import { renderWithReadingLayout } from './renderLayouts.tsx'
+
+vi.mock('../hooks/useTexts')
+Element.prototype.scrollTo = vi.fn()
+window.scrollTo = vi.fn()
+
+const mockUseTexts = vi.mocked(useTextsModule.useTexts)
+
+const createMockText = (content: string): Text => ({
+  id: '1',
+  content,
+  is_public: true,
+  uploaded_at: new Date().toISOString(),
+  owner_id: null,
+  quiz: null,
+  fiction: false,
+  category: null,
+  readability: null,
+})
+
+describe('Reader', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  describe('Loading State', () => {
+    it('displays loading message when fetching texts', () => {
+      mockUseTexts.mockReturnValue({
+        texts: [],
+        currentText: null,
+        loading: true,
+        error: null,
+        selectRandomText: vi.fn(),
+        refetch: vi.fn(),
+      })
+
+      renderWithReadingLayout()
+
+      expect(screen.getByText('Loading texts...')).toBeInTheDocument()
+    })
+  })
+
+  describe('Error State', () => {
+    it('displays error message', () => {
+      mockUseTexts.mockReturnValue({
+        texts: [],
+        currentText: null,
+        loading: false,
+        error: 'Network error',
+        selectRandomText: vi.fn(),
+        refetch: vi.fn(),
+      })
+
+      renderWithReadingLayout()
+
+      expect(screen.getByText('Network error')).toBeInTheDocument()
+    })
+
+    it('displays "Try again" button', () => {
+      mockUseTexts.mockReturnValue({
+        texts: [],
+        currentText: null,
+        loading: false,
+        error: 'Network error',
+        selectRandomText: vi.fn(),
+        refetch: vi.fn(),
+      })
+
+      renderWithReadingLayout()
+
+      expect(
+        screen.getByRole('button', { name: 'Try again' })
+      ).toBeInTheDocument()
+    })
+
+    it('clicking "Try again" calls refetch', async () => {
+      const mockRefetch = vi.fn()
+      mockUseTexts.mockReturnValue({
+        texts: [],
+        currentText: null,
+        loading: false,
+        error: 'Network error',
+        selectRandomText: vi.fn(),
+        refetch: mockRefetch,
+      })
+
+      const user = userEvent.setup()
+      renderWithReadingLayout()
+
+      await user.click(screen.getByRole('button', { name: 'Try again' }))
+
+      expect(mockRefetch).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  describe('Empty State', () => {
+    it('displays "No texts available" message', () => {
+      mockUseTexts.mockReturnValue({
+        texts: [],
+        currentText: null,
+        loading: false,
+        error: null,
+        selectRandomText: vi.fn(),
+        refetch: vi.fn(),
+      })
+
+      renderWithReadingLayout()
+
+      expect(screen.getByText('No texts available')).toBeInTheDocument()
+    })
+  })
+
+  describe('Text Display', () => {
+    it('renders text content when available', () => {
+      const mockText = createMockText('Hello world testing')
+      mockUseTexts.mockReturnValue({
+        texts: [mockText],
+        currentText: mockText,
+        loading: false,
+        error: null,
+        selectRandomText: vi.fn(),
+        refetch: vi.fn(),
+      })
+
+      renderWithReadingLayout()
+
+      expect(screen.getByText('Hello')).toBeInTheDocument()
+      expect(screen.getByText('world')).toBeInTheDocument()
+      expect(screen.getByText('testing')).toBeInTheDocument()
+    })
+
+    it('renders "New text" button when text is available', () => {
+      const mockText = createMockText('Test content')
+      mockUseTexts.mockReturnValue({
+        texts: [mockText],
+        currentText: mockText,
+        loading: false,
+        error: null,
+        selectRandomText: vi.fn(),
+        refetch: vi.fn(),
+      })
+
+      renderWithReadingLayout()
+
+      expect(
+        screen.getByRole('button', { name: 'New text' })
+      ).toBeInTheDocument()
+    })
+
+    it('clicking "New text" calls selectRandomText', async () => {
+      const mockSelectRandomText = vi.fn()
+      const mockText = createMockText('Test content')
+      mockUseTexts.mockReturnValue({
+        texts: [mockText],
+        currentText: mockText,
+        loading: false,
+        error: null,
+        selectRandomText: mockSelectRandomText,
+        refetch: vi.fn(),
+      })
+
+      const user = userEvent.setup()
+      renderWithReadingLayout()
+
+      await user.click(screen.getByRole('button', { name: 'New text' }))
+
+      expect(mockSelectRandomText).toHaveBeenCalledTimes(1)
+    })
+  })
+})

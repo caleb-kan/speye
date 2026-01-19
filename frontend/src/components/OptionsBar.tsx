@@ -141,7 +141,7 @@ export function OptionsBar({
   }
 
   return (
-    <div className="fixed top-40 left-0 right-0 z-40 bg-bg">
+    <div className="top-24 left-0 right-0 z-40 bg-bg">
       <div className="flex flex-wrap items-center justify-center gap-8 py-6 text-sm">
         {/* Mode Selection */}
         <div className="flex items-center gap-2">

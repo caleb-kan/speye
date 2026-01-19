@@ -4,9 +4,15 @@ import type { Text } from '../types/database'
 
 type UseTextsOptions = {
   fiction: boolean
+  difficultyMin: number
+  difficultyMax: number
 }
 
-export function useTexts({ fiction }: UseTextsOptions) {
+export function useTexts({
+  fiction,
+  difficultyMin,
+  difficultyMax,
+}: UseTextsOptions) {
   const [texts, setTexts] = useState<Text[]>([])
   const [currentText, setCurrentText] = useState<Text | null>(null)
   const [loading, setLoading] = useState(true)
@@ -22,6 +28,8 @@ export function useTexts({ fiction }: UseTextsOptions) {
         .select('*')
         .eq('is_public', true)
         .eq('fiction', fiction)
+        .gte('readability', difficultyMin)
+        .lte('readability', difficultyMax)
 
       if (fetchError) {
         throw fetchError
@@ -40,7 +48,7 @@ export function useTexts({ fiction }: UseTextsOptions) {
     } finally {
       setLoading(false)
     }
-  }, [fiction])
+  }, [fiction, difficultyMin, difficultyMax])
 
   const selectRandomText = useCallback(() => {
     if (texts.length === 0) return

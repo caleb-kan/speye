@@ -1,5 +1,13 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import type { Mode, ReadingType } from '../types'
+import noUiSlider from 'nouislider'
+import {
+  DEFAULT_MIN_DIFFICULTY,
+  DEFAULT_MAX_DIFFICULTY,
+  MIN_DIFFICULTY,
+  MAX_DIFFICULTY,
+} from '../constants/difficulty'
+import { WPM_PRESETS, MIN_WPM, MAX_WPM } from '../constants/wpm'
 
 type OptionsBarProps = {
   wpm: number
@@ -12,12 +20,10 @@ type OptionsBarProps = {
   onBlurChange: (enabled: boolean) => void
   fiction: boolean
   onFictionChange: (fiction: boolean) => void
+  onDifficultyMinChange: (min: number) => void
+  onDifficultyMaxChange: (max: number) => void
   onInputBlockingChange?: (isBlocking: boolean) => void
 }
-
-const WPM_PRESETS = [100, 200, 300, 400]
-const MIN_WPM = 10
-const MAX_WPM = 2000
 
 export function OptionsBar({
   wpm,
@@ -30,11 +36,65 @@ export function OptionsBar({
   onBlurChange,
   fiction,
   onFictionChange,
+  onDifficultyMinChange,
+  onDifficultyMaxChange,
   onInputBlockingChange,
 }: OptionsBarProps) {
   const [customWpm, setCustomWpm] = useState('')
   const [showCustomInput, setShowCustomInput] = useState(false)
   const [isInvalid, setIsInvalid] = useState(false)
+
+  const sliderRef = useRef<HTMLDivElement>(null)
+  const onDifficultyMinChangeRef = useRef(onDifficultyMinChange)
+  const onDifficultyMaxChangeRef = useRef(onDifficultyMaxChange)
+
+  // Keep refs up to date with latest callbacks
+  useEffect(() => {
+    onDifficultyMinChangeRef.current = onDifficultyMinChange
+    onDifficultyMaxChangeRef.current = onDifficultyMaxChange
+  }, [onDifficultyMinChange, onDifficultyMaxChange])
+
+  useEffect(() => {
+    if (sliderRef.current && !sliderRef.current.hasChildNodes()) {
+      noUiSlider.create(sliderRef.current, {
+        start: [DEFAULT_MIN_DIFFICULTY, DEFAULT_MAX_DIFFICULTY],
+        connect: true,
+        behaviour: 'unconstrained-tap', // Allow handles to cross each other
+        range: {
+          min: MIN_DIFFICULTY,
+          max: MAX_DIFFICULTY,
+        },
+        tooltips: true,
+        step: 1,
+        format: {
+          to: (value) => {
+            const intValue = Math.round(value)
+            if (intValue === MAX_DIFFICULTY) {
+              return `${MAX_DIFFICULTY}+`
+            } else {
+              return intValue.toString()
+            }
+          },
+          from: (value) => {
+            return Number(value)
+          },
+        },
+      })
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const slider = (sliderRef.current as any).noUiSlider
+
+      // Sort values so min <= max (handles can cross with unconstrained behaviour)
+      slider.on('set', (values: (string | number)[]) => {
+        const val0 = parseInt(String(values[0]))
+        const val1 = parseInt(String(values[1]))
+        const minVal = Math.min(val0, val1)
+        const maxVal = Math.max(val0, val1)
+        onDifficultyMinChangeRef.current(minVal)
+        onDifficultyMaxChangeRef.current(maxVal)
+      })
+    }
+  }, [])
 
   useEffect(() => {
     onInputBlockingChange?.(showCustomInput && isInvalid)
@@ -144,6 +204,16 @@ export function OptionsBar({
           >
             fiction
           </button>
+        </div>
+
+        {/* Divider */}
+        <div className="w-px h-6 bg-text-secondary opacity-30" />
+
+        {/* Difficulty Selection */}
+        {/* range slider from 1 to 15+ with tooltips, set to difficultyMin and difficultyMax*/}
+        <div className="flex items-center gap-2">
+          <span className="text-text-secondary mr-1">difficulty:</span>
+          <div ref={sliderRef} style={{ width: '200px' }}></div>
         </div>
 
         {/* Divider */}

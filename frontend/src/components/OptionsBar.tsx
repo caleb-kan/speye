@@ -79,7 +79,9 @@ export function OptionsBar({
         },
       })
 
-      const slider = sliderRef.current.noUiSlider
+      // const slider = sliderRef.current.noUiSlider
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const slider = (sliderRef.current as any).noUiSlider;
 
       // prevent min slider from being set to 0
       slider.on(

@@ -229,7 +229,11 @@ describe('Home Page', () => {
     it('calls useTexts with fiction = false on initial render', () => {
       renderWithRouter(<Home />)
 
-      expect(mockUseTexts).toHaveBeenCalledWith({ fiction: false })
+      expect(mockUseTexts).toHaveBeenCalledWith({
+        fiction: false,
+        difficultyMin: 8,
+        difficultyMax: 12,
+      })
     })
 
     it('calls useTexts with fiction = true after selecting fiction', async () => {
@@ -238,7 +242,11 @@ describe('Home Page', () => {
 
       await user.click(screen.getByRole('button', { name: /^fiction/i }))
 
-      expect(mockUseTexts).toHaveBeenLastCalledWith({ fiction: true })
+      expect(mockUseTexts).toHaveBeenLastCalledWith({
+        fiction: true,
+        difficultyMin: 8,
+        difficultyMax: 12,
+      })
     })
   })
 

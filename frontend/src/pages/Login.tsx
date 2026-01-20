@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { REDIRECT_DELAY_LOGIN, REDIRECT_DELAY_SIGNUP } from '../constants/auth'
-import GoogleIcon from '../assets/GoogleIcon.svg?react'
+import googleIcon from '../assets/GoogleIcon.svg'
 
 function getErrorMessage(err: unknown): string {
   if (err instanceof Error) return err.message
@@ -47,15 +47,20 @@ export function Login() {
     setMessage(null)
     setLoading(true)
 
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}home`,
-      },
-    })
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}home`,
+        },
+      })
 
-    if (error) {
-      setError(error.message)
+      if (error) {
+        setError(error.message)
+        setLoading(false)
+      }
+    } catch (err) {
+      setError(getErrorMessage(err))
       setLoading(false)
     }
   }
@@ -224,7 +229,7 @@ export function Login() {
           aria-label="Sign in with Google"
           className="w-full px-5 py-4 flex items-center justify-center gap-3 border border-text-secondary/30 rounded-xl bg-bg text-text font-medium hover:bg-bg-secondary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-bg-secondary disabled:opacity-50 disabled:cursor-not-allowed transition-all"
         >
-          <GoogleIcon className="w-5 h-5" />
+          <img src={googleIcon} alt="" className="w-5 h-5" />
           Continue with Google
         </button>
 

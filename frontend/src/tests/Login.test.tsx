@@ -1,4 +1,3 @@
-import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -9,10 +8,8 @@ import * as supabaseModule from '../lib/supabase'
 import '@testing-library/jest-dom'
 
 vi.mock('../hooks/useAuth')
-vi.mock('../assets/GoogleIcon.svg?react', () => ({
-  default: (props: React.SVGProps<SVGSVGElement>) => (
-    <svg data-testid="google-icon" {...props} />
-  ),
+vi.mock('../assets/GoogleIcon.svg', () => ({
+  default: 'google-icon.svg',
 }))
 vi.mock('../lib/supabase', () => ({
   supabase: {

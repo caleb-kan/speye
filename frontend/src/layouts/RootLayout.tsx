@@ -9,11 +9,11 @@ export function RootLayout() {
       <Navbar />
 
       {/* Right content shell */}
-      <div className="flex-1 ml-20 flex flex-col">
+      <div className="flex-1 ml-14 flex flex-col">
         {/* Top header (global) */}
         <Header />
 
-        <div className="h-20" />
+        <div className="h-12" />
 
         {/* Page content */}
         <main className="flex-1 flex flex-col">

@@ -32,9 +32,9 @@ export function Library() {
   }
 
   return (
-    <div className="flex flex-1 flex-col items-center w-full px-8 py-8">
+    <div className="flex flex-1 flex-col items-center w-full px-8 py-6">
       <div className="w-full max-w-4xl">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-semibold text-text">Library</h1>
             <p className="text-text-secondary mt-1">
@@ -45,7 +45,7 @@ export function Library() {
             <button
               type="button"
               onClick={() => setIsModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-bg rounded-lg hover:opacity-90 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-bg"
             >
               <Plus className="w-5 h-5" />
               Upload Text
@@ -54,13 +54,13 @@ export function Library() {
         </div>
 
         {successMessage && (
-          <div className="mb-6 p-4 bg-green-500/10 border border-green-500/20 rounded-lg text-green-500">
+          <div className="mb-4 p-3 bg-success/10 border border-success/20 rounded-lg text-success text-sm">
             {successMessage}
           </div>
         )}
 
         {user ? (
-          <div className="text-center py-16">
+          <div className="text-center py-8">
             <p className="text-text-secondary mb-2">
               Your uploaded texts will appear here.
             </p>
@@ -70,7 +70,7 @@ export function Library() {
             </p>
           </div>
         ) : (
-          <div className="text-center py-16">
+          <div className="text-center py-8">
             <p className="text-text-secondary mb-2">
               Sign in to access your personal library.
             </p>

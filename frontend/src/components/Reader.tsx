@@ -45,7 +45,7 @@ export function Reader({
       </Resizable>
 
       {/* Spacer */}
-      <div className="h-14 shrink-0" />
+      <div className="h-10 shrink-0" />
 
       {/* Controls */}
       <ReadingControls

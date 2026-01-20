@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { X } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { type UploadTextInput } from '../../../backend/supabase/database/texts/uploadText'
@@ -20,6 +20,20 @@ export function UploadTextModal({
   const [isPublic, setIsPublic] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Handle ESC key to close modal
+  useEffect(() => {
+    if (!isOpen) return
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose()
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, onClose])
 
   if (!isOpen) return null
 
@@ -61,12 +75,13 @@ export function UploadTextModal({
     <div
       className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
       onClick={handleBackdropClick}
+      onKeyDown={(e) => e.key === 'Escape' && onClose()}
       role="dialog"
       aria-modal="true"
       aria-labelledby="upload-modal-title"
     >
       <div className="bg-bg-secondary rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-4 border-b border-border">
+        <div className="flex items-center justify-between p-4 border-b border-text-secondary/20">
           <h2
             id="upload-modal-title"
             className="text-xl font-semibold text-text"
@@ -76,7 +91,7 @@ export function UploadTextModal({
           <button
             type="button"
             onClick={onClose}
-            className="text-text-secondary hover:text-text p-1 rounded-lg hover:bg-bg transition-colors"
+            className="text-text-secondary hover:text-text p-1 rounded-lg hover:bg-bg transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
             aria-label="Close modal"
           >
             <X className="w-6 h-6" />
@@ -96,7 +111,7 @@ export function UploadTextModal({
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder="Paste or type your text here..."
-              className="w-full h-64 p-3 bg-bg border border-border rounded-lg text-text placeholder-text-secondary resize-none focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              className="w-full h-64 p-3 bg-bg border border-text-secondary/20 rounded-lg text-text placeholder-text-secondary resize-none focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
               disabled={isSubmitting}
             />
             <p className="mt-1 text-sm text-text-secondary">
@@ -116,7 +131,7 @@ export function UploadTextModal({
                 id="fiction-select"
                 value={fiction ? 'fiction' : 'non-fiction'}
                 onChange={(e) => setFiction(e.target.value === 'fiction')}
-                className="w-full p-3 bg-bg border border-border rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full p-3 bg-bg border border-text-secondary/20 rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                 disabled={isSubmitting}
               >
                 <option value="fiction">Fiction</option>
@@ -135,7 +150,7 @@ export function UploadTextModal({
                 id="visibility-select"
                 value={isPublic ? 'public' : 'private'}
                 onChange={(e) => setIsPublic(e.target.value === 'public')}
-                className="w-full p-3 bg-bg border border-border rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full p-3 bg-bg border border-text-secondary/20 rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                 disabled={isSubmitting}
               >
                 <option value="private">Private</option>
@@ -159,14 +174,14 @@ export function UploadTextModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-text-secondary hover:text-text hover:bg-bg rounded-lg transition-colors"
+              className="px-4 py-2 text-text-secondary hover:text-text hover:bg-bg rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-bg-secondary"
               disabled={isSubmitting}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-primary text-bg rounded-lg hover:opacity-90 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-bg-secondary disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={isSubmitting || !content.trim()}
             >
               {isSubmitting ? 'Uploading...' : 'Upload Text'}

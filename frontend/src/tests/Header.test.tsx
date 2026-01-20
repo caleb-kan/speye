@@ -38,12 +38,12 @@ describe('Header', () => {
       expect(header).toHaveClass('fixed')
     })
 
-    it('logo is positioned at top left', () => {
+    it('header is positioned at top left', () => {
       renderHeader()
 
-      const container = screen.getByRole('banner').firstChild
-      expect(container).toHaveClass('items-center')
-      expect(container).not.toHaveClass('justify-center')
+      const header = screen.getByRole('banner')
+      expect(header).toHaveClass('top-0')
+      expect(header).toHaveClass('left-0')
     })
   })
 

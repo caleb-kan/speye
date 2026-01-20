@@ -49,7 +49,7 @@ export function ReadingControls({
         <button
           type="button"
           onClick={onRestart}
-          className="w-10 h-10 flex items-center justify-center rounded-lg text-text-secondary hover:text-text hover:bg-bg-secondary transition-all"
+          className="w-10 h-10 flex items-center justify-center rounded-lg text-text-secondary hover:text-text hover:bg-bg-secondary transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
           aria-label="Restart"
         >
           <RestartIcon />
@@ -59,7 +59,7 @@ export function ReadingControls({
           type="button"
           onClick={onPlayPause}
           disabled={disabled}
-          className={`w-14 h-14 flex items-center justify-center rounded-full transition-all ${
+          className={`w-14 h-14 flex items-center justify-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-bg ${
             disabled
               ? 'bg-text-secondary opacity-50 cursor-not-allowed text-bg'
               : 'bg-primary text-bg hover:opacity-90'
@@ -72,7 +72,7 @@ export function ReadingControls({
         <button
           type="button"
           onClick={onNewText}
-          className="w-10 h-10 flex items-center justify-center rounded-lg text-text-secondary hover:text-text hover:bg-bg-secondary transition-all"
+          className="w-10 h-10 flex items-center justify-center rounded-lg text-text-secondary hover:text-text hover:bg-bg-secondary transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
           aria-label="New text"
         >
           <RefreshIcon />

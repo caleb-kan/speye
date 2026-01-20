@@ -18,7 +18,7 @@ export function NavItem({ to, icon, label }: NavItemProps) {
       aria-current={isActive ? 'page' : undefined}
       className={`
         flex justify-center items-center
-        w-full h-12
+        w-full h-9
         rounded-full transition-colors
         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary
         ${isActive ? 'text-primary' : 'text-text-secondary hover:text-text'}

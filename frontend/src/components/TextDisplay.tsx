@@ -1,6 +1,6 @@
 import { useEffect, useRef, useMemo, useCallback } from 'react'
 import type { ReadingType } from '../types/reading'
-import { getWordStyle } from '../utils/wordStyle'
+import { getWordStyle, MAX_BLUR } from '../utils/wordStyle'
 
 type TextDisplayProps = {
   text: string
@@ -156,6 +156,7 @@ export function TextDisplay({
           height: DYNAMIC_MODE_HEIGHT,
           maskImage: `linear-gradient(to bottom, transparent 0%, black var(--top-fade, 0px), black calc(100% - var(--bottom-fade, 0px)), transparent 100%)`,
           WebkitMaskImage: `linear-gradient(to bottom, transparent 0%, black var(--top-fade, 0px), black calc(100% - var(--bottom-fade, 0px)), transparent 100%)`,
+          padding: `${MAX_BLUR + 4}px`,
         }}
       >
         <div className="pb-16">

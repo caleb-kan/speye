@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { supabase } from '../lib/supabase'
+import { supabase } from '../../../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { REDIRECT_DELAY_LOGIN, REDIRECT_DELAY_SIGNUP } from '../constants/auth'
 import googleIcon from '../assets/GoogleIcon.svg'

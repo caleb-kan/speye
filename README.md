@@ -11,10 +11,11 @@ Adaptive speed reading web platform with eye-tracking technology.
 
 Have an .env file in the root directory with the following variables:
 
-|               Variable                |                    Description                     |
-|:-------------------------------------:|:--------------------------------------------------:|
-|           VITE_SUPABASE_URL           |          Your Supabase project URL                 |
-| VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY | Your Supabase project's anonymous/public API key   |
+|               Variable                |                   Description                    |
+|:-------------------------------------:|:------------------------------------------------:|
+|           VITE_SUPABASE_URL           |            Your Supabase project URL             |
+| VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY | Your Supabase project's anonymous/public API key |
+|            GROQ_API_KEY               |                Your groq API key                 |
 
 
 ```bash

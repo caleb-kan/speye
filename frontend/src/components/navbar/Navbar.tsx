@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
 import { NavItem } from './NavItem'
-import { Home, BookOpen, Settings, LogIn } from 'lucide-react'
+import { Home, BookOpen, Settings, User } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { DefaultAvatar } from '../DefaultAvatar'
 
@@ -65,7 +65,7 @@ export function Navbar() {
             ${isLoginActive ? 'text-primary' : 'text-text-secondary hover:text-text'}
           `}
         >
-          <LogIn size={28} />
+          <User size={28} />
         </Link>
       )}
     </nav>

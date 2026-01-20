@@ -8,11 +8,15 @@ import * as supabaseModule from '../lib/supabase'
 import '@testing-library/jest-dom'
 
 vi.mock('../hooks/useAuth')
+vi.mock('../assets/GoogleIcon.svg', () => ({
+  default: 'google-icon.svg',
+}))
 vi.mock('../lib/supabase', () => ({
   supabase: {
     auth: {
       signUp: vi.fn(),
       signInWithPassword: vi.fn(),
+      signInWithOAuth: vi.fn(),
     },
   },
 }))
@@ -411,6 +415,181 @@ describe('Login Page', () => {
 
       const passwordInput = screen.getByLabelText(/password/i)
       expect(passwordInput).toHaveAttribute('id', 'password')
+    })
+
+    it('Google sign in button has accessible name from visible text', () => {
+      renderLogin()
+
+      expect(
+        screen.getByRole('button', { name: /continue with google/i })
+      ).toBeInTheDocument()
+    })
+
+    it('email input has autocomplete attribute', () => {
+      renderLogin()
+
+      expect(screen.getByLabelText(/email/i)).toHaveAttribute(
+        'autocomplete',
+        'email'
+      )
+    })
+
+    it('password input has current-password autocomplete in login mode', () => {
+      renderLogin()
+
+      expect(screen.getByLabelText(/password/i)).toHaveAttribute(
+        'autocomplete',
+        'current-password'
+      )
+    })
+
+    it('password input has new-password autocomplete in sign up mode', async () => {
+      const user = userEvent.setup()
+      renderLogin()
+
+      await user.click(
+        screen.getByRole('button', { name: /don't have an account\? sign up/i })
+      )
+
+      expect(screen.getByLabelText(/password/i)).toHaveAttribute(
+        'autocomplete',
+        'new-password'
+      )
+    })
+
+    it('inputs have name attributes for form autofill', () => {
+      renderLogin()
+
+      expect(screen.getByLabelText(/email/i)).toHaveAttribute('name', 'email')
+      expect(screen.getByLabelText(/password/i)).toHaveAttribute(
+        'name',
+        'password'
+      )
+    })
+  })
+
+  describe('Google OAuth', () => {
+    it('renders Google sign in button', () => {
+      renderLogin()
+
+      expect(
+        screen.getByRole('button', { name: /continue with google/i })
+      ).toBeInTheDocument()
+      expect(screen.getByText('Continue with Google')).toBeInTheDocument()
+    })
+
+    it('calls signInWithOAuth when clicking Google button', async () => {
+      mockSupabase.auth.signInWithOAuth.mockResolvedValue({
+        data: { provider: 'google', url: 'https://google.com/oauth' },
+        error: null,
+      })
+
+      const user = userEvent.setup()
+      renderLogin()
+
+      await user.click(
+        screen.getByRole('button', { name: /continue with google/i })
+      )
+
+      expect(mockSupabase.auth.signInWithOAuth).toHaveBeenCalledWith({
+        provider: 'google',
+        options: {
+          redirectTo: expect.stringContaining('home'),
+        },
+      })
+    })
+
+    it('shows error message on Google OAuth failure', async () => {
+      mockSupabase.auth.signInWithOAuth.mockResolvedValue({
+        data: { provider: null, url: null },
+        error: {
+          message: 'OAuth provider not configured',
+          name: 'AuthError',
+        } as never,
+      })
+
+      const user = userEvent.setup()
+      renderLogin()
+
+      await user.click(
+        screen.getByRole('button', { name: /continue with google/i })
+      )
+
+      await waitFor(() => {
+        expect(
+          screen.getByText('OAuth provider not configured')
+        ).toBeInTheDocument()
+      })
+    })
+
+    it('disables Google button while loading', async () => {
+      let resolvePromise: (value: unknown) => void
+      mockSupabase.auth.signInWithOAuth.mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            resolvePromise = resolve
+          })
+      )
+
+      const user = userEvent.setup()
+      renderLogin()
+
+      await user.click(
+        screen.getByRole('button', { name: /continue with google/i })
+      )
+
+      expect(
+        screen.getByRole('button', { name: /continue with google/i })
+      ).toBeDisabled()
+
+      await act(async () => {
+        resolvePromise!({
+          data: { provider: null, url: null },
+          error: null,
+        })
+      })
+    })
+
+    it('clears previous success message when clicking Google sign in', async () => {
+      // First, simulate a successful login that shows a message
+      mockSupabase.auth.signInWithPassword.mockResolvedValue({
+        data: {
+          user: { id: '123' } as never,
+          session: { access_token: 'token' } as never,
+        },
+        error: null,
+      })
+
+      const user = userEvent.setup()
+      renderLogin()
+
+      await user.type(screen.getByLabelText(/email/i), 'test@example.com')
+      await user.type(screen.getByLabelText(/password/i), 'password123')
+      await user.click(screen.getByRole('button', { name: /^login$/i }))
+
+      await waitFor(() => {
+        expect(screen.getByText('Login successful!')).toBeInTheDocument()
+      })
+
+      // Now click Google sign in - it should clear the success message
+      mockSupabase.auth.signInWithOAuth.mockResolvedValue({
+        data: { provider: null, url: null },
+        error: {
+          message: 'OAuth error',
+          name: 'AuthError',
+        } as never,
+      })
+
+      await user.click(
+        screen.getByRole('button', { name: /continue with google/i })
+      )
+
+      await waitFor(() => {
+        // Success message should be cleared
+        expect(screen.queryByText('Login successful!')).not.toBeInTheDocument()
+        // Error message should be shown
+        expect(screen.getByText('OAuth error')).toBeInTheDocument()
+      })
     })
   })
 })

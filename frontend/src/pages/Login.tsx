@@ -3,6 +3,15 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { REDIRECT_DELAY_LOGIN, REDIRECT_DELAY_SIGNUP } from '../constants/auth'
+import googleIcon from '../assets/GoogleIcon.svg'
+
+function getErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message
+  if (typeof err === 'object' && err !== null && 'message' in err) {
+    return String((err as { message: unknown }).message)
+  }
+  return 'An error occurred'
+}
 
 export function Login() {
   const [email, setEmail] = useState('')
@@ -32,6 +41,29 @@ export function Login() {
       }
     }
   }, [])
+
+  const handleGoogleSignIn = async () => {
+    setError(null)
+    setMessage(null)
+    setLoading(true)
+
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}home`,
+        },
+      })
+
+      if (error) {
+        setError(error.message)
+        setLoading(false)
+      }
+    } catch (err) {
+      setError(getErrorMessage(err))
+      setLoading(false)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -85,11 +117,7 @@ export function Login() {
         }
       }
     } catch (err: unknown) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : ((err as { message?: string })?.message ?? 'An error occurred')
-      setError(message)
+      setError(getErrorMessage(err))
     } finally {
       setLoading(false)
     }
@@ -120,7 +148,9 @@ export function Login() {
             </label>
             <input
               id="email"
+              name="email"
               type="email"
+              autoComplete="email"
               placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -139,7 +169,9 @@ export function Login() {
             </label>
             <input
               id="password"
+              name="password"
               type="password"
+              autoComplete={isSignUp ? 'new-password' : 'current-password'}
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -181,6 +213,24 @@ export function Login() {
             {loading ? 'Loading...' : isSignUp ? 'Sign Up' : 'Login'}
           </button>
         </form>
+
+        {/* Divider */}
+        <div className="flex items-center my-10">
+          <div className="flex-1 h-px bg-text-secondary/30" />
+          <span className="px-4 text-sm text-text-secondary">or</span>
+          <div className="flex-1 h-px bg-text-secondary/30" />
+        </div>
+
+        {/* Google Sign In */}
+        <button
+          type="button"
+          onClick={handleGoogleSignIn}
+          disabled={loading}
+          className="w-full px-5 py-4 flex items-center justify-center gap-3 border border-text-secondary/30 rounded-xl bg-bg text-text font-medium hover:bg-bg-secondary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-bg-secondary disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+        >
+          <img src={googleIcon} alt="" className="w-5 h-5" />
+          Continue with Google
+        </button>
 
         {/* Toggle Sign Up / Login */}
         <div className="text-center mt-12">

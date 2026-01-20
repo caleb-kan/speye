@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
-import { supabase } from '../../../lib/supabase'
 import type { Text } from '../types/database'
+import { getTexts } from '../../../backend/supabase/database/texts/getTexts'
 
 type UseTextsOptions = {
   fiction: boolean
@@ -23,23 +23,12 @@ export function useTexts({
       setLoading(true)
       setError(null)
 
-      const { data, error: fetchError } = await supabase
-        .from('texts')
-        .select('*')
-        .eq('is_public', true)
-        .eq('fiction', fiction)
-        .gte('readability', difficultyMin)
-        .lte('readability', difficultyMax)
+      const texts = await getTexts({ fiction, difficultyMin, difficultyMax })
+      setTexts(texts || [])
 
-      if (fetchError) {
-        throw fetchError
-      }
-
-      setTexts(data || [])
-
-      if (data && data.length > 0) {
-        const randomIndex = Math.floor(Math.random() * data.length)
-        setCurrentText(data[randomIndex])
+      if (texts && texts.length > 0) {
+        const randomIndex = Math.floor(Math.random() * texts.length)
+        setCurrentText(texts[randomIndex])
       } else {
         setCurrentText(null)
       }

@@ -5,6 +5,7 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 import { Home } from './pages/Home'
 import { Settings } from './pages/Settings'
 import { Library } from './pages/Library'
+import { Quiz } from './pages/Quiz'
 import { NotFound } from './pages/NotFound'
 import { Login } from './pages/Login'
 import { RootLayout } from './layouts/RootLayout'
@@ -27,6 +28,7 @@ function App() {
 
                 {/* Pages without OptionsBar */}
                 <Route path="library" element={<Library />} />
+                <Route path="quiz" element={<Quiz />} />
                 <Route path="settings" element={<Settings />} />
                 <Route path="login" element={<Login />} />
 

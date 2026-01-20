@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
 import { NavItem } from './NavItem'
-import { Home, BookOpen, Settings, User } from 'lucide-react'
+import { Home, BookOpen, ListChecks, Settings, User } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { DefaultAvatar } from '../DefaultAvatar'
 
@@ -25,6 +25,7 @@ export function Navbar() {
     >
       <NavItem to="/home" icon={<Home size={28} />} label="Home" />
       <NavItem to="/library" icon={<BookOpen size={28} />} label="Library" />
+      <NavItem to="/quiz" icon={<ListChecks size={28} />} label="Quiz" />
       <NavItem to="/settings" icon={<Settings size={28} />} label="Settings" />
 
       {/* Horizontal Separator */}

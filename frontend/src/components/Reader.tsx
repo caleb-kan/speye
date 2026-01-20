@@ -2,6 +2,7 @@ import { TextDisplay } from './TextDisplay'
 import { ReadingControls } from './ReadingControls'
 import { useReader } from '../hooks/useReader'
 import type { ReadingType } from '../types/reading'
+import { Resizable } from './Resizable'
 
 type ReaderProps = {
   text: string
@@ -32,7 +33,7 @@ export function Reader({
   return (
     <div className="w-full flex flex-col items-center">
       {/* Text Display */}
-      <div className="w-full">
+      <Resizable>
         <TextDisplay
           text={text}
           currentWordIndex={currentWordIndex}
@@ -41,7 +42,7 @@ export function Reader({
           blurEnabled={blurEnabled}
           wpm={wpm}
         />
-      </div>
+      </Resizable>
 
       {/* Spacer */}
       <div className="h-14 shrink-0" />

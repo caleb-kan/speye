@@ -22,7 +22,7 @@ export function Home() {
 
   return (
     <div
-      className="flex flex-col items-center w-full py-16"
+      className="flex flex-col items-center w-full py-8"
       role="status"
       aria-live="polite"
     >

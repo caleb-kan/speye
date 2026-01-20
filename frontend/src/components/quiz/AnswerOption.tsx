@@ -1,21 +1,21 @@
-type Props = {
+type AnswerOptionProps = {
   text: string
 }
 
-export function AnswerOption({ text }: Props) {
+export function AnswerOption({ text }: AnswerOptionProps) {
   return (
     <button
+      type="button"
       className="
         w-full text-left
-        p-6 rounded-2xl
-        bg-white/4 hover:bg-white/8
-        border border-white/10
-        backdrop-blur
-        transition-all duration-200
-        hover:translate-x-1
+        px-4 py-3 rounded-lg
+        bg-bg-secondary hover:bg-bg-secondary/80
+        border border-text-secondary/20
+        transition-colors
+        focus:outline-none focus:ring-2 focus:ring-primary
       "
     >
-      <span className="text-base leading-relaxed">{text}</span>
+      <span className="text-sm leading-relaxed">{text}</span>
     </button>
   )
 }

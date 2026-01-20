@@ -124,26 +124,43 @@ export function Login() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-[80vh] px-8">
-      <div className="w-full max-w-lg p-16 bg-bg-secondary rounded-2xl shadow-lg">
+    <div className="flex-1 flex items-center justify-center px-8">
+      <div className="w-full max-w-xs bg-bg-secondary rounded-xl shadow-lg px-6 py-6">
         {/* Header */}
-        <div className="text-center mb-16">
-          <h1 className="text-4xl font-bold text-text mb-4">
-            {isSignUp ? 'Sign Up' : 'Login'}
+        <div className="text-center mb-5">
+          <h1 className="text-xl font-bold text-text">
+            {isSignUp ? 'Create Account' : 'Welcome Back'}
           </h1>
-          <p className="text-base text-text-secondary">
-            {isSignUp ? 'Create a new account' : 'Welcome back!'}
+          <p className="text-sm text-text-secondary mt-1">
+            {isSignUp
+              ? 'Sign up to save your progress'
+              : 'Sign in to continue reading'}
           </p>
+        </div>
+
+        {/* Google Sign In */}
+        <button
+          type="button"
+          onClick={handleGoogleSignIn}
+          disabled={loading}
+          className="w-full py-2.5 flex items-center justify-center gap-2 border border-text-secondary/30 rounded-lg bg-bg text-text text-sm font-medium hover:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+        >
+          <img src={googleIcon} alt="" className="w-4 h-4" />
+          Continue with Google
+        </button>
+
+        {/* Divider */}
+        <div className="flex items-center my-4">
+          <div className="flex-1 h-px bg-text-secondary/20" />
+          <span className="px-3 text-xs text-text-secondary">or</span>
+          <div className="flex-1 h-px bg-text-secondary/20" />
         </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit}>
           {/* Email Field */}
-          <div className="mb-10">
-            <label
-              htmlFor="email"
-              className="block text-sm font-medium text-text-secondary mb-3"
-            >
+          <div>
+            <label htmlFor="email" className="block text-sm text-text">
               Email
             </label>
             <input
@@ -155,16 +172,13 @@ export function Login() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-5 py-4 border border-text-secondary/30 rounded-xl bg-bg text-text placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
+              className="w-full mt-1 py-2 px-3 text-sm border border-text-secondary/30 rounded-lg bg-bg text-text placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
             />
           </div>
 
           {/* Password Field */}
-          <div className="mb-12">
-            <label
-              htmlFor="password"
-              className="block text-sm font-medium text-text-secondary mb-3"
-            >
+          <div className="mt-3">
+            <label htmlFor="password" className="block text-sm text-text">
               Password
             </label>
             <input
@@ -177,28 +191,30 @@ export function Login() {
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={6}
-              className="w-full px-5 py-4 border border-text-secondary/30 rounded-xl bg-bg text-text placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
+              className="w-full mt-1 py-2 px-3 text-sm border border-text-secondary/30 rounded-lg bg-bg text-text placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
             />
             {isSignUp && (
-              <p className="mt-3 text-xs text-text-secondary">
-                Password must be at least 6 characters
+              <p className="mt-1 text-xs text-text-secondary">
+                Must be at least 6 characters
               </p>
             )}
           </div>
 
+          {/* Error Message */}
           {error && (
             <div
               role="alert"
-              className="mb-8 p-4 text-sm text-error bg-error/10 rounded-lg"
+              className="mt-3 p-2 text-sm text-error bg-error/10 rounded-lg"
             >
               {error}
             </div>
           )}
 
+          {/* Success Message */}
           {message && (
             <div
               role="status"
-              className="mb-8 p-4 text-sm text-success bg-success/10 rounded-lg"
+              className="mt-3 p-2 text-sm text-success bg-success/10 rounded-lg"
             >
               {message}
             </div>
@@ -208,32 +224,15 @@ export function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full px-5 py-4 text-bg font-semibold bg-primary rounded-xl hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-bg-secondary disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            className="w-full mt-4 py-2.5 text-sm text-bg font-semibold bg-primary rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-bg-secondary disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >
-            {loading ? 'Loading...' : isSignUp ? 'Sign Up' : 'Login'}
+            {loading ? 'Loading...' : isSignUp ? 'Create Account' : 'Sign In'}
           </button>
         </form>
 
-        {/* Divider */}
-        <div className="flex items-center my-10">
-          <div className="flex-1 h-px bg-text-secondary/30" />
-          <span className="px-4 text-sm text-text-secondary">or</span>
-          <div className="flex-1 h-px bg-text-secondary/30" />
-        </div>
-
-        {/* Google Sign In */}
-        <button
-          type="button"
-          onClick={handleGoogleSignIn}
-          disabled={loading}
-          className="w-full px-5 py-4 flex items-center justify-center gap-3 border border-text-secondary/30 rounded-xl bg-bg text-text font-medium hover:bg-bg-secondary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-bg-secondary disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-        >
-          <img src={googleIcon} alt="" className="w-5 h-5" />
-          Continue with Google
-        </button>
-
         {/* Toggle Sign Up / Login */}
-        <div className="text-center mt-12">
+        <p className="text-center text-sm text-text-secondary mt-4">
+          {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
           <button
             type="button"
             onClick={() => {
@@ -241,24 +240,22 @@ export function Login() {
               setError(null)
               setMessage(null)
             }}
-            className="text-sm text-primary hover:underline transition-colors"
+            className="text-primary font-medium hover:underline transition-colors"
           >
-            {isSignUp
-              ? 'Already have an account? Login'
-              : "Don't have an account? Sign up"}
+            {isSignUp ? 'Sign in' : 'Sign up'}
           </button>
-        </div>
+        </p>
 
         {/* Continue without login */}
-        <div className="text-center mt-10 pt-10 border-t border-text-secondary/20">
+        <p className="text-center text-xs text-text-secondary mt-3">
           <button
             type="button"
             onClick={() => navigate('/home')}
-            className="text-sm text-text-secondary hover:text-text hover:underline transition-colors"
+            className="hover:text-text transition-colors"
           >
-            Continue without logging in
+            Continue without an account
           </button>
-        </div>
+        </p>
       </div>
     </div>
   )

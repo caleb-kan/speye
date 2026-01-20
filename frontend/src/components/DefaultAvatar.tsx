@@ -1,7 +1,8 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 
 interface DefaultAvatarProps {
   email?: string
+  avatarUrl?: string | null
   size?: 'sm' | 'md' | 'lg'
 }
 
@@ -26,13 +27,36 @@ const textSizeClasses = {
 }
 
 /**
- * Default avatar component that displays a colored circle with the user's initial.
- * Color is consistently generated based on the email address.
+ * Avatar component that displays the user's profile picture or a colored circle with their initial.
+ * If avatarUrl is provided and loads successfully, shows the image.
+ * Falls back to a colored circle with initial based on email.
  * Uses w-full h-full to fill parent container - parent should define dimensions.
  */
-export function DefaultAvatar({ email, size = 'md' }: DefaultAvatarProps) {
+export function DefaultAvatar({
+  email,
+  avatarUrl,
+  size = 'md',
+}: DefaultAvatarProps) {
+  // Track which URL failed to load - only show error for that specific URL
+  const [failedUrl, setFailedUrl] = useState<string | null>(null)
   const initial = useMemo(() => email?.charAt(0).toUpperCase() || '?', [email])
   const bgColor = useMemo(() => getColorFromEmail(email), [email])
+
+  // Only consider it an error if the current avatarUrl matches the failed URL
+  const hasError = failedUrl !== null && failedUrl === avatarUrl
+  const showImage = avatarUrl && !hasError
+
+  if (showImage) {
+    return (
+      <img
+        src={avatarUrl}
+        alt={email ? `Avatar for ${email}` : 'User avatar'}
+        className="w-full h-full rounded-full object-cover"
+        onError={() => setFailedUrl(avatarUrl)}
+        referrerPolicy="no-referrer"
+      />
+    )
+  }
 
   return (
     <div

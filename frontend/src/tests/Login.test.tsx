@@ -57,9 +57,11 @@ describe('Login Page', () => {
       renderLogin()
 
       expect(
-        screen.getByRole('heading', { name: /login/i })
+        screen.getByRole('heading', { name: /welcome back/i })
       ).toBeInTheDocument()
-      expect(screen.getByText('Welcome back!')).toBeInTheDocument()
+      expect(
+        screen.getByText('Sign in to continue reading')
+      ).toBeInTheDocument()
     })
 
     it('renders email input', () => {
@@ -80,23 +82,24 @@ describe('Login Page', () => {
       renderLogin()
 
       expect(
-        screen.getByRole('button', { name: /^login$/i })
+        screen.getByRole('button', { name: /^sign in$/i })
       ).toBeInTheDocument()
     })
 
     it('renders sign up toggle link', () => {
       renderLogin()
 
+      expect(screen.getByText("Don't have an account?")).toBeInTheDocument()
       expect(
-        screen.getByRole('button', { name: /don't have an account\? sign up/i })
+        screen.getByRole('button', { name: /^sign up$/i })
       ).toBeInTheDocument()
     })
 
-    it('renders continue without logging in link', () => {
+    it('renders continue without account link', () => {
       renderLogin()
 
       expect(
-        screen.getByRole('button', { name: /continue without logging in/i })
+        screen.getByRole('button', { name: /continue without an account/i })
       ).toBeInTheDocument()
     })
   })
@@ -106,26 +109,24 @@ describe('Login Page', () => {
       const user = userEvent.setup()
       renderLogin()
 
-      await user.click(
-        screen.getByRole('button', { name: /don't have an account\? sign up/i })
-      )
+      await user.click(screen.getByRole('button', { name: /^sign up$/i }))
 
       expect(
-        screen.getByRole('heading', { name: /sign up/i })
+        screen.getByRole('heading', { name: /create account/i })
       ).toBeInTheDocument()
-      expect(screen.getByText('Create a new account')).toBeInTheDocument()
+      expect(
+        screen.getByText('Sign up to save your progress')
+      ).toBeInTheDocument()
     })
 
     it('shows password requirements in sign up mode', async () => {
       const user = userEvent.setup()
       renderLogin()
 
-      await user.click(
-        screen.getByRole('button', { name: /don't have an account\? sign up/i })
-      )
+      await user.click(screen.getByRole('button', { name: /^sign up$/i }))
 
       expect(
-        screen.getByText('Password must be at least 6 characters')
+        screen.getByText('Must be at least 6 characters')
       ).toBeInTheDocument()
     })
 
@@ -133,15 +134,11 @@ describe('Login Page', () => {
       const user = userEvent.setup()
       renderLogin()
 
-      await user.click(
-        screen.getByRole('button', { name: /don't have an account\? sign up/i })
-      )
-      await user.click(
-        screen.getByRole('button', { name: /already have an account\? login/i })
-      )
+      await user.click(screen.getByRole('button', { name: /^sign up$/i }))
+      await user.click(screen.getByRole('button', { name: /^sign in$/i }))
 
       expect(
-        screen.getByRole('heading', { name: /login/i })
+        screen.getByRole('heading', { name: /welcome back/i })
       ).toBeInTheDocument()
     })
 
@@ -156,15 +153,13 @@ describe('Login Page', () => {
 
       await user.type(screen.getByLabelText(/email/i), 'test@example.com')
       await user.type(screen.getByLabelText(/password/i), 'password')
-      await user.click(screen.getByRole('button', { name: /^login$/i }))
+      await user.click(screen.getByRole('button', { name: /^sign in$/i }))
 
       await waitFor(() => {
         expect(screen.getByText('Invalid credentials')).toBeInTheDocument()
       })
 
-      await user.click(
-        screen.getByRole('button', { name: /don't have an account\? sign up/i })
-      )
+      await user.click(screen.getByRole('button', { name: /^sign up$/i }))
 
       expect(screen.queryByText('Invalid credentials')).not.toBeInTheDocument()
     })
@@ -208,7 +203,7 @@ describe('Login Page', () => {
 
       await user.type(screen.getByLabelText(/email/i), 'test@example.com')
       await user.type(screen.getByLabelText(/password/i), 'password123')
-      await user.click(screen.getByRole('button', { name: /^login$/i }))
+      await user.click(screen.getByRole('button', { name: /^sign in$/i }))
 
       expect(mockSupabase.auth.signInWithPassword).toHaveBeenCalledWith({
         email: 'test@example.com',
@@ -230,7 +225,7 @@ describe('Login Page', () => {
 
       await user.type(screen.getByLabelText(/email/i), 'test@example.com')
       await user.type(screen.getByLabelText(/password/i), 'password123')
-      await user.click(screen.getByRole('button', { name: /^login$/i }))
+      await user.click(screen.getByRole('button', { name: /^sign in$/i }))
 
       expect(screen.getByRole('button', { name: /loading/i })).toBeDisabled()
 
@@ -256,7 +251,7 @@ describe('Login Page', () => {
 
       await user.type(screen.getByLabelText(/email/i), 'test@example.com')
       await user.type(screen.getByLabelText(/password/i), 'password123')
-      await user.click(screen.getByRole('button', { name: /^login$/i }))
+      await user.click(screen.getByRole('button', { name: /^sign in$/i }))
 
       await waitFor(() => {
         expect(screen.getByText('Login successful!')).toBeInTheDocument()
@@ -277,7 +272,7 @@ describe('Login Page', () => {
 
       await user.type(screen.getByLabelText(/email/i), 'test@example.com')
       await user.type(screen.getByLabelText(/password/i), 'wrongpassword')
-      await user.click(screen.getByRole('button', { name: /^login$/i }))
+      await user.click(screen.getByRole('button', { name: /^sign in$/i }))
 
       await waitFor(() => {
         expect(
@@ -289,9 +284,7 @@ describe('Login Page', () => {
 
   describe('Sign Up Flow', () => {
     const switchToSignUp = async (user: ReturnType<typeof userEvent.setup>) => {
-      await user.click(
-        screen.getByRole('button', { name: /don't have an account\? sign up/i })
-      )
+      await user.click(screen.getByRole('button', { name: /^sign up$/i }))
     }
 
     it('calls signUp with form data', async () => {
@@ -309,7 +302,7 @@ describe('Login Page', () => {
 
       await user.type(screen.getByLabelText(/email/i), 'new@example.com')
       await user.type(screen.getByLabelText(/password/i), 'password123')
-      await user.click(screen.getByRole('button', { name: /^sign up$/i }))
+      await user.click(screen.getByRole('button', { name: /create account/i }))
 
       expect(mockSupabase.auth.signUp).toHaveBeenCalledWith({
         email: 'new@example.com',
@@ -332,7 +325,7 @@ describe('Login Page', () => {
 
       await user.type(screen.getByLabelText(/email/i), 'new@example.com')
       await user.type(screen.getByLabelText(/password/i), 'password123')
-      await user.click(screen.getByRole('button', { name: /^sign up$/i }))
+      await user.click(screen.getByRole('button', { name: /create account/i }))
 
       await waitFor(() => {
         expect(
@@ -356,7 +349,7 @@ describe('Login Page', () => {
 
       await user.type(screen.getByLabelText(/email/i), 'existing@example.com')
       await user.type(screen.getByLabelText(/password/i), 'password123')
-      await user.click(screen.getByRole('button', { name: /^sign up$/i }))
+      await user.click(screen.getByRole('button', { name: /create account/i }))
 
       await waitFor(() => {
         expect(screen.getByText('User already registered')).toBeInTheDocument()
@@ -380,12 +373,12 @@ describe('Login Page', () => {
       })
     })
 
-    it('navigates to home when clicking "Continue without logging in"', async () => {
+    it('navigates to home when clicking "Continue without an account"', async () => {
       const user = userEvent.setup()
       renderLogin()
 
       await user.click(
-        screen.getByRole('button', { name: /continue without logging in/i })
+        screen.getByRole('button', { name: /continue without an account/i })
       )
 
       expect(mockNavigate).toHaveBeenCalledWith('/home')
@@ -447,9 +440,7 @@ describe('Login Page', () => {
       const user = userEvent.setup()
       renderLogin()
 
-      await user.click(
-        screen.getByRole('button', { name: /don't have an account\? sign up/i })
-      )
+      await user.click(screen.getByRole('button', { name: /^sign up$/i }))
 
       expect(screen.getByLabelText(/password/i)).toHaveAttribute(
         'autocomplete',
@@ -565,7 +556,7 @@ describe('Login Page', () => {
 
       await user.type(screen.getByLabelText(/email/i), 'test@example.com')
       await user.type(screen.getByLabelText(/password/i), 'password123')
-      await user.click(screen.getByRole('button', { name: /^login$/i }))
+      await user.click(screen.getByRole('button', { name: /^sign in$/i }))
 
       await waitFor(() => {
         expect(screen.getByText('Login successful!')).toBeInTheDocument()

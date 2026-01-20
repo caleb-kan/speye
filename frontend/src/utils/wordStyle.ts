@@ -3,6 +3,7 @@ export const FORWARD_BLUR_RADIUS = 8 // Number of upcoming words for gradual blu
 export const BACKWARD_VISIBLE_COUNT = 5 // Number of past words to keep visible
 export const BACKWARD_BLUR_TRANSITION = 3 // Number of past words for gradual blur
 export const MAX_BLUR = 4 // Maximum blur in pixels
+export const BLUR_PADDING_BUFFER = 4 // Extra padding to prevent blur clipping
 
 export type WordStyle = {
   color: string

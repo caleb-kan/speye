@@ -4,14 +4,14 @@ import userEvent from '@testing-library/user-event'
 import { BrowserRouter } from 'react-router-dom'
 import { Login } from '../pages/Login'
 import * as useAuthModule from '../hooks/useAuth'
-import * as supabaseModule from '../lib/supabase'
+import * as supabaseModule from '../../../lib/supabase'
 import '@testing-library/jest-dom'
 
 vi.mock('../hooks/useAuth')
 vi.mock('../assets/GoogleIcon.svg', () => ({
   default: 'google-icon.svg',
 }))
-vi.mock('../lib/supabase', () => ({
+vi.mock('../../../lib/supabase', () => ({
   supabase: {
     auth: {
       signUp: vi.fn(),

@@ -3,11 +3,11 @@ import { render, screen, waitFor, act } from '@testing-library/react'
 import { renderHook } from '@testing-library/react'
 import { AuthProvider } from '../context/AuthProvider'
 import { useAuth } from '../hooks/useAuth'
-import * as supabaseModule from '../lib/supabase'
+import * as supabaseModule from '../../../lib/supabase'
 import '@testing-library/jest-dom'
 
 // Mock Supabase
-vi.mock('../lib/supabase', () => ({
+vi.mock('../../../lib/supabase', () => ({
   supabase: {
     auth: {
       getSession: vi.fn(),

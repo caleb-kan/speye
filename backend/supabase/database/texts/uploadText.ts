@@ -1,4 +1,5 @@
 import { supabase } from '../../../../lib/supabase'
+import { calculateReadability } from '../../functions/textStat'
 
 export interface UploadTextInput {
   content: string
@@ -7,6 +8,8 @@ export interface UploadTextInput {
 }
 
 export async function uploadText(userId: string, data: UploadTextInput) {
+  const readability = calculateReadability(data.content)
+
   const { data: result, error } = await supabase
     .from('texts')
     .insert([
@@ -15,6 +18,7 @@ export async function uploadText(userId: string, data: UploadTextInput) {
         content: data.content,
         fiction: data.fiction,
         is_public: data.isPublic,
+        readability: readability,
       },
     ])
     .select()

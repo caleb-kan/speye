@@ -1,3 +1,4 @@
+import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -8,6 +9,11 @@ import * as supabaseModule from '../lib/supabase'
 import '@testing-library/jest-dom'
 
 vi.mock('../hooks/useAuth')
+vi.mock('../assets/GoogleIcon.svg?react', () => ({
+  default: (props: React.SVGProps<SVGSVGElement>) => (
+    <svg data-testid="google-icon" {...props} />
+  ),
+}))
 vi.mock('../lib/supabase', () => ({
   supabase: {
     auth: {
@@ -544,6 +550,48 @@ describe('Login Page', () => {
           data: { provider: null, url: null },
           error: null,
         })
+      })
+    })
+
+    it('clears previous success message when clicking Google sign in', async () => {
+      // First, simulate a successful login that shows a message
+      mockSupabase.auth.signInWithPassword.mockResolvedValue({
+        data: {
+          user: { id: '123' } as never,
+          session: { access_token: 'token' } as never,
+        },
+        error: null,
+      })
+
+      const user = userEvent.setup()
+      renderLogin()
+
+      await user.type(screen.getByLabelText(/email/i), 'test@example.com')
+      await user.type(screen.getByLabelText(/password/i), 'password123')
+      await user.click(screen.getByRole('button', { name: /^login$/i }))
+
+      await waitFor(() => {
+        expect(screen.getByText('Login successful!')).toBeInTheDocument()
+      })
+
+      // Now click Google sign in - it should clear the success message
+      mockSupabase.auth.signInWithOAuth.mockResolvedValue({
+        data: { provider: null, url: null },
+        error: {
+          message: 'OAuth error',
+          name: 'AuthError',
+        } as never,
+      })
+
+      await user.click(
+        screen.getByRole('button', { name: /sign in with google/i })
+      )
+
+      await waitFor(() => {
+        // Success message should be cleared
+        expect(screen.queryByText('Login successful!')).not.toBeInTheDocument()
+        // Error message should be shown
+        expect(screen.getByText('OAuth error')).toBeInTheDocument()
       })
     })
   })

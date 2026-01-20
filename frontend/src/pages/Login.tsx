@@ -226,7 +226,6 @@ export function Login() {
           type="button"
           onClick={handleGoogleSignIn}
           disabled={loading}
-          aria-label="Sign in with Google"
           className="w-full px-5 py-4 flex items-center justify-center gap-3 border border-text-secondary/30 rounded-xl bg-bg text-text font-medium hover:bg-bg-secondary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-bg-secondary disabled:opacity-50 disabled:cursor-not-allowed transition-all"
         >
           <img src={googleIcon} alt="" className="w-5 h-5" />

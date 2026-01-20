@@ -417,11 +417,11 @@ describe('Login Page', () => {
       expect(passwordInput).toHaveAttribute('id', 'password')
     })
 
-    it('Google sign in button has aria-label', () => {
+    it('Google sign in button has accessible name from visible text', () => {
       renderLogin()
 
       expect(
-        screen.getByRole('button', { name: /sign in with google/i })
+        screen.getByRole('button', { name: /continue with google/i })
       ).toBeInTheDocument()
     })
 
@@ -473,7 +473,7 @@ describe('Login Page', () => {
       renderLogin()
 
       expect(
-        screen.getByRole('button', { name: /sign in with google/i })
+        screen.getByRole('button', { name: /continue with google/i })
       ).toBeInTheDocument()
       expect(screen.getByText('Continue with Google')).toBeInTheDocument()
     })
@@ -488,7 +488,7 @@ describe('Login Page', () => {
       renderLogin()
 
       await user.click(
-        screen.getByRole('button', { name: /sign in with google/i })
+        screen.getByRole('button', { name: /continue with google/i })
       )
 
       expect(mockSupabase.auth.signInWithOAuth).toHaveBeenCalledWith({
@@ -512,7 +512,7 @@ describe('Login Page', () => {
       renderLogin()
 
       await user.click(
-        screen.getByRole('button', { name: /sign in with google/i })
+        screen.getByRole('button', { name: /continue with google/i })
       )
 
       await waitFor(() => {
@@ -535,11 +535,11 @@ describe('Login Page', () => {
       renderLogin()
 
       await user.click(
-        screen.getByRole('button', { name: /sign in with google/i })
+        screen.getByRole('button', { name: /continue with google/i })
       )
 
       expect(
-        screen.getByRole('button', { name: /sign in with google/i })
+        screen.getByRole('button', { name: /continue with google/i })
       ).toBeDisabled()
 
       await act(async () => {
@@ -581,7 +581,7 @@ describe('Login Page', () => {
       })
 
       await user.click(
-        screen.getByRole('button', { name: /sign in with google/i })
+        screen.getByRole('button', { name: /continue with google/i })
       )
 
       await waitFor(() => {

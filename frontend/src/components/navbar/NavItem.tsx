@@ -5,15 +5,17 @@ type NavItemProps = {
   to: string
   icon: ReactNode
   label: string
+  state?: unknown
 }
 
-export function NavItem({ to, icon, label }: NavItemProps) {
+export function NavItem({ to, icon, label, state }: NavItemProps) {
   const location = useLocation()
   const isActive = location.pathname === to
 
   return (
     <Link
       to={to}
+      state={state}
       aria-label={label}
       aria-current={isActive ? 'page' : undefined}
       className={`

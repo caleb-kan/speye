@@ -83,7 +83,7 @@ describe('UploadTextModal', () => {
     it('should render category dropdown with Fiction and Non-Fiction options', () => {
       renderModal()
 
-      const categorySelect = screen.getByLabelText('Category')
+      const categorySelect = screen.getByLabelText('Genre')
       expect(categorySelect).toBeInTheDocument()
       expect(
         screen.getByRole('option', { name: 'Fiction' })
@@ -91,17 +91,6 @@ describe('UploadTextModal', () => {
       expect(
         screen.getByRole('option', { name: 'Non-Fiction' })
       ).toBeInTheDocument()
-    })
-
-    it('should render visibility dropdown with Private and Public options', () => {
-      renderModal()
-
-      const visibilitySelect = screen.getByLabelText('Visibility')
-      expect(visibilitySelect).toBeInTheDocument()
-      expect(
-        screen.getByRole('option', { name: 'Private' })
-      ).toBeInTheDocument()
-      expect(screen.getByRole('option', { name: 'Public' })).toBeInTheDocument()
     })
 
     it('should show character count', () => {
@@ -179,11 +168,8 @@ describe('UploadTextModal', () => {
       const textarea = screen.getByLabelText('Text Content')
       fireEvent.change(textarea, { target: { value: 'My test text content' } })
 
-      const categorySelect = screen.getByLabelText('Category')
+      const categorySelect = screen.getByLabelText('Genre')
       fireEvent.change(categorySelect, { target: { value: 'non-fiction' } })
-
-      const visibilitySelect = screen.getByLabelText('Visibility')
-      fireEvent.change(visibilitySelect, { target: { value: 'public' } })
 
       const uploadButton = screen.getByRole('button', { name: 'Upload Text' })
       fireEvent.click(uploadButton)
@@ -192,7 +178,6 @@ describe('UploadTextModal', () => {
         expect(mockOnSubmit).toHaveBeenCalledWith({
           content: 'My test text content',
           fiction: false,
-          isPublic: true,
         })
       })
     })
@@ -211,20 +196,6 @@ describe('UploadTextModal', () => {
           screen.getByText('You must be logged in to upload texts')
         ).toBeInTheDocument()
       })
-    })
-
-    it('should show visibility helper text based on selection', () => {
-      renderModal()
-
-      // Default is private
-      expect(
-        screen.getByText('Only you can read this text')
-      ).toBeInTheDocument()
-
-      const visibilitySelect = screen.getByLabelText('Visibility')
-      fireEvent.change(visibilitySelect, { target: { value: 'public' } })
-
-      expect(screen.getByText('Anyone can read this text')).toBeInTheDocument()
     })
   })
 })

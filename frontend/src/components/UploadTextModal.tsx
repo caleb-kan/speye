@@ -17,7 +17,6 @@ export function UploadTextModal({
   const { user } = useAuth()
   const [content, setContent] = useState('')
   const [fiction, setFiction] = useState(true)
-  const [isPublic, setIsPublic] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -53,10 +52,9 @@ export function UploadTextModal({
 
     setIsSubmitting(true)
     try {
-      await onSubmit({ content: content.trim(), fiction, isPublic })
+      await onSubmit({ content: content.trim(), fiction })
       setContent('')
       setFiction(true)
-      setIsPublic(false)
       onClose()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to upload text')
@@ -119,49 +117,23 @@ export function UploadTextModal({
             </p>
           </div>
 
-          <div className="flex gap-4">
-            <div className="flex-1">
-              <label
-                htmlFor="fiction-select"
-                className="block text-sm font-medium text-text mb-2"
-              >
-                Category
-              </label>
-              <select
-                id="fiction-select"
-                value={fiction ? 'fiction' : 'non-fiction'}
-                onChange={(e) => setFiction(e.target.value === 'fiction')}
-                className="w-full p-3 bg-bg border border-text-secondary/20 rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                disabled={isSubmitting}
-              >
-                <option value="fiction">Fiction</option>
-                <option value="non-fiction">Non-Fiction</option>
-              </select>
-            </div>
-
-            <div className="flex-1">
-              <label
-                htmlFor="visibility-select"
-                className="block text-sm font-medium text-text mb-2"
-              >
-                Visibility
-              </label>
-              <select
-                id="visibility-select"
-                value={isPublic ? 'public' : 'private'}
-                onChange={(e) => setIsPublic(e.target.value === 'public')}
-                className="w-full p-3 bg-bg border border-text-secondary/20 rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                disabled={isSubmitting}
-              >
-                <option value="private">Private</option>
-                <option value="public">Public</option>
-              </select>
-              <p className="mt-1 text-xs text-text-secondary">
-                {isPublic
-                  ? 'Anyone can read this text'
-                  : 'Only you can read this text'}
-              </p>
-            </div>
+          <div>
+            <label
+              htmlFor="fiction-select"
+              className="block text-sm font-medium text-text mb-2"
+            >
+              Genre
+            </label>
+            <select
+              id="fiction-select"
+              value={fiction ? 'fiction' : 'non-fiction'}
+              onChange={(e) => setFiction(e.target.value === 'fiction')}
+              className="w-full p-3 bg-bg border border-text-secondary/20 rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              disabled={isSubmitting}
+            >
+              <option value="fiction">Fiction</option>
+              <option value="non-fiction">Non-Fiction</option>
+            </select>
           </div>
 
           {error && (

@@ -1,6 +1,11 @@
 export type Mode = 'standard' | 'adaptive' | 'summarized'
 export type ReadingType = 'dynamic' | 'static'
 
+export interface FixedTextInfo {
+  fiction: boolean
+  readability: number | null
+}
+
 export interface ReadingContext {
   wpm: number
   mode: Mode

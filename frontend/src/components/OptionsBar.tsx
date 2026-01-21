@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import type { Mode, ReadingType } from '../types'
+import type { Mode, ReadingType, FixedTextInfo } from '../types'
 import noUiSlider from 'nouislider'
 import {
   DEFAULT_MIN_DIFFICULTY,
@@ -23,6 +23,7 @@ type OptionsBarProps = {
   onDifficultyMinChange: (min: number) => void
   onDifficultyMaxChange: (max: number) => void
   onInputBlockingChange?: (isBlocking: boolean) => void
+  fixedText?: FixedTextInfo
 }
 
 export function OptionsBar({
@@ -39,6 +40,7 @@ export function OptionsBar({
   onDifficultyMinChange,
   onDifficultyMaxChange,
   onInputBlockingChange,
+  fixedText,
 }: OptionsBarProps) {
   const [customWpm, setCustomWpm] = useState('')
   const [showCustomInput, setShowCustomInput] = useState(false)
@@ -55,46 +57,48 @@ export function OptionsBar({
   }, [onDifficultyMinChange, onDifficultyMaxChange])
 
   useEffect(() => {
-    if (sliderRef.current && !sliderRef.current.hasChildNodes()) {
-      noUiSlider.create(sliderRef.current, {
-        start: [DEFAULT_MIN_DIFFICULTY, DEFAULT_MAX_DIFFICULTY],
-        connect: true,
-        behaviour: 'unconstrained-tap', // Allow handles to cross each other
-        range: {
-          min: MIN_DIFFICULTY,
-          max: MAX_DIFFICULTY,
-        },
-        tooltips: true,
-        step: 1,
-        format: {
-          to: (value) => {
-            const intValue = Math.round(value)
-            if (intValue === MAX_DIFFICULTY) {
-              return `${MAX_DIFFICULTY}+`
-            } else {
-              return intValue.toString()
-            }
-          },
-          from: (value) => {
-            return Number(value)
-          },
-        },
-      })
+    // Only create slider when fixedText is not set and the div is rendered
+    if (fixedText) return
+    if (!sliderRef.current || sliderRef.current.hasChildNodes()) return
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const slider = (sliderRef.current as any).noUiSlider
+    noUiSlider.create(sliderRef.current, {
+      start: [DEFAULT_MIN_DIFFICULTY, DEFAULT_MAX_DIFFICULTY],
+      connect: true,
+      behaviour: 'unconstrained-tap', // Allow handles to cross each other
+      range: {
+        min: MIN_DIFFICULTY,
+        max: MAX_DIFFICULTY,
+      },
+      tooltips: true,
+      step: 1,
+      format: {
+        to: (value) => {
+          const intValue = Math.round(value)
+          if (intValue === MAX_DIFFICULTY) {
+            return `${MAX_DIFFICULTY}+`
+          } else {
+            return intValue.toString()
+          }
+        },
+        from: (value) => {
+          return Number(value)
+        },
+      },
+    })
 
-      // Sort values so min <= max (handles can cross with unconstrained behaviour)
-      slider.on('set', (values: (string | number)[]) => {
-        const val0 = parseInt(String(values[0]))
-        const val1 = parseInt(String(values[1]))
-        const minVal = Math.min(val0, val1)
-        const maxVal = Math.max(val0, val1)
-        onDifficultyMinChangeRef.current(minVal)
-        onDifficultyMaxChangeRef.current(maxVal)
-      })
-    }
-  }, [])
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const slider = (sliderRef.current as any).noUiSlider
+
+    // Sort values so min <= max (handles can cross with unconstrained behaviour)
+    slider.on('set', (values: (string | number)[]) => {
+      const val0 = parseInt(String(values[0]))
+      const val1 = parseInt(String(values[1]))
+      const minVal = Math.min(val0, val1)
+      const maxVal = Math.max(val0, val1)
+      onDifficultyMinChangeRef.current(minVal)
+      onDifficultyMaxChangeRef.current(maxVal)
+    })
+  }, [fixedText])
 
   useEffect(() => {
     onInputBlockingChange?.(showCustomInput && isInvalid)
@@ -184,36 +188,57 @@ export function OptionsBar({
         {/* Fiction/Non-Fiction Selection */}
         <div className="flex items-center gap-2">
           <span className="text-text-secondary mr-1">genre:</span>
-          <button
-            onClick={() => onFictionChange(false)}
-            className={`px-3 py-1.5 transition-colors ${
-              !fiction ? 'text-primary' : 'text-text-secondary hover:text-text'
-            }`}
-            aria-label="Non-fiction texts"
-            aria-pressed={!fiction}
-          >
-            non-fiction
-          </button>
-          <button
-            onClick={() => onFictionChange(true)}
-            className={`px-3 py-1.5 transition-colors ${
-              fiction ? 'text-primary' : 'text-text-secondary hover:text-text'
-            }`}
-            aria-label="Fiction texts"
-            aria-pressed={fiction}
-          >
-            fiction
-          </button>
+          {fixedText ? (
+            <span className="px-3 py-1.5 text-primary">
+              {fixedText.fiction ? 'fiction' : 'non-fiction'}
+            </span>
+          ) : (
+            <>
+              <button
+                onClick={() => onFictionChange(false)}
+                className={`px-3 py-1.5 transition-colors ${
+                  !fiction
+                    ? 'text-primary'
+                    : 'text-text-secondary hover:text-text'
+                }`}
+                aria-label="Non-fiction texts"
+                aria-pressed={!fiction}
+              >
+                non-fiction
+              </button>
+              <button
+                onClick={() => onFictionChange(true)}
+                className={`px-3 py-1.5 transition-colors ${
+                  fiction
+                    ? 'text-primary'
+                    : 'text-text-secondary hover:text-text'
+                }`}
+                aria-label="Fiction texts"
+                aria-pressed={fiction}
+              >
+                fiction
+              </button>
+            </>
+          )}
         </div>
 
         {/* Divider */}
         <div className="w-px h-6 bg-text-secondary opacity-30" />
 
         {/* Difficulty Selection */}
-        {/* range slider from 1 to 15+ with tooltips, set to difficultyMin and difficultyMax*/}
         <div className="flex items-center gap-2">
           <span className="text-text-secondary mr-1">difficulty:</span>
-          <div ref={sliderRef} style={{ width: '200px' }}></div>
+          {fixedText ? (
+            <span className="px-3 py-1.5 text-primary">
+              {fixedText.readability !== null
+                ? fixedText.readability >= MAX_DIFFICULTY
+                  ? `${MAX_DIFFICULTY}+`
+                  : fixedText.readability
+                : 'N/A'}
+            </span>
+          ) : (
+            <div ref={sliderRef} style={{ width: '200px' }}></div>
+          )}
         </div>
 
         {/* Divider */}

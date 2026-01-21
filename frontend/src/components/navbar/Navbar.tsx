@@ -24,7 +24,7 @@ export function Navbar() {
       "
       aria-label="Main navigation"
     >
-      <NavItem to="/home" icon={<Home size={22} />} label="Home" />
+      <NavItem to="/home" icon={<Home size={22} />} label="Home" state={null} />
       <NavItem to="/library" icon={<BookOpen size={22} />} label="Library" />
       <NavItem to="/quiz" icon={<ListChecks size={22} />} label="Quiz" />
       <NavItem to="/settings" icon={<Settings size={22} />} label="Settings" />

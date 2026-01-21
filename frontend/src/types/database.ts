@@ -9,7 +9,6 @@ export type Quiz = {
 export type Text = {
   id: string
   content: string
-  is_public: boolean
   uploaded_at: string
   owner_id: string | null
   quiz: Quiz | null

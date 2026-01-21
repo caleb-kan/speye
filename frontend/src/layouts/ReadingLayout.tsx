@@ -1,14 +1,33 @@
 import { useState } from 'react'
 import { OptionsBar } from '../components/OptionsBar'
-import { Outlet } from 'react-router-dom'
-import type { Mode, ReadingType, ReadingContext } from '../types/reading'
+import { Outlet, useLocation } from 'react-router-dom'
+import type {
+  Mode,
+  ReadingType,
+  ReadingContext,
+  FixedTextInfo,
+} from '../types/reading'
+import type { Text } from '../types/database'
 import {
   DEFAULT_MIN_DIFFICULTY,
   DEFAULT_MAX_DIFFICULTY,
 } from '../constants/difficulty'
 import { DEFAULT_WPM } from '../constants/wpm'
 
+interface LocationState {
+  libraryText?: Text
+}
+
 export function ReadingLayout() {
+  const location = useLocation()
+  const state = location.state as LocationState | null
+  const libraryText = state?.libraryText
+
+  // Create fixed text info if reading from library
+  const fixedText: FixedTextInfo | undefined = libraryText
+    ? { fiction: libraryText.fiction, readability: libraryText.readability }
+    : undefined
+
   // Keep the states here
   const [wpm, setWpm] = useState(DEFAULT_WPM)
   const [mode, setMode] = useState<Mode>('standard')
@@ -35,6 +54,7 @@ export function ReadingLayout() {
         onDifficultyMinChange={setDifficultyMin}
         onDifficultyMaxChange={setDifficultyMax}
         onInputBlockingChange={setInputBlocking}
+        fixedText={fixedText}
       />
 
       <div className="flex-1 flex flex-col items-center justify-center px-8">

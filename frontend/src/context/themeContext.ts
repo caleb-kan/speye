@@ -5,6 +5,7 @@ export type ThemeContextType = {
   theme: Theme
   setTheme: (id: string) => void
   themes: Theme[]
+  loading: boolean
 }
 
 export const ThemeContext = createContext<ThemeContextType | null>(null)

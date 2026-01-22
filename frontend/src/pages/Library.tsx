@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, BookOpen, Trash2, Play, Lock, Globe } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
+import { useAsyncOperation } from '../hooks/useAsyncOperation'
 import { UploadTextModal } from '../components/UploadTextModal'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import {
@@ -21,50 +22,50 @@ export function Library() {
   const [activeTab, setActiveTab] = useState<LibraryTab>('private')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
-  const [privateTexts, setPrivateTexts] = useState<Text[] | null>(null)
-  const [publicTexts, setPublicTexts] = useState<Text[] | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<{
     isOpen: boolean
     textId: string | null
   }>({ isOpen: false, textId: null })
+
+  // Use async operation hooks for each data source
+  const {
+    data: privateTexts,
+    loading: privateLoading,
+    error: privateError,
+    execute: executePrivate,
+    setData: setPrivateTexts,
+  } = useAsyncOperation<Text[]>()
+  const {
+    data: publicTexts,
+    loading: publicLoading,
+    error: publicError,
+    execute: executePublic,
+  } = useAsyncOperation<Text[]>()
 
   const fetchPrivateTexts = useCallback(
     async (force = false) => {
       if (!user) return
       if (privateTexts !== null && !force) return
 
-      setLoading(true)
-      setError(null)
-      try {
+      await executePrivate(async () => {
         const result = await getLibraryTexts({ type: 'user', userId: user.id })
-        setPrivateTexts(result || [])
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch texts')
-      } finally {
-        setLoading(false)
-      }
+        return result || []
+      })
     },
-    [user, privateTexts]
+    [user, privateTexts, executePrivate]
   )
 
   const fetchPublicTexts = useCallback(
     async (force = false) => {
       if (publicTexts !== null && !force) return
 
-      setLoading(true)
-      setError(null)
-      try {
+      await executePublic(async () => {
         const result = await getLibraryTexts({ type: 'public' })
-        setPublicTexts(result || [])
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch texts')
-      } finally {
-        setLoading(false)
-      }
+        return result || []
+      })
     },
-    [publicTexts]
+    [publicTexts, executePublic]
   )
 
   useEffect(() => {
@@ -78,12 +79,23 @@ export function Library() {
   useEffect(() => {
     if (!successMessage) return
 
+    setDeleteError(null) // Clear any delete error when showing success
     const timer = setTimeout(() => {
       setSuccessMessage(null)
     }, SUCCESS_MESSAGE_DURATION_MS)
 
     return () => clearTimeout(timer)
   }, [successMessage])
+
+  useEffect(() => {
+    if (!deleteError) return
+
+    const timer = setTimeout(() => {
+      setDeleteError(null)
+    }, SUCCESS_MESSAGE_DURATION_MS)
+
+    return () => clearTimeout(timer)
+  }, [deleteError])
 
   const handleUpload = async (data: UploadTextInput) => {
     if (!user) {
@@ -101,14 +113,19 @@ export function Library() {
   const handleDeleteConfirm = async () => {
     if (!user || !deleteConfirm.textId) return
 
+    setDeleteError(null)
     try {
       await deleteText(deleteConfirm.textId)
-      setPrivateTexts((prev) =>
-        prev ? prev.filter((t) => t.id !== deleteConfirm.textId) : null
+      setPrivateTexts(
+        privateTexts
+          ? privateTexts.filter((t) => t.id !== deleteConfirm.textId)
+          : null
       )
       setSuccessMessage('Text deleted successfully!')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete text')
+      setDeleteError(
+        err instanceof Error ? err.message : 'Failed to delete text'
+      )
     } finally {
       setDeleteConfirm({ isOpen: false, textId: null })
     }
@@ -127,7 +144,10 @@ export function Library() {
     return content.substring(0, maxLength).trim() + '...'
   }
 
+  // Determine current state based on active tab
   const currentTexts = activeTab === 'private' ? privateTexts : publicTexts
+  const loading = activeTab === 'private' ? privateLoading : publicLoading
+  const fetchError = activeTab === 'private' ? privateError : publicError
   const isInitialLoad =
     (activeTab === 'private' && privateTexts === null) ||
     (activeTab === 'public' && publicTexts === null)
@@ -190,9 +210,9 @@ export function Library() {
           </div>
         )}
 
-        {error && (
+        {(fetchError || deleteError) && (
           <div className="mb-4 p-3 bg-error/10 border border-error/20 rounded-lg text-error text-sm">
-            {error}
+            {fetchError || deleteError}
           </div>
         )}
 

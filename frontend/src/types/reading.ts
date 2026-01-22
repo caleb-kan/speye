@@ -15,4 +15,6 @@ export interface ReadingContext {
   inputBlocking: boolean
   difficultyMin: number
   difficultyMax: number
+  textWidthPercent: number
+  onTextWidthChange: (percent: number) => void
 }

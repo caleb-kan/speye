@@ -1,13 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import type { Mode, ReadingType, FixedTextInfo } from '../types'
-import noUiSlider from 'nouislider'
-import {
-  DEFAULT_MIN_DIFFICULTY,
-  DEFAULT_MAX_DIFFICULTY,
-  MIN_DIFFICULTY,
-  MAX_DIFFICULTY,
-} from '../constants/difficulty'
+import noUiSlider, { type API } from 'nouislider'
+import { MIN_DIFFICULTY, MAX_DIFFICULTY } from '../constants/difficulty'
 import { WPM_PRESETS, MIN_WPM, MAX_WPM } from '../constants/wpm'
+import { Lock } from 'lucide-react'
 
 type OptionsBarProps = {
   wpm: number
@@ -20,10 +16,17 @@ type OptionsBarProps = {
   onBlurChange: (enabled: boolean) => void
   fiction: boolean
   onFictionChange: (fiction: boolean) => void
+  difficultyMin: number
+  difficultyMax: number
   onDifficultyMinChange: (min: number) => void
   onDifficultyMaxChange: (max: number) => void
   onInputBlockingChange?: (isBlocking: boolean) => void
   fixedText?: FixedTextInfo
+}
+
+// Extended HTML element type with noUiSlider API
+interface SliderElement extends HTMLDivElement {
+  noUiSlider?: API
 }
 
 export function OptionsBar({
@@ -37,6 +40,8 @@ export function OptionsBar({
   onBlurChange,
   fiction,
   onFictionChange,
+  difficultyMin,
+  difficultyMax,
   onDifficultyMinChange,
   onDifficultyMaxChange,
   onInputBlockingChange,
@@ -46,7 +51,7 @@ export function OptionsBar({
   const [showCustomInput, setShowCustomInput] = useState(false)
   const [isInvalid, setIsInvalid] = useState(false)
 
-  const sliderRef = useRef<HTMLDivElement>(null)
+  const sliderRef = useRef<SliderElement>(null)
   const onDifficultyMinChangeRef = useRef(onDifficultyMinChange)
   const onDifficultyMaxChangeRef = useRef(onDifficultyMaxChange)
 
@@ -56,13 +61,18 @@ export function OptionsBar({
     onDifficultyMaxChangeRef.current = onDifficultyMaxChange
   }, [onDifficultyMinChange, onDifficultyMaxChange])
 
+  // Create difficulty slider once on mount
+  // Note: difficultyMin/Max are intentionally not in deps because:
+  // 1. They're loaded synchronously from localStorage before first render
+  // 2. The slider is only created once (hasChildNodes check prevents recreation)
+  // 3. The slider's 'set' event handler updates preferences, not vice versa
   useEffect(() => {
     // Only create slider when fixedText is not set and the div is rendered
     if (fixedText) return
     if (!sliderRef.current || sliderRef.current.hasChildNodes()) return
 
     noUiSlider.create(sliderRef.current, {
-      start: [DEFAULT_MIN_DIFFICULTY, DEFAULT_MAX_DIFFICULTY],
+      start: [difficultyMin, difficultyMax],
       connect: true,
       behaviour: 'unconstrained-tap', // Allow handles to cross each other
       range: {
@@ -86,11 +96,10 @@ export function OptionsBar({
       },
     })
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const slider = (sliderRef.current as any).noUiSlider
+    const slider = sliderRef.current.noUiSlider
 
     // Sort values so min <= max (handles can cross with unconstrained behaviour)
-    slider.on('set', (values: (string | number)[]) => {
+    slider?.on('set', (values: (string | number)[]) => {
       const val0 = parseInt(String(values[0]))
       const val1 = parseInt(String(values[1]))
       const minVal = Math.min(val0, val1)
@@ -98,6 +107,7 @@ export function OptionsBar({
       onDifficultyMinChangeRef.current(minVal)
       onDifficultyMaxChangeRef.current(maxVal)
     })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fixedText])
 
   useEffect(() => {
@@ -169,7 +179,7 @@ export function OptionsBar({
             aria-label="Adaptive mode (coming soon, requires sign in)"
           >
             adaptive
-            <LockIcon />
+            <Lock size={12} />
           </button>
           <button
             disabled
@@ -178,7 +188,7 @@ export function OptionsBar({
             aria-label="Summarized mode (coming soon, requires sign in)"
           >
             summarized
-            <LockIcon />
+            <Lock size={12} />
           </button>
         </div>
 
@@ -367,25 +377,5 @@ export function OptionsBar({
         </div>
       </div>
     </div>
-  )
-}
-
-function LockIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="12"
-      height="12"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-    </svg>
   )
 }

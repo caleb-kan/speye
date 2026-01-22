@@ -27,10 +27,15 @@ beforeEach(() => {
   Element.prototype.getBoundingClientRect = mockGetBoundingClientRect
 })
 
+const defaultProps = {
+  widthPercent: DEFAULT_WIDTH_PERCENT,
+  onWidthChange: vi.fn(),
+}
+
 const renderResizable = (props = {}) => {
   return render(
     <div style={{ width: '1000px' }}>
-      <Resizable {...props}>
+      <Resizable {...defaultProps} {...props}>
         <div data-testid="content">Test Content</div>
       </Resizable>
     </div>
@@ -60,8 +65,8 @@ describe('Resizable', () => {
       expect(resizableContainer).toHaveStyle({ width: expectedWidth })
     })
 
-    it('applies custom default width', () => {
-      const { container } = renderResizable({ defaultWidthPercent: 0.7 })
+    it('applies custom width', () => {
+      const { container } = renderResizable({ widthPercent: 0.7 })
 
       const resizableContainer = container.querySelector('.flex')
       expect(resizableContainer).toHaveStyle({ width: '70%' })
@@ -154,26 +159,28 @@ describe('Resizable', () => {
   describe('Keyboard Navigation', () => {
     it('responds to ArrowRight key press', async () => {
       const user = userEvent.setup()
-      renderResizable()
+      const onWidthChange = vi.fn()
+      renderResizable({ onWidthChange })
 
       const separator = screen.getByRole('separator')
       separator.focus()
 
       await user.keyboard('{ArrowRight}')
 
-      expect(separator).toBeInTheDocument()
+      expect(onWidthChange).toHaveBeenCalled()
     })
 
     it('responds to ArrowLeft key press', async () => {
       const user = userEvent.setup()
-      renderResizable()
+      const onWidthChange = vi.fn()
+      renderResizable({ onWidthChange })
 
       const separator = screen.getByRole('separator')
       separator.focus()
 
       await user.keyboard('{ArrowLeft}')
 
-      expect(separator).toBeInTheDocument()
+      expect(onWidthChange).toHaveBeenCalled()
     })
 
     it('ignores non-arrow keys', async () => {
@@ -250,8 +257,8 @@ describe('Resizable', () => {
       expect(separator).toHaveAttribute('aria-valuemax', '95')
     })
 
-    it('accepts defaultWidthPercent prop', () => {
-      const { container } = renderResizable({ defaultWidthPercent: 0.5 })
+    it('accepts widthPercent prop', () => {
+      const { container } = renderResizable({ widthPercent: 0.5 })
 
       const resizableContainer = container.querySelector('.flex')
       expect(resizableContainer).toHaveStyle({ width: '50%' })

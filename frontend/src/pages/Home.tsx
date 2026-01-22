@@ -2,11 +2,7 @@ import { Reader } from '../components/Reader'
 import { useTexts } from '../hooks/useTexts'
 import { useOutletContext, useLocation, useNavigate } from 'react-router-dom'
 import type { ReadingContext } from '../types/reading'
-import type { Text } from '../types/database'
-
-interface LocationState {
-  libraryText?: Text
-}
+import type { LocationState } from '../types'
 
 export function Home() {
   const location = useLocation()
@@ -22,6 +18,8 @@ export function Home() {
     inputBlocking,
     difficultyMin,
     difficultyMax,
+    textWidthPercent,
+    onTextWidthChange,
   } = useOutletContext<ReadingContext>()
 
   const { currentText, loading, error, selectRandomText, refetch } = useTexts({
@@ -42,21 +40,26 @@ export function Home() {
     }
   }
 
+  // Show loading state (both initial load and refetch)
+  const showLoading = loading && !libraryText
+
   return (
     <div
       className="flex flex-col items-center w-full py-8"
       role="status"
       aria-live="polite"
     >
-      {loading && !libraryText ? (
-        <div className="text-text-secondary text-center">Loading texts...</div>
+      {showLoading ? (
+        <div className="text-text-secondary text-center">
+          <span className="inline-block animate-pulse">Loading texts...</span>
+        </div>
       ) : error && !libraryText ? (
         <div className="text-center">
           <p className="text-error mb-4">{error}</p>
           <button
             type="button"
             onClick={refetch}
-            className="text-primary hover:underline"
+            className="text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-bg rounded"
           >
             Try again
           </button>
@@ -70,6 +73,8 @@ export function Home() {
           blurEnabled={blurEnabled}
           onNewText={handleNewText}
           disabled={inputBlocking}
+          textWidthPercent={textWidthPercent}
+          onTextWidthChange={onTextWidthChange}
         />
       ) : (
         <div className="text-text-secondary text-center">

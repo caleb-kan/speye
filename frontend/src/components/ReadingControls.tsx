@@ -1,3 +1,6 @@
+import { memo } from 'react'
+import { Play, Pause, RotateCcw, RefreshCw } from 'lucide-react'
+
 type ReadingControlsProps = {
   isPlaying: boolean
   onPlayPause: () => void
@@ -9,7 +12,7 @@ type ReadingControlsProps = {
   disabled?: boolean
 }
 
-export function ReadingControls({
+export const ReadingControls = memo(function ReadingControls({
   isPlaying,
   onPlayPause,
   onRestart,
@@ -52,7 +55,7 @@ export function ReadingControls({
           className="w-10 h-10 flex items-center justify-center rounded-lg text-text-secondary hover:text-text hover:bg-bg-secondary transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
           aria-label="Restart"
         >
-          <RestartIcon />
+          <RotateCcw size={20} />
         </button>
 
         <button
@@ -66,7 +69,11 @@ export function ReadingControls({
           }`}
           aria-label={isPlaying ? 'Pause' : 'Play'}
         >
-          {isPlaying ? <PauseIcon /> : <PlayIcon />}
+          {isPlaying ? (
+            <Pause size={24} fill="currentColor" stroke="none" />
+          ) : (
+            <Play size={24} fill="currentColor" stroke="none" />
+          )}
         </button>
 
         <button
@@ -75,7 +82,7 @@ export function ReadingControls({
           className="w-10 h-10 flex items-center justify-center rounded-lg text-text-secondary hover:text-text hover:bg-bg-secondary transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
           aria-label="New text"
         >
-          <RefreshIcon />
+          <RefreshCw size={20} />
         </button>
       </div>
 
@@ -89,79 +96,4 @@ export function ReadingControls({
       )}
     </div>
   )
-}
-
-function PlayIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      className="block"
-      aria-hidden="true"
-    >
-      <path d="M6 4v16l14-8z" />
-    </svg>
-  )
-}
-
-function PauseIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      className="block"
-      aria-hidden="true"
-    >
-      <path d="M6 4h4v16H6zM14 4h4v16h-4z" />
-    </svg>
-  )
-}
-
-function RestartIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="block"
-      aria-hidden="true"
-    >
-      <polyline points="1 4 1 10 7 10" />
-      <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
-    </svg>
-  )
-}
-
-function RefreshIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="block"
-      aria-hidden="true"
-    >
-      <polyline points="23 4 23 10 17 10" />
-      <polyline points="1 20 1 14 7 14" />
-      <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
-    </svg>
-  )
-}
+})

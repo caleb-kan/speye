@@ -15,7 +15,6 @@ const mockUseTexts = vi.mocked(useTextsModule.useTexts)
 const createMockText = (content: string): Text => ({
   id: '1',
   content,
-  is_public: true,
   uploaded_at: new Date().toISOString(),
   owner_id: null,
   quiz: null,

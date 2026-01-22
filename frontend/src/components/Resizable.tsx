@@ -1,32 +1,32 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, type ReactNode } from 'react'
 import {
   MIN_WIDTH_PERCENT,
   MAX_WIDTH_PERCENT,
-  DEFAULT_WIDTH_PERCENT,
   KEYBOARD_STEP_PERCENT,
 } from '../constants/resize'
 
 type ResizableProps = {
   children: ReactNode
+  widthPercent: number
+  onWidthChange: (percent: number) => void
   minWidthPercent?: number
   maxWidthPercent?: number
-  defaultWidthPercent?: number
 }
 
 export function Resizable({
   children,
+  widthPercent,
+  onWidthChange,
   minWidthPercent = MIN_WIDTH_PERCENT,
   maxWidthPercent = MAX_WIDTH_PERCENT,
-  defaultWidthPercent = DEFAULT_WIDTH_PERCENT,
 }: ResizableProps) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const [widthPercent, setWidthPercent] = useState(defaultWidthPercent)
 
   // Store current props in ref for use in event handlers
-  const propsRef = useRef({ minWidthPercent, maxWidthPercent })
+  const propsRef = useRef({ minWidthPercent, maxWidthPercent, onWidthChange })
   useEffect(() => {
-    propsRef.current = { minWidthPercent, maxWidthPercent }
-  }, [minWidthPercent, maxWidthPercent])
+    propsRef.current = { minWidthPercent, maxWidthPercent, onWidthChange }
+  }, [minWidthPercent, maxWidthPercent, onWidthChange])
 
   // Setup pointer event handlers
   useEffect(() => {
@@ -42,13 +42,17 @@ export function Resizable({
       const parent = container.parentElement
       if (!parent) return
 
-      const { minWidthPercent: min, maxWidthPercent: max } = propsRef.current
+      const {
+        minWidthPercent: min,
+        maxWidthPercent: max,
+        onWidthChange: onChange,
+      } = propsRef.current
       const parentWidth = parent.offsetWidth
       const containerLeft = container.getBoundingClientRect().left
       const newWidth = e.clientX - containerLeft
       const newPercent = Math.min(Math.max(min, newWidth / parentWidth), max)
 
-      setWidthPercent(newPercent)
+      onChange(newPercent)
     }
 
     const handlePointerUp = () => {
@@ -111,10 +115,10 @@ export function Resizable({
       }
 
       if (newPercent !== null) {
-        setWidthPercent(newPercent)
+        onWidthChange(newPercent)
       }
     },
-    [widthPercent, minWidthPercent, maxWidthPercent]
+    [widthPercent, minWidthPercent, maxWidthPercent, onWidthChange]
   )
 
   const displayPercent = Math.round(widthPercent * 100)

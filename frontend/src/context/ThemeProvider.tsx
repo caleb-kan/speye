@@ -2,19 +2,18 @@ import { useEffect, useState } from 'react'
 import type { Theme } from '../lib/themes'
 import { getThemeById, themes } from '../lib/themes'
 import { ThemeContext } from './themeContext'
-
-const THEME_STORAGE_KEY = 'speye-theme'
+import { STORAGE_KEYS } from '../constants/storage'
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() => {
-    const stored = localStorage.getItem(THEME_STORAGE_KEY)
+    const stored = localStorage.getItem(STORAGE_KEYS.THEME_PREFERENCE)
     return stored ? getThemeById(stored) : themes[0]
   })
 
   const setTheme = (id: string) => {
     const newTheme = getThemeById(id)
     setThemeState(newTheme)
-    localStorage.setItem(THEME_STORAGE_KEY, id)
+    localStorage.setItem(STORAGE_KEYS.THEME_PREFERENCE, id)
   }
 
   useEffect(() => {

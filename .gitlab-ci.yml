@@ -5,6 +5,8 @@ stages:
   - build
   - deploy
 
+image: node:24
+
 variables:
   npm_config_cache: '$CI_PROJECT_DIR/.npm'
   DEPLOY_PATH: /vol/project/2025/60021/g256002102/web
@@ -22,6 +24,7 @@ install:
   stage: install
   tags:
     - build
+    - npm
   script:
     - npm ci --prefix frontend --cache .npm --prefer-offline
     - npm ci --prefix backend --cache .npm --prefer-offline
@@ -37,6 +40,7 @@ lint:
   stage: format
   tags:
     - build
+    - npm
   needs: [install]
   script:
     - npm run lint
@@ -45,6 +49,7 @@ format-check:
   stage: format
   tags:
     - build
+    - npm
   needs: [install]
   script:
     - npm run format:check
@@ -53,6 +58,7 @@ test:
   stage: test
   tags:
     - build
+    - npm
   needs: [install, lint, format-check]
   script:
     - cd frontend
@@ -64,6 +70,7 @@ build:
   stage: build
   tags:
     - build
+    - npm
   needs: [install, test]
   script:
     - npm run build

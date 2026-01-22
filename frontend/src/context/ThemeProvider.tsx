@@ -10,6 +10,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     return stored ? getThemeById(stored) : themes[0]
   })
 
+  const [loading, setLoading] = useState(true)
+
   const setTheme = (id: string) => {
     const newTheme = getThemeById(id)
     setThemeState(newTheme)
@@ -17,18 +19,31 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }
 
   useEffect(() => {
-    const root = document.documentElement
-    root.style.setProperty('--color-bg', theme.colors.bg)
-    root.style.setProperty('--color-bg-secondary', theme.colors.bgSecondary)
-    root.style.setProperty('--color-text', theme.colors.text)
-    root.style.setProperty('--color-text-secondary', theme.colors.textSecondary)
-    root.style.setProperty('--color-primary', theme.colors.primary)
-    root.style.setProperty('--color-error', theme.colors.error)
-    root.style.setProperty('--color-success', theme.colors.success)
+    const applyTheme = async () => {
+      setLoading(true)
+      const root = document.documentElement
+      root.style.setProperty('--color-bg', theme.colors.bg)
+      root.style.setProperty('--color-bg-secondary', theme.colors.bgSecondary)
+      root.style.setProperty('--color-text', theme.colors.text)
+      root.style.setProperty(
+        '--color-text-secondary',
+        theme.colors.textSecondary
+      )
+      root.style.setProperty('--color-primary', theme.colors.primary)
+      root.style.setProperty('--color-error', theme.colors.error)
+      root.style.setProperty('--color-success', theme.colors.success)
+      setLoading(false)
+    }
+    applyTheme()
   }, [theme])
 
+  // Don't render children until theme is applied (avoids flash of content with incorrect theme)
+  if (loading) {
+    return null
+  }
+
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, themes }}>
+    <ThemeContext.Provider value={{ theme, setTheme, themes, loading }}>
       {children}
     </ThemeContext.Provider>
   )

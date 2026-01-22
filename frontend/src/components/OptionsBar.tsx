@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
-import type { Mode, ReadingType, FixedTextInfo } from '../types'
+import type { Mode, Scrolling, FixedTextInfo } from '../types'
 import noUiSlider, { type API } from 'nouislider'
-import { MIN_DIFFICULTY, MAX_DIFFICULTY } from '../constants/difficulty'
+import { MIN_COMPLEXITY, MAX_COMPLEXITY } from '../constants/complexity'
 import { WPM_PRESETS, MIN_WPM, MAX_WPM } from '../constants/wpm'
 import { Lock } from 'lucide-react'
 
@@ -10,16 +10,16 @@ type OptionsBarProps = {
   onWpmChange: (wpm: number) => void
   mode: Mode
   onModeChange: (mode: Mode) => void
-  readingType: ReadingType
-  onReadingTypeChange: (type: ReadingType) => void
+  scrolling: Scrolling
+  onScrollingChange: (scrolling: Scrolling) => void
   blurEnabled: boolean
   onBlurChange: (enabled: boolean) => void
   fiction: boolean
   onFictionChange: (fiction: boolean) => void
-  difficultyMin: number
-  difficultyMax: number
-  onDifficultyMinChange: (min: number) => void
-  onDifficultyMaxChange: (max: number) => void
+  complexityMin: number
+  complexityMax: number
+  onComplexityMinChange: (min: number) => void
+  onComplexityMaxChange: (max: number) => void
   onInputBlockingChange?: (isBlocking: boolean) => void
   fixedText?: FixedTextInfo
 }
@@ -34,16 +34,16 @@ export function OptionsBar({
   onWpmChange,
   mode,
   onModeChange,
-  readingType,
-  onReadingTypeChange,
+  scrolling,
+  onScrollingChange,
   blurEnabled,
   onBlurChange,
   fiction,
   onFictionChange,
-  difficultyMin,
-  difficultyMax,
-  onDifficultyMinChange,
-  onDifficultyMaxChange,
+  complexityMin,
+  complexityMax,
+  onComplexityMinChange,
+  onComplexityMaxChange,
   onInputBlockingChange,
   fixedText,
 }: OptionsBarProps) {
@@ -52,17 +52,17 @@ export function OptionsBar({
   const [isInvalid, setIsInvalid] = useState(false)
 
   const sliderRef = useRef<SliderElement>(null)
-  const onDifficultyMinChangeRef = useRef(onDifficultyMinChange)
-  const onDifficultyMaxChangeRef = useRef(onDifficultyMaxChange)
+  const onComplexityMinChangeRef = useRef(onComplexityMinChange)
+  const onComplexityMaxChangeRef = useRef(onComplexityMaxChange)
 
   // Keep refs up to date with latest callbacks
   useEffect(() => {
-    onDifficultyMinChangeRef.current = onDifficultyMinChange
-    onDifficultyMaxChangeRef.current = onDifficultyMaxChange
-  }, [onDifficultyMinChange, onDifficultyMaxChange])
+    onComplexityMinChangeRef.current = onComplexityMinChange
+    onComplexityMaxChangeRef.current = onComplexityMaxChange
+  }, [onComplexityMinChange, onComplexityMaxChange])
 
-  // Create difficulty slider once on mount
-  // Note: difficultyMin/Max are intentionally not in deps because:
+  // Create complexity slider once on mount
+  // Note: complexityMin/Max are intentionally not in deps because:
   // 1. They're loaded synchronously from localStorage before first render
   // 2. The slider is only created once (hasChildNodes check prevents recreation)
   // 3. The slider's 'set' event handler updates preferences, not vice versa
@@ -72,20 +72,20 @@ export function OptionsBar({
     if (!sliderRef.current || sliderRef.current.hasChildNodes()) return
 
     noUiSlider.create(sliderRef.current, {
-      start: [difficultyMin, difficultyMax],
+      start: [complexityMin, complexityMax],
       connect: true,
       behaviour: 'unconstrained-tap', // Allow handles to cross each other
       range: {
-        min: MIN_DIFFICULTY,
-        max: MAX_DIFFICULTY,
+        min: MIN_COMPLEXITY,
+        max: MAX_COMPLEXITY,
       },
       tooltips: true,
       step: 1,
       format: {
         to: (value) => {
           const intValue = Math.round(value)
-          if (intValue === MAX_DIFFICULTY) {
-            return `${MAX_DIFFICULTY}+`
+          if (intValue === MAX_COMPLEXITY) {
+            return `${MAX_COMPLEXITY}+`
           } else {
             return intValue.toString()
           }
@@ -104,8 +104,8 @@ export function OptionsBar({
       const val1 = parseInt(String(values[1]))
       const minVal = Math.min(val0, val1)
       const maxVal = Math.max(val0, val1)
-      onDifficultyMinChangeRef.current(minVal)
-      onDifficultyMaxChangeRef.current(maxVal)
+      onComplexityMinChangeRef.current(minVal)
+      onComplexityMaxChangeRef.current(maxVal)
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fixedText])
@@ -235,15 +235,15 @@ export function OptionsBar({
         {/* Divider */}
         <div className="w-px h-6 bg-text-secondary opacity-30" />
 
-        {/* Difficulty Selection */}
+        {/* Complexity Selection */}
         <div className="flex items-center gap-2">
-          <span className="text-text-secondary mr-1">difficulty:</span>
+          <span className="text-text-secondary mr-1">complexity:</span>
           {fixedText ? (
             <span className="px-3 py-1.5 text-primary">
-              {fixedText.readability !== null
-                ? fixedText.readability >= MAX_DIFFICULTY
-                  ? `${MAX_DIFFICULTY}+`
-                  : fixedText.readability
+              {fixedText.complexity !== null
+                ? fixedText.complexity >= MAX_COMPLEXITY
+                  ? `${MAX_COMPLEXITY}+`
+                  : fixedText.complexity
                 : 'N/A'}
             </span>
           ) : (
@@ -254,30 +254,30 @@ export function OptionsBar({
         {/* Divider */}
         <div className="w-px h-6 bg-text-secondary opacity-30" />
 
-        {/* Reading Type Selection */}
+        {/* Scrolling Selection */}
         <div className="flex items-center gap-2">
-          <span className="text-text-secondary mr-1">type:</span>
+          <span className="text-text-secondary mr-1">scrolling:</span>
           <button
-            onClick={() => onReadingTypeChange('dynamic')}
+            onClick={() => onScrollingChange('dynamic')}
             className={`px-3 py-1.5 transition-colors ${
-              readingType === 'dynamic'
+              scrolling === 'dynamic'
                 ? 'text-primary'
                 : 'text-text-secondary hover:text-text'
             }`}
-            aria-label="Dynamic reading type"
-            aria-pressed={readingType === 'dynamic'}
+            aria-label="Dynamic scrolling"
+            aria-pressed={scrolling === 'dynamic'}
           >
             dynamic
           </button>
           <button
-            onClick={() => onReadingTypeChange('static')}
+            onClick={() => onScrollingChange('static')}
             className={`px-3 py-1.5 transition-colors ${
-              readingType === 'static'
+              scrolling === 'static'
                 ? 'text-primary'
                 : 'text-text-secondary hover:text-text'
             }`}
-            aria-label="Static reading type"
-            aria-pressed={readingType === 'static'}
+            aria-label="Static scrolling"
+            aria-pressed={scrolling === 'static'}
           >
             static
           </button>

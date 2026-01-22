@@ -12,20 +12,20 @@ export function Home() {
 
   const {
     wpm,
-    readingType,
+    scrolling,
     blurEnabled,
     fiction,
     inputBlocking,
-    difficultyMin,
-    difficultyMax,
+    complexityMin,
+    complexityMax,
     textWidthPercent,
     onTextWidthChange,
   } = useOutletContext<ReadingContext>()
 
   const { currentText, loading, error, selectRandomText, refetch } = useTexts({
     fiction,
-    difficultyMin,
-    difficultyMax,
+    complexityMin,
+    complexityMax,
   })
 
   // Use library text if provided, otherwise use fetched text
@@ -69,7 +69,7 @@ export function Home() {
           key={textToRead.id}
           text={textToRead.content}
           wpm={wpm}
-          readingType={readingType}
+          scrolling={scrolling}
           blurEnabled={blurEnabled}
           onNewText={handleNewText}
           disabled={inputBlocking}

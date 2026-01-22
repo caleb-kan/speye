@@ -3,12 +3,12 @@ import {
   ReadingPreferencesContext,
   type ReadingPreferences,
 } from './readingPreferencesContext'
-import type { Mode, ReadingType } from '../types'
+import type { Mode, Scrolling } from '../types'
 import { DEFAULT_WPM } from '../constants/wpm'
 import {
-  DEFAULT_MIN_DIFFICULTY,
-  DEFAULT_MAX_DIFFICULTY,
-} from '../constants/difficulty'
+  DEFAULT_MIN_COMPLEXITY,
+  DEFAULT_MAX_COMPLEXITY,
+} from '../constants/complexity'
 import { DEFAULT_WIDTH_PERCENT } from '../constants/resize'
 import { STORAGE_KEYS } from '../constants/storage'
 
@@ -20,11 +20,11 @@ function loadPreferences(): ReadingPreferences {
       return {
         wpm: parsed.wpm ?? DEFAULT_WPM,
         mode: parsed.mode ?? 'standard',
-        readingType: parsed.readingType ?? 'dynamic',
+        scrolling: parsed.scrolling ?? 'dynamic',
         blurEnabled: parsed.blurEnabled ?? false,
         fiction: parsed.fiction ?? false,
-        difficultyMin: parsed.difficultyMin ?? DEFAULT_MIN_DIFFICULTY,
-        difficultyMax: parsed.difficultyMax ?? DEFAULT_MAX_DIFFICULTY,
+        complexityMin: parsed.complexityMin ?? DEFAULT_MIN_COMPLEXITY,
+        complexityMax: parsed.complexityMax ?? DEFAULT_MAX_COMPLEXITY,
         textWidthPercent: parsed.textWidthPercent ?? DEFAULT_WIDTH_PERCENT,
       }
     }
@@ -34,11 +34,11 @@ function loadPreferences(): ReadingPreferences {
   return {
     wpm: DEFAULT_WPM,
     mode: 'standard',
-    readingType: 'dynamic',
+    scrolling: 'dynamic',
     blurEnabled: false,
     fiction: false,
-    difficultyMin: DEFAULT_MIN_DIFFICULTY,
-    difficultyMax: DEFAULT_MAX_DIFFICULTY,
+    complexityMin: DEFAULT_MIN_COMPLEXITY,
+    complexityMax: DEFAULT_MAX_COMPLEXITY,
     textWidthPercent: DEFAULT_WIDTH_PERCENT,
   }
 }
@@ -83,8 +83,8 @@ export function ReadingPreferencesProvider({
     [updatePreferences]
   )
 
-  const setReadingType = useCallback(
-    (readingType: ReadingType) => updatePreferences({ readingType }),
+  const setScrolling = useCallback(
+    (scrolling: Scrolling) => updatePreferences({ scrolling }),
     [updatePreferences]
   )
 
@@ -98,13 +98,13 @@ export function ReadingPreferencesProvider({
     [updatePreferences]
   )
 
-  const setDifficultyMin = useCallback(
-    (difficultyMin: number) => updatePreferences({ difficultyMin }),
+  const setComplexityMin = useCallback(
+    (complexityMin: number) => updatePreferences({ complexityMin }),
     [updatePreferences]
   )
 
-  const setDifficultyMax = useCallback(
-    (difficultyMax: number) => updatePreferences({ difficultyMax }),
+  const setComplexityMax = useCallback(
+    (complexityMax: number) => updatePreferences({ complexityMax }),
     [updatePreferences]
   )
 
@@ -118,22 +118,22 @@ export function ReadingPreferencesProvider({
       preferences,
       setWpm,
       setMode,
-      setReadingType,
+      setScrolling,
       setBlurEnabled,
       setFiction,
-      setDifficultyMin,
-      setDifficultyMax,
+      setComplexityMin,
+      setComplexityMax,
       setTextWidthPercent,
     }),
     [
       preferences,
       setWpm,
       setMode,
-      setReadingType,
+      setScrolling,
       setBlurEnabled,
       setFiction,
-      setDifficultyMin,
-      setDifficultyMax,
+      setComplexityMin,
+      setComplexityMax,
       setTextWidthPercent,
     ]
   )

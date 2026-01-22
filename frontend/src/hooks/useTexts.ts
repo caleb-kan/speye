@@ -4,14 +4,14 @@ import { getTexts } from '../../../backend/supabase/database/texts/getTexts'
 
 type UseTextsOptions = {
   fiction: boolean
-  difficultyMin: number
-  difficultyMax: number
+  complexityMin: number
+  complexityMax: number
 }
 
 export function useTexts({
   fiction,
-  difficultyMin,
-  difficultyMax,
+  complexityMin,
+  complexityMax,
 }: UseTextsOptions) {
   const [texts, setTexts] = useState<Text[]>([])
   const [currentText, setCurrentText] = useState<Text | null>(null)
@@ -23,7 +23,7 @@ export function useTexts({
       setLoading(true)
       setError(null)
 
-      const texts = await getTexts({ fiction, difficultyMin, difficultyMax })
+      const texts = await getTexts({ fiction, complexityMin, complexityMax })
       setTexts(texts || [])
 
       if (texts && texts.length > 0) {
@@ -37,7 +37,7 @@ export function useTexts({
     } finally {
       setLoading(false)
     }
-  }, [fiction, difficultyMin, difficultyMax])
+  }, [fiction, complexityMin, complexityMax])
 
   const selectRandomText = useCallback(() => {
     if (texts.length === 0) return

@@ -1,13 +1,13 @@
 import { TextDisplay } from './TextDisplay'
 import { ReadingControls } from './ReadingControls'
 import { useReader } from '../hooks/useReader'
-import type { ReadingType } from '../types/reading'
+import type { Scrolling } from '../types/reading'
 import { Resizable } from './Resizable'
 
 type ReaderProps = {
   text: string
   wpm: number
-  readingType: ReadingType
+  scrolling: Scrolling
   blurEnabled: boolean
   onNewText: () => void
   disabled?: boolean
@@ -18,7 +18,7 @@ type ReaderProps = {
 export function Reader({
   text,
   wpm,
-  readingType,
+  scrolling,
   blurEnabled,
   onNewText,
   disabled = false,
@@ -45,7 +45,7 @@ export function Reader({
           text={text}
           currentWordIndex={currentWordIndex}
           isPlaying={isPlaying}
-          readingType={readingType}
+          scrolling={scrolling}
           blurEnabled={blurEnabled}
           wpm={wpm}
         />

@@ -20,7 +20,7 @@ const createMockText = (content: string): Text => ({
   quiz: null,
   fiction: false,
   category: null,
-  readability: null,
+  complexity: null,
 })
 
 describe('Reader', () => {

@@ -1,5 +1,5 @@
 import { supabase } from '../../../../lib/supabase'
-import { calculateReadability } from '../../functions/textStat'
+import { calculateComplexity } from '../../functions/textStat'
 
 export interface UploadTextInput {
   content: string
@@ -7,7 +7,7 @@ export interface UploadTextInput {
 }
 
 export async function uploadText(userId: string, data: UploadTextInput) {
-  const readability = calculateReadability(data.content)
+  const complexity = calculateComplexity(data.content)
 
   const { data: result, error } = await supabase
     .from('texts')
@@ -16,7 +16,7 @@ export async function uploadText(userId: string, data: UploadTextInput) {
         owner_id: userId,
         content: data.content,
         fiction: data.fiction,
-        readability: readability,
+        complexity: complexity,
       },
     ])
     .select()

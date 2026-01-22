@@ -14,5 +14,5 @@ export type Text = {
   quiz: Quiz | null
   fiction: boolean
   category: string | null
-  readability: number | null
+  complexity: number | null
 }

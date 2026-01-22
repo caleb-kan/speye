@@ -1,13 +1,13 @@
 import { textstat } from 'textstat-ts'
 
-const MIN_READABILITY = 1
+const MIN_COMPLEXITY = 1
 
-export function calculateReadability(text: string): number {
+export function calculateComplexity(text: string): number {
   const grade = textstat.fleschKincaidGrade(text)
 
   if (!Number.isFinite(grade)) {
-    return MIN_READABILITY
+    return MIN_COMPLEXITY
   }
 
-  return Math.max(MIN_READABILITY, Math.floor(grade))
+  return Math.max(MIN_COMPLEXITY, Math.floor(grade))
 }

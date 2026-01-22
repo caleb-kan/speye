@@ -1,8 +1,12 @@
+import { memo } from 'react'
+
 type AnswerOptionProps = {
   text: string
 }
 
-export function AnswerOption({ text }: AnswerOptionProps) {
+export const AnswerOption = memo(function AnswerOption({
+  text,
+}: AnswerOptionProps) {
   return (
     <button
       type="button"
@@ -18,4 +22,4 @@ export function AnswerOption({ text }: AnswerOptionProps) {
       <span className="text-sm leading-relaxed">{text}</span>
     </button>
   )
-}
+})

@@ -11,6 +11,8 @@ type ReaderProps = {
   blurEnabled: boolean
   onNewText: () => void
   disabled?: boolean
+  textWidthPercent: number
+  onTextWidthChange: (percent: number) => void
 }
 
 export function Reader({
@@ -20,6 +22,8 @@ export function Reader({
   blurEnabled,
   onNewText,
   disabled = false,
+  textWidthPercent,
+  onTextWidthChange,
 }: ReaderProps) {
   const {
     currentWordIndex,
@@ -33,7 +37,10 @@ export function Reader({
   return (
     <div className="w-full flex flex-col items-center">
       {/* Text Display */}
-      <Resizable>
+      <Resizable
+        widthPercent={textWidthPercent}
+        onWidthChange={onTextWidthChange}
+      >
         <TextDisplay
           text={text}
           currentWordIndex={currentWordIndex}

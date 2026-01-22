@@ -39,7 +39,7 @@ export function DefaultAvatar({
 }: DefaultAvatarProps) {
   // Track which URL failed to load - only show error for that specific URL
   const [failedUrl, setFailedUrl] = useState<string | null>(null)
-  const initial = useMemo(() => email?.charAt(0).toUpperCase() || '?', [email])
+  const initial = email?.charAt(0).toUpperCase() || '?'
   const bgColor = useMemo(() => getColorFromEmail(email), [email])
 
   // Only consider it an error if the current avatarUrl matches the failed URL

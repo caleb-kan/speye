@@ -167,7 +167,7 @@ export function TextDisplay({
 
             return (
               <span
-                key={`${word}-${index}`}
+                key={index}
                 ref={isActive ? activeWordRef : null}
                 style={{
                   color: style.color,

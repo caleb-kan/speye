@@ -1,22 +1,8 @@
 import { useState } from 'react'
 import { OptionsBar } from '../components/OptionsBar'
 import { Outlet, useLocation } from 'react-router-dom'
-import type {
-  Mode,
-  ReadingType,
-  ReadingContext,
-  FixedTextInfo,
-} from '../types/reading'
-import type { Text } from '../types/database'
-import {
-  DEFAULT_MIN_DIFFICULTY,
-  DEFAULT_MAX_DIFFICULTY,
-} from '../constants/difficulty'
-import { DEFAULT_WPM } from '../constants/wpm'
-
-interface LocationState {
-  libraryText?: Text
-}
+import type { ReadingContext, FixedTextInfo, LocationState } from '../types'
+import { useReadingPreferences } from '../hooks/useReadingPreferences'
 
 export function ReadingLayout() {
   const location = useLocation()
@@ -28,29 +14,36 @@ export function ReadingLayout() {
     ? { fiction: libraryText.fiction, readability: libraryText.readability }
     : undefined
 
-  // Keep the states here
-  const [wpm, setWpm] = useState(DEFAULT_WPM)
-  const [mode, setMode] = useState<Mode>('standard')
-  const [readingType, setReadingType] = useState<ReadingType>('dynamic')
-  const [blurEnabled, setBlurEnabled] = useState(false)
-  const [fiction, setFiction] = useState(false)
+  // Get preferences from context (persisted to localStorage)
+  const {
+    preferences,
+    setWpm,
+    setMode,
+    setReadingType,
+    setBlurEnabled,
+    setFiction,
+    setDifficultyMin,
+    setDifficultyMax,
+    setTextWidthPercent,
+  } = useReadingPreferences()
+
   const [inputBlocking, setInputBlocking] = useState(false)
-  const [difficultyMin, setDifficultyMin] = useState(DEFAULT_MIN_DIFFICULTY)
-  const [difficultyMax, setDifficultyMax] = useState(DEFAULT_MAX_DIFFICULTY)
 
   return (
     <div className="flex-1 flex flex-col">
       <OptionsBar
-        wpm={wpm}
+        wpm={preferences.wpm}
         onWpmChange={setWpm}
-        mode={mode}
+        mode={preferences.mode}
         onModeChange={setMode}
-        readingType={readingType}
+        readingType={preferences.readingType}
         onReadingTypeChange={setReadingType}
-        blurEnabled={blurEnabled}
+        blurEnabled={preferences.blurEnabled}
         onBlurChange={setBlurEnabled}
-        fiction={fiction}
+        fiction={preferences.fiction}
         onFictionChange={setFiction}
+        difficultyMin={preferences.difficultyMin}
+        difficultyMax={preferences.difficultyMax}
         onDifficultyMinChange={setDifficultyMin}
         onDifficultyMaxChange={setDifficultyMax}
         onInputBlockingChange={setInputBlocking}
@@ -62,14 +55,16 @@ export function ReadingLayout() {
         <Outlet
           context={
             {
-              wpm,
-              mode,
-              readingType,
-              blurEnabled,
-              fiction,
-              difficultyMin,
-              difficultyMax,
+              wpm: preferences.wpm,
+              mode: preferences.mode,
+              readingType: preferences.readingType,
+              blurEnabled: preferences.blurEnabled,
+              fiction: preferences.fiction,
+              difficultyMin: preferences.difficultyMin,
+              difficultyMax: preferences.difficultyMax,
               inputBlocking,
+              textWidthPercent: preferences.textWidthPercent,
+              onTextWidthChange: setTextWidthPercent,
             } satisfies ReadingContext
           }
         />

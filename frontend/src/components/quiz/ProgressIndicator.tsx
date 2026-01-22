@@ -1,9 +1,14 @@
+import { memo } from 'react'
+
 type ProgressIndicatorProps = {
   current: number
   total: number
 }
 
-export function ProgressIndicator({ current, total }: ProgressIndicatorProps) {
+export const ProgressIndicator = memo(function ProgressIndicator({
+  current,
+  total,
+}: ProgressIndicatorProps) {
   return (
     <div className="flex gap-1.5">
       {Array.from({ length: total }).map((_, i) => (
@@ -16,4 +21,4 @@ export function ProgressIndicator({ current, total }: ProgressIndicatorProps) {
       ))}
     </div>
   )
-}
+})

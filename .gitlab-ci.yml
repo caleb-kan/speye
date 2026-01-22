@@ -84,6 +84,11 @@ deploy:
   tags:
     - build
   needs: [build]
+  before_script:
+    - mkdir -p ~/.ssh
+    - echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+    - chmod 600 ~/.ssh/id_rsa
+    - ssh-keyscan shell1.doc.ic.ac.uk >> ~/.ssh/known_hosts
   script:
     - ssh cmk123@shell1.doc.ic.ac.uk "mkdir -p ${DEPLOY_PATH}"
     - scp -r frontend/dist/* cmk123@shell1.doc.ic.ac.uk:${DEPLOY_PATH}/

@@ -1,12 +1,12 @@
 import { useEffect, useRef, useMemo, useCallback } from 'react'
-import type { ReadingType } from '../types/reading'
+import type { Scrolling } from '../types/reading'
 import { getWordStyle, MAX_BLUR, BLUR_PADDING_BUFFER } from '../utils/wordStyle'
 
 type TextDisplayProps = {
   text: string
   currentWordIndex: number
   isPlaying: boolean
-  readingType: ReadingType
+  scrolling: Scrolling
   blurEnabled: boolean
   wpm: number
 }
@@ -29,7 +29,7 @@ export function TextDisplay({
   text,
   currentWordIndex,
   isPlaying,
-  readingType,
+  scrolling,
   blurEnabled,
   wpm,
 }: TextDisplayProps) {
@@ -52,7 +52,7 @@ export function TextDisplay({
   // Dynamic mode scrolling
   useEffect(() => {
     if (
-      readingType === 'dynamic' &&
+      scrolling === 'dynamic' &&
       activeWordRef.current &&
       containerRef.current
     ) {
@@ -70,7 +70,7 @@ export function TextDisplay({
         behavior: isPlaying ? 'smooth' : 'auto',
       })
     }
-  }, [currentWordIndex, isPlaying, readingType])
+  }, [currentWordIndex, isPlaying, scrolling])
 
   // Update fade masks based on scroll position using CSS custom properties (no React state)
   const updateFades = useCallback(() => {
@@ -91,7 +91,7 @@ export function TextDisplay({
 
   useEffect(() => {
     const container = containerRef.current
-    if (!container || readingType !== 'dynamic') return
+    if (!container || scrolling !== 'dynamic') return
 
     // Set initial state (no top fade, bottom fade present if content overflows)
     container.style.setProperty('--top-fade', '0px')
@@ -103,10 +103,10 @@ export function TextDisplay({
 
     container.addEventListener('scroll', updateFades, { passive: true })
     return () => container.removeEventListener('scroll', updateFades)
-  }, [readingType, updateFades, words])
+  }, [scrolling, updateFades, words])
 
   // Static mode: display words in chunks
-  if (readingType === 'static') {
+  if (scrolling === 'static') {
     const currentChunk = Math.floor(currentWordIndex / WORDS_PER_CHUNK)
     const chunkStartIndex = currentChunk * WORDS_PER_CHUNK
     const chunkWords = words.slice(

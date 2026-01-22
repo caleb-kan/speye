@@ -1,20 +1,20 @@
 export type Mode = 'standard' | 'adaptive' | 'summarized'
-export type ReadingType = 'dynamic' | 'static'
+export type Scrolling = 'dynamic' | 'static'
 
 export interface FixedTextInfo {
   fiction: boolean
-  readability: number | null
+  complexity: number | null
 }
 
 export interface ReadingContext {
   wpm: number
   mode: Mode
-  readingType: ReadingType
+  scrolling: Scrolling
   blurEnabled: boolean
   fiction: boolean
   inputBlocking: boolean
-  difficultyMin: number
-  difficultyMax: number
+  complexityMin: number
+  complexityMax: number
   textWidthPercent: number
   onTextWidthChange: (percent: number) => void
 }

@@ -5,9 +5,9 @@ import * as useTextsModule from '../hooks/useTexts.ts'
 import '@testing-library/jest-dom'
 import { renderWithReadingLayout } from './renderLayouts.tsx'
 import {
-  DEFAULT_MIN_DIFFICULTY,
-  DEFAULT_MAX_DIFFICULTY,
-} from '../constants/difficulty'
+  DEFAULT_MIN_COMPLEXITY,
+  DEFAULT_MAX_COMPLEXITY,
+} from '../constants/complexity'
 import { WPM_PRESETS, DEFAULT_WPM, MIN_WPM, MAX_WPM } from '../constants/wpm'
 
 vi.mock('../hooks/useTexts')
@@ -128,8 +128,8 @@ describe('OptionsBar', () => {
 
       expect(mockUseTexts).toHaveBeenCalledWith({
         fiction: false,
-        difficultyMin: DEFAULT_MIN_DIFFICULTY,
-        difficultyMax: DEFAULT_MAX_DIFFICULTY,
+        complexityMin: DEFAULT_MIN_COMPLEXITY,
+        complexityMax: DEFAULT_MAX_COMPLEXITY,
       })
     })
 
@@ -141,21 +141,21 @@ describe('OptionsBar', () => {
 
       expect(mockUseTexts).toHaveBeenLastCalledWith({
         fiction: true,
-        difficultyMin: DEFAULT_MIN_DIFFICULTY,
-        difficultyMax: DEFAULT_MAX_DIFFICULTY,
+        complexityMin: DEFAULT_MIN_COMPLEXITY,
+        complexityMax: DEFAULT_MAX_COMPLEXITY,
       })
     })
   })
 
-  describe('Reading Type Selection', () => {
+  describe('Scrolling Selection', () => {
     beforeEach(() => {
       mockDefaultUseTexts()
     })
 
-    it('renders type label', () => {
+    it('renders scrolling label', () => {
       renderWithReadingLayout()
 
-      expect(screen.getByText('type:')).toBeInTheDocument()
+      expect(screen.getByText('scrolling:')).toBeInTheDocument()
     })
 
     it('dynamic is selected by default', () => {

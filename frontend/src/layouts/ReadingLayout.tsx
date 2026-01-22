@@ -11,7 +11,7 @@ export function ReadingLayout() {
 
   // Create fixed text info if reading from library
   const fixedText: FixedTextInfo | undefined = libraryText
-    ? { fiction: libraryText.fiction, readability: libraryText.readability }
+    ? { fiction: libraryText.fiction, complexity: libraryText.complexity }
     : undefined
 
   // Get preferences from context (persisted to localStorage)
@@ -19,11 +19,11 @@ export function ReadingLayout() {
     preferences,
     setWpm,
     setMode,
-    setReadingType,
+    setScrolling,
     setBlurEnabled,
     setFiction,
-    setDifficultyMin,
-    setDifficultyMax,
+    setComplexityMin,
+    setComplexityMax,
     setTextWidthPercent,
   } = useReadingPreferences()
 
@@ -36,16 +36,16 @@ export function ReadingLayout() {
         onWpmChange={setWpm}
         mode={preferences.mode}
         onModeChange={setMode}
-        readingType={preferences.readingType}
-        onReadingTypeChange={setReadingType}
+        scrolling={preferences.scrolling}
+        onScrollingChange={setScrolling}
         blurEnabled={preferences.blurEnabled}
         onBlurChange={setBlurEnabled}
         fiction={preferences.fiction}
         onFictionChange={setFiction}
-        difficultyMin={preferences.difficultyMin}
-        difficultyMax={preferences.difficultyMax}
-        onDifficultyMinChange={setDifficultyMin}
-        onDifficultyMaxChange={setDifficultyMax}
+        complexityMin={preferences.complexityMin}
+        complexityMax={preferences.complexityMax}
+        onComplexityMinChange={setComplexityMin}
+        onComplexityMaxChange={setComplexityMax}
         onInputBlockingChange={setInputBlocking}
         fixedText={fixedText}
       />
@@ -57,11 +57,11 @@ export function ReadingLayout() {
             {
               wpm: preferences.wpm,
               mode: preferences.mode,
-              readingType: preferences.readingType,
+              scrolling: preferences.scrolling,
               blurEnabled: preferences.blurEnabled,
               fiction: preferences.fiction,
-              difficultyMin: preferences.difficultyMin,
-              difficultyMax: preferences.difficultyMax,
+              complexityMin: preferences.complexityMin,
+              complexityMax: preferences.complexityMax,
               inputBlocking,
               textWidthPercent: preferences.textWidthPercent,
               onTextWidthChange: setTextWidthPercent,

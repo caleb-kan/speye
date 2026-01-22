@@ -2,8 +2,8 @@ import { supabase } from '../../../../lib/supabase'
 
 export interface FetchTextsInput {
   fiction: boolean
-  difficultyMin: number
-  difficultyMax: number
+  complexityMin: number
+  complexityMax: number
 }
 
 export async function getTexts(data: FetchTextsInput) {
@@ -11,8 +11,8 @@ export async function getTexts(data: FetchTextsInput) {
     .from('texts')
     .select('*')
     .eq('fiction', data.fiction)
-    .gte('readability', data.difficultyMin)
-    .lte('readability', data.difficultyMax)
+    .gte('complexity', data.complexityMin)
+    .lte('complexity', data.complexityMax)
 
   if (error) {
     throw error

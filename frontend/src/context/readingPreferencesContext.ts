@@ -1,14 +1,14 @@
 import { createContext } from 'react'
-import type { Mode, ReadingType } from '../types'
+import type { Mode, Scrolling } from '../types'
 
 export interface ReadingPreferences {
   wpm: number
   mode: Mode
-  readingType: ReadingType
+  scrolling: Scrolling
   blurEnabled: boolean
   fiction: boolean
-  difficultyMin: number
-  difficultyMax: number
+  complexityMin: number
+  complexityMax: number
   textWidthPercent: number
 }
 
@@ -16,11 +16,11 @@ export interface ReadingPreferencesContextType {
   preferences: ReadingPreferences
   setWpm: (wpm: number) => void
   setMode: (mode: Mode) => void
-  setReadingType: (readingType: ReadingType) => void
+  setScrolling: (scrolling: Scrolling) => void
   setBlurEnabled: (enabled: boolean) => void
   setFiction: (fiction: boolean) => void
-  setDifficultyMin: (min: number) => void
-  setDifficultyMax: (max: number) => void
+  setComplexityMin: (min: number) => void
+  setComplexityMax: (max: number) => void
   setTextWidthPercent: (percent: number) => void
 }
 

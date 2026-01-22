@@ -243,9 +243,9 @@ export function Library() {
                       <span className="text-xs px-2 py-0.5 bg-primary/10 text-primary rounded">
                         {text.fiction ? 'Fiction' : 'Non-Fiction'}
                       </span>
-                      {text.readability !== null && (
+                      {text.complexity !== null && (
                         <span className="text-xs text-text-secondary">
-                          Difficulty: {text.readability}
+                          Complexity: {text.complexity}
                         </span>
                       )}
                     </div>

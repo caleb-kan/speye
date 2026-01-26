@@ -21,4 +21,5 @@ export interface TextRecord {
   quiz: unknown
   category: string | null
   complexity: number | null
+  source: string | null
 }

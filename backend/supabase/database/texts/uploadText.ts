@@ -2,6 +2,7 @@ import { supabase } from '../../../../lib/supabase'
 import { calculateComplexity } from '../../functions/textStat'
 
 export interface UploadTextInput {
+  title: string | null
   content: string
   fiction: boolean
 }
@@ -14,6 +15,7 @@ export async function uploadText(userId: string, data: UploadTextInput) {
     .insert([
       {
         owner_id: userId,
+        title: data.title,
         content: data.content,
         fiction: data.fiction,
         complexity: complexity,

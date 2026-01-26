@@ -71,6 +71,18 @@ describe('UploadTextModal', () => {
       ).toBeInTheDocument()
     })
 
+    it('should render title input field', () => {
+      renderModal()
+
+      expect(screen.getByLabelText(/Title/)).toBeInTheDocument()
+      expect(
+        screen.getByPlaceholderText('Enter a title...')
+      ).toBeInTheDocument()
+      expect(
+        screen.getByText('Leave blank to auto-generate from content')
+      ).toBeInTheDocument()
+    })
+
     it('should render text content textarea', () => {
       renderModal()
 
@@ -93,7 +105,7 @@ describe('UploadTextModal', () => {
       ).toBeInTheDocument()
     })
 
-    it('should show character count', () => {
+    it('should show character count when inputting text content', () => {
       renderModal()
 
       expect(screen.getByText('0 characters')).toBeInTheDocument()
@@ -165,6 +177,9 @@ describe('UploadTextModal', () => {
 
       renderModal()
 
+      const titleInput = screen.getByPlaceholderText('Enter a title...')
+      fireEvent.change(titleInput, { target: { value: 'My Test Title' } })
+
       const textarea = screen.getByLabelText('Text Content')
       fireEvent.change(textarea, { target: { value: 'My test text content' } })
 
@@ -176,8 +191,54 @@ describe('UploadTextModal', () => {
 
       await waitFor(() => {
         expect(mockOnSubmit).toHaveBeenCalledWith({
+          title: 'My Test Title',
           content: 'My test text content',
           fiction: false,
+        })
+      })
+    })
+
+    it('should submit null title when title field is empty', async () => {
+      mockOnSubmit.mockResolvedValueOnce(undefined)
+
+      renderModal()
+
+      const textarea = screen.getByLabelText('Text Content')
+      fireEvent.change(textarea, { target: { value: 'Content without title' } })
+
+      const uploadButton = screen.getByRole('button', { name: 'Upload Text' })
+      fireEvent.click(uploadButton)
+
+      await waitFor(() => {
+        expect(mockOnSubmit).toHaveBeenCalledWith({
+          title: null,
+          content: 'Content without title',
+          fiction: true,
+        })
+      })
+    })
+
+    it('should submit null title when title is only whitespace', async () => {
+      mockOnSubmit.mockResolvedValueOnce(undefined)
+
+      renderModal()
+
+      const titleInput = screen.getByPlaceholderText('Enter a title...')
+      fireEvent.change(titleInput, { target: { value: '   ' } })
+
+      const textarea = screen.getByLabelText('Text Content')
+      fireEvent.change(textarea, {
+        target: { value: 'Content with whitespace title' },
+      })
+
+      const uploadButton = screen.getByRole('button', { name: 'Upload Text' })
+      fireEvent.click(uploadButton)
+
+      await waitFor(() => {
+        expect(mockOnSubmit).toHaveBeenCalledWith({
+          title: null,
+          content: 'Content with whitespace title',
+          fiction: true,
         })
       })
     })
@@ -196,6 +257,92 @@ describe('UploadTextModal', () => {
           screen.getByText('You must be logged in to upload texts')
         ).toBeInTheDocument()
       })
+    })
+
+    it('should show error when onSubmit throws', async () => {
+      mockOnSubmit.mockRejectedValueOnce(new Error('Upload failed'))
+
+      renderModal()
+
+      const textarea = screen.getByLabelText('Text Content')
+      fireEvent.change(textarea, { target: { value: 'Some text' } })
+
+      const uploadButton = screen.getByRole('button', { name: 'Upload Text' })
+      fireEvent.click(uploadButton)
+
+      await waitFor(() => {
+        expect(screen.getByText('Upload failed')).toBeInTheDocument()
+      })
+    })
+
+    it('should close modal when ESC key is pressed', () => {
+      renderModal()
+
+      fireEvent.keyDown(document, { key: 'Escape' })
+
+      expect(mockOnClose).toHaveBeenCalledTimes(1)
+    })
+
+    it('should clear error when modal reopens', async () => {
+      const { rerender } = renderWithAuth(
+        <UploadTextModal
+          isOpen={true}
+          onClose={mockOnClose}
+          onSubmit={mockOnSubmit}
+        />
+      )
+
+      // Trigger an error
+      const textarea = screen.getByLabelText('Text Content')
+      fireEvent.change(textarea, { target: { value: 'test' } })
+      fireEvent.change(textarea, { target: { value: '   ' } })
+      const form = screen.getByRole('dialog').querySelector('form')
+      fireEvent.submit(form!)
+
+      await waitFor(() => {
+        expect(screen.getByText('Please enter some text')).toBeInTheDocument()
+      })
+
+      // Close modal
+      rerender(
+        <AuthContext.Provider
+          value={{
+            user: mockUser,
+            session: mockSession,
+            loading: false,
+            signOut: vi.fn(),
+          }}
+        >
+          <UploadTextModal
+            isOpen={false}
+            onClose={mockOnClose}
+            onSubmit={mockOnSubmit}
+          />
+        </AuthContext.Provider>
+      )
+
+      // Reopen modal
+      rerender(
+        <AuthContext.Provider
+          value={{
+            user: mockUser,
+            session: mockSession,
+            loading: false,
+            signOut: vi.fn(),
+          }}
+        >
+          <UploadTextModal
+            isOpen={true}
+            onClose={mockOnClose}
+            onSubmit={mockOnSubmit}
+          />
+        </AuthContext.Provider>
+      )
+
+      // Error should be cleared
+      expect(
+        screen.queryByText('Please enter some text')
+      ).not.toBeInTheDocument()
     })
   })
 })

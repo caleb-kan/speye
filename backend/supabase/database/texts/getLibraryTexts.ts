@@ -1,4 +1,5 @@
 import { supabase } from '../../../../lib/supabase'
+import { logDbQuery } from '../logger'
 
 export type OwnerFilter = { type: 'user'; userId: string } | { type: 'public' }
 
@@ -15,6 +16,12 @@ export async function getLibraryTexts(owner: OwnerFilter) {
   }
 
   const { data: result, error } = await query
+
+  logDbQuery({
+    table: 'texts',
+    action: 'SELECT',
+    errors: error ? error.message : undefined,
+  })
 
   if (error) {
     throw error

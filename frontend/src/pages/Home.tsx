@@ -19,6 +19,7 @@ export function Home() {
     complexityMin,
     complexityMax,
     textWidthPercent,
+    visibleLines,
     onTextWidthChange,
   } = useOutletContext<ReadingContext>()
 
@@ -77,6 +78,7 @@ export function Home() {
           disabled={inputBlocking}
           textWidthPercent={textWidthPercent}
           onTextWidthChange={onTextWidthChange}
+          visibleLines={visibleLines}
         />
       ) : (
         <div className="text-text-secondary text-center">

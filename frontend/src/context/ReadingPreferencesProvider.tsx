@@ -10,6 +10,7 @@ import {
   DEFAULT_MAX_COMPLEXITY,
 } from '../constants/complexity'
 import { DEFAULT_WIDTH_PERCENT } from '../constants/resize'
+import { DEFAULT_VISIBLE_LINES } from '../constants/visibleLines'
 import { STORAGE_KEYS } from '../constants/storage'
 
 function loadPreferences(): ReadingPreferences {
@@ -26,6 +27,7 @@ function loadPreferences(): ReadingPreferences {
         complexityMin: parsed.complexityMin ?? DEFAULT_MIN_COMPLEXITY,
         complexityMax: parsed.complexityMax ?? DEFAULT_MAX_COMPLEXITY,
         textWidthPercent: parsed.textWidthPercent ?? DEFAULT_WIDTH_PERCENT,
+        visibleLines: parsed.visibleLines ?? DEFAULT_VISIBLE_LINES,
       }
     }
   } catch {
@@ -40,6 +42,7 @@ function loadPreferences(): ReadingPreferences {
     complexityMin: DEFAULT_MIN_COMPLEXITY,
     complexityMax: DEFAULT_MAX_COMPLEXITY,
     textWidthPercent: DEFAULT_WIDTH_PERCENT,
+    visibleLines: DEFAULT_VISIBLE_LINES,
   }
 }
 
@@ -113,6 +116,11 @@ export function ReadingPreferencesProvider({
     [updatePreferences]
   )
 
+  const setVisibleLines = useCallback(
+    (visibleLines: number) => updatePreferences({ visibleLines }),
+    [updatePreferences]
+  )
+
   const value = useMemo(
     () => ({
       preferences,
@@ -124,6 +132,7 @@ export function ReadingPreferencesProvider({
       setComplexityMin,
       setComplexityMax,
       setTextWidthPercent,
+      setVisibleLines,
     }),
     [
       preferences,
@@ -135,6 +144,7 @@ export function ReadingPreferencesProvider({
       setComplexityMin,
       setComplexityMax,
       setTextWidthPercent,
+      setVisibleLines,
     ]
   )
 

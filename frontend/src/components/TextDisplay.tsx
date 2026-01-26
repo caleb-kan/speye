@@ -1,6 +1,21 @@
-import { useEffect, useRef, useMemo, useCallback } from 'react'
+import {
+  useEffect,
+  useRef,
+  useMemo,
+  useCallback,
+  useState,
+  useLayoutEffect,
+} from 'react'
 import type { Scrolling } from '../types/reading'
 import { getWordStyle, MAX_BLUR, BLUR_PADDING_BUFFER } from '../utils/wordStyle'
+import {
+  SCROLL_POSITION_DIVISOR,
+  HEIGHT_PER_LINE,
+  TRANSITION_BUFFER,
+  FADE_HEIGHT,
+  MIN_TRANSITION_MS,
+  MAX_TRANSITION_MS,
+} from '../constants/textDisplay'
 
 type TextDisplayProps = {
   text: string
@@ -9,21 +24,8 @@ type TextDisplayProps = {
   scrolling: Scrolling
   blurEnabled: boolean
   wpm: number
+  visibleLines: number
 }
-
-// For static mode: ~24 words to fill 3 lines at 2xl font
-const WORDS_PER_CHUNK = 24
-// Scroll target position as fraction from top (1/3 = upper third of viewport)
-const SCROLL_POSITION_DIVISOR = 3
-// Fixed height for dynamic mode container (fits ~3 lines at 2xl font)
-const DYNAMIC_MODE_HEIGHT = '280px'
-// Fade gradient height in pixels for dynamic mode
-const FADE_HEIGHT = 64
-
-// Minimum transition duration for smoothness (ms)
-const MIN_TRANSITION_MS = 50
-// Maximum transition duration (ms)
-const MAX_TRANSITION_MS = 400
 
 export function TextDisplay({
   text,
@@ -32,7 +34,14 @@ export function TextDisplay({
   scrolling,
   blurEnabled,
   wpm,
+  visibleLines,
 }: TextDisplayProps) {
+  // Calculate container height based on visible lines
+  // Static mode: exact height for the specified lines
+  // Dynamic mode: includes extra buffer to show partial next line for smooth scrolling
+  const staticModeHeight = `${HEIGHT_PER_LINE * visibleLines}px`
+  const dynamicModeHeight = `${HEIGHT_PER_LINE * visibleLines + TRANSITION_BUFFER}px`
+
   // Calculate transition duration based on WPM
   // Transition should be at most 80% of time per word for smooth highlighting
   const msPerWord = (60 / wpm) * 1000
@@ -49,7 +58,6 @@ export function TextDisplay({
     [text]
   )
 
-  // Dynamic mode scrolling
   useEffect(() => {
     if (
       scrolling === 'dynamic' &&
@@ -72,7 +80,6 @@ export function TextDisplay({
     }
   }, [currentWordIndex, isPlaying, scrolling])
 
-  // Update fade masks based on scroll position using CSS custom properties (no React state)
   const updateFades = useCallback(() => {
     const container = containerRef.current
     if (!container) return
@@ -80,11 +87,9 @@ export function TextDisplay({
     const { scrollTop, scrollHeight, clientHeight } = container
     const maxScroll = scrollHeight - clientHeight
 
-    // Top fade: only when there's content above
     const topFade = scrollTop > 0 ? FADE_HEIGHT : 0
     container.style.setProperty('--top-fade', `${topFade}px`)
 
-    // Bottom fade: only when there's content below
     const bottomFade = scrollTop < maxScroll - 1 ? FADE_HEIGHT : 0
     container.style.setProperty('--bottom-fade', `${bottomFade}px`)
   }, [])
@@ -105,40 +110,92 @@ export function TextDisplay({
     return () => container.removeEventListener('scroll', updateFades)
   }, [scrolling, updateFades, words])
 
-  // Static mode: display words in chunks
+  // Static mode: display words in chunks that fit within the visible lines height
+  const staticContainerRef = useRef<HTMLDivElement>(null)
+  const wordRefs = useRef<Map<number, HTMLSpanElement>>(new Map())
+  const [pageStartIndex, setPageStartIndex] = useState(0)
+
+  // Handle backwards navigation using React's "derived state during render" pattern.
+  // This is a documented React pattern for adjusting state when props change.
+  // See: https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes
+  const needsBackwardsFlip =
+    scrolling === 'static' && currentWordIndex < pageStartIndex
+  if (needsBackwardsFlip) {
+    setPageStartIndex(currentWordIndex)
+  }
+
+  // Clear word refs when page changes to prevent memory accumulation
+  useEffect(() => {
+    wordRefs.current.clear()
+  }, [pageStartIndex])
+
+  // Handle forward navigation - detect when current word overflows container
+  useLayoutEffect(() => {
+    if (scrolling !== 'static') return
+    if (needsBackwardsFlip) return
+
+    const container = staticContainerRef.current
+    const currentWordEl = wordRefs.current.get(currentWordIndex)
+
+    if (!container || !currentWordEl) return
+
+    const containerRect = container.getBoundingClientRect()
+    const wordRect = currentWordEl.getBoundingClientRect()
+
+    if (
+      wordRect.bottom > containerRect.bottom ||
+      wordRect.top < containerRect.top
+    ) {
+      queueMicrotask(() => setPageStartIndex(currentWordIndex))
+    }
+  }, [currentWordIndex, scrolling, pageStartIndex, needsBackwardsFlip])
+
   if (scrolling === 'static') {
-    const currentChunk = Math.floor(currentWordIndex / WORDS_PER_CHUNK)
-    const chunkStartIndex = currentChunk * WORDS_PER_CHUNK
-    const chunkWords = words.slice(
-      chunkStartIndex,
-      chunkStartIndex + WORDS_PER_CHUNK
+    const maxWordsToRender = Math.min(words.length - pageStartIndex, 500) // Render enough to fill and detect overflow
+    const wordsToRender = words.slice(
+      pageStartIndex,
+      pageStartIndex + maxWordsToRender
     )
 
     return (
       <div className="relative mx-auto w-full">
         <div
-          key={currentChunk}
-          className="text-2xl leading-relaxed select-none animate-fade-in"
+          ref={staticContainerRef}
+          key={pageStartIndex}
+          className="text-2xl leading-relaxed select-none animate-fade-in overflow-hidden"
+          style={{
+            height: staticModeHeight,
+            padding: `${MAX_BLUR + BLUR_PADDING_BUFFER}px`,
+          }}
         >
-          {chunkWords.map((word, index) => {
-            const globalIndex = chunkStartIndex + index
-            const localDistance = index - (currentWordIndex - chunkStartIndex)
-            const style = getWordStyle(localDistance, blurEnabled)
+          <div>
+            {wordsToRender.map((word, index) => {
+              const globalIndex = pageStartIndex + index
+              const localDistance = globalIndex - currentWordIndex
+              const style = getWordStyle(localDistance, blurEnabled)
 
-            return (
-              <span
-                key={globalIndex}
-                style={{
-                  color: style.color,
-                  opacity: style.opacity,
-                  filter: style.blur > 0 ? `blur(${style.blur}px)` : 'none',
-                  transition: wordTransition,
-                }}
-              >
-                {word}{' '}
-              </span>
-            )
-          })}
+              return (
+                <span
+                  key={globalIndex}
+                  ref={(el) => {
+                    if (el) {
+                      wordRefs.current.set(globalIndex, el)
+                    } else {
+                      wordRefs.current.delete(globalIndex)
+                    }
+                  }}
+                  style={{
+                    color: style.color,
+                    opacity: style.opacity,
+                    filter: style.blur > 0 ? `blur(${style.blur}px)` : 'none',
+                    transition: wordTransition,
+                  }}
+                >
+                  {word}{' '}
+                </span>
+              )
+            })}
+          </div>
         </div>
       </div>
     )
@@ -153,7 +210,7 @@ export function TextDisplay({
         ref={containerRef}
         className="text-2xl leading-relaxed select-none overflow-hidden"
         style={{
-          height: DYNAMIC_MODE_HEIGHT,
+          height: dynamicModeHeight,
           maskImage: `linear-gradient(to bottom, transparent 0%, black var(--top-fade, 0px), black calc(100% - var(--bottom-fade, 0px)), transparent 100%)`,
           WebkitMaskImage: `linear-gradient(to bottom, transparent 0%, black var(--top-fade, 0px), black calc(100% - var(--bottom-fade, 0px)), transparent 100%)`,
           padding: `${MAX_BLUR + BLUR_PADDING_BUFFER}px`,

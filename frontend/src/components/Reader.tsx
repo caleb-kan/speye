@@ -16,6 +16,7 @@ type ReaderProps = {
   disabled?: boolean
   textWidthPercent: number
   onTextWidthChange: (percent: number) => void
+  visibleLines: number
 }
 
 export function Reader({
@@ -29,6 +30,7 @@ export function Reader({
   disabled = false,
   textWidthPercent,
   onTextWidthChange,
+  visibleLines,
 }: ReaderProps) {
   const {
     currentWordIndex,
@@ -80,6 +82,7 @@ export function Reader({
           scrolling={scrolling}
           blurEnabled={blurEnabled}
           wpm={wpm}
+          visibleLines={visibleLines}
         />
       </Resizable>
 

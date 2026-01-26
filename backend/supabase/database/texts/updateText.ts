@@ -4,23 +4,21 @@ import type { TextInput, TextRecord } from './types'
 
 export type { TextInput }
 
-export async function uploadText(
-  userId: string,
+export async function updateText(
+  textId: string,
   data: TextInput
 ): Promise<TextRecord> {
   const complexity = calculateComplexity(data.content)
 
   const { data: result, error } = await supabase
     .from('texts')
-    .insert([
-      {
-        owner_id: userId,
-        title: data.title,
-        content: data.content,
-        fiction: data.fiction,
-        complexity: complexity,
-      },
-    ])
+    .update({
+      title: data.title,
+      content: data.content,
+      fiction: data.fiction,
+      complexity: complexity,
+    })
+    .eq('id', textId)
     .select()
     .single()
 

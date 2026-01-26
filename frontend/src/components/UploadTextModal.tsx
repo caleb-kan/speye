@@ -15,10 +15,18 @@ export function UploadTextModal({
   onSubmit,
 }: UploadTextModalProps) {
   const { user } = useAuth()
+  const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [fiction, setFiction] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Clear error when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setError(null)
+    }
+  }, [isOpen])
 
   // Handle ESC key to close modal
   useEffect(() => {
@@ -52,7 +60,12 @@ export function UploadTextModal({
 
     setIsSubmitting(true)
     try {
-      await onSubmit({ content: content.trim(), fiction })
+      await onSubmit({
+        title: title.trim() || null,
+        content: content.trim(),
+        fiction,
+      })
+      setTitle('')
       setContent('')
       setFiction(true)
       onClose()
@@ -73,7 +86,6 @@ export function UploadTextModal({
     <div
       className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
       onClick={handleBackdropClick}
-      onKeyDown={(e) => e.key === 'Escape' && onClose()}
       role="dialog"
       aria-modal="true"
       aria-labelledby="upload-modal-title"
@@ -97,6 +109,29 @@ export function UploadTextModal({
         </div>
 
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
+          <div>
+            <label
+              htmlFor="text-title"
+              className="block text-sm font-medium text-text mb-1"
+            >
+              Title
+              <span className="font-normal text-text-secondary ml-1">
+                (optional)
+              </span>
+            </label>
+            <input
+              id="text-title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Enter a title..."
+              className="w-full p-3 bg-bg border border-text-secondary/20 rounded-lg text-text placeholder-text-secondary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              disabled={isSubmitting}
+            />
+            <p className="mt-1 text-xs text-text-secondary">
+              Leave blank to auto-generate from content
+            </p>
+          </div>
+
           <div>
             <label
               htmlFor="text-content"

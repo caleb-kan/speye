@@ -8,6 +8,7 @@ export type Quiz = {
 
 export type Text = {
   id: string
+  title: string | null
   content: string
   uploaded_at: string
   owner_id: string | null

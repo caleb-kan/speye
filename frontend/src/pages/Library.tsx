@@ -12,6 +12,7 @@ import {
 import { getLibraryTexts } from '../../../backend/supabase/database/texts/getLibraryTexts'
 import { deleteText } from '../../../backend/supabase/database/texts/deleteText'
 import { SUCCESS_MESSAGE_DURATION_MS } from '../constants/ui'
+import { generateTitle } from '../services/generateTitle'
 import type { Text } from '../types/database'
 
 type LibraryTab = 'private' | 'public'
@@ -101,8 +102,30 @@ export function Library() {
     if (!user) {
       throw new Error('You must be logged in to upload texts')
     }
-    await uploadText(user.id, data)
-    setSuccessMessage('Text uploaded successfully!')
+
+    let title = data.title
+    let titleGenerationFailed = false
+
+    if (!title) {
+      try {
+        title = await generateTitle(data.content)
+      } catch (error) {
+        console.error('Failed to generate title:', error)
+        title = null
+        titleGenerationFailed = true
+      }
+    }
+
+    await uploadText(user.id, { ...data, title })
+
+    if (titleGenerationFailed) {
+      setSuccessMessage(
+        'Text uploaded successfully, but title generation failed. The text was saved without a title.'
+      )
+    } else {
+      setSuccessMessage('Text uploaded successfully!')
+    }
+
     fetchPrivateTexts(true)
   }
 
@@ -238,8 +261,13 @@ export function Library() {
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-2 mb-1">
                       <BookOpen className="w-4 h-4 text-primary" />
+                      <h3 className="font-medium text-text truncate">
+                        {text.title || 'Untitled'}
+                      </h3>
+                    </div>
+                    <div className="flex items-center gap-2 mb-2">
                       <span className="text-xs px-2 py-0.5 bg-primary/10 text-primary rounded">
                         {text.fiction ? 'Fiction' : 'Non-Fiction'}
                       </span>
@@ -249,7 +277,7 @@ export function Library() {
                         </span>
                       )}
                     </div>
-                    <p className="text-text text-sm leading-relaxed">
+                    <p className="text-text-secondary text-sm leading-relaxed">
                       {getTextPreview(text.content)}
                     </p>
                     <p className="text-xs text-text-secondary mt-2">

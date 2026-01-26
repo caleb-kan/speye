@@ -25,6 +25,8 @@ install:
   tags:
     - build
     - npm
+  rules:
+    - when: on_success
   script:
     - npm ci --prefix frontend --cache .npm --prefer-offline
     - npm ci --prefix backend --cache .npm --prefer-offline
@@ -41,6 +43,8 @@ lint:
   tags:
     - build
     - npm
+  rules:
+    - when: on_success
   needs: [install]
   script:
     - npm run lint
@@ -50,6 +54,8 @@ format-check:
   tags:
     - build
     - npm
+  rules:
+    - when: on_success
   needs: [install]
   script:
     - npm run format:check
@@ -59,6 +65,8 @@ test:
   tags:
     - build
     - npm
+  rules:
+    - when: on_success
   needs: [install, lint, format-check]
   script:
     - cd frontend
@@ -71,6 +79,8 @@ build:
   tags:
     - build
     - npm
+  rules:
+    - when: on_success
   needs: [install, test]
   script:
     - npm run build
@@ -79,11 +89,27 @@ build:
       - frontend/dist/
     expire_in: 1 week
 
-deploy:
+deploy-edge-functions:
   stage: deploy
   tags:
     - build
-  needs: [build]
+    - npm
+  rules:
+    - when: on_success
+  needs: [install, build]
+  script:
+    - cd backend && npx supabase functions deploy --project-ref $SUPABASE_PROJECT_REF
+
+deploy-frontend:
+  stage: deploy
+  tags:
+    - build
+    - npm
+  rules:
+    - if: $CI_COMMIT_BRANCH == "master"
+  needs:
+    - build
+    - deploy-edge-functions
   before_script:
     - mkdir -p ~/.ssh
     - echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
@@ -92,5 +118,3 @@ deploy:
   script:
     - ssh cmk123@shell1.doc.ic.ac.uk "mkdir -p ${DEPLOY_PATH}"
     - scp -r frontend/dist/* cmk123@shell1.doc.ic.ac.uk:${DEPLOY_PATH}/
-  rules:
-    - if: $CI_COMMIT_BRANCH == "master"

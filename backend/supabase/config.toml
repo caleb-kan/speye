@@ -1,8 +1,7 @@
 # Supabase configuration
 # See: https://supabase.com/docs/guides/cli/config
 
-[project]
-id = ""  # Set your Supabase project ID
+# Project ID is passed via --project-ref flag during deployment
 
 [db]
 # Port to use for the local database
@@ -11,3 +10,8 @@ port = 54322
 [api]
 # Port to use for the API
 port = 54321
+
+[functions.generate-title]
+# Disable JWT verification, this function is a public utility
+# that generates titles using Groq LLM and doesn't access user data
+verify_jwt = false

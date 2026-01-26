@@ -18,4 +18,6 @@ export interface ReadingContext {
   textWidthPercent: number
   visibleLines: number
   onTextWidthChange: (percent: number) => void
+  quizOpen: boolean
+  setQuizOpen: (open: boolean) => void
 }

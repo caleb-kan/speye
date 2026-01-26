@@ -67,7 +67,9 @@ export function Home() {
       ) : textToRead ? (
         <Reader
           key={textToRead.id}
+          title={textToRead.title}
           text={textToRead.content}
+          source={textToRead.source}
           wpm={wpm}
           scrolling={scrolling}
           blurEnabled={blurEnabled}

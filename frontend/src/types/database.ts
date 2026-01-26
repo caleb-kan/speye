@@ -16,4 +16,5 @@ export type Text = {
   fiction: boolean
   category: string | null
   complexity: number | null
+  source: string | null
 }

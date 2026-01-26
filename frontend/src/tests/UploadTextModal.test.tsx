@@ -3,7 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { UploadTextModal } from '../components/UploadTextModal'
 import { AuthContext } from '../context/authContext'
-import type { UploadTextInput } from '../../../backend/supabase/database/texts/uploadText'
+import type { TextInput } from '../components/TextFormModal'
 import type { User, Session } from '@supabase/supabase-js'
 
 const mockUser = { id: 'user-123', email: 'test@example.com' } as User
@@ -35,7 +35,7 @@ describe('UploadTextModal', () => {
     props: Partial<{
       isOpen: boolean
       onClose: () => void
-      onSubmit: (data: UploadTextInput) => Promise<void>
+      onSubmit: (data: TextInput) => Promise<void>
     }> = {},
     { user = mockUser }: { user?: User | null } = {}
   ) => {

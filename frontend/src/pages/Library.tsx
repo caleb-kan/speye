@@ -1,16 +1,16 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, BookOpen, Trash2, Play, Lock, Globe } from 'lucide-react'
+import { Plus, BookOpen, Trash2, Play, Lock, Globe, Pencil } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useAsyncOperation } from '../hooks/useAsyncOperation'
 import { UploadTextModal } from '../components/UploadTextModal'
+import { EditTextModal } from '../components/EditTextModal'
 import { ConfirmDialog } from '../components/ConfirmDialog'
-import {
-  type UploadTextInput,
-  uploadText,
-} from '../../../backend/supabase/database/texts/uploadText'
+import { uploadText } from '../../../backend/supabase/database/texts/uploadText'
 import { getLibraryTexts } from '../../../backend/supabase/database/texts/getLibraryTexts'
 import { deleteText } from '../../../backend/supabase/database/texts/deleteText'
+import { updateText } from '../../../backend/supabase/database/texts/updateText'
+import type { TextInput } from '../components/TextFormModal'
 import { SUCCESS_MESSAGE_DURATION_MS } from '../constants/ui'
 import { generateTitle } from '../services/generateTitle'
 import type { Text } from '../types/database'
@@ -28,6 +28,10 @@ export function Library() {
     isOpen: boolean
     textId: string | null
   }>({ isOpen: false, textId: null })
+  const [editModal, setEditModal] = useState<{
+    isOpen: boolean
+    text: Text | null
+  }>({ isOpen: false, text: null })
 
   // Use async operation hooks for each data source
   const {
@@ -98,23 +102,28 @@ export function Library() {
     return () => clearTimeout(timer)
   }, [deleteError])
 
-  const handleUpload = async (data: UploadTextInput) => {
+  const resolveTitle = async (
+    data: TextInput
+  ): Promise<{ title: string | null; titleGenerationFailed: boolean }> => {
+    if (data.title) {
+      return { title: data.title, titleGenerationFailed: false }
+    }
+
+    try {
+      const generatedTitle = await generateTitle(data.content)
+      return { title: generatedTitle, titleGenerationFailed: false }
+    } catch (error) {
+      console.error('Failed to generate title:', error)
+      return { title: null, titleGenerationFailed: true }
+    }
+  }
+
+  const handleUpload = async (data: TextInput) => {
     if (!user) {
       throw new Error('You must be logged in to upload texts')
     }
 
-    let title = data.title
-    let titleGenerationFailed = false
-
-    if (!title) {
-      try {
-        title = await generateTitle(data.content)
-      } catch (error) {
-        console.error('Failed to generate title:', error)
-        title = null
-        titleGenerationFailed = true
-      }
-    }
+    const { title, titleGenerationFailed } = await resolveTitle(data)
 
     await uploadText(user.id, { ...data, title })
 
@@ -156,6 +165,33 @@ export function Library() {
 
   const handleDeleteCancel = () => {
     setDeleteConfirm({ isOpen: false, textId: null })
+  }
+
+  const handleEditClick = (text: Text) => {
+    setEditModal({ isOpen: true, text })
+  }
+
+  const handleEditClose = () => {
+    setEditModal({ isOpen: false, text: null })
+  }
+
+  const handleEditSubmit = async (textId: string, data: TextInput) => {
+    const { title, titleGenerationFailed } = await resolveTitle(data)
+
+    const updatedText = await updateText(textId, { ...data, title })
+    setPrivateTexts(
+      privateTexts
+        ? privateTexts.map((t) => (t.id === textId ? (updatedText as Text) : t))
+        : null
+    )
+
+    if (titleGenerationFailed) {
+      setSuccessMessage(
+        'Text updated successfully, but title generation failed. The text was saved without a title.'
+      )
+    } else {
+      setSuccessMessage('Text updated successfully!')
+    }
   }
 
   const handleReadText = (text: Text) => {
@@ -294,14 +330,24 @@ export function Library() {
                       <Play className="w-4 h-4" />
                     </button>
                     {activeTab === 'private' && (
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteClick(text.id)}
-                        className="p-2 text-text-secondary hover:text-error hover:bg-error/10 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-error"
-                        aria-label="Delete text"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => handleEditClick(text)}
+                          className="p-2 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
+                          aria-label="Edit text"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteClick(text.id)}
+                          className="p-2 text-text-secondary hover:text-error hover:bg-error/10 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-error"
+                          aria-label="Delete text"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>
@@ -333,6 +379,13 @@ export function Library() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleUpload}
+      />
+
+      <EditTextModal
+        isOpen={editModal.isOpen}
+        text={editModal.text}
+        onClose={handleEditClose}
+        onSubmit={handleEditSubmit}
       />
 
       <ConfirmDialog

@@ -9,6 +9,12 @@ import {
   DEFAULT_MAX_COMPLEXITY,
 } from '../constants/complexity'
 import { WPM_PRESETS, DEFAULT_WPM, MIN_WPM, MAX_WPM } from '../constants/wpm'
+import {
+  VISIBLE_LINES_PRESETS,
+  DEFAULT_VISIBLE_LINES,
+  MIN_VISIBLE_LINES,
+  MAX_VISIBLE_LINES,
+} from '../constants/visibleLines'
 
 vi.mock('../hooks/useTexts')
 vi.mock('../hooks/useAuth', () => ({
@@ -283,14 +289,18 @@ describe('OptionsBar', () => {
     it('renders custom WPM control', () => {
       renderWithReadingLayout()
 
-      expect(screen.getByText(/custom:/i)).toBeInTheDocument()
+      expect(
+        screen.getByRole('button', { name: /Enter custom words per minute/i })
+      ).toBeInTheDocument()
     })
 
     it('clicking custom control shows input field', async () => {
       const user = userEvent.setup()
       renderWithReadingLayout()
 
-      await user.click(screen.getByRole('button', { name: /custom/i }))
+      await user.click(
+        screen.getByRole('button', { name: /Enter custom words per minute/i })
+      )
 
       expect(
         screen.getByRole('textbox', { name: 'Custom words per minute value' })
@@ -301,7 +311,9 @@ describe('OptionsBar', () => {
       const user = userEvent.setup()
       renderWithReadingLayout()
 
-      await user.click(screen.getByRole('button', { name: /custom/i }))
+      await user.click(
+        screen.getByRole('button', { name: /Enter custom words per minute/i })
+      )
       await user.type(
         screen.getByRole('textbox', { name: 'Custom words per minute value' }),
         '350'
@@ -315,7 +327,9 @@ describe('OptionsBar', () => {
       const user = userEvent.setup()
       renderWithReadingLayout()
 
-      await user.click(screen.getByRole('button', { name: /custom/i }))
+      await user.click(
+        screen.getByRole('button', { name: /Enter custom words per minute/i })
+      )
       await user.type(
         screen.getByRole('textbox', { name: 'Custom words per minute value' }),
         '5'
@@ -329,7 +343,9 @@ describe('OptionsBar', () => {
       const user = userEvent.setup()
       renderWithReadingLayout()
 
-      await user.click(screen.getByRole('button', { name: /custom/i }))
+      await user.click(
+        screen.getByRole('button', { name: /Enter custom words per minute/i })
+      )
       await user.type(
         screen.getByRole('textbox', { name: 'Custom words per minute value' }),
         '5000'
@@ -343,7 +359,9 @@ describe('OptionsBar', () => {
       const user = userEvent.setup()
       renderWithReadingLayout()
 
-      await user.click(screen.getByRole('button', { name: /custom/i }))
+      await user.click(
+        screen.getByRole('button', { name: /Enter custom words per minute/i })
+      )
       await user.type(
         screen.getByRole('textbox', { name: 'Custom words per minute value' }),
         '999'
@@ -362,7 +380,9 @@ describe('OptionsBar', () => {
       const user = userEvent.setup()
       renderWithReadingLayout()
 
-      await user.click(screen.getByRole('button', { name: /custom/i }))
+      await user.click(
+        screen.getByRole('button', { name: /Enter custom words per minute/i })
+      )
       expect(
         screen.getByRole('textbox', { name: 'Custom words per minute value' })
       ).toBeInTheDocument()
@@ -374,6 +394,179 @@ describe('OptionsBar', () => {
       ).not.toBeInTheDocument()
       expect(
         screen.getByRole('button', { name: new RegExp(`${DEFAULT_WPM} words`) })
+      ).toHaveClass('text-primary')
+    })
+  })
+
+  describe('Visible Lines Selection', () => {
+    beforeEach(() => {
+      mockDefaultUseTexts()
+    })
+
+    it('renders lines label', () => {
+      renderWithReadingLayout()
+
+      expect(screen.getByText('visible lines:')).toBeInTheDocument()
+    })
+
+    it('renders all preset visible lines buttons', () => {
+      renderWithReadingLayout()
+
+      VISIBLE_LINES_PRESETS.forEach((preset) => {
+        expect(
+          screen.getByRole('button', { name: `Set visible lines to ${preset}` })
+        ).toBeInTheDocument()
+      })
+    })
+
+    it(`${DEFAULT_VISIBLE_LINES} lines is selected by default`, () => {
+      renderWithReadingLayout()
+
+      expect(
+        screen.getByRole('button', {
+          name: `Set visible lines to ${DEFAULT_VISIBLE_LINES}`,
+        })
+      ).toHaveClass('text-primary')
+    })
+
+    it('clicking a lines button changes the selection', async () => {
+      const user = userEvent.setup()
+      renderWithReadingLayout()
+
+      // Click a different preset than the default
+      const differentPreset = VISIBLE_LINES_PRESETS.find(
+        (p) => p !== DEFAULT_VISIBLE_LINES
+      )!
+      await user.click(
+        screen.getByRole('button', {
+          name: `Set visible lines to ${differentPreset}`,
+        })
+      )
+
+      expect(
+        screen.getByRole('button', {
+          name: `Set visible lines to ${differentPreset}`,
+        })
+      ).toHaveClass('text-primary')
+      expect(
+        screen.getByRole('button', {
+          name: `Set visible lines to ${DEFAULT_VISIBLE_LINES}`,
+        })
+      ).not.toHaveClass('text-primary')
+    })
+
+    it('renders custom lines control', () => {
+      renderWithReadingLayout()
+
+      expect(
+        screen.getByRole('button', { name: /Enter custom visible lines/i })
+      ).toBeInTheDocument()
+    })
+
+    it('clicking custom control shows input field', async () => {
+      const user = userEvent.setup()
+      renderWithReadingLayout()
+
+      await user.click(
+        screen.getByRole('button', { name: /Enter custom visible lines/i })
+      )
+
+      expect(
+        screen.getByRole('textbox', { name: 'Custom visible lines value' })
+      ).toBeInTheDocument()
+    })
+
+    it('custom lines input accepts valid values', async () => {
+      const user = userEvent.setup()
+      renderWithReadingLayout()
+
+      await user.click(
+        screen.getByRole('button', { name: /Enter custom visible lines/i })
+      )
+      await user.type(
+        screen.getByRole('textbox', { name: 'Custom visible lines value' }),
+        '4'
+      )
+      await user.keyboard('{Enter}')
+
+      expect(screen.getByText('4')).toBeInTheDocument()
+    })
+
+    it(`custom lines values below ${MIN_VISIBLE_LINES} are clamped to ${MIN_VISIBLE_LINES}`, async () => {
+      const user = userEvent.setup()
+      renderWithReadingLayout()
+
+      await user.click(
+        screen.getByRole('button', { name: /Enter custom visible lines/i })
+      )
+      await user.type(
+        screen.getByRole('textbox', { name: 'Custom visible lines value' }),
+        '0'
+      )
+      await user.keyboard('{Enter}')
+
+      expect(screen.getByText(String(MIN_VISIBLE_LINES))).toBeInTheDocument()
+    })
+
+    it(`custom lines values above ${MAX_VISIBLE_LINES} are clamped to ${MAX_VISIBLE_LINES}`, async () => {
+      const user = userEvent.setup()
+      renderWithReadingLayout()
+
+      await user.click(
+        screen.getByRole('button', { name: /Enter custom visible lines/i })
+      )
+      await user.type(
+        screen.getByRole('textbox', { name: 'Custom visible lines value' }),
+        '99'
+      )
+      await user.keyboard('{Enter}')
+
+      expect(screen.getByText(String(MAX_VISIBLE_LINES))).toBeInTheDocument()
+    })
+
+    it('pressing Escape cancels custom lines input', async () => {
+      const user = userEvent.setup()
+      renderWithReadingLayout()
+
+      await user.click(
+        screen.getByRole('button', { name: /Enter custom visible lines/i })
+      )
+      await user.type(
+        screen.getByRole('textbox', { name: 'Custom visible lines value' }),
+        '6'
+      )
+      await user.keyboard('{Escape}')
+
+      expect(
+        screen.queryByRole('textbox', { name: 'Custom visible lines value' })
+      ).not.toBeInTheDocument()
+      expect(
+        screen.getByRole('button', {
+          name: `Set visible lines to ${DEFAULT_VISIBLE_LINES}`,
+        })
+      ).toHaveClass('text-primary')
+    })
+
+    it('empty input reverts to previous lines value', async () => {
+      const user = userEvent.setup()
+      renderWithReadingLayout()
+
+      await user.click(
+        screen.getByRole('button', { name: /Enter custom visible lines/i })
+      )
+      expect(
+        screen.getByRole('textbox', { name: 'Custom visible lines value' })
+      ).toBeInTheDocument()
+
+      await user.keyboard('{Enter}')
+
+      expect(
+        screen.queryByRole('textbox', { name: 'Custom visible lines value' })
+      ).not.toBeInTheDocument()
+      expect(
+        screen.getByRole('button', {
+          name: `Set visible lines to ${DEFAULT_VISIBLE_LINES}`,
+        })
       ).toHaveClass('text-primary')
     })
   })

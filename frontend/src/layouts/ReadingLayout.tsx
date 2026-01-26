@@ -25,6 +25,7 @@ export function ReadingLayout() {
     setComplexityMin,
     setComplexityMax,
     setTextWidthPercent,
+    setVisibleLines,
   } = useReadingPreferences()
 
   const [inputBlocking, setInputBlocking] = useState(false)
@@ -46,6 +47,8 @@ export function ReadingLayout() {
         complexityMax={preferences.complexityMax}
         onComplexityMinChange={setComplexityMin}
         onComplexityMaxChange={setComplexityMax}
+        visibleLines={preferences.visibleLines}
+        onVisibleLinesChange={setVisibleLines}
         onInputBlockingChange={setInputBlocking}
         fixedText={fixedText}
       />
@@ -64,6 +67,7 @@ export function ReadingLayout() {
               complexityMax: preferences.complexityMax,
               inputBlocking,
               textWidthPercent: preferences.textWidthPercent,
+              visibleLines: preferences.visibleLines,
               onTextWidthChange: setTextWidthPercent,
             } satisfies ReadingContext
           }

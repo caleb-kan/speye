@@ -16,5 +16,6 @@ export interface ReadingContext {
   complexityMin: number
   complexityMax: number
   textWidthPercent: number
+  visibleLines: number
   onTextWidthChange: (percent: number) => void
 }

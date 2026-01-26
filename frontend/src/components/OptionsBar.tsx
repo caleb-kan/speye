@@ -3,6 +3,11 @@ import type { Mode, Scrolling, FixedTextInfo } from '../types'
 import noUiSlider, { type API } from 'nouislider'
 import { MIN_COMPLEXITY, MAX_COMPLEXITY } from '../constants/complexity'
 import { WPM_PRESETS, MIN_WPM, MAX_WPM } from '../constants/wpm'
+import {
+  MIN_VISIBLE_LINES,
+  MAX_VISIBLE_LINES,
+  VISIBLE_LINES_PRESETS,
+} from '../constants/visibleLines'
 import { Lock } from 'lucide-react'
 
 type OptionsBarProps = {
@@ -20,6 +25,8 @@ type OptionsBarProps = {
   complexityMax: number
   onComplexityMinChange: (min: number) => void
   onComplexityMaxChange: (max: number) => void
+  visibleLines: number
+  onVisibleLinesChange: (lines: number) => void
   onInputBlockingChange?: (isBlocking: boolean) => void
   fixedText?: FixedTextInfo
 }
@@ -28,6 +35,14 @@ type OptionsBarProps = {
 interface SliderElement extends HTMLDivElement {
   noUiSlider?: API
 }
+
+// Type guard to check if a value is a preset visible lines value
+const isPresetVisibleLines = (
+  value: number
+): value is (typeof VISIBLE_LINES_PRESETS)[number] =>
+  VISIBLE_LINES_PRESETS.includes(
+    value as (typeof VISIBLE_LINES_PRESETS)[number]
+  )
 
 export function OptionsBar({
   wpm,
@@ -44,12 +59,17 @@ export function OptionsBar({
   complexityMax,
   onComplexityMinChange,
   onComplexityMaxChange,
+  visibleLines,
+  onVisibleLinesChange,
   onInputBlockingChange,
   fixedText,
 }: OptionsBarProps) {
   const [customWpm, setCustomWpm] = useState('')
   const [showCustomInput, setShowCustomInput] = useState(false)
-  const [isInvalid, setIsInvalid] = useState(false)
+  const [isWpmInvalid, setIsWpmInvalid] = useState(false)
+  const [customLines, setCustomLines] = useState('')
+  const [showCustomLinesInput, setShowCustomLinesInput] = useState(false)
+  const [isLinesInvalid, setIsLinesInvalid] = useState(false)
 
   const sliderRef = useRef<SliderElement>(null)
   const onComplexityMinChangeRef = useRef(onComplexityMinChange)
@@ -111,8 +131,17 @@ export function OptionsBar({
   }, [fixedText])
 
   useEffect(() => {
-    onInputBlockingChange?.(showCustomInput && isInvalid)
-  }, [showCustomInput, isInvalid, onInputBlockingChange])
+    onInputBlockingChange?.(
+      (showCustomInput && isWpmInvalid) ||
+        (showCustomLinesInput && isLinesInvalid)
+    )
+  }, [
+    showCustomInput,
+    isWpmInvalid,
+    showCustomLinesInput,
+    isLinesInvalid,
+    onInputBlockingChange,
+  ])
 
   const isValueInvalid = (value: string) => {
     if (!value.trim()) return false
@@ -120,17 +149,29 @@ export function OptionsBar({
     return isNaN(num) || num < MIN_WPM || num > MAX_WPM
   }
 
+  const isLinesValueInvalid = (value: string) => {
+    if (!value.trim()) return false
+    const num = parseInt(value, 10)
+    return isNaN(num) || num < MIN_VISIBLE_LINES || num > MAX_VISIBLE_LINES
+  }
+
   const handleCustomWpmChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/[^0-9]/g, '')
     setCustomWpm(value)
-    setIsInvalid(isValueInvalid(value))
+    setIsWpmInvalid(isValueInvalid(value))
+  }
+
+  const handleCustomLinesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/[^0-9]/g, '')
+    setCustomLines(value)
+    setIsLinesInvalid(isLinesValueInvalid(value))
   }
 
   const handleCustomWpmSubmit = () => {
     if (!customWpm.trim()) {
       setShowCustomInput(false)
       setCustomWpm('')
-      setIsInvalid(false)
+      setIsWpmInvalid(false)
       return
     }
 
@@ -141,7 +182,28 @@ export function OptionsBar({
     }
     setShowCustomInput(false)
     setCustomWpm('')
-    setIsInvalid(false)
+    setIsWpmInvalid(false)
+  }
+
+  const handleCustomLinesSubmit = () => {
+    if (!customLines.trim()) {
+      setShowCustomLinesInput(false)
+      setCustomLines('')
+      setIsLinesInvalid(false)
+      return
+    }
+
+    const value = parseInt(customLines, 10)
+    if (!isNaN(value)) {
+      const clampedValue = Math.min(
+        Math.max(value, MIN_VISIBLE_LINES),
+        MAX_VISIBLE_LINES
+      )
+      onVisibleLinesChange(clampedValue)
+    }
+    setShowCustomLinesInput(false)
+    setCustomLines('')
+    setIsLinesInvalid(false)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -150,7 +212,17 @@ export function OptionsBar({
     } else if (e.key === 'Escape') {
       setShowCustomInput(false)
       setCustomWpm('')
-      setIsInvalid(false)
+      setIsWpmInvalid(false)
+    }
+  }
+
+  const handleLinesKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleCustomLinesSubmit()
+    } else if (e.key === 'Escape') {
+      setShowCustomLinesInput(false)
+      setCustomLines('')
+      setIsLinesInvalid(false)
     }
   }
 
@@ -316,7 +388,7 @@ export function OptionsBar({
                 onWpmChange(preset)
                 setShowCustomInput(false)
                 setCustomWpm('')
-                setIsInvalid(false)
+                setIsWpmInvalid(false)
               }}
               className={`px-2 py-1 transition-colors ${
                 wpm === preset
@@ -334,7 +406,7 @@ export function OptionsBar({
           <button
             onClick={() => !showCustomInput && setShowCustomInput(true)}
             className={`flex items-center px-2 py-1 transition-colors ${
-              isInvalid
+              isWpmInvalid
                 ? 'text-error animate-shake'
                 : !WPM_PRESETS.includes(wpm) || showCustomInput
                   ? 'text-primary'
@@ -342,7 +414,7 @@ export function OptionsBar({
             }`}
             title={
               showCustomInput
-                ? isInvalid
+                ? isWpmInvalid
                   ? `Value must be between ${MIN_WPM} and ${MAX_WPM}`
                   : undefined
                 : !WPM_PRESETS.includes(wpm)
@@ -362,15 +434,90 @@ export function OptionsBar({
                 onBlur={handleCustomWpmSubmit}
                 autoFocus
                 aria-label="Custom words per minute value"
-                aria-invalid={isInvalid}
+                aria-invalid={isWpmInvalid}
                 className={`bg-transparent border-b focus:outline-none text-center ${
-                  isInvalid ? 'border-error' : 'border-current'
+                  isWpmInvalid ? 'border-error' : 'border-current'
                 }`}
                 style={{ width: `${Math.max(2, customWpm.length || 1)}ch` }}
               />
             ) : (
               <span className="border-b border-current inline-block min-w-[2ch]">
                 {!WPM_PRESETS.includes(wpm) ? wpm : '\u00A0'}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {/* Divider */}
+        <div className="w-px h-6 bg-text-secondary opacity-30" />
+
+        {/* Visible Lines Selection */}
+        <div className="flex items-center gap-2">
+          <span className="text-text-secondary mr-1">visible lines:</span>
+          {VISIBLE_LINES_PRESETS.map((preset) => (
+            <button
+              key={preset}
+              onClick={() => {
+                onVisibleLinesChange(preset)
+                setShowCustomLinesInput(false)
+                setCustomLines('')
+                setIsLinesInvalid(false)
+              }}
+              className={`px-2 py-1 transition-colors ${
+                visibleLines === preset
+                  ? 'text-primary'
+                  : 'text-text-secondary hover:text-text'
+              }`}
+              aria-label={`Set visible lines to ${preset}`}
+              aria-pressed={visibleLines === preset}
+            >
+              {preset}
+            </button>
+          ))}
+
+          {/* Custom Lines */}
+          <button
+            onClick={() =>
+              !showCustomLinesInput && setShowCustomLinesInput(true)
+            }
+            className={`flex items-center px-2 py-1 transition-colors ${
+              isLinesInvalid
+                ? 'text-error animate-shake'
+                : !isPresetVisibleLines(visibleLines) || showCustomLinesInput
+                  ? 'text-primary'
+                  : 'text-text-secondary hover:text-text'
+            }`}
+            title={
+              showCustomLinesInput
+                ? isLinesInvalid
+                  ? `Value must be between ${MIN_VISIBLE_LINES} and ${MAX_VISIBLE_LINES}`
+                  : undefined
+                : !isPresetVisibleLines(visibleLines)
+                  ? `Click to change custom lines (currently ${visibleLines})`
+                  : 'Click to set custom visible lines'
+            }
+            aria-label="Enter custom visible lines value"
+          >
+            <span>custom:&nbsp;</span>
+            {showCustomLinesInput ? (
+              <input
+                type="text"
+                inputMode="numeric"
+                value={customLines}
+                onChange={handleCustomLinesChange}
+                onKeyDown={handleLinesKeyDown}
+                onBlur={handleCustomLinesSubmit}
+                autoFocus
+                aria-label="Custom visible lines value"
+                aria-invalid={isLinesInvalid}
+                className={`bg-transparent border-b focus:outline-none text-center ${
+                  isLinesInvalid ? 'border-error' : 'border-current'
+                }`}
+                style={{ width: `${Math.max(1, customLines.length || 1)}ch` }}
+              />
+            ) : (
+              <span className="border-b border-current inline-block min-w-[1ch]">
+                {!isPresetVisibleLines(visibleLines) ? visibleLines : '\u00A0'}
               </span>
             )}
           </button>

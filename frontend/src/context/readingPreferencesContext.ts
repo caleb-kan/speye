@@ -10,6 +10,7 @@ export interface ReadingPreferences {
   complexityMin: number
   complexityMax: number
   textWidthPercent: number
+  visibleLines: number
 }
 
 export interface ReadingPreferencesContextType {
@@ -22,6 +23,7 @@ export interface ReadingPreferencesContextType {
   setComplexityMin: (min: number) => void
   setComplexityMax: (max: number) => void
   setTextWidthPercent: (percent: number) => void
+  setVisibleLines: (lines: number) => void
 }
 
 export const ReadingPreferencesContext =

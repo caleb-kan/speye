@@ -10,6 +10,14 @@ vi.mock('../hooks/useTexts')
 Element.prototype.scrollTo = vi.fn()
 window.scrollTo = vi.fn()
 
+// Mock ResizeObserver for tests
+class ResizeObserverMock {
+  observe = vi.fn()
+  unobserve = vi.fn()
+  disconnect = vi.fn()
+}
+global.ResizeObserver = ResizeObserverMock
+
 const mockUseTexts = vi.mocked(useTextsModule.useTexts)
 
 const createMockText = (content: string): Text => ({

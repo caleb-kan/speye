@@ -29,9 +29,14 @@ export function ReadingLayout() {
   } = useReadingPreferences()
 
   const [inputBlocking, setInputBlocking] = useState(false)
+  const [quizOpen, setQuizOpen] = useState(false)
 
   return (
-    <div className="flex-1 flex flex-col">
+    <div
+      className={`flex-1 relative transition-all duration-300 ${
+        quizOpen ? 'blur-[1.5px]' : ''
+      }`}
+    >
       <OptionsBar
         wpm={preferences.wpm}
         onWpmChange={setWpm}
@@ -69,6 +74,8 @@ export function ReadingLayout() {
               textWidthPercent: preferences.textWidthPercent,
               visibleLines: preferences.visibleLines,
               onTextWidthChange: setTextWidthPercent,
+              quizOpen,
+              setQuizOpen,
             } satisfies ReadingContext
           }
         />

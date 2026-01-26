@@ -2,24 +2,39 @@ import { memo } from 'react'
 
 type AnswerOptionProps = {
   text: string
+  selected?: boolean
+  onSelect?: () => void
 }
 
 export const AnswerOption = memo(function AnswerOption({
   text,
+  selected,
+  onSelect,
 }: AnswerOptionProps) {
   return (
     <button
-      type="button"
-      className="
-        w-full text-left
-        px-4 py-3 rounded-lg
-        bg-bg-secondary hover:bg-bg-secondary/80
-        border border-text-secondary/20
-        transition-colors
-        focus:outline-none focus:ring-2 focus:ring-primary
-      "
+      onClick={onSelect}
+      className={`
+        group relative w-full text-left
+        px-8 py-2
+        rounded-xl
+        transition-all duration-200 ease-out
+
+        ${
+          selected
+            ? 'bg-primary text-bg font-medium shadow-lg scale-[1.01]'
+            : 'bg-white/5 text-text-secondary hover:bg-white/10 hover:text-text'
+        }
+      `}
     >
-      <span className="text-sm leading-relaxed">{text}</span>
+      <div className="flex items-center justify-between">
+        <span className="block text-lg leading-relaxed">{text}</span>
+
+        {/* Indicator dot for selected state */}
+        {selected && (
+          <div className="w-2 h-2 rounded-full bg-bg/60 animate-in fade-in zoom-in" />
+        )}
+      </div>
     </button>
   )
 })

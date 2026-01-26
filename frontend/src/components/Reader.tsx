@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { TextDisplay } from './TextDisplay'
 import { ReadingControls } from './ReadingControls'
 import { useReader } from '../hooks/useReader'
@@ -17,6 +18,7 @@ type ReaderProps = {
   textWidthPercent: number
   onTextWidthChange: (percent: number) => void
   visibleLines: number
+  onComplete?: (isComplete: boolean) => void
 }
 
 export function Reader({
@@ -31,15 +33,23 @@ export function Reader({
   textWidthPercent,
   onTextWidthChange,
   visibleLines,
+  onComplete,
 }: ReaderProps) {
   const {
     currentWordIndex,
     isPlaying,
+    isComplete,
     totalWords,
     progress,
     togglePlayPause,
     restart,
   } = useReader({ text, wpm, disabled })
+
+  useEffect(() => {
+    if (onComplete) {
+      onComplete(isComplete)
+    }
+  }, [isComplete, onComplete])
 
   return (
     <div className="w-full flex flex-col items-center">

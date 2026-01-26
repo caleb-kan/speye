@@ -16,7 +16,7 @@ export function RootLayout() {
         <div className="h-12" />
 
         {/* Page content */}
-        <main className="flex-1 flex flex-col">
+        <main className="relative flex-1 flex flex-col">
           <Outlet />
         </main>
       </div>

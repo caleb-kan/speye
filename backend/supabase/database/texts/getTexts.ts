@@ -11,6 +11,7 @@ export async function getTexts(data: FetchTextsInput) {
   const { data: result, error } = await supabase
     .from('texts')
     .select('*')
+    .is('owner_id', null)
     .eq('fiction', data.fiction)
     .gte('complexity', data.complexityMin)
     .lte('complexity', data.complexityMax)

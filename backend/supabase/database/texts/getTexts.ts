@@ -1,4 +1,5 @@
 import { supabase } from '../../../../lib/supabase'
+import { logDbQuery } from '../logger'
 
 export interface FetchTextsInput {
   fiction: boolean
@@ -13,6 +14,12 @@ export async function getTexts(data: FetchTextsInput) {
     .eq('fiction', data.fiction)
     .gte('complexity', data.complexityMin)
     .lte('complexity', data.complexityMax)
+
+  logDbQuery({
+    table: 'texts',
+    action: 'SELECT',
+    errors: error ? error.message : undefined,
+  })
 
   if (error) {
     throw error

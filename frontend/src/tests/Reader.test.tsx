@@ -40,10 +40,9 @@ describe('Reader', () => {
     it('displays loading message when fetching texts', () => {
       mockUseTexts.mockReturnValue({
         texts: [],
-        currentText: null,
+        randomText: null,
         loading: true,
         error: null,
-        selectRandomText: vi.fn(),
         refetch: vi.fn(),
       })
 
@@ -57,10 +56,9 @@ describe('Reader', () => {
     it('displays error message', () => {
       mockUseTexts.mockReturnValue({
         texts: [],
-        currentText: null,
+        randomText: null,
         loading: false,
         error: 'Network error',
-        selectRandomText: vi.fn(),
         refetch: vi.fn(),
       })
 
@@ -72,10 +70,9 @@ describe('Reader', () => {
     it('displays "Try again" button', () => {
       mockUseTexts.mockReturnValue({
         texts: [],
-        currentText: null,
+        randomText: null,
         loading: false,
         error: 'Network error',
-        selectRandomText: vi.fn(),
         refetch: vi.fn(),
       })
 
@@ -90,10 +87,9 @@ describe('Reader', () => {
       const mockRefetch = vi.fn()
       mockUseTexts.mockReturnValue({
         texts: [],
-        currentText: null,
+        randomText: null,
         loading: false,
         error: 'Network error',
-        selectRandomText: vi.fn(),
         refetch: mockRefetch,
       })
 
@@ -110,10 +106,9 @@ describe('Reader', () => {
     it('displays "No texts available" message', () => {
       mockUseTexts.mockReturnValue({
         texts: [],
-        currentText: null,
+        randomText: null,
         loading: false,
         error: null,
-        selectRandomText: vi.fn(),
         refetch: vi.fn(),
       })
 
@@ -127,11 +122,9 @@ describe('Reader', () => {
     it('renders text content when available', () => {
       const mockText = createMockText('Hello world testing')
       mockUseTexts.mockReturnValue({
-        texts: [mockText],
-        currentText: mockText,
+        randomText: mockText,
         loading: false,
         error: null,
-        selectRandomText: vi.fn(),
         refetch: vi.fn(),
       })
 
@@ -145,11 +138,9 @@ describe('Reader', () => {
     it('renders "New text" button when text is available', () => {
       const mockText = createMockText('Test content')
       mockUseTexts.mockReturnValue({
-        texts: [mockText],
-        currentText: mockText,
+        randomText: mockText,
         loading: false,
         error: null,
-        selectRandomText: vi.fn(),
         refetch: vi.fn(),
       })
 
@@ -161,15 +152,13 @@ describe('Reader', () => {
     })
 
     it('clicking "New text" calls selectRandomText', async () => {
-      const mockSelectRandomText = vi.fn()
+      const refetch = vi.fn()
       const mockText = createMockText('Test content')
       mockUseTexts.mockReturnValue({
-        texts: [mockText],
-        currentText: mockText,
+        randomText: mockText,
         loading: false,
         error: null,
-        selectRandomText: mockSelectRandomText,
-        refetch: vi.fn(),
+        refetch,
       })
 
       const user = userEvent.setup()
@@ -177,7 +166,7 @@ describe('Reader', () => {
 
       await user.click(screen.getByRole('button', { name: 'New text' }))
 
-      expect(mockSelectRandomText).toHaveBeenCalledTimes(1)
+      expect(refetch).toHaveBeenCalledTimes(1)
     })
   })
 })

@@ -8,12 +8,13 @@ import { EditTextModal } from '../components/EditTextModal'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { uploadText } from '../../../backend/supabase/database/texts/uploadText'
 import { getLibraryTexts } from '../../../backend/supabase/database/texts/getLibraryTexts'
+import { getTextContent } from '../../../backend/supabase/database/texts/getTextContent'
 import { deleteText } from '../../../backend/supabase/database/texts/deleteText'
 import { updateText } from '../../../backend/supabase/database/texts/updateText'
 import type { TextInput } from '../components/TextFormModal'
 import { SUCCESS_MESSAGE_DURATION_MS } from '../constants/ui'
 import { generateTitle } from '../services/generateTitle'
-import type { Text } from '../types/database'
+import type { Text, TextPreview } from '../types/database'
 
 type LibraryTab = 'private' | 'public'
 
@@ -33,20 +34,20 @@ export function Library() {
     text: Text | null
   }>({ isOpen: false, text: null })
 
-  // Use async operation hooks for each data source
+  // Use TextPreview for list views
   const {
     data: privateTexts,
     loading: privateLoading,
     error: privateError,
     execute: executePrivate,
     setData: setPrivateTexts,
-  } = useAsyncOperation<Text[]>()
+  } = useAsyncOperation<TextPreview[]>()
   const {
     data: publicTexts,
     loading: publicLoading,
     error: publicError,
     execute: executePublic,
-  } = useAsyncOperation<Text[]>()
+  } = useAsyncOperation<TextPreview[]>()
 
   const fetchPrivateTexts = useCallback(
     async (force = false) => {
@@ -84,7 +85,7 @@ export function Library() {
   useEffect(() => {
     if (!successMessage) return
 
-    setDeleteError(null) // Clear any delete error when showing success
+    setDeleteError(null)
     const timer = setTimeout(() => {
       setSuccessMessage(null)
     }, SUCCESS_MESSAGE_DURATION_MS)
@@ -167,8 +168,19 @@ export function Library() {
     setDeleteConfirm({ isOpen: false, textId: null })
   }
 
-  const handleEditClick = (text: Text) => {
-    setEditModal({ isOpen: true, text })
+  const handleEditClick = async (textPreview: TextPreview) => {
+    try {
+      const content = await getTextContent(textPreview.id)
+      const fullText: Text = {
+        ...textPreview,
+        content,
+      }
+      setEditModal({ isOpen: true, text: fullText })
+    } catch (err) {
+      setDeleteError(
+        err instanceof Error ? err.message : 'Failed to load text content'
+      )
+    }
   }
 
   const handleEditClose = () => {
@@ -178,10 +190,27 @@ export function Library() {
   const handleEditSubmit = async (textId: string, data: TextInput) => {
     const { title, titleGenerationFailed } = await resolveTitle(data)
 
-    const updatedText = await updateText(textId, { ...data, title })
+    const updatedTextRecord = await updateText(textId, { ...data, title })
+
+    // Convert updated TextRecord back to TextPreview for the list
+    const updatedPreview: TextPreview = {
+      id: updatedTextRecord.id,
+      title: updatedTextRecord.title,
+      preview:
+        updatedTextRecord.content.slice(0, 200) +
+        (updatedTextRecord.content.length > 200 ? '...' : ''),
+      uploaded_at: updatedTextRecord.uploaded_at,
+      owner_id: updatedTextRecord.owner_id,
+      quiz: updatedTextRecord.quiz,
+      fiction: updatedTextRecord.fiction,
+      category: updatedTextRecord.category,
+      complexity: updatedTextRecord.complexity,
+      source: updatedTextRecord.source,
+    }
+
     setPrivateTexts(
       privateTexts
-        ? privateTexts.map((t) => (t.id === textId ? (updatedText as Text) : t))
+        ? privateTexts.map((t) => (t.id === textId ? updatedPreview : t))
         : null
     )
 
@@ -194,16 +223,21 @@ export function Library() {
     }
   }
 
-  const handleReadText = (text: Text) => {
-    navigate('/home', { state: { libraryText: text } })
+  const handleReadText = async (textPreview: TextPreview) => {
+    try {
+      const content = await getTextContent(textPreview.id)
+      const fullText: Text = {
+        ...textPreview,
+        content,
+      }
+      navigate('/home', { state: { libraryText: fullText } })
+    } catch (err) {
+      setDeleteError(
+        err instanceof Error ? err.message : 'Failed to load text content'
+      )
+    }
   }
 
-  const getTextPreview = (content: string, maxLength: number = 150) => {
-    if (content.length <= maxLength) return content
-    return content.substring(0, maxLength).trim() + '...'
-  }
-
-  // Determine current state based on active tab
   const currentTexts = activeTab === 'private' ? privateTexts : publicTexts
   const loading = activeTab === 'private' ? privateLoading : publicLoading
   const fetchError = activeTab === 'private' ? privateError : publicError
@@ -314,7 +348,7 @@ export function Library() {
                       )}
                     </div>
                     <p className="text-text-secondary text-sm leading-relaxed">
-                      {getTextPreview(text.content)}
+                      {text.preview}...
                     </p>
                     <p className="text-xs text-text-secondary mt-2">
                       Uploaded {new Date(text.uploaded_at).toLocaleDateString()}

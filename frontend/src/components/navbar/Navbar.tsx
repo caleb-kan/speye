@@ -15,7 +15,7 @@ export function Navbar() {
   return (
     <nav
       className="
-        fixed left-3 top-1/2 -translate-y-1/2
+        fixed left-3 top-1/2 -translate-y-1/2 z-50
         flex flex-col items-center gap-3
         px-2.5 py-4
         bg-bg-secondary/80 backdrop-blur-md

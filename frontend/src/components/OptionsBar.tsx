@@ -3,11 +3,7 @@ import type { Mode, Scrolling, FixedTextInfo } from '../types'
 import noUiSlider, { type API } from 'nouislider'
 import { MIN_COMPLEXITY, MAX_COMPLEXITY } from '../constants/complexity'
 import { WPM_PRESETS, MIN_WPM, MAX_WPM } from '../constants/wpm'
-import {
-  MIN_VISIBLE_LINES,
-  MAX_VISIBLE_LINES,
-  VISIBLE_LINES_PRESETS,
-} from '../constants/visibleLines'
+import { MIN_VISIBLE_LINES, MAX_VISIBLE_LINES } from '../constants/visibleLines'
 import { Lock } from 'lucide-react'
 
 type OptionsBarProps = {
@@ -37,14 +33,6 @@ interface SliderElement extends HTMLDivElement {
   noUiSlider?: API
 }
 
-// Type guard to check if a value is a preset visible lines value
-const isPresetVisibleLines = (
-  value: number
-): value is (typeof VISIBLE_LINES_PRESETS)[number] =>
-  VISIBLE_LINES_PRESETS.includes(
-    value as (typeof VISIBLE_LINES_PRESETS)[number]
-  )
-
 export function OptionsBar({
   wpm,
   onWpmChange,
@@ -69,19 +57,18 @@ export function OptionsBar({
   const [customWpm, setCustomWpm] = useState('')
   const [showCustomInput, setShowCustomInput] = useState(false)
   const [isWpmInvalid, setIsWpmInvalid] = useState(false)
-  const [customLines, setCustomLines] = useState('')
-  const [showCustomLinesInput, setShowCustomLinesInput] = useState(false)
-  const [isLinesInvalid, setIsLinesInvalid] = useState(false)
-
   const sliderRef = useRef<SliderElement>(null)
   const onComplexityMinChangeRef = useRef(onComplexityMinChange)
   const onComplexityMaxChangeRef = useRef(onComplexityMaxChange)
+  const visibleLinesSliderRef = useRef<SliderElement>(null)
+  const onVisibleLinesChangeRef = useRef(onVisibleLinesChange)
 
   // Keep refs up to date with latest callbacks
   useEffect(() => {
     onComplexityMinChangeRef.current = onComplexityMinChange
     onComplexityMaxChangeRef.current = onComplexityMaxChange
-  }, [onComplexityMinChange, onComplexityMaxChange])
+    onVisibleLinesChangeRef.current = onVisibleLinesChange
+  }, [onComplexityMinChange, onComplexityMaxChange, onVisibleLinesChange])
 
   // Create complexity slider once on mount
   // Note: complexityMin/Max are intentionally not in deps because:
@@ -133,17 +120,39 @@ export function OptionsBar({
   }, [fixedText])
 
   useEffect(() => {
-    onInputBlockingChange?.(
-      (showCustomInput && isWpmInvalid) ||
-        (showCustomLinesInput && isLinesInvalid)
+    if (
+      !visibleLinesSliderRef.current ||
+      visibleLinesSliderRef.current.hasChildNodes()
     )
-  }, [
-    showCustomInput,
-    isWpmInvalid,
-    showCustomLinesInput,
-    isLinesInvalid,
-    onInputBlockingChange,
-  ])
+      return
+
+    noUiSlider.create(visibleLinesSliderRef.current, {
+      start: [visibleLines],
+      connect: [true, false],
+      range: {
+        min: MIN_VISIBLE_LINES,
+        max: MAX_VISIBLE_LINES,
+      },
+      tooltips: true,
+      step: 1,
+      format: {
+        to: (value) => Math.round(value).toString(),
+        from: (value) => Number(value),
+      },
+    })
+
+    const slider = visibleLinesSliderRef.current.noUiSlider
+
+    slider?.on('update', (values: (string | number)[]) => {
+      const val = parseInt(String(values[0]))
+      onVisibleLinesChangeRef.current(val)
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    onInputBlockingChange?.(showCustomInput && isWpmInvalid)
+  }, [showCustomInput, isWpmInvalid, onInputBlockingChange])
 
   const isValueInvalid = (value: string) => {
     if (!value.trim()) return false
@@ -151,22 +160,10 @@ export function OptionsBar({
     return isNaN(num) || num < MIN_WPM || num > MAX_WPM
   }
 
-  const isLinesValueInvalid = (value: string) => {
-    if (!value.trim()) return false
-    const num = parseInt(value, 10)
-    return isNaN(num) || num < MIN_VISIBLE_LINES || num > MAX_VISIBLE_LINES
-  }
-
   const handleCustomWpmChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/[^0-9]/g, '')
     setCustomWpm(value)
     setIsWpmInvalid(isValueInvalid(value))
-  }
-
-  const handleCustomLinesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/[^0-9]/g, '')
-    setCustomLines(value)
-    setIsLinesInvalid(isLinesValueInvalid(value))
   }
 
   const handleCustomWpmSubmit = () => {
@@ -187,27 +184,6 @@ export function OptionsBar({
     setIsWpmInvalid(false)
   }
 
-  const handleCustomLinesSubmit = () => {
-    if (!customLines.trim()) {
-      setShowCustomLinesInput(false)
-      setCustomLines('')
-      setIsLinesInvalid(false)
-      return
-    }
-
-    const value = parseInt(customLines, 10)
-    if (!isNaN(value)) {
-      const clampedValue = Math.min(
-        Math.max(value, MIN_VISIBLE_LINES),
-        MAX_VISIBLE_LINES
-      )
-      onVisibleLinesChange(clampedValue)
-    }
-    setShowCustomLinesInput(false)
-    setCustomLines('')
-    setIsLinesInvalid(false)
-  }
-
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       handleCustomWpmSubmit()
@@ -215,16 +191,6 @@ export function OptionsBar({
       setShowCustomInput(false)
       setCustomWpm('')
       setIsWpmInvalid(false)
-    }
-  }
-
-  const handleLinesKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleCustomLinesSubmit()
-    } else if (e.key === 'Escape') {
-      setShowCustomLinesInput(false)
-      setCustomLines('')
-      setIsLinesInvalid(false)
     }
   }
 
@@ -468,73 +434,7 @@ export function OptionsBar({
         {/* Visible Lines Selection */}
         <div className="flex items-center gap-2">
           <span className="text-text-secondary mr-1">visible lines:</span>
-          {VISIBLE_LINES_PRESETS.map((preset) => (
-            <button
-              key={preset}
-              onClick={() => {
-                onVisibleLinesChange(preset)
-                setShowCustomLinesInput(false)
-                setCustomLines('')
-                setIsLinesInvalid(false)
-              }}
-              className={`px-2 py-1 transition-colors ${
-                visibleLines === preset
-                  ? 'text-primary'
-                  : 'text-text-secondary hover:text-text'
-              }`}
-              aria-label={`Set visible lines to ${preset}`}
-              aria-pressed={visibleLines === preset}
-            >
-              {preset}
-            </button>
-          ))}
-
-          {/* Custom Lines */}
-          <button
-            onClick={() =>
-              !showCustomLinesInput && setShowCustomLinesInput(true)
-            }
-            className={`flex items-center px-2 py-1 transition-colors ${
-              isLinesInvalid
-                ? 'text-error animate-shake'
-                : !isPresetVisibleLines(visibleLines) || showCustomLinesInput
-                  ? 'text-primary'
-                  : 'text-text-secondary hover:text-text'
-            }`}
-            title={
-              showCustomLinesInput
-                ? isLinesInvalid
-                  ? `Value must be between ${MIN_VISIBLE_LINES} and ${MAX_VISIBLE_LINES}`
-                  : undefined
-                : !isPresetVisibleLines(visibleLines)
-                  ? `Click to change custom lines (currently ${visibleLines})`
-                  : 'Click to set custom visible lines'
-            }
-            aria-label="Enter custom visible lines value"
-          >
-            <span>custom:&nbsp;</span>
-            {showCustomLinesInput ? (
-              <input
-                type="text"
-                inputMode="numeric"
-                value={customLines}
-                onChange={handleCustomLinesChange}
-                onKeyDown={handleLinesKeyDown}
-                onBlur={handleCustomLinesSubmit}
-                autoFocus
-                aria-label="Custom visible lines value"
-                aria-invalid={isLinesInvalid}
-                className={`bg-transparent border-b focus:outline-none text-center ${
-                  isLinesInvalid ? 'border-error' : 'border-current'
-                }`}
-                style={{ width: `${Math.max(1, customLines.length || 1)}ch` }}
-              />
-            ) : (
-              <span className="border-b border-current inline-block min-w-[1ch]">
-                {!isPresetVisibleLines(visibleLines) ? visibleLines : '\u00A0'}
-              </span>
-            )}
-          </button>
+          <div ref={visibleLinesSliderRef} style={{ width: '120px' }}></div>
         </div>
       </div>
     </div>

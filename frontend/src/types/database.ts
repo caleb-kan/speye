@@ -18,3 +18,16 @@ export type Text = {
   complexity: number | null
   source: string | null
 }
+
+export type TextPreview = {
+  id: string
+  title: string | null
+  preview: string
+  uploaded_at: string
+  owner_id: string | null
+  quiz: Quiz | null
+  fiction: boolean
+  category: string | null
+  complexity: number | null
+  source: string | null
+}

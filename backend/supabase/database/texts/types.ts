@@ -1,3 +1,5 @@
+import { type Quiz } from '../../../groq/types'
+
 /**
  * Input data for creating or updating a text.
  * Used by both uploadText and updateText functions.
@@ -18,7 +20,7 @@ export interface TextRecord {
   content: string
   fiction: boolean
   uploaded_at: string
-  quiz: unknown
+  quiz: Quiz | null
   category: string | null
   complexity: number | null
   source: string | null

@@ -1,20 +1,18 @@
 import { supabase } from '../../../../lib/supabase'
 import { logDbQuery } from '../logger'
 
-export interface FetchTextsInput {
+export interface FetchTextsFilters {
   fiction: boolean
   complexityMin: number
   complexityMax: number
 }
 
-export async function getTexts(data: FetchTextsInput) {
-  const { data: result, error } = await supabase
-    .from('texts')
-    .select('*')
-    .is('owner_id', null)
-    .eq('fiction', data.fiction)
-    .gte('complexity', data.complexityMin)
-    .lte('complexity', data.complexityMax)
+export async function getRandomText(filters: FetchTextsFilters) {
+  const { data, error } = await supabase.rpc('get_random_text', {
+    fiction_filter: filters.fiction,
+    complexity_min: filters.complexityMin,
+    complexity_max: filters.complexityMax,
+  })
 
   logDbQuery({
     table: 'texts',
@@ -26,5 +24,5 @@ export async function getTexts(data: FetchTextsInput) {
     throw error
   }
 
-  return result
+  return data?.[0] || []
 }

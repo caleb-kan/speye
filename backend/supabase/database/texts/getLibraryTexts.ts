@@ -1,12 +1,17 @@
 import { supabase } from '../../../../lib/supabase'
 import { logDbQuery } from '../logger'
+import type { TextPreview } from '../../../../frontend/src/types/database'
 
 export type OwnerFilter = { type: 'user'; userId: string } | { type: 'public' }
 
-export async function getLibraryTexts(owner: OwnerFilter) {
+export async function getLibraryTexts(
+  owner: OwnerFilter
+): Promise<TextPreview[]> {
   let query = supabase
     .from('texts')
-    .select('*')
+    .select(
+      'id, title, preview, fiction, complexity, uploaded_at, owner_id, quiz, category, source'
+    )
     .order('uploaded_at', { ascending: false })
 
   if (owner.type === 'user') {
@@ -27,5 +32,5 @@ export async function getLibraryTexts(owner: OwnerFilter) {
     throw error
   }
 
-  return result
+  return result as TextPreview[]
 }

@@ -33,14 +33,14 @@ export function Home() {
     setCurrentTextComplexity,
   } = useOutletContext<ReadingContext>()
 
-  const { currentText, loading, error, selectRandomText, refetch } = useTexts({
+  const { randomText, loading, error, refetch } = useTexts({
     fiction,
     complexityMin,
     complexityMax,
   })
 
   // Use library text if provided, otherwise use fetched text
-  const textToRead = libraryText || currentText
+  const textToRead = libraryText || randomText
 
   useEffect(() => {
     setCurrentTextComplexity(textToRead?.complexity ?? null)
@@ -51,7 +51,7 @@ export function Home() {
       // Clear the library text state and use random texts
       navigate('/home', { replace: true, state: null })
     } else {
-      selectRandomText()
+      refetch()
     }
   }
 

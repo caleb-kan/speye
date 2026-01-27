@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, type ReactNode } from 'react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import {
   MIN_WIDTH_PERCENT,
   MAX_WIDTH_PERCENT,
@@ -130,18 +131,22 @@ export function Resizable({
       style={{ width: `${displayPercent}%` }}
     >
       <div className="flex-1 min-w-0">{children}</div>
-      <div
-        role="separator"
-        aria-orientation="vertical"
-        aria-label="Resize text width"
-        aria-valuemin={Math.round(minWidthPercent * 100)}
-        aria-valuemax={Math.round(maxWidthPercent * 100)}
-        aria-valuenow={displayPercent}
-        aria-valuetext={`${displayPercent}% width`}
-        tabIndex={0}
-        onKeyDown={handleKeyDown}
-        className="ml-8 w-1 shrink-0 rounded bg-primary opacity-20 cursor-col-resize hover:opacity-40 active:opacity-40 focus:opacity-40 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-bg transition-opacity touch-none"
-      />
+      <div className="ml-8 flex items-center gap-2">
+        <ChevronLeft className="w-4 h-4 text-primary" />
+        <div
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize text width"
+          aria-valuemin={Math.round(minWidthPercent * 100)}
+          aria-valuemax={Math.round(maxWidthPercent * 100)}
+          aria-valuenow={displayPercent}
+          aria-valuetext={`${displayPercent}% width`}
+          tabIndex={0}
+          onKeyDown={handleKeyDown}
+          className="w-1 h-full shrink-0 rounded bg-primary opacity-20 cursor-col-resize hover:opacity-40 active:opacity-40 focus:opacity-40 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-bg transition-opacity touch-none"
+        />
+        <ChevronRight className="w-4 h-4 text-primary" />
+      </div>
     </div>
   )
 }

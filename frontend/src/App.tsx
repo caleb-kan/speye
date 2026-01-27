@@ -9,6 +9,8 @@ import { Library } from './pages/Library'
 import { Quiz } from './pages/Quiz'
 import { NotFound } from './pages/NotFound'
 import { Login } from './pages/Login'
+import { Privacy } from './pages/Privacy'
+import { Terms } from './pages/Terms'
 import { RootLayout } from './layouts/RootLayout'
 import { ReadingLayout } from './layouts/ReadingLayout'
 
@@ -33,6 +35,8 @@ function App() {
                   <Route path="quiz" element={<Quiz />} />
                   <Route path="settings" element={<Settings />} />
                   <Route path="login" element={<Login />} />
+                  <Route path="privacy" element={<Privacy />} />
+                  <Route path="terms" element={<Terms />} />
 
                   <Route path="*" element={<NotFound />} />
                 </Route>

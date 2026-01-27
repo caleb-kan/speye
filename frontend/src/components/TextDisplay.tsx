@@ -15,6 +15,7 @@ import {
   FADE_HEIGHT,
   MIN_TRANSITION_MS,
   MAX_TRANSITION_MS,
+  WORDS_PER_LINE_ESTIMATE,
 } from '../constants/textDisplay'
 
 type TextDisplayProps = {
@@ -36,11 +37,12 @@ export function TextDisplay({
   wpm,
   visibleLines,
 }: TextDisplayProps) {
-  // Calculate container height based on visible lines
-  // Static mode: exact height for the specified lines
-  // Dynamic mode: includes extra buffer to show partial next line for smooth scrolling
+  // Container heights based on visible lines
   const staticModeHeight = `${HEIGHT_PER_LINE * visibleLines}px`
   const dynamicModeHeight = `${HEIGHT_PER_LINE * visibleLines + TRANSITION_BUFFER}px`
+
+  // Padding to prevent blur effects from being clipped at container edges
+  const blurPadding = MAX_BLUR + BLUR_PADDING_BUFFER
 
   // Calculate transition duration based on WPM
   // Transition should be at most 80% of time per word for smooth highlighting
@@ -151,7 +153,12 @@ export function TextDisplay({
   }, [currentWordIndex, scrolling, pageStartIndex, needsBackwardsFlip])
 
   if (scrolling === 'static') {
-    const maxWordsToRender = Math.min(words.length - pageStartIndex, 500) // Render enough to fill and detect overflow
+    // Render enough words for overflow detection
+    const wordsPerPage = (visibleLines + 1) * WORDS_PER_LINE_ESTIMATE
+    const maxWordsToRender = Math.min(
+      words.length - pageStartIndex,
+      wordsPerPage
+    )
     const wordsToRender = words.slice(
       pageStartIndex,
       pageStartIndex + maxWordsToRender
@@ -159,16 +166,23 @@ export function TextDisplay({
 
     return (
       <div className="relative mx-auto w-full">
+        {/* Outer wrapper provides space for blur to extend into */}
         <div
-          ref={staticContainerRef}
           key={pageStartIndex}
-          className="text-2xl leading-relaxed select-none animate-fade-in overflow-hidden"
-          style={{
-            height: staticModeHeight,
-            padding: `${MAX_BLUR + BLUR_PADDING_BUFFER}px`,
-          }}
+          className="animate-fade-in"
+          style={{ padding: `${blurPadding}px` }}
         >
-          <div>
+          {/* Inner container clips content at bottom, allows blur to extend on other sides */}
+          <div
+            ref={staticContainerRef}
+            className="text-2xl leading-relaxed select-none"
+            style={{
+              height: staticModeHeight,
+              // clip-path clips content AND blur effects (unlike overflow:hidden)
+              // Extend outward on top/left/right for blur, clip at bottom for overflow
+              clipPath: `inset(-${blurPadding}px -${blurPadding}px 0 -${blurPadding}px)`,
+            }}
+          >
             {wordsToRender.map((word, index) => {
               const globalIndex = pageStartIndex + index
               const localDistance = globalIndex - currentWordIndex
@@ -213,7 +227,8 @@ export function TextDisplay({
           height: dynamicModeHeight,
           maskImage: `linear-gradient(to bottom, transparent 0%, black var(--top-fade, 0px), black calc(100% - var(--bottom-fade, 0px)), transparent 100%)`,
           WebkitMaskImage: `linear-gradient(to bottom, transparent 0%, black var(--top-fade, 0px), black calc(100% - var(--bottom-fade, 0px)), transparent 100%)`,
-          padding: `${MAX_BLUR + BLUR_PADDING_BUFFER}px`,
+          padding: `${blurPadding}px`,
+          boxSizing: 'content-box',
         }}
       >
         <div className="pb-16">

@@ -1,5 +1,6 @@
 import { supabase } from '../../../../lib/supabase'
 import { calculateComplexity } from '../../functions/textStat'
+import { logDbQuery } from '../logger'
 import type { TextInput, TextRecord } from './types'
 
 export type { TextInput }
@@ -21,6 +22,12 @@ export async function updateText(
     .eq('id', textId)
     .select()
     .single()
+
+  logDbQuery({
+    table: 'texts',
+    action: 'UPDATE',
+    errors: error ? error.message : undefined,
+  })
 
   if (error) {
     throw error

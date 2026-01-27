@@ -11,3 +11,7 @@ export const FADE_HEIGHT = 64
 export const MIN_TRANSITION_MS = 50
 // Maximum transition duration (ms)
 export const MAX_TRANSITION_MS = 400
+
+// Static mode: estimated words per line for render limit calculation
+// Conservative estimate to ensure overflow detection works across text widths
+export const WORDS_PER_LINE_ESTIMATE = 20

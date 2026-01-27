@@ -29,6 +29,7 @@ type OptionsBarProps = {
   onVisibleLinesChange: (lines: number) => void
   onInputBlockingChange?: (isBlocking: boolean) => void
   fixedText?: FixedTextInfo
+  currentTextComplexity?: number | null
 }
 
 // Extended HTML element type with noUiSlider API
@@ -63,6 +64,7 @@ export function OptionsBar({
   onVisibleLinesChange,
   onInputBlockingChange,
   fixedText,
+  currentTextComplexity,
 }: OptionsBarProps) {
   const [customWpm, setCustomWpm] = useState('')
   const [showCustomInput, setShowCustomInput] = useState(false)
@@ -319,7 +321,19 @@ export function OptionsBar({
                 : 'N/A'}
             </span>
           ) : (
-            <div ref={sliderRef} style={{ width: '200px' }}></div>
+            <div className="flex items-center gap-3">
+              <div ref={sliderRef} style={{ width: '200px' }}></div>
+              {/* Current text complexity indicator */}
+              {currentTextComplexity !== null &&
+                currentTextComplexity !== undefined && (
+                  <span className="text-sm text-primary font-medium whitespace-nowrap px-2 py-0.5 bg-primary/10 rounded">
+                    current:{' '}
+                    {currentTextComplexity >= MAX_COMPLEXITY
+                      ? `${MAX_COMPLEXITY}+`
+                      : currentTextComplexity}
+                  </span>
+                )}
+            </div>
           )}
         </div>
 

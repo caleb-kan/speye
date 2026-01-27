@@ -30,6 +30,9 @@ export function ReadingLayout() {
 
   const [inputBlocking, setInputBlocking] = useState(false)
   const [quizOpen, setQuizOpen] = useState(false)
+  const [currentTextComplexity, setCurrentTextComplexity] = useState<
+    number | null
+  >(null)
 
   return (
     <div
@@ -56,6 +59,7 @@ export function ReadingLayout() {
         onVisibleLinesChange={setVisibleLines}
         onInputBlockingChange={setInputBlocking}
         fixedText={fixedText}
+        currentTextComplexity={currentTextComplexity}
       />
 
       <div className="flex-1 flex flex-col items-center justify-center px-8">
@@ -76,6 +80,8 @@ export function ReadingLayout() {
               onTextWidthChange: setTextWidthPercent,
               quizOpen,
               setQuizOpen,
+              currentTextComplexity,
+              setCurrentTextComplexity,
             } satisfies ReadingContext
           }
         />

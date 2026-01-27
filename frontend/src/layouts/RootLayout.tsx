@@ -1,5 +1,6 @@
 import { Navbar } from '../components/navbar/Navbar'
 import { Header } from '../components/Header'
+import { Footer } from '../components/Footer'
 import { Outlet } from 'react-router-dom'
 
 export function RootLayout() {
@@ -19,6 +20,8 @@ export function RootLayout() {
         <main className="relative flex-1 flex flex-col">
           <Outlet />
         </main>
+
+        <Footer />
       </div>
     </div>
   )

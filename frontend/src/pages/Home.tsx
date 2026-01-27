@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Reader } from '../components/Reader'
 import { useTexts } from '../hooks/useTexts'
 import { useOutletContext, useLocation, useNavigate } from 'react-router-dom'
@@ -30,6 +30,7 @@ export function Home() {
     onTextWidthChange,
     quizOpen,
     setQuizOpen,
+    setCurrentTextComplexity,
   } = useOutletContext<ReadingContext>()
 
   const { currentText, loading, error, selectRandomText, refetch } = useTexts({
@@ -40,6 +41,10 @@ export function Home() {
 
   // Use library text if provided, otherwise use fetched text
   const textToRead = libraryText || currentText
+
+  useEffect(() => {
+    setCurrentTextComplexity(textToRead?.complexity ?? null)
+  }, [textToRead, setCurrentTextComplexity])
 
   const handleNewText = () => {
     if (libraryText) {

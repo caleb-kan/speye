@@ -20,4 +20,6 @@ export interface ReadingContext {
   onTextWidthChange: (percent: number) => void
   quizOpen: boolean
   setQuizOpen: (open: boolean) => void
+  currentTextComplexity: number | null
+  setCurrentTextComplexity: (complexity: number | null) => void
 }

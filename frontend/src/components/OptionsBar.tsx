@@ -293,10 +293,7 @@ export function OptionsBar({
               {currentTextComplexity !== null &&
                 currentTextComplexity !== undefined && (
                   <span className="text-sm text-primary font-medium whitespace-nowrap px-2 py-0.5 bg-primary/10 rounded">
-                    current:{' '}
-                    {currentTextComplexity >= MAX_COMPLEXITY
-                      ? `${MAX_COMPLEXITY}+`
-                      : currentTextComplexity}
+                    current: {currentTextComplexity}
                   </span>
                 )}
             </div>

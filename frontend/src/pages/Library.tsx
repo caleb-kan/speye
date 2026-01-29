@@ -1,6 +1,16 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, BookOpen, Trash2, Play, Lock, Globe, Pencil } from 'lucide-react'
+import {
+  Plus,
+  BookOpen,
+  Trash2,
+  Play,
+  Lock,
+  Globe,
+  Pencil,
+  Search,
+  X,
+} from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useAsyncOperation } from '../hooks/useAsyncOperation'
 import { UploadTextModal } from '../components/UploadTextModal'
@@ -15,8 +25,21 @@ import type { TextInput } from '../components/TextFormModal'
 import { SUCCESS_MESSAGE_DURATION_MS } from '../constants/ui'
 import { generateTitle } from '../services/generateTitle'
 import type { Text, TextPreview } from '../types/database'
+import noUiSlider, { type API } from 'nouislider'
+import { MIN_COMPLEXITY, MAX_COMPLEXITY } from '../constants/complexity'
 
 type LibraryTab = 'private' | 'public'
+
+interface FilterOptions {
+  genre: 'all' | 'fiction' | 'non-fiction'
+  minComplexity: number | null
+  maxComplexity: number | null
+}
+
+// Extended HTML element type with noUiSlider API
+interface SliderElement extends HTMLDivElement {
+  noUiSlider?: API
+}
 
 export function Library() {
   const { user } = useAuth()
@@ -25,6 +48,13 @@ export function Library() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [filters, setFilters] = useState<FilterOptions>({
+    genre: 'all',
+    minComplexity: null,
+    maxComplexity: null,
+  })
+  const [showFilters, setShowFilters] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState<{
     isOpen: boolean
     textId: string | null
@@ -34,7 +64,8 @@ export function Library() {
     text: Text | null
   }>({ isOpen: false, text: null })
 
-  // Use TextPreview for list views
+  const complexitySliderRef = useRef<SliderElement>(null)
+
   const {
     data: privateTexts,
     loading: privateLoading,
@@ -73,6 +104,124 @@ export function Library() {
     },
     [publicTexts, executePublic]
   )
+
+  // Initialize complexity slider
+  useEffect(() => {
+    if (!showFilters) return
+    if (
+      !complexitySliderRef.current ||
+      complexitySliderRef.current.hasChildNodes()
+    )
+      return
+
+    const minValue = filters.minComplexity ?? MIN_COMPLEXITY
+    const maxValue = filters.maxComplexity ?? MAX_COMPLEXITY
+
+    noUiSlider.create(complexitySliderRef.current, {
+      start: [minValue, maxValue],
+      connect: true,
+      behaviour: 'unconstrained-tap',
+      range: {
+        min: MIN_COMPLEXITY,
+        max: MAX_COMPLEXITY,
+      },
+      tooltips: true,
+      step: 1,
+      format: {
+        to: (value) => {
+          const intValue = Math.round(value)
+          if (intValue === MAX_COMPLEXITY) {
+            return `${MAX_COMPLEXITY}+`
+          } else {
+            return intValue.toString()
+          }
+        },
+        from: (value) => {
+          return Number(value)
+        },
+      },
+    })
+
+    const slider = complexitySliderRef.current.noUiSlider
+
+    slider?.on('set', (values: (string | number)[]) => {
+      const val0 = parseInt(String(values[0]))
+      const val1 = parseInt(String(values[1]))
+      const minVal = Math.min(val0, val1)
+      const maxVal = Math.max(val0, val1)
+      setFilters((prev) => ({
+        ...prev,
+        minComplexity: minVal,
+        maxComplexity: maxVal,
+      }))
+    })
+
+    return () => {
+      slider?.destroy()
+    }
+  }, [showFilters])
+
+  // Filter and search texts
+  const filterAndSearchTexts = useCallback(
+    (texts: TextPreview[] | null): TextPreview[] => {
+      if (!texts) return []
+
+      return texts.filter((text) => {
+        // Search filter
+        const searchLower = searchQuery.toLowerCase()
+        const matchesSearch =
+          !searchQuery ||
+          (text.title?.toLowerCase().includes(searchLower) ?? false) ||
+          text.preview.toLowerCase().includes(searchLower)
+
+        if (!matchesSearch) return false
+
+        // Genre filter
+        if (filters.genre !== 'all') {
+          const isFiction = filters.genre === 'fiction'
+          if (text.fiction !== isFiction) return false
+        }
+
+        // Complexity filter
+        if (text.complexity !== null) {
+          if (
+            filters.minComplexity !== null &&
+            text.complexity < filters.minComplexity
+          ) {
+            return false
+          }
+          if (
+            filters.maxComplexity !== null &&
+            text.complexity > filters.maxComplexity
+          ) {
+            return false
+          }
+        }
+
+        return true
+      })
+    },
+    [searchQuery, filters]
+  )
+
+  const handleClearFilters = () => {
+    setSearchQuery('')
+    setFilters({
+      genre: 'all',
+      minComplexity: null,
+      maxComplexity: null,
+    })
+
+    // Reset slider
+    const slider = complexitySliderRef.current?.noUiSlider
+    if (slider) {
+      slider.set([MIN_COMPLEXITY, MAX_COMPLEXITY])
+    }
+  }
+
+  const handleResetSearch = () => {
+    setSearchQuery('')
+  }
 
   useEffect(() => {
     if (activeTab === 'private' && user) {
@@ -192,7 +341,6 @@ export function Library() {
 
     const updatedTextRecord = await updateText(textId, { ...data, title })
 
-    // Convert updated TextRecord back to TextPreview for the list
     const updatedPreview: TextPreview = {
       id: updatedTextRecord.id,
       title: updatedTextRecord.title,
@@ -244,6 +392,13 @@ export function Library() {
   const isInitialLoad =
     (activeTab === 'private' && privateTexts === null) ||
     (activeTab === 'public' && publicTexts === null)
+
+  const filteredTexts = filterAndSearchTexts(currentTexts)
+  const hasActiveFilters =
+    searchQuery ||
+    filters.genre !== 'all' ||
+    filters.minComplexity !== null ||
+    filters.maxComplexity !== null
 
   return (
     <div className="flex flex-1 flex-col items-center w-full px-8 py-6">
@@ -309,6 +464,112 @@ export function Library() {
           </div>
         )}
 
+        {/* Search and Filter Section */}
+        {!isInitialLoad && (
+          <div className="mb-6 space-y-4">
+            {/* Search Bar */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-text-secondary" />
+              <input
+                type="text"
+                placeholder="Search texts by title or content..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-10 py-2.5 bg-bg border border-text-secondary/20 rounded-lg text-text placeholder-text-secondary/60 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={handleResetSearch}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-text-secondary hover:text-text"
+                  aria-label="Clear search"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              )}
+            </div>
+
+            {/* Filter Toggle and Active Filters */}
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => setShowFilters(!showFilters)}
+                className="px-3 py-2 text-sm font-medium text-primary hover:bg-primary/10 rounded-lg transition-colors"
+              >
+                {showFilters ? 'Hide Filters' : 'Show Filters'}
+              </button>
+
+              {hasActiveFilters && (
+                <button
+                  type="button"
+                  onClick={handleClearFilters}
+                  className="px-3 py-2 text-sm text-text-secondary hover:text-primary transition-colors"
+                >
+                  Clear all filters
+                </button>
+              )}
+            </div>
+
+            {/* Filter Panel */}
+            {showFilters && (
+              <div className="p-4 bg-bg-secondary rounded-lg border border-text-secondary/20">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Genre Filter */}
+                  <div>
+                    <label className="block text-sm font-medium text-text mb-2">
+                      Genre
+                    </label>
+                    <div className="flex flex-col gap-2">
+                      {(['all', 'fiction', 'non-fiction'] as const).map(
+                        (genre) => (
+                          <button
+                            key={genre}
+                            type="button"
+                            onClick={() => setFilters({ ...filters, genre })}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                              filters.genre === genre
+                                ? 'bg-primary text-bg'
+                                : 'bg-bg border border-text-secondary/20 text-text-secondary hover:text-text'
+                            }`}
+                          >
+                            {genre === 'all'
+                              ? 'All'
+                              : genre === 'fiction'
+                                ? 'Fiction'
+                                : 'Non-Fiction'}
+                          </button>
+                        )
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Complexity Filter */}
+                  <div>
+                    <label className="block text-sm font-medium text-text mb-2">
+                      Complexity Range
+                    </label>
+                    <div className="flex items-center pt-6">
+                      <div
+                        ref={complexitySliderRef}
+                        style={{ width: '100%' }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Results count */}
+            {hasActiveFilters && (
+              <p className="text-sm text-text-secondary">
+                Found {filteredTexts.length} text
+                {filteredTexts.length !== 1 ? 's' : ''}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Main Content */}
         {activeTab === 'private' && !user ? (
           <div className="text-center py-8">
             <p className="text-text-secondary mb-2">
@@ -322,9 +583,9 @@ export function Library() {
           <div className="text-center py-8">
             <p className="text-text-secondary">Loading texts...</p>
           </div>
-        ) : currentTexts && currentTexts.length > 0 ? (
+        ) : filteredTexts.length > 0 ? (
           <div className="space-y-4">
-            {currentTexts.map((text) => (
+            {filteredTexts.map((text) => (
               <div
                 key={text.id}
                 className="p-4 bg-bg-secondary rounded-lg border border-text-secondary/20"
@@ -390,7 +651,20 @@ export function Library() {
           </div>
         ) : (
           <div className="text-center py-8">
-            {activeTab === 'private' ? (
+            {hasActiveFilters ? (
+              <>
+                <p className="text-text-secondary mb-2">
+                  No texts match your search criteria.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleClearFilters}
+                  className="text-primary hover:underline"
+                >
+                  Clear filters
+                </button>
+              </>
+            ) : activeTab === 'private' ? (
               <>
                 <p className="text-text-secondary mb-2">
                   Your uploaded texts will appear here.

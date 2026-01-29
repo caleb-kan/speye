@@ -30,6 +30,7 @@ export function Home() {
     onTextWidthChange,
     quizOpen,
     setQuizOpen,
+    currentTextComplexity,
     setCurrentTextComplexity,
   } = useOutletContext<ReadingContext>()
 
@@ -37,6 +38,7 @@ export function Home() {
     fiction,
     complexityMin,
     complexityMax,
+    currentTextComplexity,
   })
 
   // Use library text if provided, otherwise use fetched text

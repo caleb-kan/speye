@@ -6,12 +6,14 @@ type UseTextsOptions = {
   fiction: boolean
   complexityMin: number
   complexityMax: number
+  currentTextComplexity: number | null
 }
 
 export function useTexts({
   fiction,
   complexityMin,
   complexityMax,
+  currentTextComplexity,
 }: UseTextsOptions) {
   const [randomText, setRandomText] = useState<Text | null>(null)
   const [loading, setLoading] = useState(true)
@@ -41,8 +43,15 @@ export function useTexts({
   }, [fiction, complexityMin, complexityMax])
 
   useEffect(() => {
-    fetchRandomText()
-  }, [fetchRandomText])
+    // only fetch if current complexity is not within new range
+    if (
+      currentTextComplexity === null ||
+      currentTextComplexity < complexityMin ||
+      currentTextComplexity > complexityMax
+    ) {
+      fetchRandomText()
+    }
+  }, [complexityMin, complexityMax, currentTextComplexity, fetchRandomText])
 
   return {
     randomText,

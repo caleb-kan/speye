@@ -26,11 +26,9 @@ const mockUseTexts = vi.mocked(useTextsModule.useTexts)
 
 const mockDefaultUseTexts = () => {
   mockUseTexts.mockReturnValue({
-    texts: [],
-    currentText: null,
+    randomText: null,
     loading: false,
     error: null,
-    selectRandomText: vi.fn(),
     refetch: vi.fn(),
   })
 }
@@ -130,6 +128,7 @@ describe('OptionsBar', () => {
         fiction: false,
         complexityMin: DEFAULT_MIN_COMPLEXITY,
         complexityMax: DEFAULT_MAX_COMPLEXITY,
+        currentTextComplexity: null,
       })
     })
 
@@ -143,6 +142,7 @@ describe('OptionsBar', () => {
         fiction: true,
         complexityMin: DEFAULT_MIN_COMPLEXITY,
         complexityMax: DEFAULT_MAX_COMPLEXITY,
+        currentTextComplexity: null,
       })
     })
   })

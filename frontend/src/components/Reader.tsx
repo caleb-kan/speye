@@ -43,6 +43,7 @@ export function Reader({
     progress,
     togglePlayPause,
     restart,
+    hasText,
   } = useReader({ text, wpm, disabled })
 
   useEffect(() => {
@@ -50,6 +51,20 @@ export function Reader({
       onComplete(isComplete)
     }
   }, [isComplete, onComplete])
+
+  if (!hasText) {
+    return (
+      <div className="w-full flex flex-col items-center">
+        <div className="mx-auto w-full h-48 flex items-center justify-center text-center text-primary">
+          <p>
+            No text available for the selected filters.
+            <br />
+            Try adjusting complexity or fiction settings.
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="w-full flex flex-col items-center">

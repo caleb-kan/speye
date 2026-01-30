@@ -13,9 +13,13 @@ export function useReader({ text, wpm, disabled = false }: UseReaderOptions) {
   const intervalRef = useRef<number | null>(null)
 
   const words = useMemo(
-    () => text.split(/\s+/).filter((word) => word.length > 0),
+    () =>
+      typeof text === 'string' && text.trim().length > 0
+        ? text.split(/\s+/).filter((word) => word.length > 0)
+        : [],
     [text]
   )
+  const hasText = words.length > 0
   const totalWords = words.length
   const progress =
     totalWords > 0 ? ((currentWordIndex + 1) / totalWords) * 100 : 0
@@ -97,5 +101,6 @@ export function useReader({ text, wpm, disabled = false }: UseReaderOptions) {
     pause,
     togglePlayPause,
     restart,
+    hasText,
   }
 }

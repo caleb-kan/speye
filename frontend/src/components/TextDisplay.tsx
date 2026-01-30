@@ -56,7 +56,10 @@ export function TextDisplay({
   const activeWordRef = useRef<HTMLSpanElement>(null)
 
   const words = useMemo(
-    () => text.split(/\s+/).filter((w) => w.length > 0),
+    () =>
+      typeof text === 'string' && text.trim().length > 0
+        ? text.split(/\s+/).filter((word) => word.length > 0)
+        : [],
     [text]
   )
 
@@ -151,6 +154,14 @@ export function TextDisplay({
       queueMicrotask(() => setPageStartIndex(currentWordIndex))
     }
   }, [currentWordIndex, scrolling, pageStartIndex, needsBackwardsFlip])
+
+  if (words.length === 0) {
+    return (
+      <div className="mx-auto w-full h-48 flex items-center justify-center text-center text-text-secondary">
+        <p>No text content available.</p>
+      </div>
+    )
+  }
 
   if (scrolling === 'static') {
     // Render enough words for overflow detection

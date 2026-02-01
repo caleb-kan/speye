@@ -11,6 +11,20 @@ export function Navbar() {
 
   const isLoginActive = location.pathname === '/login'
   const isSettingsActive = location.pathname === '/settings'
+  const isInAdaptiveMode = location.pathname === '/adaptive'
+
+  // When navigating away from adaptive mode, force a full page reload
+  // to ensure WebGazer is properly cleaned up
+  const handleAdaptiveModeClick = (e: React.MouseEvent, targetPath: string) => {
+    if (isInAdaptiveMode && targetPath !== '/adaptive') {
+      e.preventDefault()
+      const basePath = import.meta.env.BASE_URL || '/'
+      const fullPath = basePath.endsWith('/')
+        ? `${basePath}${targetPath.startsWith('/') ? targetPath.slice(1) : targetPath}`
+        : `${basePath}${targetPath}`
+      window.location.href = fullPath
+    }
+  }
 
   return (
     <nav
@@ -41,6 +55,7 @@ export function Navbar() {
       ) : user ? (
         <Link
           to="/settings"
+          onClick={(e) => handleAdaptiveModeClick(e, '/settings')}
           aria-label="Profile settings"
           aria-current={isSettingsActive ? 'page' : undefined}
           className={`
@@ -61,6 +76,7 @@ export function Navbar() {
       ) : (
         <Link
           to="/login"
+          onClick={(e) => handleAdaptiveModeClick(e, '/login')}
           aria-label="Log in"
           aria-current={isLoginActive ? 'page' : undefined}
           className={`

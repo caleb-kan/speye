@@ -1,10 +1,10 @@
 import { useEffect } from 'react'
 import { TextDisplay } from './TextDisplay'
 import { ReadingControls } from './ReadingControls'
+import { TextTitle } from './TextTitle'
 import { useReader } from '../hooks/useReader'
 import type { Scrolling } from '../types/reading'
 import { Resizable } from './Resizable'
-import { ExternalLink } from 'lucide-react'
 
 type ReaderProps = {
   title: string | null
@@ -67,64 +67,45 @@ export function Reader({
   }
 
   return (
-    <div className="w-full flex flex-col items-center">
-      {/* Optional Text Title */}
+    <div className="flex flex-col flex-1 w-full">
+      {/* Title with top padding to center between options bar and text */}
       {title && (
-        <div>
-          {/* Clickable link redirecting to source */}
-          <h2 className="text-2xl font-semibold mb-2 text-center">
-            {source ? (
-              <a
-                href={source}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary underline"
-              >
-                <div className="flex items-center justify-center gap-2">
-                  {title}
-                  <ExternalLink />
-                </div>
-              </a>
-            ) : (
-              title
-            )}
-          </h2>
-
-          {/* Spacer */}
-          <div className="h-10 shrink-0" />
+        <div className="pt-8">
+          <TextTitle title={title} source={source} />
         </div>
       )}
 
-      {/* Text Display */}
-      <Resizable
-        widthPercent={textWidthPercent}
-        onWidthChange={onTextWidthChange}
-      >
-        <TextDisplay
-          text={text}
-          currentWordIndex={currentWordIndex}
+      {/* Text display - flex-1 to fill space, centered within */}
+      <div className="flex-1 flex items-center justify-center">
+        <Resizable
+          widthPercent={textWidthPercent}
+          onWidthChange={onTextWidthChange}
+        >
+          <TextDisplay
+            text={text}
+            currentWordIndex={currentWordIndex}
+            isPlaying={isPlaying}
+            scrolling={scrolling}
+            blurEnabled={blurEnabled}
+            wpm={wpm}
+            visibleLines={visibleLines}
+          />
+        </Resizable>
+      </div>
+
+      {/* Controls at bottom */}
+      <div className="py-4">
+        <ReadingControls
           isPlaying={isPlaying}
-          scrolling={scrolling}
-          blurEnabled={blurEnabled}
-          wpm={wpm}
-          visibleLines={visibleLines}
+          onPlayPause={togglePlayPause}
+          onRestart={restart}
+          onNewText={onNewText}
+          progress={progress}
+          currentWord={currentWordIndex + 1}
+          totalWords={totalWords}
+          disabled={disabled}
         />
-      </Resizable>
-
-      {/* Spacer */}
-      <div className="h-10 shrink-0" />
-
-      {/* Controls */}
-      <ReadingControls
-        isPlaying={isPlaying}
-        onPlayPause={togglePlayPause}
-        onRestart={restart}
-        onNewText={onNewText}
-        progress={progress}
-        currentWord={currentWordIndex + 1}
-        totalWords={totalWords}
-        disabled={disabled}
-      />
+      </div>
     </div>
   )
 }

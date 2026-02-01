@@ -9,10 +9,12 @@ import { Library } from './pages/Library'
 import { Quiz } from './pages/Quiz'
 import { NotFound } from './pages/NotFound'
 import { Login } from './pages/Login'
+import { Adaptive } from './pages/Adaptive'
 import { Privacy } from './pages/Privacy'
 import { Terms } from './pages/Terms'
 import { RootLayout } from './layouts/RootLayout'
 import { ReadingLayout } from './layouts/ReadingLayout'
+import { AdaptiveLayout } from './layouts/AdaptiveLayout'
 
 function App() {
   return (
@@ -28,6 +30,11 @@ function App() {
                   {/* Pages with OptionsBar */}
                   <Route element={<ReadingLayout />}>
                     <Route path="home" element={<Home />} />
+                  </Route>
+
+                  {/* Adaptive reading mode */}
+                  <Route element={<AdaptiveLayout />}>
+                    <Route path="adaptive" element={<Adaptive />} />
                   </Route>
 
                   {/* Pages without OptionsBar */}

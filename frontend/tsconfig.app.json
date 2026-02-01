@@ -16,6 +16,12 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
+    /* Path aliases (must match vite.config.ts) */
+    "baseUrl": ".",
+    "paths": {
+      "webgazer": ["./src/lib/webgazer-local/webgazer.d.ts"]
+    },
+
     /* Linting */
     "strict": true,
     "noUnusedLocals": true,

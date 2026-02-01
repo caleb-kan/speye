@@ -7,6 +7,14 @@ import '@testing-library/jest-dom'
 import { renderWithReadingLayout } from './renderLayouts.tsx'
 
 vi.mock('../hooks/useTexts')
+vi.mock('../hooks/useAuth', () => ({
+  useAuth: () => ({
+    user: null,
+    session: null,
+    loading: false,
+    signOut: vi.fn(),
+  }),
+}))
 Element.prototype.scrollTo = vi.fn()
 window.scrollTo = vi.fn()
 
@@ -22,6 +30,7 @@ const mockUseTexts = vi.mocked(useTextsModule.useTexts)
 
 const createMockText = (content: string): Text => ({
   id: '1',
+  title: 'Test Title',
   content,
   uploaded_at: new Date().toISOString(),
   owner_id: null,
@@ -29,6 +38,7 @@ const createMockText = (content: string): Text => ({
   fiction: false,
   category: null,
   complexity: null,
+  source: null,
 })
 
 describe('Reader', () => {

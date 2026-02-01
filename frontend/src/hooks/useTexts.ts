@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import type { Text } from '../types/database'
 import { getRandomText } from '../../../backend/supabase/database/texts/getTexts'
 
@@ -19,50 +19,76 @@ export function useTexts({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchRandomText = useCallback(async () => {
-    try {
-      setLoading(true)
-      setError(null)
+  // Track previous values to detect changes
+  const prevFictionRef = useRef<boolean | null>(null)
+  // Track fetch request ID to handle race conditions
+  const fetchIdRef = useRef(0)
 
-      const randomText = await getRandomText({
-        fiction,
-        complexityMin,
-        complexityMax,
-      })
+  const fetchRandomText = useCallback(
+    async (requestId: number) => {
+      try {
+        setLoading(true)
+        setError(null)
 
-      if (randomText) {
-        setRandomText(randomText)
-      } else {
-        setRandomText(null)
+        const text = await getRandomText({
+          fiction,
+          complexityMin,
+          complexityMax,
+        })
+
+        // Only update state if this is still the latest request
+        if (fetchIdRef.current === requestId) {
+          setRandomText(text ?? null)
+          setLoading(false)
+        }
+      } catch (err) {
+        // Only update state if this is still the latest request
+        if (fetchIdRef.current === requestId) {
+          setError(err instanceof Error ? err.message : 'Failed to fetch texts')
+          setLoading(false)
+        }
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch texts')
-    } finally {
-      setLoading(false)
-    }
-  }, [fiction, complexityMin, complexityMax])
+    },
+    [fiction, complexityMin, complexityMax]
+  )
 
+  // Public refetch function that can be called externally
+  const refetch = useCallback(() => {
+    const requestId = ++fetchIdRef.current
+    fetchRandomText(requestId)
+  }, [fetchRandomText])
+
+  // Single effect for all fetch logic
   useEffect(() => {
-    // only fetch if current complexity is not within new range
-    if (
+    const isFirstRun = prevFictionRef.current === null
+    const fictionChanged = !isFirstRun && prevFictionRef.current !== fiction
+    prevFictionRef.current = fiction
+
+    // Determine if we need to fetch
+    const needsFetch =
+      isFirstRun ||
+      fictionChanged ||
       currentTextComplexity === null ||
       currentTextComplexity < complexityMin ||
       currentTextComplexity > complexityMax
-    ) {
-      fetchRandomText()
-    }
-  }, [complexityMin, complexityMax, currentTextComplexity, fetchRandomText])
 
-  useEffect(() => {
-    // fetch new text when fiction option changes
-    fetchRandomText()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fiction])
+    if (needsFetch) {
+      // Increment fetch ID to invalidate any in-flight requests
+      const requestId = ++fetchIdRef.current
+      fetchRandomText(requestId)
+    }
+  }, [
+    fiction,
+    complexityMin,
+    complexityMax,
+    currentTextComplexity,
+    fetchRandomText,
+  ])
 
   return {
     randomText,
     loading,
     error,
-    refetch: fetchRandomText,
+    refetch,
   }
 }

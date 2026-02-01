@@ -1,9 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
+import type { LocationState } from '../types'
 import type { Mode, Scrolling, FixedTextInfo } from '../types'
 import noUiSlider, { type API } from 'nouislider'
 import { MIN_COMPLEXITY, MAX_COMPLEXITY } from '../constants/complexity'
 import { WPM_PRESETS, MIN_WPM, MAX_WPM } from '../constants/wpm'
 import { MIN_VISIBLE_LINES, MAX_VISIBLE_LINES } from '../constants/visibleLines'
+import { useAuth } from '../hooks/useAuth'
 import { Lock } from 'lucide-react'
 
 type OptionsBarProps = {
@@ -26,6 +29,8 @@ type OptionsBarProps = {
   onInputBlockingChange?: (isBlocking: boolean) => void
   fixedText?: FixedTextInfo
   currentTextComplexity?: number | null
+  /** When true, shows simplified options bar for adaptive mode */
+  isAdaptiveMode?: boolean
 }
 
 // Extended HTML element type with noUiSlider API
@@ -53,7 +58,16 @@ export function OptionsBar({
   onInputBlockingChange,
   fixedText,
   currentTextComplexity,
+  isAdaptiveMode = false,
 }: OptionsBarProps) {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const { user } = useAuth()
+
+  // Get library text from location state (if reading a library text)
+  const locationState = location.state as LocationState | null
+  const libraryText = locationState?.libraryText
+
   const [customWpm, setCustomWpm] = useState('')
   const [showCustomInput, setShowCustomInput] = useState(false)
   const [isWpmInvalid, setIsWpmInvalid] = useState(false)
@@ -195,31 +209,70 @@ export function OptionsBar({
   }
 
   return (
-    <div className="top-24 left-0 right-0 z-40 bg-bg">
+    <div className="z-40 bg-bg">
       <div className="flex flex-wrap items-center justify-center gap-6 py-4 text-sm">
         {/* Mode Selection */}
         <div className="flex items-center gap-2">
           <span className="text-text-secondary mr-1">mode:</span>
           <button
-            onClick={() => onModeChange('standard')}
+            onClick={() => {
+              if (isAdaptiveMode) {
+                // Use timestamp in state to force remount when switching from adaptive
+                navigate('/home', {
+                  state: libraryText
+                    ? { libraryText, _ts: Date.now() }
+                    : { _ts: Date.now() },
+                  replace: true,
+                })
+              } else {
+                onModeChange('standard')
+              }
+            }}
             className={`px-3 py-1.5 transition-colors ${
-              mode === 'standard'
+              mode === 'standard' && !isAdaptiveMode
                 ? 'text-primary'
                 : 'text-text-secondary hover:text-text'
             }`}
             aria-label="Standard mode"
-            aria-pressed={mode === 'standard'}
+            aria-pressed={mode === 'standard' && !isAdaptiveMode}
           >
             standard
           </button>
           <button
-            disabled
-            className="px-3 py-1.5 rounded text-text-secondary opacity-50 cursor-not-allowed flex items-center gap-1"
-            title="Coming soon - requires sign in"
-            aria-label="Adaptive mode (coming soon, requires sign in)"
+            onClick={() => {
+              if (!isAdaptiveMode && user) {
+                // Pass library text along if present
+                navigate('/adaptive', {
+                  state: libraryText ? { libraryText } : null,
+                })
+              }
+            }}
+            disabled={!user && !isAdaptiveMode}
+            className={`px-3 py-1.5 transition-colors flex items-center gap-1 ${
+              isAdaptiveMode
+                ? 'text-primary'
+                : !user
+                  ? 'text-text-secondary opacity-50 cursor-not-allowed'
+                  : 'text-text-secondary hover:text-text'
+            }`}
+            title={
+              isAdaptiveMode
+                ? 'Currently in adaptive mode'
+                : !user
+                  ? 'Requires sign in'
+                  : 'Adaptive reading mode with eye tracking'
+            }
+            aria-label={
+              isAdaptiveMode
+                ? 'Adaptive mode (active)'
+                : !user
+                  ? 'Adaptive mode (requires sign in)'
+                  : 'Adaptive mode'
+            }
+            aria-pressed={isAdaptiveMode}
           >
             adaptive
-            <Lock size={12} />
+            {!user && !isAdaptiveMode && <Lock size={12} />}
           </button>
           <button
             disabled
@@ -300,139 +353,144 @@ export function OptionsBar({
           )}
         </div>
 
-        {/* Divider */}
-        <div className="w-px h-6 bg-text-secondary opacity-30" />
+        {/* Standard mode options - hidden in adaptive mode */}
+        {!isAdaptiveMode && (
+          <>
+            {/* Divider */}
+            <div className="w-px h-6 bg-text-secondary opacity-30" />
 
-        {/* Scrolling Selection */}
-        <div className="flex items-center gap-2">
-          <span className="text-text-secondary mr-1">scrolling:</span>
-          <button
-            onClick={() => onScrollingChange('dynamic')}
-            className={`px-3 py-1.5 transition-colors ${
-              scrolling === 'dynamic'
-                ? 'text-primary'
-                : 'text-text-secondary hover:text-text'
-            }`}
-            aria-label="Dynamic scrolling"
-            aria-pressed={scrolling === 'dynamic'}
-          >
-            dynamic
-          </button>
-          <button
-            onClick={() => onScrollingChange('static')}
-            className={`px-3 py-1.5 transition-colors ${
-              scrolling === 'static'
-                ? 'text-primary'
-                : 'text-text-secondary hover:text-text'
-            }`}
-            aria-label="Static scrolling"
-            aria-pressed={scrolling === 'static'}
-          >
-            static
-          </button>
-        </div>
-
-        {/* Divider */}
-        <div className="w-px h-6 bg-text-secondary opacity-30" />
-
-        {/* Blur Toggle */}
-        <div className="flex items-center gap-2">
-          <span className="text-text-secondary mr-1">blur:</span>
-          <button
-            onClick={() => onBlurChange(!blurEnabled)}
-            className={`px-3 py-1.5 transition-colors ${
-              blurEnabled
-                ? 'text-primary'
-                : 'text-text-secondary hover:text-text'
-            }`}
-            aria-label={`Blur unread text: ${blurEnabled ? 'enabled' : 'disabled'}`}
-            aria-pressed={blurEnabled}
-          >
-            {blurEnabled ? 'on' : 'off'}
-          </button>
-        </div>
-
-        {/* Divider */}
-        <div className="w-px h-6 bg-text-secondary opacity-30" />
-
-        {/* WPM Selection */}
-        <div className="flex items-center gap-2">
-          <span className="text-text-secondary mr-1">wpm:</span>
-          {WPM_PRESETS.map((preset) => (
-            <button
-              key={preset}
-              onClick={() => {
-                onWpmChange(preset)
-                setShowCustomInput(false)
-                setCustomWpm('')
-                setIsWpmInvalid(false)
-              }}
-              className={`px-2 py-1 transition-colors ${
-                wpm === preset
-                  ? 'text-primary'
-                  : 'text-text-secondary hover:text-text'
-              }`}
-              aria-label={`Set reading speed to ${preset} words per minute`}
-              aria-pressed={wpm === preset}
-            >
-              {preset}
-            </button>
-          ))}
-
-          {/* Custom WPM */}
-          <button
-            onClick={() => !showCustomInput && setShowCustomInput(true)}
-            className={`flex items-center px-2 py-1 transition-colors ${
-              isWpmInvalid
-                ? 'text-error animate-shake'
-                : !WPM_PRESETS.includes(wpm) || showCustomInput
-                  ? 'text-primary'
-                  : 'text-text-secondary hover:text-text'
-            }`}
-            title={
-              showCustomInput
-                ? isWpmInvalid
-                  ? `Value must be between ${MIN_WPM} and ${MAX_WPM}`
-                  : undefined
-                : !WPM_PRESETS.includes(wpm)
-                  ? `Click to change custom WPM (currently ${wpm})`
-                  : 'Click to set a custom WPM'
-            }
-            aria-label="Enter custom words per minute value"
-          >
-            <span>custom:&nbsp;</span>
-            {showCustomInput ? (
-              <input
-                type="text"
-                inputMode="numeric"
-                value={customWpm}
-                onChange={handleCustomWpmChange}
-                onKeyDown={handleKeyDown}
-                onBlur={handleCustomWpmSubmit}
-                autoFocus
-                aria-label="Custom words per minute value"
-                aria-invalid={isWpmInvalid}
-                className={`bg-transparent border-b focus:outline-none text-center ${
-                  isWpmInvalid ? 'border-error' : 'border-current'
+            {/* Scrolling Selection */}
+            <div className="flex items-center gap-2">
+              <span className="text-text-secondary mr-1">scrolling:</span>
+              <button
+                onClick={() => onScrollingChange('dynamic')}
+                className={`px-3 py-1.5 transition-colors ${
+                  scrolling === 'dynamic'
+                    ? 'text-primary'
+                    : 'text-text-secondary hover:text-text'
                 }`}
-                style={{ width: `${Math.max(2, customWpm.length || 1)}ch` }}
-              />
-            ) : (
-              <span className="border-b border-current inline-block min-w-[2ch]">
-                {!WPM_PRESETS.includes(wpm) ? wpm : '\u00A0'}
-              </span>
-            )}
-          </button>
-        </div>
+                aria-label="Dynamic scrolling"
+                aria-pressed={scrolling === 'dynamic'}
+              >
+                dynamic
+              </button>
+              <button
+                onClick={() => onScrollingChange('static')}
+                className={`px-3 py-1.5 transition-colors ${
+                  scrolling === 'static'
+                    ? 'text-primary'
+                    : 'text-text-secondary hover:text-text'
+                }`}
+                aria-label="Static scrolling"
+                aria-pressed={scrolling === 'static'}
+              >
+                static
+              </button>
+            </div>
 
-        {/* Divider */}
-        <div className="w-px h-6 bg-text-secondary opacity-30" />
+            {/* Divider */}
+            <div className="w-px h-6 bg-text-secondary opacity-30" />
 
-        {/* Visible Lines Selection */}
-        <div className="flex items-center gap-2">
-          <span className="text-text-secondary mr-1">visible lines:</span>
-          <div ref={visibleLinesSliderRef} style={{ width: '120px' }}></div>
-        </div>
+            {/* Blur Toggle */}
+            <div className="flex items-center gap-2">
+              <span className="text-text-secondary mr-1">blur:</span>
+              <button
+                onClick={() => onBlurChange(!blurEnabled)}
+                className={`px-3 py-1.5 transition-colors ${
+                  blurEnabled
+                    ? 'text-primary'
+                    : 'text-text-secondary hover:text-text'
+                }`}
+                aria-label={`Blur unread text: ${blurEnabled ? 'enabled' : 'disabled'}`}
+                aria-pressed={blurEnabled}
+              >
+                {blurEnabled ? 'on' : 'off'}
+              </button>
+            </div>
+
+            {/* Divider */}
+            <div className="w-px h-6 bg-text-secondary opacity-30" />
+
+            {/* WPM Selection */}
+            <div className="flex items-center gap-2">
+              <span className="text-text-secondary mr-1">wpm:</span>
+              {WPM_PRESETS.map((preset) => (
+                <button
+                  key={preset}
+                  onClick={() => {
+                    onWpmChange(preset)
+                    setShowCustomInput(false)
+                    setCustomWpm('')
+                    setIsWpmInvalid(false)
+                  }}
+                  className={`px-2 py-1 transition-colors ${
+                    wpm === preset
+                      ? 'text-primary'
+                      : 'text-text-secondary hover:text-text'
+                  }`}
+                  aria-label={`Set reading speed to ${preset} words per minute`}
+                  aria-pressed={wpm === preset}
+                >
+                  {preset}
+                </button>
+              ))}
+
+              {/* Custom WPM */}
+              <button
+                onClick={() => !showCustomInput && setShowCustomInput(true)}
+                className={`flex items-center px-2 py-1 transition-colors ${
+                  isWpmInvalid
+                    ? 'text-error animate-shake'
+                    : !WPM_PRESETS.includes(wpm) || showCustomInput
+                      ? 'text-primary'
+                      : 'text-text-secondary hover:text-text'
+                }`}
+                title={
+                  showCustomInput
+                    ? isWpmInvalid
+                      ? `Value must be between ${MIN_WPM} and ${MAX_WPM}`
+                      : undefined
+                    : !WPM_PRESETS.includes(wpm)
+                      ? `Click to change custom WPM (currently ${wpm})`
+                      : 'Click to set a custom WPM'
+                }
+                aria-label="Enter custom words per minute value"
+              >
+                <span>custom:&nbsp;</span>
+                {showCustomInput ? (
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={customWpm}
+                    onChange={handleCustomWpmChange}
+                    onKeyDown={handleKeyDown}
+                    onBlur={handleCustomWpmSubmit}
+                    autoFocus
+                    aria-label="Custom words per minute value"
+                    aria-invalid={isWpmInvalid}
+                    className={`bg-transparent border-b focus:outline-none text-center ${
+                      isWpmInvalid ? 'border-error' : 'border-current'
+                    }`}
+                    style={{ width: `${Math.max(2, customWpm.length || 1)}ch` }}
+                  />
+                ) : (
+                  <span className="border-b border-current inline-block min-w-[2ch]">
+                    {!WPM_PRESETS.includes(wpm) ? wpm : '\u00A0'}
+                  </span>
+                )}
+              </button>
+            </div>
+
+            {/* Divider */}
+            <div className="w-px h-6 bg-text-secondary opacity-30" />
+
+            {/* Visible Lines Selection */}
+            <div className="flex items-center gap-2">
+              <span className="text-text-secondary mr-1">visible lines:</span>
+              <div ref={visibleLinesSliderRef} style={{ width: '120px' }}></div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   )

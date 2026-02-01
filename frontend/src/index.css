@@ -9,6 +9,9 @@
   --color-primary: #e94560;
   --color-error: #ff6b6b;
   --color-success: #4ecdc4;
+
+  /* Adaptive mode timing - single source of truth for JS and CSS */
+  --adaptive-transition-duration: 50ms;
 }
 
 @theme {
@@ -101,4 +104,59 @@ body {
 }
 .noUi-handle.noUi-active {
   z-index: 2 !important;
+}
+
+/* Chunk transition animations for adaptive reading
+   Note: Currently unused - component uses inline style transitions for finer control.
+   Kept as fallback for prefers-reduced-motion and potential future use. */
+@keyframes chunk-exit {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes chunk-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-chunk-exit {
+  animation: chunk-exit var(--adaptive-transition-duration, 50ms) ease-in-out
+    forwards;
+}
+
+.animate-chunk-enter {
+  animation: chunk-enter var(--adaptive-transition-duration, 50ms) ease-in-out
+    forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-chunk-exit,
+  .animate-chunk-enter {
+    animation: none;
+    transition: opacity 100ms ease-out;
+  }
+}
+
+/* Dark theme scrollbar styling */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-text-secondary) var(--color-bg-secondary);
+}
+*::-webkit-scrollbar {
+  width: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: var(--color-bg-secondary);
+}
+*::-webkit-scrollbar-thumb {
+  background-color: var(--color-text-secondary);
+  border-radius: 4px;
 }

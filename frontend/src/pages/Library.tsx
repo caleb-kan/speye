@@ -159,6 +159,7 @@ export function Library() {
     return () => {
       slider?.destroy()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- slider only created on mount, filter values are initial state only
   }, [showFilters])
 
   // Filter and search texts
@@ -401,7 +402,7 @@ export function Library() {
     filters.maxComplexity !== null
 
   return (
-    <div className="flex flex-1 flex-col items-center w-full px-8 py-6">
+    <div className="flex flex-1 flex-col items-center w-full px-8 py-6 overflow-y-auto">
       <div className="w-full max-w-4xl">
         <div className="flex items-center justify-between mb-6">
           <div>

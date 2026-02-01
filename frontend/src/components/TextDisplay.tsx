@@ -1,11 +1,4 @@
-import {
-  useEffect,
-  useRef,
-  useMemo,
-  useCallback,
-  useState,
-  useLayoutEffect,
-} from 'react'
+import { useEffect, useRef, useCallback, useMemo } from 'react'
 import type { Scrolling } from '../types/reading'
 import { getWordStyle, MAX_BLUR, BLUR_PADDING_BUFFER } from '../utils/wordStyle'
 import {
@@ -17,6 +10,10 @@ import {
   MAX_TRANSITION_MS,
   WORDS_PER_LINE_ESTIMATE,
 } from '../constants/textDisplay'
+import { splitTextToWords } from '../utils/textParsing'
+import { wpmToMsPerWord } from '../utils/wpmCalculations'
+import { useStaticPagination } from '../hooks/useStaticPagination'
+import { WordSpan } from './WordSpan'
 
 type TextDisplayProps = {
   text: string
@@ -46,30 +43,39 @@ export function TextDisplay({
 
   // Calculate transition duration based on WPM
   // Transition should be at most 80% of time per word for smooth highlighting
-  const msPerWord = (60 / wpm) * 1000
+  const msPerWord = wpmToMsPerWord(wpm)
   const transitionMs = Math.max(
     MIN_TRANSITION_MS,
     Math.min(MAX_TRANSITION_MS, msPerWord * 0.8)
   )
   const wordTransition = `color ${transitionMs}ms cubic-bezier(0.4, 0, 0.2, 1), opacity ${transitionMs}ms cubic-bezier(0.4, 0, 0.2, 1), filter ${transitionMs}ms cubic-bezier(0.4, 0, 0.2, 1)`
-  const containerRef = useRef<HTMLDivElement>(null)
+
+  // Parse words from text
+  const words = useMemo(() => splitTextToWords(text), [text])
+
+  // Dynamic mode refs
+  const dynamicContainerRef = useRef<HTMLDivElement>(null)
   const activeWordRef = useRef<HTMLSpanElement>(null)
 
-  const words = useMemo(
-    () =>
-      typeof text === 'string' && text.trim().length > 0
-        ? text.split(/\s+/).filter((word) => word.length > 0)
-        : [],
-    [text]
-  )
+  // Static mode pagination
+  const {
+    pageStartIndex,
+    containerRef: staticContainerRef,
+    setWordRef,
+  } = useStaticPagination({
+    currentWordIndex,
+    totalWords: words.length,
+    enabled: scrolling === 'static',
+  })
 
+  // Dynamic mode: scroll to active word
   useEffect(() => {
     if (
       scrolling === 'dynamic' &&
       activeWordRef.current &&
-      containerRef.current
+      dynamicContainerRef.current
     ) {
-      const container = containerRef.current
+      const container = dynamicContainerRef.current
       const activeWord = activeWordRef.current
       const containerRect = container.getBoundingClientRect()
       const wordRect = activeWord.getBoundingClientRect()
@@ -85,8 +91,9 @@ export function TextDisplay({
     }
   }, [currentWordIndex, isPlaying, scrolling])
 
+  // Dynamic mode: update fade masks based on scroll position
   const updateFades = useCallback(() => {
-    const container = containerRef.current
+    const container = dynamicContainerRef.current
     if (!container) return
 
     const { scrollTop, scrollHeight, clientHeight } = container
@@ -100,7 +107,7 @@ export function TextDisplay({
   }, [])
 
   useEffect(() => {
-    const container = containerRef.current
+    const container = dynamicContainerRef.current
     if (!container || scrolling !== 'dynamic') return
 
     // Set initial state (no top fade, bottom fade present if content overflows)
@@ -115,46 +122,7 @@ export function TextDisplay({
     return () => container.removeEventListener('scroll', updateFades)
   }, [scrolling, updateFades, words])
 
-  // Static mode: display words in chunks that fit within the visible lines height
-  const staticContainerRef = useRef<HTMLDivElement>(null)
-  const wordRefs = useRef<Map<number, HTMLSpanElement>>(new Map())
-  const [pageStartIndex, setPageStartIndex] = useState(0)
-
-  // Handle backwards navigation using React's "derived state during render" pattern.
-  // This is a documented React pattern for adjusting state when props change.
-  // See: https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes
-  const needsBackwardsFlip =
-    scrolling === 'static' && currentWordIndex < pageStartIndex
-  if (needsBackwardsFlip) {
-    setPageStartIndex(currentWordIndex)
-  }
-
-  // Clear word refs when page changes to prevent memory accumulation
-  useEffect(() => {
-    wordRefs.current.clear()
-  }, [pageStartIndex])
-
-  // Handle forward navigation - detect when current word overflows container
-  useLayoutEffect(() => {
-    if (scrolling !== 'static') return
-    if (needsBackwardsFlip) return
-
-    const container = staticContainerRef.current
-    const currentWordEl = wordRefs.current.get(currentWordIndex)
-
-    if (!container || !currentWordEl) return
-
-    const containerRect = container.getBoundingClientRect()
-    const wordRect = currentWordEl.getBoundingClientRect()
-
-    if (
-      wordRect.bottom > containerRect.bottom ||
-      wordRect.top < containerRect.top
-    ) {
-      queueMicrotask(() => setPageStartIndex(currentWordIndex))
-    }
-  }, [currentWordIndex, scrolling, pageStartIndex, needsBackwardsFlip])
-
+  // Empty text early return
   if (words.length === 0) {
     return (
       <div className="mx-auto w-full h-48 flex items-center justify-center text-center text-text-secondary">
@@ -163,6 +131,7 @@ export function TextDisplay({
     )
   }
 
+  // Static mode rendering
   if (scrolling === 'static') {
     // Render enough words for overflow detection
     const wordsPerPage = (visibleLines + 1) * WORDS_PER_LINE_ESTIMATE
@@ -196,28 +165,16 @@ export function TextDisplay({
           >
             {wordsToRender.map((word, index) => {
               const globalIndex = pageStartIndex + index
-              const localDistance = globalIndex - currentWordIndex
-              const style = getWordStyle(localDistance, blurEnabled)
-
               return (
-                <span
+                <WordSpan
                   key={globalIndex}
-                  ref={(el) => {
-                    if (el) {
-                      wordRefs.current.set(globalIndex, el)
-                    } else {
-                      wordRefs.current.delete(globalIndex)
-                    }
-                  }}
-                  style={{
-                    color: style.color,
-                    opacity: style.opacity,
-                    filter: style.blur > 0 ? `blur(${style.blur}px)` : 'none',
-                    transition: wordTransition,
-                  }}
-                >
-                  {word}{' '}
-                </span>
+                  word={word}
+                  globalIndex={globalIndex}
+                  currentWordIndex={currentWordIndex}
+                  blurEnabled={blurEnabled}
+                  transition={wordTransition}
+                  setRef={setWordRef(globalIndex)}
+                />
               )
             })}
           </div>
@@ -232,7 +189,7 @@ export function TextDisplay({
   return (
     <div className="relative mx-auto w-full animate-fade-in">
       <div
-        ref={containerRef}
+        ref={dynamicContainerRef}
         className="text-2xl leading-relaxed select-none overflow-hidden"
         style={{
           height: dynamicModeHeight,
@@ -255,7 +212,7 @@ export function TextDisplay({
                 style={{
                   color: style.color,
                   opacity: style.opacity,
-                  filter: style.blur > 0 ? `blur(${style.blur}px)` : 'none',
+                  filter: style.blur > 0 ? `blur(${style.blur}px)` : undefined,
                   transition: wordTransition,
                 }}
               >

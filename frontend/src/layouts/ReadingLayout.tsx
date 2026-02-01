@@ -36,7 +36,7 @@ export function ReadingLayout() {
 
   return (
     <div
-      className={`flex-1 relative transition-all duration-300 ${
+      className={`flex-1 flex flex-col relative transition-all duration-300 ${
         quizOpen ? 'blur-[1.5px]' : ''
       }`}
     >
@@ -62,7 +62,7 @@ export function ReadingLayout() {
         currentTextComplexity={currentTextComplexity}
       />
 
-      <div className="flex-1 flex flex-col items-center justify-center px-8">
+      <div className="flex-1 flex flex-col items-center px-8">
         {/* Nested page content */}
         <Outlet
           context={

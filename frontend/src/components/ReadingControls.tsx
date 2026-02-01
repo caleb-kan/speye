@@ -1,5 +1,7 @@
 import { memo } from 'react'
 import { Play, Pause, RotateCcw, RefreshCw } from 'lucide-react'
+import { ProgressBar } from './ProgressBar'
+import { IconButton } from './ui/IconButton'
 
 type ReadingControlsProps = {
   isPlaying: boolean
@@ -25,38 +27,21 @@ export const ReadingControls = memo(function ReadingControls({
   return (
     <div className="w-full flex flex-col items-center gap-4">
       {/* Progress Bar */}
-      <div className="w-full max-w-md">
-        <div
-          role="progressbar"
-          aria-valuenow={Math.round(progress)}
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-label={`Reading progress: ${Math.round(progress)}%`}
-          className="h-1 bg-bg-secondary rounded-full overflow-hidden"
-        >
-          <div
-            className="h-full bg-primary transition-all duration-100"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-        <div className="flex justify-between mt-2 text-xs text-text-secondary">
-          <span>
-            {currentWord} / {totalWords} words
-          </span>
-          <span>{Math.round(progress)}%</span>
-        </div>
-      </div>
+      <ProgressBar
+        progress={progress}
+        showWordCount
+        currentWord={currentWord}
+        totalWords={totalWords}
+        className="max-w-md"
+      />
 
       {/* Control Buttons */}
       <div className="flex items-center gap-4">
-        <button
-          type="button"
+        <IconButton
           onClick={onRestart}
-          className="w-10 h-10 flex items-center justify-center rounded-lg text-text-secondary hover:text-text hover:bg-bg-secondary transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
+          icon={<RotateCcw size={20} />}
           aria-label="Restart"
-        >
-          <RotateCcw size={20} />
-        </button>
+        />
 
         <button
           type="button"
@@ -76,14 +61,11 @@ export const ReadingControls = memo(function ReadingControls({
           )}
         </button>
 
-        <button
-          type="button"
+        <IconButton
           onClick={onNewText}
-          className="w-10 h-10 flex items-center justify-center rounded-lg text-text-secondary hover:text-text hover:bg-bg-secondary transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
+          icon={<RefreshCw size={20} />}
           aria-label="New text"
-        >
-          <RefreshCw size={20} />
-        </button>
+        />
       </div>
 
       {/* Keyboard Hint */}

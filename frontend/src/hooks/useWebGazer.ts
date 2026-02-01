@@ -1,0 +1,429 @@
+import { useState, useEffect, useCallback, useRef } from 'react'
+import type { GazeData } from '../types/webgazer'
+import type { WebGazerStatus, WebGazerError } from '../types/adaptive'
+import { STORAGE_KEYS } from '../constants/storage'
+import {
+  WEBGAZER_INIT_TIMEOUT_MS,
+  WEBGAZER_READY_MAX_ATTEMPTS,
+  WEBGAZER_READY_CHECK_INTERVAL_MS,
+  WEBGAZER_GAZE_DOT_ID,
+  WEBGAZER_DOT_STYLE_ID,
+  WEBGAZER_REGRESSION_MODEL,
+  CALIBRATION_EVENT_TYPE,
+  STATE_UPDATE_INTERVAL_MS,
+} from '../constants/adaptive'
+
+/**
+ * Module-level WebGazer state tracking.
+ * WebGazer is a singleton that doesn't cleanly reinitialize after end().
+ * We keep it running continuously and swap out the gaze listener callback
+ * when components mount/unmount. This avoids unreliable pause/resume cycles.
+ */
+let globalWebgazerInstance: WebGazerAPI | null = null
+let isGloballyInitialized = false
+
+type UseWebGazerOptions = {
+  /** Whether WebGazer should be active */
+  enabled: boolean
+  /** Show webcam preview (default: false) */
+  showPreview?: boolean
+  /** Show red prediction dot (default: false) */
+  showPredictionPoints?: boolean
+  /** Callback for gaze data */
+  onGaze?: (data: GazeData | null, elapsedTime: number) => void
+}
+
+type UseWebGazerReturn = {
+  /** Current status of WebGazer */
+  status: WebGazerStatus
+  /** Whether WebGazer is ready to provide predictions */
+  isReady: boolean
+  /** Error message if initialization failed */
+  error: string | null
+  /** Error type for programmatic handling */
+  errorType: WebGazerError | null
+  /** Clear all calibration data */
+  clearData: () => Promise<void>
+  /** Record a screen position for calibration training */
+  recordScreenPosition: (x: number, y: number) => void
+}
+
+/**
+ * Typed interface for the WebGazer API methods we use.
+ * WebGazer uses a chainable API pattern where most methods return the instance.
+ */
+interface WebGazerAPI {
+  begin(): Promise<WebGazerAPI>
+  end(): void
+  pause(): void
+  resume(): Promise<WebGazerAPI>
+  clearData(): Promise<void>
+  recordScreenPosition(x: number, y: number, eventType: string): void
+  isReady(): boolean
+  setRegression(type: string): WebGazerAPI
+  saveDataAcrossSessions(save: boolean): WebGazerAPI
+  showVideoPreview(show: boolean): WebGazerAPI
+  showPredictionPoints(show: boolean): WebGazerAPI
+  showFaceOverlay(show: boolean): WebGazerAPI
+  showFaceFeedbackBox(show: boolean): WebGazerAPI
+  applyKalmanFilter(apply: boolean): WebGazerAPI
+  setGazeListener(
+    callback: (data: GazeData | null, time: number) => void
+  ): WebGazerAPI
+  removeMouseEventListeners(): void
+}
+
+/**
+ * Hook to manage WebGazer eye-tracking lifecycle
+ *
+ * Uses local WebGazer source with TFJS runtime for reliable model loading
+ * (no external CDN dependencies)
+ *
+ * Handles:
+ * - Dynamic import of webgazer module
+ * - Webcam permission requests
+ * - Initialization and cleanup
+ * - Gaze data streaming
+ */
+export function useWebGazer({
+  enabled,
+  showPreview = false,
+  showPredictionPoints = false,
+  onGaze,
+}: UseWebGazerOptions): UseWebGazerReturn {
+  const [status, setStatus] = useState<WebGazerStatus>('idle')
+  const [error, setError] = useState<string | null>(null)
+  const [errorType, setErrorType] = useState<WebGazerError | null>(null)
+
+  const webgazerRef = useRef<WebGazerAPI | null>(null)
+  const onGazeRef = useRef(onGaze)
+  const isInitializedRef = useRef(false)
+  const lastGazeCallbackRef = useRef(0)
+
+  useEffect(() => {
+    onGazeRef.current = onGaze
+  }, [onGaze])
+
+  // Initialize WebGazer
+  useEffect(() => {
+    if (!enabled) {
+      return
+    }
+
+    // Prevent double initialization within this component instance
+    if (isInitializedRef.current) {
+      return
+    }
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setStatus('not-supported')
+      setError(
+        'Your browser does not support webcam access. Please use a modern browser like Chrome, Firefox, or Edge.'
+      )
+      setErrorType('not-supported')
+      return
+    }
+
+    let mounted = true
+    // Ref to track mounted state for gaze listener (closure captures this)
+    const mountedRef = { current: true }
+
+    // Helper to set up the gaze listener with current callback
+    const setupGazeListener = (webgazer: WebGazerAPI) => {
+      webgazer.setGazeListener((data: GazeData | null, elapsedTime: number) => {
+        if (!mountedRef.current || !onGazeRef.current) return
+
+        const now = Date.now()
+        if (now - lastGazeCallbackRef.current < STATE_UPDATE_INTERVAL_MS) {
+          return
+        }
+        lastGazeCallbackRef.current = now
+
+        onGazeRef.current(data, elapsedTime)
+      })
+    }
+
+    // Reattach to existing WebGazer instance (no pause/resume needed)
+    const reattachWebGazer = () => {
+      if (!globalWebgazerInstance) {
+        return false
+      }
+
+      webgazerRef.current = globalWebgazerInstance
+
+      // Reattach gaze listener with new component's refs
+      // WebGazer is still running, we just swap the callback
+      setupGazeListener(globalWebgazerInstance)
+
+      // Update display settings
+      globalWebgazerInstance
+        .showVideoPreview(showPreview)
+        .showPredictionPoints(showPredictionPoints)
+        .showFaceFeedbackBox(showPreview)
+
+      isInitializedRef.current = true
+      setStatus('ready')
+      return true
+    }
+
+    const initWebGazer = async () => {
+      // Reattach to existing WebGazer if already running globally
+      if (isGloballyInitialized && globalWebgazerInstance) {
+        const reattached = reattachWebGazer()
+        if (reattached) return
+      }
+
+      setStatus('initializing')
+      setError(null)
+      setErrorType(null)
+
+      // One-time migration: clear old calibration data when regression
+      // model changes. Old data trained with 'ridge' is incompatible
+      // with 'weightedRidge' and corrupts predictions.
+      const storedRegression = localStorage.getItem(
+        STORAGE_KEYS.WEBGAZER_REGRESSION_VERSION
+      )
+      if (storedRegression !== WEBGAZER_REGRESSION_MODEL) {
+        try {
+          const localforage = await import('localforage')
+          await localforage.default.clear()
+          localStorage.removeItem(STORAGE_KEYS.ADAPTIVE_CALIBRATION)
+          localStorage.setItem(
+            STORAGE_KEYS.WEBGAZER_REGRESSION_VERSION,
+            WEBGAZER_REGRESSION_MODEL
+          )
+        } catch {
+          localStorage.removeItem(STORAGE_KEYS.ADAPTIVE_CALIBRATION)
+          localStorage.setItem(
+            STORAGE_KEYS.WEBGAZER_REGRESSION_VERSION,
+            WEBGAZER_REGRESSION_MODEL
+          )
+        }
+      }
+
+      try {
+        // Dynamic import of local webgazer source (uses TFJS runtime, no CDN deps)
+        // 'webgazer' is aliased to local source in vite.config.ts
+        const webgazerModule = await import('webgazer')
+        const webgazer = webgazerModule.default as WebGazerAPI
+
+        if (!mounted) return
+
+        webgazerRef.current = webgazer
+        globalWebgazerInstance = webgazer
+
+        // Configure before starting
+        // weightedRidge provides better accuracy than default ridge regression
+        // saveDataAcrossSessions(true) so recalibration builds on previous data
+        webgazer
+          .setRegression(WEBGAZER_REGRESSION_MODEL)
+          .saveDataAcrossSessions(true)
+          .showVideoPreview(showPreview)
+          .showPredictionPoints(showPredictionPoints)
+          .showFaceOverlay(false)
+          .showFaceFeedbackBox(showPreview)
+          .applyKalmanFilter(true)
+
+        // Set up gaze listener with mounted guard and throttling to prevent
+        // excessive state updates. WebGazer calls this ~60fps via requestAnimationFrame,
+        // which can overwhelm React. Throttle to ~30fps to stay responsive without
+        // triggering "Maximum update depth exceeded" errors.
+        setupGazeListener(webgazer)
+
+        // Start WebGazer (this requests camera permission)
+        // Add a timeout to prevent hanging forever
+        const beginWithTimeout = () =>
+          new Promise<void>((resolve, reject) => {
+            const timeout = setTimeout(() => {
+              reject(new Error('WebGazer initialization timed out'))
+            }, WEBGAZER_INIT_TIMEOUT_MS)
+
+            webgazer
+              .begin()
+              .then(() => {
+                clearTimeout(timeout)
+                resolve()
+              })
+              .catch((err: unknown) => {
+                clearTimeout(timeout)
+                reject(err instanceof Error ? err : new Error(String(err)))
+              })
+          })
+
+        await beginWithTimeout()
+
+        // WebGazer is now running - mark as globally initialized immediately
+        // so remounting components can reattach even if we return early below
+        isGloballyInitialized = true
+
+        if (!mounted) {
+          // Component unmounted during init - don't pause, let WebGazer keep running
+          // The gaze listener will exit early since mountedRef is false
+          // Next component mount will reattach via reattachWebGazer()
+          return
+        }
+
+        // Wait for WebGazer to be fully ready (face detection loaded)
+        const checkReady = () =>
+          new Promise<void>((resolve, reject) => {
+            let attempts = 0
+            const check = () => {
+              if (!mounted) {
+                reject(new Error('Component unmounted'))
+                return
+              }
+              if (webgazer.isReady()) {
+                resolve()
+              } else if (attempts++ > WEBGAZER_READY_MAX_ATTEMPTS) {
+                reject(
+                  new Error(
+                    'WebGazer failed to become ready - face detection may not have loaded'
+                  )
+                )
+              } else {
+                setTimeout(check, WEBGAZER_READY_CHECK_INTERVAL_MS)
+              }
+            }
+            check()
+          })
+
+        await checkReady()
+
+        if (!mounted) {
+          // Component unmounted during checkReady - don't pause
+          // isGloballyInitialized already set above, so next mount can reattach
+          return
+        }
+
+        isInitializedRef.current = true
+        // isGloballyInitialized already set after begin() above
+
+        // Remove mouse event listeners so gaze prediction doesn't follow cursor
+        // We only want to use explicit calibration clicks, not ongoing mouse movements
+        webgazer.removeMouseEventListeners()
+
+        // Note: Prediction point visibility is controlled by the style element
+        // created in the showPredictionPoints useEffect below. We don't set
+        // inline styles here because WebGazer's internal loop can override them.
+
+        setStatus('ready')
+      } catch (err) {
+        if (!mounted) return
+
+        // Clear global state on failure
+        globalWebgazerInstance = null
+        isGloballyInitialized = false
+
+        const errorMessage =
+          err instanceof Error
+            ? err.message
+            : 'Failed to initialize eye tracking'
+
+        // Check for permission errors
+        if (
+          errorMessage.includes('Permission') ||
+          errorMessage.includes('NotAllowedError')
+        ) {
+          setStatus('permission-denied')
+          setError(
+            'Camera access was denied. Please allow camera access to use adaptive reading mode.'
+          )
+          setErrorType('permission-denied')
+        } else {
+          setStatus('error')
+          setError(errorMessage)
+          setErrorType('initialization-failed')
+        }
+      }
+    }
+
+    initWebGazer()
+
+    return () => {
+      mounted = false
+      mountedRef.current = false
+      // Clear callback ref so old component doesn't receive gaze data
+      onGazeRef.current = undefined
+
+      // DO NOT pause WebGazer - keep it running so it works immediately on remount
+      // The gaze listener checks mountedRef/onGazeRef and exits early if cleared
+      // This avoids the unreliable pause/resume cycle
+
+      webgazerRef.current = null
+      isInitializedRef.current = false
+      lastGazeCallbackRef.current = 0
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- showPreview/showPredictionPoints are only needed for initial config; separate effects handle updates
+  }, [enabled])
+
+  // Update preview visibility when prop changes
+  useEffect(() => {
+    if (webgazerRef.current && isInitializedRef.current) {
+      webgazerRef.current.showVideoPreview(showPreview)
+      webgazerRef.current.showFaceFeedbackBox(showPreview)
+    }
+  }, [showPreview])
+
+  // Update prediction points visibility when prop changes OR when WebGazer becomes ready
+  // Uses a persistent style element to ensure the dot stays hidden even if
+  // WebGazer's internal loop tries to show it
+  //
+  // Note: We depend on `status` because `showPredictionPoints` may already be true
+  // when the component mounts (e.g., during calibration). Without this dependency,
+  // the API call would be skipped on first render (WebGazer not initialized yet)
+  // and never re-run after initialization completes.
+  useEffect(() => {
+    if (webgazerRef.current && isInitializedRef.current) {
+      webgazerRef.current.showPredictionPoints(showPredictionPoints)
+    }
+
+    // Create or update a style element to control gaze dot visibility
+    // This is more robust than setting inline styles which WebGazer might override
+    let styleEl = document.getElementById(
+      WEBGAZER_DOT_STYLE_ID
+    ) as HTMLStyleElement | null
+    if (!styleEl) {
+      styleEl = document.createElement('style')
+      styleEl.id = WEBGAZER_DOT_STYLE_ID
+      document.head.appendChild(styleEl)
+    }
+
+    if (showPredictionPoints) {
+      styleEl.textContent = '' // Remove hiding rule
+    } else {
+      styleEl.textContent = `#${WEBGAZER_GAZE_DOT_ID} { display: none !important; }`
+    }
+
+    return () => {
+      // Clean up style element on unmount
+      const el = document.getElementById(WEBGAZER_DOT_STYLE_ID)
+      if (el) {
+        el.remove()
+      }
+    }
+  }, [showPredictionPoints, status])
+
+  const clearData = useCallback(async () => {
+    if (webgazerRef.current) {
+      await webgazerRef.current.clearData()
+    }
+    // DO NOT reset global state - WebGazer is still running
+    // We only cleared its calibration data so it can be retrained
+    // The next mount should reattach, not reinitialize
+  }, [])
+
+  const recordScreenPosition = useCallback((x: number, y: number) => {
+    if (webgazerRef.current && isInitializedRef.current) {
+      webgazerRef.current.recordScreenPosition(x, y, CALIBRATION_EVENT_TYPE)
+    }
+  }, [])
+
+  return {
+    status,
+    isReady: status === 'ready',
+    error,
+    errorType,
+    clearData,
+    recordScreenPosition,
+  }
+}

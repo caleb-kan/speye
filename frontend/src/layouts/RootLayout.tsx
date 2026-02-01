@@ -5,7 +5,7 @@ import { Outlet } from 'react-router-dom'
 
 export function RootLayout() {
   return (
-    <div className="flex min-h-screen bg-bg text-text">
+    <div className="flex h-screen overflow-hidden bg-bg text-text">
       {/* Left sidebar */}
       <Navbar />
 
@@ -17,7 +17,7 @@ export function RootLayout() {
         <div className="h-12" />
 
         {/* Page content */}
-        <main className="relative flex-1 flex flex-col">
+        <main className="relative flex-1 flex flex-col min-h-0">
           <Outlet />
         </main>
 

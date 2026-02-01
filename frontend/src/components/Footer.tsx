@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 
 export function Footer() {
   return (
-    <footer className="text-text-secondary fixed bottom-2 right-2 text-xs text-right">
+    <footer className="text-text-secondary fixed bottom-2 left-2 text-xs">
       © 2026 sp(eye). All rights reserved
       <div>
         <Link

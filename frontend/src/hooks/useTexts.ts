@@ -53,6 +53,12 @@ export function useTexts({
     }
   }, [complexityMin, complexityMax, currentTextComplexity, fetchRandomText])
 
+  useEffect(() => {
+    // fetch new text when fiction option changes
+    fetchRandomText()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fiction])
+
   return {
     randomText,
     loading,

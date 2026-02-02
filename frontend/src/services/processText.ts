@@ -13,6 +13,7 @@ interface QuestionSet {
 interface ProcessTextResponse {
   title: string | null
   questionSets: QuestionSet[]
+  fiction: boolean
 }
 
 interface ProcessTextOptions {
@@ -49,5 +50,6 @@ export async function processText(
   return {
     title: response.data.title,
     questionSets: response.data.questionSets,
+    fiction: response.data.fiction,
   }
 }

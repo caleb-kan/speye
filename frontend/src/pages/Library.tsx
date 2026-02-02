@@ -261,7 +261,7 @@ export function Library() {
     const needsTitle = !data.title
 
     try {
-      // Single LLM call to generate title (if needed) and quiz
+      // Single LLM call to generate title (if needed) and quiz and classify fiction
       const result = await processText({
         content: data.content,
         generateTitle: needsTitle,
@@ -272,6 +272,7 @@ export function Library() {
       await uploadText(user.id, {
         ...data,
         title: finalTitle,
+        fiction: result.fiction,
         quiz: { questionSets: result.questionSets },
       })
 
@@ -287,7 +288,7 @@ export function Library() {
       // Fallback: upload without quiz if processing fails
       await uploadText(user.id, { ...data })
       setSuccessMessage(
-        'Text uploaded successfully, but quiz generation failed.'
+        'Text uploaded successfully, but processing failed. Default genre assigned.'
       )
     }
 

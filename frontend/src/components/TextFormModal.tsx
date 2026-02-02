@@ -175,24 +175,26 @@ export function TextFormModal({
             </p>
           </div>
 
-          <div>
-            <label
-              htmlFor={`${mode}-fiction-select`}
-              className="block text-sm font-medium text-text mb-2"
-            >
-              Genre
-            </label>
-            <select
-              id={`${mode}-fiction-select`}
-              value={fiction ? 'fiction' : 'non-fiction'}
-              onChange={(e) => setFiction(e.target.value === 'fiction')}
-              className="w-full p-3 bg-bg border border-text-secondary/20 rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-              disabled={isSubmitting}
-            >
-              <option value="fiction">Fiction</option>
-              <option value="non-fiction">Non-Fiction</option>
-            </select>
-          </div>
+          {mode !== 'upload' && (
+            <div>
+              <label
+                htmlFor={`${mode}-fiction-select`}
+                className="block text-sm font-medium text-text mb-2"
+              >
+                Genre
+              </label>
+              <select
+                id={`${mode}-fiction-select`}
+                value={fiction ? 'fiction' : 'non-fiction'}
+                onChange={(e) => setFiction(e.target.value === 'fiction')}
+                className="w-full p-3 bg-bg border border-text-secondary/20 rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                disabled={isSubmitting}
+              >
+                <option value="fiction">Fiction</option>
+                <option value="non-fiction">Non-Fiction</option>
+              </select>
+            </div>
+          )}
 
           {error && (
             <div className="p-3 bg-error/10 border border-error/20 rounded-lg text-error text-sm">

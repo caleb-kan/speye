@@ -82,7 +82,11 @@ describe('processText', () => {
 
   it('should return title and questionSets on successful response', async () => {
     mockInvoke.mockResolvedValueOnce({
-      data: { title: 'Generated Title', questionSets: mockQuestionSets },
+      data: {
+        title: 'Generated Title',
+        questionSets: mockQuestionSets,
+        fiction: true,
+      },
       error: null,
     })
 
@@ -93,6 +97,7 @@ describe('processText', () => {
 
     expect(result.title).toBe('Generated Title')
     expect(result.questionSets).toEqual(mockQuestionSets)
+    expect(result.fiction).toBe(true)
     expect(mockInvoke).toHaveBeenCalledWith('process-text', {
       body: { content: 'Some content to process', generateTitle: true },
     })
@@ -100,7 +105,7 @@ describe('processText', () => {
 
   it('should return null title when generateTitle is false', async () => {
     mockInvoke.mockResolvedValueOnce({
-      data: { title: null, questionSets: mockQuestionSets },
+      data: { title: null, questionSets: mockQuestionSets, fiction: true },
       error: null,
     })
 
@@ -111,6 +116,7 @@ describe('processText', () => {
 
     expect(result.title).toBeNull()
     expect(result.questionSets).toEqual(mockQuestionSets)
+    expect(result.fiction).toBe(true)
     expect(mockInvoke).toHaveBeenCalledWith('process-text', {
       body: { content: 'Some content', generateTitle: false },
     })
@@ -118,7 +124,11 @@ describe('processText', () => {
 
   it('should default generateTitle to true', async () => {
     mockInvoke.mockResolvedValueOnce({
-      data: { title: 'Generated Title', questionSets: mockQuestionSets },
+      data: {
+        title: 'Generated Title',
+        questionSets: mockQuestionSets,
+        fiction: true,
+      },
       error: null,
     })
 
@@ -127,6 +137,21 @@ describe('processText', () => {
     expect(mockInvoke).toHaveBeenCalledWith('process-text', {
       body: { content: 'Some content', generateTitle: true },
     })
+  })
+
+  it('should return fiction: false when text is non-fiction', async () => {
+    mockInvoke.mockResolvedValueOnce({
+      data: {
+        title: 'Non-Fiction Title',
+        questionSets: mockQuestionSets,
+        fiction: false,
+      },
+      error: null,
+    })
+
+    const result = await processText({ content: 'Some non-fiction content' })
+
+    expect(result.fiction).toBe(false)
   })
 
   it('should throw error when edge function returns error', async () => {
@@ -142,7 +167,7 @@ describe('processText', () => {
 
   it('should throw error when response has no questionSets', async () => {
     mockInvoke.mockResolvedValueOnce({
-      data: { title: 'Title' },
+      data: { title: 'Title', fiction: true },
       error: null,
     })
 

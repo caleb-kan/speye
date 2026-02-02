@@ -92,17 +92,10 @@ describe('UploadTextModal', () => {
       ).toBeInTheDocument()
     })
 
-    it('should render category dropdown with Fiction and Non-Fiction options', () => {
+    it('should not render category dropdown with Fiction and Non-Fiction options', () => {
       renderModal()
 
-      const categorySelect = screen.getByLabelText('Genre')
-      expect(categorySelect).toBeInTheDocument()
-      expect(
-        screen.getByRole('option', { name: 'Fiction' })
-      ).toBeInTheDocument()
-      expect(
-        screen.getByRole('option', { name: 'Non-Fiction' })
-      ).toBeInTheDocument()
+      expect(screen.queryByLabelText('Genre')).not.toBeInTheDocument()
     })
 
     it('should show character count when inputting text content', () => {
@@ -183,9 +176,6 @@ describe('UploadTextModal', () => {
       const textarea = screen.getByLabelText('Text Content')
       fireEvent.change(textarea, { target: { value: 'My test text content' } })
 
-      const categorySelect = screen.getByLabelText('Genre')
-      fireEvent.change(categorySelect, { target: { value: 'non-fiction' } })
-
       const uploadButton = screen.getByRole('button', { name: 'Upload Text' })
       fireEvent.click(uploadButton)
 
@@ -193,7 +183,7 @@ describe('UploadTextModal', () => {
         expect(mockOnSubmit).toHaveBeenCalledWith({
           title: 'My Test Title',
           content: 'My test text content',
-          fiction: false,
+          fiction: true,
         })
       })
     })

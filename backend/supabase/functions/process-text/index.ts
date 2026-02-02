@@ -65,7 +65,7 @@ const config = {
   temperature: 0.3,
   max_tokens: 8000,
   top_p: 1,
-  system_message: `You are an expert educational content processor. You analyze text and generate both a title and comprehension quiz questions. You respond with valid JSON only - no markdown code blocks, no explanations, no text before or after the JSON object.`,
+  system_message: `You are an expert educational content processor. You analyze text and generate both a title and comprehension quiz questions, and then classify if the text is fiction or non-fiction. You respond with valid JSON only - no markdown code blocks, no explanations, no text before or after the JSON object.`,
   user_message: `Process this text by generating a title and quiz question sets:
 
 {text_content}
@@ -75,11 +75,13 @@ const config = {
 OUTPUT SCHEMA:
 {
   "title": string | null,
-  "questionSets": QuestionSet[]
+  "questionSets": QuestionSet[],
+  "fiction": boolean
 }
 
 - title: Generate a title ONLY if generateTitle is true, otherwise set to null
 - questionSets: Array of exactly 5 question sets, each containing 5 questions (25 questions total)
+- fiction: true if the text is fiction, false if non-fiction
 
 QuestionSet object:
   - questions: Question[] (exactly 5 questions per set)
@@ -157,6 +159,7 @@ interface QuestionSet {
 interface ProcessTextResponse {
   title: string | null
   questionSets: QuestionSet[]
+  fiction: boolean
 }
 
 function isValidQuestion(q: QuizQuestion): boolean {
@@ -180,6 +183,8 @@ function isValidResponse(data: unknown): data is ProcessTextResponse {
 
   if (!Array.isArray(response.questionSets)) return false
   if (response.questionSets.length !== 5) return false
+
+  if (typeof response.fiction !== 'boolean') return false
 
   return response.questionSets.every(
     (set: QuestionSet) =>
@@ -283,6 +288,7 @@ Deno.serve(async (req: Request) => {
       {
         title: parsed.title,
         questionSets: parsed.questionSets,
+        fiction: parsed.fiction,
       },
       200,
       {

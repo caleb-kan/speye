@@ -183,8 +183,12 @@ describe('TextFormModal', () => {
       ).toBeInTheDocument()
     })
 
-    it('should render genre dropdown', () => {
-      renderModal()
+    it('should render genre dropdown only in edit modal', () => {
+      renderModal('upload')
+
+      expect(screen.queryByLabelText('Genre')).not.toBeInTheDocument()
+
+      renderModal('edit')
 
       const categorySelect = screen.getByLabelText('Genre')
       expect(categorySelect).toBeInTheDocument()
@@ -268,18 +272,16 @@ describe('TextFormModal', () => {
       })
     })
 
-    it('should call onSubmit with correct data', async () => {
+    it('should call onSubmit with correct data (upload mode)', async () => {
       mockOnSubmit.mockResolvedValueOnce(undefined)
-      renderModal()
+      // upload mode should not have genre dropdown
+      renderModal('upload')
 
       const titleInput = screen.getByPlaceholderText('Enter a title...')
       fireEvent.change(titleInput, { target: { value: 'My Test Title' } })
 
       const textarea = screen.getByLabelText('Text Content')
       fireEvent.change(textarea, { target: { value: 'My test text content' } })
-
-      const categorySelect = screen.getByLabelText('Genre')
-      fireEvent.change(categorySelect, { target: { value: 'non-fiction' } })
 
       const submitButton = screen.getByRole('button', { name: 'Upload Text' })
       fireEvent.click(submitButton)
@@ -288,6 +290,36 @@ describe('TextFormModal', () => {
         expect(mockOnSubmit).toHaveBeenCalledWith({
           title: 'My Test Title',
           content: 'My test text content',
+          fiction: true,
+        })
+      })
+    })
+
+    it('should call onSubmit with correct data (edit mode)', async () => {
+      mockOnSubmit.mockResolvedValueOnce(undefined)
+      renderModal('edit')
+      // edit mode should have genre dropdown
+
+      const editTitleInput = screen.getByPlaceholderText('Enter a title...')
+      fireEvent.change(editTitleInput, { target: { value: 'Edited Title' } })
+
+      const editTextarea = screen.getByLabelText('Text Content')
+      fireEvent.change(editTextarea, {
+        target: { value: 'Edited text content' },
+      })
+
+      const genreSelect = screen.getByLabelText('Genre')
+      fireEvent.change(genreSelect, { target: { value: 'non-fiction' } })
+
+      const editSubmitButton = screen.getByRole('button', {
+        name: 'Save Changes',
+      })
+      fireEvent.click(editSubmitButton)
+
+      await waitFor(() => {
+        expect(mockOnSubmit).toHaveBeenCalledWith({
+          title: 'Edited Title',
+          content: 'Edited text content',
           fiction: false,
         })
       })

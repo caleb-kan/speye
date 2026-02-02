@@ -5,6 +5,11 @@ import { UploadTextModal } from '../components/UploadTextModal'
 import { AuthContext } from '../context/authContext'
 import type { TextInput } from '../components/TextFormModal'
 import type { User, Session } from '@supabase/supabase-js'
+import {
+  MAX_TITLE_CHARACTERS,
+  MAX_CONTENT_CHARACTERS,
+} from '../constants/textUpload'
+import { formatNumberWithCommas } from '../utils/textUtils'
 
 const mockUser = { id: 'user-123', email: 'test@example.com' } as User
 const mockSession = { user: mockUser } as Session
@@ -98,15 +103,42 @@ describe('UploadTextModal', () => {
       expect(screen.queryByLabelText('Genre')).not.toBeInTheDocument()
     })
 
+    it('should show character count when inputting text title', () => {
+      renderModal()
+
+      expect(
+        screen.getByText(
+          `0/${formatNumberWithCommas(MAX_TITLE_CHARACTERS)} characters`
+        )
+      ).toBeInTheDocument()
+
+      const textarea = screen.getByLabelText('Title')
+      fireEvent.change(textarea, { target: { value: 'Hello world' } })
+
+      expect(
+        screen.getByText(
+          `11/${formatNumberWithCommas(MAX_TITLE_CHARACTERS)} characters`
+        )
+      ).toBeInTheDocument()
+    })
+
     it('should show character count when inputting text content', () => {
       renderModal()
 
-      expect(screen.getByText('0 characters')).toBeInTheDocument()
+      expect(
+        screen.getByText(
+          `0/${formatNumberWithCommas(MAX_CONTENT_CHARACTERS)} characters`
+        )
+      ).toBeInTheDocument()
 
       const textarea = screen.getByLabelText('Text Content')
       fireEvent.change(textarea, { target: { value: 'Hello world' } })
 
-      expect(screen.getByText('11 characters')).toBeInTheDocument()
+      expect(
+        screen.getByText(
+          `11/${formatNumberWithCommas(MAX_CONTENT_CHARACTERS)} characters`
+        )
+      ).toBeInTheDocument()
     })
 
     it('should call onClose when cancel button is clicked', () => {

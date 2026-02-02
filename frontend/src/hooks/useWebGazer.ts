@@ -16,11 +16,16 @@ import {
 /**
  * Module-level WebGazer state tracking.
  * WebGazer is a singleton that doesn't cleanly reinitialize after end().
- * We keep it running continuously and swap out the gaze listener callback
- * when components mount/unmount. This avoids unreliable pause/resume cycles.
+ * We use stopCamera() to turn off the camera when leaving adaptive mode,
+ * and resume() to restart it when returning. This preserves calibration
+ * data while allowing the camera to be properly released.
  */
 let globalWebgazerInstance: WebGazerAPI | null = null
 let isGloballyInitialized = false
+// Pending cleanup timeout. Used to delay stopCamera() so React StrictMode's
+// double-invoke (effect1 -> cleanup -> effect2) doesn't interrupt the camera.
+// If effect2 starts before the timeout fires, we cancel it.
+let pendingCleanupTimeout: ReturnType<typeof setTimeout> | null = null
 
 type UseWebGazerOptions = {
   /** Whether WebGazer should be active */
@@ -57,6 +62,7 @@ interface WebGazerAPI {
   end(): void
   pause(): void
   resume(): Promise<WebGazerAPI>
+  stopCamera(): WebGazerAPI
   clearData(): Promise<void>
   recordScreenPosition(x: number, y: number, eventType: string): void
   isReady(): boolean
@@ -106,6 +112,12 @@ export function useWebGazer({
 
   // Initialize WebGazer
   useEffect(() => {
+    // Cancel any pending cleanup from a previous effect (React StrictMode double-invoke)
+    if (pendingCleanupTimeout) {
+      clearTimeout(pendingCleanupTimeout)
+      pendingCleanupTimeout = null
+    }
+
     if (!enabled) {
       return
     }
@@ -133,6 +145,8 @@ export function useWebGazer({
       webgazer.setGazeListener((data: GazeData | null, elapsedTime: number) => {
         if (!mountedRef.current || !onGazeRef.current) return
 
+        // Throttle callbacks to prevent excessive state updates
+        // WebGazer calls this ~60fps, we limit to ~30fps
         const now = Date.now()
         if (now - lastGazeCallbackRef.current < STATE_UPDATE_INTERVAL_MS) {
           return
@@ -143,33 +157,63 @@ export function useWebGazer({
       })
     }
 
-    // Reattach to existing WebGazer instance (no pause/resume needed)
-    const reattachWebGazer = () => {
+    // Reattach to existing WebGazer instance and resume camera if stopped
+    const reattachWebGazer = async () => {
       if (!globalWebgazerInstance) {
         return false
       }
 
-      webgazerRef.current = globalWebgazerInstance
+      setStatus('initializing')
 
-      // Reattach gaze listener with new component's refs
-      // WebGazer is still running, we just swap the callback
-      setupGazeListener(globalWebgazerInstance)
+      try {
+        webgazerRef.current = globalWebgazerInstance
 
-      // Update display settings
-      globalWebgazerInstance
-        .showVideoPreview(showPreview)
-        .showPredictionPoints(showPredictionPoints)
-        .showFaceFeedbackBox(showPreview)
+        // Set up gaze listener BEFORE resuming so the loop has a valid callback
+        setupGazeListener(globalWebgazerInstance)
 
-      isInitializedRef.current = true
-      setStatus('ready')
-      return true
+        // Update display settings
+        globalWebgazerInstance
+          .showVideoPreview(showPreview)
+          .showPredictionPoints(showPredictionPoints)
+          .showFaceFeedbackBox(showPreview)
+
+        // Resume WebGazer - this restarts the camera if it was stopped
+        await globalWebgazerInstance.resume()
+
+        // Check if component unmounted during async resume
+        // If so, just return false - do NOT call stopCamera() here!
+        // React StrictMode may have started another effect that's now using the camera.
+        // The cleanup timeout mechanism will handle stopping the camera if needed.
+        if (!mounted) {
+          return false
+        }
+
+        isInitializedRef.current = true
+        setStatus('ready')
+        return true
+      } catch (err) {
+        // Resume failed - clean up and clear global state so initWebGazer runs fresh
+        if (import.meta.env.DEV) {
+          console.warn('WebGazer resume failed, will reinitialize:', err)
+        }
+        // Call end() to remove DOM elements before reinitializing
+        // This prevents duplicate elements when begin() creates new ones
+        // Calibration data is preserved in localforage storage
+        try {
+          globalWebgazerInstance?.end()
+        } catch {
+          // Ignore end() errors
+        }
+        globalWebgazerInstance = null
+        isGloballyInitialized = false
+        return false
+      }
     }
 
     const initWebGazer = async () => {
-      // Reattach to existing WebGazer if already running globally
+      // Reattach to existing WebGazer if already initialized globally
       if (isGloballyInitialized && globalWebgazerInstance) {
-        const reattached = reattachWebGazer()
+        const reattached = await reattachWebGazer()
         if (reattached) return
       }
 
@@ -256,10 +300,11 @@ export function useWebGazer({
         // so remounting components can reattach even if we return early below
         isGloballyInitialized = true
 
+        // Check if component unmounted during async begin()
+        // If so, just return - do NOT call stopCamera() here!
+        // React StrictMode may have started another effect that's now using the camera.
+        // The cleanup timeout mechanism will handle stopping the camera if needed.
         if (!mounted) {
-          // Component unmounted during init - don't pause, let WebGazer keep running
-          // The gaze listener will exit early since mountedRef is false
-          // Next component mount will reattach via reattachWebGazer()
           return
         }
 
@@ -289,9 +334,11 @@ export function useWebGazer({
 
         await checkReady()
 
+        // Check if component unmounted during async checkReady()
+        // If so, just return - do NOT call stopCamera() here!
+        // React StrictMode may have started another effect that's now using the camera.
+        // The cleanup timeout mechanism will handle stopping the camera if needed.
         if (!mounted) {
-          // Component unmounted during checkReady - don't pause
-          // isGloballyInitialized already set above, so next mount can reattach
           return
         }
 
@@ -342,12 +389,25 @@ export function useWebGazer({
     return () => {
       mounted = false
       mountedRef.current = false
-      // Clear callback ref so old component doesn't receive gaze data
-      onGazeRef.current = undefined
+      // NOTE: Do NOT clear onGazeRef.current here!
+      // When the component stays mounted but enabled changes (e.g., switching
+      // to standard mode), the effect at line 109-111 won't re-run because
+      // its dependency is [onGaze], not [enabled]. If we clear onGazeRef here,
+      // it stays undefined when enabled becomes true again, breaking the
+      // gaze listener callback.
 
-      // DO NOT pause WebGazer - keep it running so it works immediately on remount
-      // The gaze listener checks mountedRef/onGazeRef and exits early if cleared
-      // This avoids the unreliable pause/resume cycle
+      // Delay stopping the camera to handle React StrictMode double-invoke.
+      // StrictMode runs: effect1 -> cleanup -> effect2 (synchronously)
+      // If effect2 starts, it will cancel this timeout and keep the camera running.
+      // If no effect2 starts (real unmount), the timeout fires and stops the camera.
+      if (globalWebgazerInstance) {
+        pendingCleanupTimeout = setTimeout(() => {
+          pendingCleanupTimeout = null
+          if (globalWebgazerInstance) {
+            globalWebgazerInstance.stopCamera()
+          }
+        }, 0) // setTimeout(..., 0) runs after the current synchronous block
+      }
 
       webgazerRef.current = null
       isInitializedRef.current = false

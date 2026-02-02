@@ -114,6 +114,17 @@ util.DataWindow.prototype.addAll = function (data) {
   }
 }
 
+/**
+ * Clear all data from the window
+ * @return {DataWindow} this
+ */
+util.DataWindow.prototype.clear = function () {
+  this.data = []
+  this.index = 0
+  this.length = 0
+  return this
+}
+
 //Helper functions
 /**
  * Grayscales an image patch. Can be used for the whole canvas, detected face, detected eye, etc.

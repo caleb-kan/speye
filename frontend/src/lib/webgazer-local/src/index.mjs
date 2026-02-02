@@ -746,13 +746,59 @@ webgazer.pause = function () {
 }
 
 /**
- * Resumes collection of data and predictions if paused
+ * Resumes collection of data and predictions if paused.
+ * If the camera was stopped (via stopCamera()), restarts the stream.
  * @returns {webgazer} this
  */
 webgazer.resume = async function () {
   if (!paused) {
     return webgazer
   }
+
+  // Check if camera stream needs to be restarted
+  // (tracks are 'ended' after stopCamera() is called)
+  const needsRestart =
+    !videoStream ||
+    videoStream.getTracks().some((track) => track.readyState === 'ended')
+
+  if (needsRestart && videoElement) {
+    const stream = await navigator.mediaDevices.getUserMedia(
+      webgazer.params.camConstraints
+    )
+    videoStream = stream
+    videoElement.srcObject = stream
+
+    // Wait for video to be ready before starting the loop
+    // This ensures the video has loaded the new stream
+    // Check if already ready (readyState >= 2 means HAVE_CURRENT_DATA)
+    if (videoElement.readyState < 2) {
+      await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          videoElement.removeEventListener('loadeddata', onLoadedData)
+          reject(new Error('Video load timeout'))
+        }, 10000) // 10 second timeout
+
+        function onLoadedData(e) {
+          clearTimeout(timeout)
+          e.target.removeEventListener('loadeddata', onLoadedData)
+          resolve()
+        }
+        videoElement.addEventListener('loadeddata', onLoadedData)
+      })
+    }
+
+    // Re-sync internal canvas sizes with the new video dimensions
+    // This is critical for accurate face detection and gaze prediction
+    setInternalVideoBufferSizes(
+      videoElement.videoWidth,
+      videoElement.videoHeight
+    )
+
+    // Clear stale smoothing data from before the camera was stopped
+    // This prevents old predictions from affecting new ones
+    smoothingVals.clear()
+  }
+
   paused = false
   await loop()
   return webgazer
@@ -785,6 +831,24 @@ webgazer.end = function () {
     gazeDot.remove()
   }
 
+  return webgazer
+}
+
+/**
+ * Stops just the camera without removing DOM elements or clearing state.
+ * Use this when navigating away from adaptive mode to turn off the camera
+ * while preserving calibration data for quick resume.
+ * @return {webgazer} this
+ */
+webgazer.stopCamera = function () {
+  paused = true
+  if (videoStream) {
+    try {
+      videoStream.getTracks().forEach((track) => track.stop())
+    } catch (e) {
+      // Ignore errors if stream is already stopped
+    }
+  }
   return webgazer
 }
 

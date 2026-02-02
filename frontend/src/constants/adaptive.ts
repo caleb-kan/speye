@@ -95,6 +95,18 @@ export const DEFAULT_FONT_FAMILY = 'system-ui, sans-serif'
 export const TEXT_FIT_BUFFER = 0.98
 /** Factor applied to END_OF_LINE_THRESHOLD for early visual feedback */
 export const END_ZONE_APPROACH_FACTOR = 0.9
+
+/**
+ * Minimum text fill ratio (0-1) for dynamic threshold calculation.
+ * Prevents division issues and ensures end-zone is always reachable.
+ */
+export const MIN_TEXT_FILL_RATIO = 0.1
+
+/**
+ * Container center position (0.5 = 50%) for centered text calculations.
+ * Used as the anchor point for dynamic threshold adjustments.
+ */
+export const CONTAINER_CENTER = 0.5
 /** Minimum seconds of reading before calculating WPM (avoids noisy early estimates) */
 export const MIN_READING_TIME_FOR_WPM = 3
 /**

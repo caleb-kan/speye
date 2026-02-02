@@ -3,7 +3,11 @@ import { useRefSync } from './useRefSync'
 import { usePrevious } from './usePrevious'
 import { calculateWpmFromReading } from '../utils/wpmCalculations'
 import { calculateProgressPercentage } from '../utils/progressCalculation'
-import { normalizeGazeX, clampNormalized } from '../utils/gazeNormalization'
+import {
+  normalizeGazeX,
+  clampNormalized,
+  calculateDynamicThreshold,
+} from '../utils/gazeNormalization'
 import { pruneByTime } from '../utils/arrayUtils'
 import {
   END_OF_LINE_THRESHOLD,
@@ -17,6 +21,7 @@ import {
   VELOCITY_SAMPLE_COUNT,
   VELOCITY_WINDOW_MS,
   MIN_ADVANCE_DEBOUNCE_MS,
+  MIN_TEXT_FILL_RATIO,
 } from '../constants/adaptive'
 
 /**
@@ -34,6 +39,12 @@ type UseHorizontalReaderOptions = {
   disabled?: boolean
   totalChunks: number
   chunkWordCounts?: number[]
+  /**
+   * Ratio of actual text width to container width (0-1).
+   * Used to calculate dynamic end-zone thresholds for short/centered text.
+   * Default: 1.0 (text fills entire container width)
+   */
+  textFillRatio?: number
 }
 
 type UseHorizontalReaderReturn = {
@@ -47,6 +58,8 @@ type UseHorizontalReaderReturn = {
   restart: () => void
   goBack: () => void
   goForward: () => void
+  /** Dynamic end-zone threshold adjusted for text fill ratio (0-1) */
+  effectiveEndThreshold: number
 }
 
 /**
@@ -66,6 +79,7 @@ export function useHorizontalReader({
   disabled = false,
   totalChunks,
   chunkWordCounts,
+  textFillRatio = 1.0,
 }: UseHorizontalReaderOptions): UseHorizontalReaderReturn {
   const [currentChunk, setCurrentChunk] = useState(0)
   const [isComplete, setIsComplete] = useState(false)
@@ -109,6 +123,28 @@ export function useHorizontalReader({
     () => calculateProgressPercentage(currentChunk, totalChunks),
     [currentChunk, totalChunks]
   )
+
+  /**
+   * Dynamic end-zone thresholds adjusted for text fill ratio.
+   * Uses calculateDynamicThreshold utility for consistent calculation.
+   *
+   * For full-width text (ratio=1), thresholds match the original static values.
+   * For short centered text, thresholds shift toward center proportionally.
+   */
+  const dynamicThresholds = useMemo(() => {
+    const ratio = Math.max(MIN_TEXT_FILL_RATIO, Math.min(1, textFillRatio))
+    return {
+      endOfLine: calculateDynamicThreshold(ratio, END_OF_LINE_THRESHOLD),
+      earlyDetection: calculateDynamicThreshold(
+        ratio,
+        END_ZONE_EARLY_DETECTION
+      ),
+      // Return sweep threshold stays fixed at container center.
+      // This is intentional: it's a FALLBACK for when velocity detection fails,
+      // and gaze reaching center means they've definitely started a return sweep.
+      returnSweep: RETURN_SWEEP_THRESHOLD,
+    }
+  }, [textFillRatio])
 
   // Start reading timer when gaze tracking becomes active
   useEffect(() => {
@@ -190,8 +226,8 @@ export function useHorizontalReader({
       return
     }
 
-    // Track when gaze reaches the end zone
-    if (normalizedX >= END_OF_LINE_THRESHOLD) {
+    // Track when gaze reaches the end zone (using dynamic threshold)
+    if (normalizedX >= dynamicThresholds.endOfLine) {
       reachedEndZoneRef.current = true
     }
 
@@ -247,7 +283,7 @@ export function useHorizontalReader({
           if (
             (wasStationary || wasRightward) &&
             isNowLeftward &&
-            normalizedX >= END_ZONE_EARLY_DETECTION
+            normalizedX >= dynamicThresholds.earlyDetection
           ) {
             shouldAdvance = true
           }
@@ -266,7 +302,7 @@ export function useHorizontalReader({
       if (
         !shouldAdvance &&
         positions.length < VELOCITY_SAMPLE_COUNT &&
-        normalizedX < RETURN_SWEEP_THRESHOLD
+        normalizedX < dynamicThresholds.returnSweep
       ) {
         shouldAdvance = true
       }
@@ -300,6 +336,7 @@ export function useHorizontalReader({
     containerLeftRef,
     containerWidthRef,
     totalChunksRef,
+    dynamicThresholds,
   ])
 
   /**
@@ -357,7 +394,7 @@ export function useHorizontalReader({
   }, [text, prevText, restart])
 
   const isInEndZone =
-    isGazeReliable && horizontalProgress >= END_OF_LINE_THRESHOLD
+    isGazeReliable && horizontalProgress >= dynamicThresholds.endOfLine
 
   return {
     currentChunk,
@@ -370,5 +407,6 @@ export function useHorizontalReader({
     restart,
     goBack,
     goForward,
+    effectiveEndThreshold: dynamicThresholds.endOfLine,
   }
 }

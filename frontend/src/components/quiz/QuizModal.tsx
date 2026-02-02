@@ -2,45 +2,23 @@ import { useState } from 'react'
 import { QuizOverlay } from './QuizOverlay'
 import { QuizHeader } from './QuizHeader'
 import { AnswerOption } from './AnswerOption'
-import type { Question } from '../../types/quizTypes'
+import type { QuestionSet } from '../../types/database'
 
 type QuizModalProps = {
   isOpen: boolean
   onClose: () => void
+  questionSet: QuestionSet | null
 }
 
-// TODO: Replace with questions from backend/props
-const QUESTIONS: Question[] = [
-  {
-    id: '1',
-    question: 'What is the primary benefit of speed reading?',
-    options: [
-      'Higher comprehension',
-      'Faster processing',
-      'Better memory',
-      'Reduced eye strain',
-    ],
-    correctIndex: 1,
-  },
-  {
-    id: '2',
-    question: 'Which technique involves minimizing subvocalization?',
-    options: [
-      'Chunking',
-      'Skimming',
-      'Meta guiding',
-      'Eliminating inner speech',
-    ],
-    correctIndex: 3,
-  },
-]
-
-export function QuizModal({ isOpen, onClose }: QuizModalProps) {
+export function QuizModal({ isOpen, onClose, questionSet }: QuizModalProps) {
   // State resets on remount (parent uses key prop to force remount on open)
   const [currentIndex, setCurrentIndex] = useState(0)
   const [answers, setAnswers] = useState<number[]>([])
 
-  const currentQuestion = QUESTIONS[currentIndex]
+  if (!questionSet) return null
+  const questions = questionSet.questions
+
+  const currentQuestion = questions[currentIndex]
   const selectedAnswer = answers[currentIndex]
 
   function selectAnswer(index: number) {
@@ -50,7 +28,7 @@ export function QuizModal({ isOpen, onClose }: QuizModalProps) {
   }
 
   function nextQuestion() {
-    if (currentIndex < QUESTIONS.length - 1) {
+    if (currentIndex < questions.length - 1) {
       setCurrentIndex((i) => i + 1)
     } else {
       onClose()
@@ -61,7 +39,7 @@ export function QuizModal({ isOpen, onClose }: QuizModalProps) {
     <QuizOverlay isOpen={isOpen} onClose={onClose}>
       {/* Header Section */}
       <div className="mb-8">
-        <QuizHeader current={currentIndex} total={QUESTIONS.length} />
+        <QuizHeader current={currentIndex} total={questions.length} />
       </div>
 
       {/* Question Section */}
@@ -95,7 +73,7 @@ export function QuizModal({ isOpen, onClose }: QuizModalProps) {
               animate-in fade-in slide-in-from-bottom-2 duration-200
             "
           >
-            {currentIndex === QUESTIONS.length - 1
+            {currentIndex === questions.length - 1
               ? 'Finish Quiz'
               : 'Next Question'}
           </button>

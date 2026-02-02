@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Reader } from '../components/Reader'
+import { StartQuizButton } from '../components/StartQuizButton'
 import { useTextNavigation } from '../hooks/useTextNavigation'
 import { useOutletContext, useLocation, useNavigate } from 'react-router-dom'
 import type { ReadingContext } from '../types/reading'
-import { QuizModal } from '../components/quiz/QuizModal'
 import type { LocationState } from '../types'
 
 export function Home() {
@@ -16,8 +16,6 @@ export function Home() {
 
   // Local state to track if reading is finished (for quizzes)
   const [readingComplete, setReadingComplete] = useState(false)
-  // Counter to force QuizModal remount when opened (resets state)
-  const [quizKey, setQuizKey] = useState(0)
 
   const {
     wpm,
@@ -30,8 +28,6 @@ export function Home() {
     textWidthPercent,
     visibleLines,
     onTextWidthChange,
-    quizOpen,
-    setQuizOpen,
     currentTextComplexity,
     setCurrentTextComplexity,
   } = useOutletContext<ReadingContext>()
@@ -95,41 +91,16 @@ export function Home() {
             onComplete={setReadingComplete}
           />
 
-          {/* Quiz button - appears after reading completes */}
-          <div className="h-20 flex items-center justify-center relative z-10">
-            <button
-              onClick={() => {
-                setQuizKey((k) => k + 1)
-                setQuizOpen(true)
-              }}
-              className={`
-                px-8 py-4 rounded-full
-                bg-primary text-bg font-bold text-lg
-                shadow-lg hover:shadow-xl hover:scale-105
-                transform transition-all duration-500 cubic-bezier(0.34, 1.56, 0.64, 1)
-
-                ${
-                  readingComplete
-                    ? 'opacity-100 translate-y-0 pointer-events-auto'
-                    : 'opacity-0 translate-y-12 pointer-events-none'
-                }
-              `}
-            >
-              Start Quiz
-            </button>
-          </div>
+          <StartQuizButton
+            textId={currentText.id}
+            readingComplete={readingComplete}
+          />
         </>
       ) : (
         <div className="flex-1 flex items-center justify-center">
           <span className="text-text-secondary">No texts available</span>
         </div>
       )}
-
-      <QuizModal
-        key={quizKey}
-        isOpen={quizOpen}
-        onClose={() => setQuizOpen(false)}
-      />
     </div>
   )
 }

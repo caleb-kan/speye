@@ -32,18 +32,18 @@ describe('Header', () => {
 
   describe('Styling', () => {
     it('header has fixed position', () => {
-      renderHeader()
+      const { container } = renderHeader()
 
-      const header = screen.getByRole('banner')
+      const header = container.firstChild as HTMLElement
       expect(header).toHaveClass('fixed')
     })
 
-    it('header is positioned at top left', () => {
-      renderHeader()
+    it('header is positioned at top left with padding', () => {
+      const { container } = renderHeader()
 
-      const header = screen.getByRole('banner')
-      expect(header).toHaveClass('top-0')
-      expect(header).toHaveClass('left-0')
+      const header = container.firstChild as HTMLElement
+      expect(header).toHaveClass('top-4')
+      expect(header).toHaveClass('left-4')
     })
   })
 

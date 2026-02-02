@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { AdaptiveReader } from '../components/adaptive/AdaptiveReader'
 import { OptionsBar } from '../components/OptionsBar'
+import { StartQuizButton } from '../components/StartQuizButton'
 import { useAuth } from '../hooks/useAuth'
 import { useReadingPreferences } from '../hooks/useReadingPreferences'
 import { useTextNavigation } from '../hooks/useTextNavigation'
@@ -25,6 +26,7 @@ export function Adaptive() {
   const [currentTextComplexity, setCurrentTextComplexity] = useState<
     number | null
   >(null)
+  const [readingComplete, setReadingComplete] = useState(false)
 
   const {
     preferences,
@@ -161,8 +163,14 @@ export function Adaptive() {
           text={currentText.content}
           source={currentText.source}
           onNewText={handleNewText}
+          onComplete={setReadingComplete}
         />
       </div>
+
+      <StartQuizButton
+        textId={currentText.id}
+        readingComplete={readingComplete}
+      />
     </div>
   )
 }

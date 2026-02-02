@@ -1,4 +1,25 @@
-import { type Quiz } from '../../../groq/types'
+/**
+ * Quiz question structure
+ */
+export interface QuizQuestion {
+  question: string
+  options: string[]
+  correctAnswer: number
+}
+
+/**
+ * Question set structure (5 questions per set)
+ */
+export interface QuestionSet {
+  questions: QuizQuestion[]
+}
+
+/**
+ * Quiz structure (5 sets of 5 questions = 25 questions total)
+ */
+export interface Quiz {
+  questionSets: QuestionSet[]
+}
 
 /**
  * Input data for creating or updating a text.
@@ -8,6 +29,7 @@ export interface TextInput {
   title: string | null
   content: string
   fiction: boolean
+  quiz?: Quiz | null
 }
 
 /**

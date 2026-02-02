@@ -11,7 +11,7 @@ port = 54322
 # Port to use for the API
 port = 54321
 
-[functions.generate-title]
+[functions.process-text]
 # Disable JWT verification, this function is a public utility
-# that generates titles using Groq LLM and doesn't access user data
+# that generates titles and quiz questions using Groq LLM and doesn't access user data
 verify_jwt = false

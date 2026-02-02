@@ -2,6 +2,32 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { QuizModal } from '../components/quiz/QuizModal'
 import '@testing-library/jest-dom'
+import type { QuestionSet } from '../types/database'
+
+const mockQuestionSet: QuestionSet = {
+  questions: [
+    {
+      question: 'What is the primary benefit of speed reading?',
+      options: [
+        'Higher comprehension',
+        'Faster processing',
+        'Better memory',
+        'Reduced eye strain',
+      ],
+      correctAnswer: 1,
+    },
+    {
+      question: 'Which technique involves minimizing subvocalization?',
+      options: [
+        'Chunking',
+        'Skimming',
+        'Meta guiding',
+        'Eliminating inner speech',
+      ],
+      correctAnswer: 3,
+    },
+  ],
+}
 
 describe('QuizModal', () => {
   // Setup DOM for React Portal
@@ -22,17 +48,24 @@ describe('QuizModal', () => {
   const defaultProps = {
     isOpen: true,
     onClose: vi.fn(),
+    questionSet: mockQuestionSet,
   }
 
   describe('Visibility', () => {
     it('renders nothing when isOpen is false', () => {
-      render(<QuizModal {...defaultProps} isOpen={false} />)
+      render(
+        <QuizModal
+          {...defaultProps}
+          isOpen={false}
+          questionSet={mockQuestionSet}
+        />
+      )
       const question = screen.queryByRole('heading', { level: 3 })
       expect(question).not.toBeInTheDocument()
     })
 
     it('renders content when isOpen is true', () => {
-      render(<QuizModal {...defaultProps} />)
+      render(<QuizModal {...defaultProps} questionSet={mockQuestionSet} />)
       expect(screen.getByText(/Comprehension Quiz/i)).toBeInTheDocument()
     })
   })
@@ -150,7 +183,13 @@ describe('QuizModal', () => {
 
     it('calls onClose when clicking the backdrop', () => {
       const onClose = vi.fn()
-      render(<QuizModal isOpen={true} onClose={onClose} />)
+      render(
+        <QuizModal
+          isOpen={true}
+          onClose={onClose}
+          questionSet={mockQuestionSet}
+        />
+      )
 
       const backdrop = document.querySelector('.fixed.inset-0')
       fireEvent.click(backdrop!)
@@ -160,7 +199,13 @@ describe('QuizModal', () => {
 
     it('calls onClose when pressing Escape key', () => {
       const onClose = vi.fn()
-      render(<QuizModal isOpen={true} onClose={onClose} />)
+      render(
+        <QuizModal
+          isOpen={true}
+          onClose={onClose}
+          questionSet={mockQuestionSet}
+        />
+      )
 
       fireEvent.keyDown(document, { key: 'Escape' })
 

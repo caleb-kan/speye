@@ -2,6 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { TextFormModal } from '../components/TextFormModal'
+import {
+  MAX_TITLE_CHARACTERS,
+  MAX_CONTENT_CHARACTERS,
+} from '../constants/textUpload'
+import { formatNumberWithCommas } from '../utils/textUtils'
 
 describe('TextFormModal', () => {
   const mockOnClose = vi.fn()
@@ -131,11 +136,15 @@ describe('TextFormModal', () => {
       expect(screen.getByLabelText('Genre')).toHaveValue('non-fiction')
     })
 
-    it('should show Saving... when submitting', async () => {
+    it('should only allow saving when text is updated and then show Saving... when submitting', async () => {
       mockOnSubmit.mockImplementation(
         () => new Promise((resolve) => setTimeout(resolve, 100))
       )
       renderEditModal()
+
+      // change something to enable submit
+      const titleInput = screen.getByPlaceholderText('Enter a title...')
+      fireEvent.change(titleInput, { target: { value: 'Updated Title' } })
 
       const saveButton = screen.getByRole('button', { name: 'Save Changes' })
       fireEvent.click(saveButton)
@@ -200,15 +209,42 @@ describe('TextFormModal', () => {
       ).toBeInTheDocument()
     })
 
-    it('should show character count', () => {
+    it('should show character count for title', () => {
       renderModal()
 
-      expect(screen.getByText('0 characters')).toBeInTheDocument()
+      expect(
+        screen.getByText(
+          `0/${formatNumberWithCommas(MAX_TITLE_CHARACTERS)} characters`
+        )
+      ).toBeInTheDocument()
+
+      const textarea = screen.getByLabelText('Title')
+      fireEvent.change(textarea, { target: { value: 'Hello world' } })
+
+      expect(
+        screen.getByText(
+          `11/${formatNumberWithCommas(MAX_TITLE_CHARACTERS)} characters`
+        )
+      ).toBeInTheDocument()
+    })
+
+    it('should show character count for content', () => {
+      renderModal()
+
+      expect(
+        screen.getByText(
+          `0/${formatNumberWithCommas(MAX_CONTENT_CHARACTERS)} characters`
+        )
+      ).toBeInTheDocument()
 
       const textarea = screen.getByLabelText('Text Content')
       fireEvent.change(textarea, { target: { value: 'Hello world' } })
 
-      expect(screen.getByText('11 characters')).toBeInTheDocument()
+      expect(
+        screen.getByText(
+          `11/${formatNumberWithCommas(MAX_CONTENT_CHARACTERS)} characters`
+        )
+      ).toBeInTheDocument()
     })
 
     it('should call onClose when cancel button is clicked', () => {

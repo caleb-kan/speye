@@ -23,7 +23,7 @@ import { deleteText } from '../../../backend/supabase/database/texts/deleteText'
 import { updateText } from '../../../backend/supabase/database/texts/updateText'
 import type { TextInput } from '../components/TextFormModal'
 import { SUCCESS_MESSAGE_DURATION_MS } from '../constants/ui'
-import { generateTitle } from '../services/generateTitle'
+import { processText } from '../services/processText'
 import type { Text, TextPreview } from '../types/database'
 import noUiSlider, { type API } from 'nouislider'
 import { MIN_COMPLEXITY, MAX_COMPLEXITY } from '../constants/complexity'
@@ -253,37 +253,42 @@ export function Library() {
     return () => clearTimeout(timer)
   }, [deleteError])
 
-  const resolveTitle = async (
-    data: TextInput
-  ): Promise<{ title: string | null; titleGenerationFailed: boolean }> => {
-    if (data.title) {
-      return { title: data.title, titleGenerationFailed: false }
-    }
-
-    try {
-      const generatedTitle = await generateTitle(data.content)
-      return { title: generatedTitle, titleGenerationFailed: false }
-    } catch (error) {
-      console.error('Failed to generate title:', error)
-      return { title: null, titleGenerationFailed: true }
-    }
-  }
-
   const handleUpload = async (data: TextInput) => {
     if (!user) {
       throw new Error('You must be logged in to upload texts')
     }
 
-    const { title, titleGenerationFailed } = await resolveTitle(data)
+    const needsTitle = !data.title
 
-    await uploadText(user.id, { ...data, title })
+    try {
+      // Single LLM call to generate title (if needed) and quiz
+      const result = await processText({
+        content: data.content,
+        generateTitle: needsTitle,
+      })
 
-    if (titleGenerationFailed) {
+      const finalTitle = needsTitle ? result.title : data.title
+
+      await uploadText(user.id, {
+        ...data,
+        title: finalTitle,
+        quiz: { questionSets: result.questionSets },
+      })
+
+      if (needsTitle && !result.title) {
+        setSuccessMessage(
+          'Text uploaded successfully, but title generation failed. The text was saved without a title.'
+        )
+      } else {
+        setSuccessMessage('Text uploaded successfully!')
+      }
+    } catch (error) {
+      console.error('Failed to process text:', error)
+      // Fallback: upload without quiz if processing fails
+      await uploadText(user.id, { ...data })
       setSuccessMessage(
-        'Text uploaded successfully, but title generation failed. The text was saved without a title.'
+        'Text uploaded successfully, but quiz generation failed.'
       )
-    } else {
-      setSuccessMessage('Text uploaded successfully!')
     }
 
     fetchPrivateTexts(true)
@@ -337,38 +342,80 @@ export function Library() {
     setEditModal({ isOpen: false, text: null })
   }
 
-  const handleEditSubmit = async (textId: string, data: TextInput) => {
-    const { title, titleGenerationFailed } = await resolveTitle(data)
+  const createPreviewFromText = (textRecord: Text): TextPreview => ({
+    id: textRecord.id,
+    title: textRecord.title,
+    preview:
+      textRecord.content.slice(0, 200) +
+      (textRecord.content.length > 200 ? '...' : ''),
+    uploaded_at: textRecord.uploaded_at,
+    owner_id: textRecord.owner_id,
+    quiz: textRecord.quiz,
+    fiction: textRecord.fiction,
+    category: textRecord.category,
+    complexity: textRecord.complexity,
+    source: textRecord.source,
+  })
 
-    const updatedTextRecord = await updateText(textId, { ...data, title })
-
-    const updatedPreview: TextPreview = {
-      id: updatedTextRecord.id,
-      title: updatedTextRecord.title,
-      preview:
-        updatedTextRecord.content.slice(0, 200) +
-        (updatedTextRecord.content.length > 200 ? '...' : ''),
-      uploaded_at: updatedTextRecord.uploaded_at,
-      owner_id: updatedTextRecord.owner_id,
-      quiz: updatedTextRecord.quiz,
-      fiction: updatedTextRecord.fiction,
-      category: updatedTextRecord.category,
-      complexity: updatedTextRecord.complexity,
-      source: updatedTextRecord.source,
-    }
-
+  const updatePrivateTextsWithPreview = (
+    textId: string,
+    preview: TextPreview
+  ) => {
     setPrivateTexts(
       privateTexts
-        ? privateTexts.map((t) => (t.id === textId ? updatedPreview : t))
+        ? privateTexts.map((t) => (t.id === textId ? preview : t))
         : null
     )
+  }
 
-    if (titleGenerationFailed) {
-      setSuccessMessage(
-        'Text updated successfully, but title generation failed. The text was saved without a title.'
+  const handleEditSubmit = async (textId: string, data: TextInput) => {
+    const needsTitle = !data.title
+    let finalTitle = data.title
+
+    try {
+      const result = await processText({
+        content: data.content,
+        generateTitle: needsTitle,
+      })
+
+      if (needsTitle) {
+        finalTitle = result.title
+      }
+
+      const updatedTextRecord = await updateText(textId, {
+        ...data,
+        title: finalTitle,
+        quiz: { questionSets: result.questionSets },
+      })
+
+      updatePrivateTextsWithPreview(
+        textId,
+        createPreviewFromText(updatedTextRecord)
       )
-    } else {
-      setSuccessMessage('Text updated successfully!')
+
+      if (needsTitle && !result.title) {
+        setSuccessMessage(
+          'Text updated successfully, but title generation failed. The text was saved without a title.'
+        )
+      } else {
+        setSuccessMessage('Text updated successfully!')
+      }
+    } catch (error) {
+      console.error('Failed to process text:', error)
+
+      const updatedTextRecord = await updateText(textId, {
+        ...data,
+        title: finalTitle,
+      })
+
+      updatePrivateTextsWithPreview(
+        textId,
+        createPreviewFromText(updatedTextRecord)
+      )
+
+      setSuccessMessage(
+        'Text updated successfully, but quiz regeneration failed.'
+      )
     }
   }
 

@@ -5,8 +5,7 @@
     "lint": "eslint .",
     "test": "vitest",
     "test:run": "vitest run",
-    "test:watch": "vitest",
-    "test:groq": "vitest run tests/quiz_gen.test.ts"
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2",

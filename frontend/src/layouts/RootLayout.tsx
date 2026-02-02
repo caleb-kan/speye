@@ -6,18 +6,14 @@ import { Outlet } from 'react-router-dom'
 export function RootLayout() {
   return (
     <div className="flex h-screen overflow-hidden bg-bg text-text">
-      {/* Left sidebar */}
+      {/* Fixed overlays */}
       <Navbar />
+      <Header />
 
       {/* Right content shell */}
       <div className="flex-1 ml-14 flex flex-col">
-        {/* Top header (global) */}
-        <Header />
-
-        <div className="h-12" />
-
         {/* Page content */}
-        <main className="relative flex-1 flex flex-col min-h-0">
+        <main className="relative flex-1 flex flex-col min-h-0 overflow-auto pt-12">
           <Outlet />
         </main>
 

@@ -18,6 +18,7 @@ export async function updateText(
       content: data.content,
       fiction: data.fiction,
       complexity: complexity,
+      quiz: data.quiz ?? null,
     })
     .eq('id', textId)
     .select()

@@ -1,9 +1,15 @@
+export type QuizQuestion = {
+  question: string
+  options: string[]
+  correctAnswer: number
+}
+
+export type QuestionSet = {
+  questions: QuizQuestion[]
+}
+
 export type Quiz = {
-  questions: {
-    question: string
-    options: string[]
-    correctAnswer: number
-  }[]
+  questionSets: QuestionSet[]
 }
 
 export type Text = {

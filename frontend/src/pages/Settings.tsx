@@ -153,12 +153,10 @@ export function Settings() {
                 <span>Fixed WPM speed reading with word highlighting</span>
               </div>
               <div className="flex gap-2">
-                <span className="text-text-secondary/50 font-medium shrink-0">
+                <span className="text-primary font-medium shrink-0">
                   adaptive
                 </span>
-                <span className="text-text-secondary/50">
-                  Eye-tracking based adaptive speed (coming soon)
-                </span>
+                <span>Eye-tracking based adaptive speed</span>
               </div>
               <div className="flex gap-2">
                 <span className="text-text-secondary/50 font-medium shrink-0">

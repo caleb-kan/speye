@@ -20,6 +20,7 @@ export async function uploadText(
         content: data.content,
         fiction: data.fiction,
         complexity: complexity,
+        quiz: data.quiz ?? null,
       },
     ])
     .select()

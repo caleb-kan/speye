@@ -25,6 +25,7 @@ export interface WebGazer {
   end(): WebGazer
   pause(): WebGazer
   resume(): Promise<WebGazer>
+  stopCamera(): WebGazer
   isReady(): boolean
 
   // Gaze listener

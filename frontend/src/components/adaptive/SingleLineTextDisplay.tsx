@@ -7,6 +7,7 @@ import {
 } from 'react'
 import {
   SINGLE_LINE_FONT_SIZE,
+  SINGLE_LINE_FONT_WEIGHT,
   SINGLE_LINE_LINE_HEIGHT,
   SINGLE_LINE_HEIGHT,
   END_OF_LINE_THRESHOLD,
@@ -29,7 +30,9 @@ import {
   END_ZONE_ACTIVE_OPACITY,
   END_ZONE_APPROACHING_OPACITY,
   TEXT_UNRELIABLE_OPACITY,
+  MIN_TEXT_FILL_RATIO,
 } from '../../constants/adaptive'
+import { calculateDynamicThreshold } from '../../utils/gazeNormalization'
 import {
   splitTextToFitWidthWithMetadata,
   type ChunkData,
@@ -48,6 +51,8 @@ type SingleLineTextDisplayProps = {
   onContainerMeasured?: (left: number, width: number) => void
   onTotalChunksCalculated?: (totalChunks: number) => void
   onChunkWordCounts?: (wordCounts: number[]) => void
+  /** Called when text fill ratio changes (0-1, ratio of text width to container width) */
+  onTextFillRatioMeasured?: (ratio: number) => void
 }
 
 export function SingleLineTextDisplay({
@@ -60,10 +65,12 @@ export function SingleLineTextDisplay({
   onContainerMeasured,
   onTotalChunksCalculated,
   onChunkWordCounts,
+  onTextFillRatioMeasured,
 }: SingleLineTextDisplayProps) {
   const containerRef = useRef<HTMLDivElement>(null)
 
   const [availableWidth, setAvailableWidth] = useState(0)
+  const [textFillRatio, setTextFillRatio] = useState(1)
   const fontFamilyRef = useRef(DEFAULT_FONT_FAMILY)
   const [chunks, setChunks] = useState<ChunkData[]>([])
 
@@ -165,8 +172,45 @@ export function SingleLineTextDisplay({
     }
   }, [chunks, onTotalChunksCalculated, onChunkWordCounts])
 
+  // Measure text width and report fill ratio for dynamic end-zone calculation
+  useEffect(() => {
+    if (availableWidth <= 0 || !currentText) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset to default when no text
+      setTextFillRatio(1)
+      onTextFillRatioMeasured?.(1)
+      return
+    }
+
+    // Measure actual text width using the same font properties
+    const measureSpan = document.createElement('span')
+    measureSpan.style.visibility = 'hidden'
+    measureSpan.style.position = 'absolute'
+    measureSpan.style.whiteSpace = 'nowrap'
+    measureSpan.style.fontWeight = String(SINGLE_LINE_FONT_WEIGHT)
+    measureSpan.style.fontFamily = fontFamilyRef.current
+    measureSpan.style.fontSize = `${SINGLE_LINE_FONT_SIZE}px`
+    measureSpan.style.lineHeight = String(SINGLE_LINE_LINE_HEIGHT)
+    measureSpan.textContent = currentText
+    document.body.appendChild(measureSpan)
+
+    const textWidth = measureSpan.offsetWidth
+    document.body.removeChild(measureSpan)
+
+    const ratio = Math.min(
+      1,
+      Math.max(MIN_TEXT_FILL_RATIO, textWidth / availableWidth)
+    )
+    setTextFillRatio(ratio)
+    onTextFillRatioMeasured?.(ratio)
+  }, [currentText, availableWidth, onTextFillRatioMeasured])
+
+  // Calculate local effective threshold to stay in sync with visual positioning
+  const localEffectiveThreshold = calculateDynamicThreshold(
+    textFillRatio,
+    END_OF_LINE_THRESHOLD
+  )
   const isApproachingEnd =
-    horizontalProgress >= END_OF_LINE_THRESHOLD * END_ZONE_APPROACH_FACTOR
+    horizontalProgress >= localEffectiveThreshold * END_ZONE_APPROACH_FACTOR
 
   const textStyle = {
     fontSize: SINGLE_LINE_FONT_SIZE,
@@ -191,12 +235,15 @@ export function SingleLineTextDisplay({
           transition: `border-color ${BORDER_TRANSITION_MS}ms ease-out`,
         }}
       >
+        {/* End-zone indicator - extends from dynamic threshold to container edge */}
         <div
-          className={`absolute right-0 top-0 bottom-0 pointer-events-none ${
+          className={`absolute top-0 bottom-0 pointer-events-none ${
             isSweepDetected ? 'animate-pulse' : ''
           }`}
           style={{
-            width: `${(1 - END_OF_LINE_THRESHOLD) * 100}%`,
+            // Extend to container edge, width spans from dynamic threshold to right edge
+            right: 0,
+            width: `${(1 - localEffectiveThreshold) * 100}%`,
             background: isSweepDetected
               ? `linear-gradient(to right, transparent, color-mix(in srgb, var(--color-success) ${END_ZONE_SWEEP_OPACITY}%, transparent))`
               : isInEndZone

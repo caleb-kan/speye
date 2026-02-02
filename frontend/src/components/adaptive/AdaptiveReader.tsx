@@ -44,6 +44,7 @@ export function AdaptiveReader({
   const [containerWidth, setContainerWidth] = useState(DEFAULT_CONTAINER_WIDTH)
   const [totalChunks, setTotalChunks] = useState(1)
   const [chunkWordCounts, setChunkWordCounts] = useState<number[]>([])
+  const [textFillRatio, setTextFillRatio] = useState(1)
 
   // gazeData state is ONLY used during calibration for AccuracyTest
   // During reading, gaze data flows directly to addSample (no state updates)
@@ -138,6 +139,7 @@ export function AdaptiveReader({
     disabled: !isReadingActive,
     totalChunks,
     chunkWordCounts,
+    textFillRatio,
   })
 
   // Notify parent of completion
@@ -177,6 +179,10 @@ export function AdaptiveReader({
 
   const handleChunkWordCounts = useCallback((wordCounts: number[]) => {
     setChunkWordCounts(wordCounts)
+  }, [])
+
+  const handleTextFillRatioMeasured = useCallback((ratio: number) => {
+    setTextFillRatio(ratio)
   }, [])
 
   const handleStartCalibration = useCallback(() => {
@@ -369,6 +375,7 @@ export function AdaptiveReader({
             onContainerMeasured={handleContainerMeasured}
             onTotalChunksCalculated={handleTotalChunksCalculated}
             onChunkWordCounts={handleChunkWordCounts}
+            onTextFillRatioMeasured={handleTextFillRatioMeasured}
           />
         </div>
       </div>

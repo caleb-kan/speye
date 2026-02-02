@@ -61,10 +61,11 @@ export function Adaptive() {
       currentTextComplexity,
     })
 
-  // Update currentTextComplexity when currentText changes
+  // Update currentTextComplexity and reset completion when currentText changes
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing derived state from fetched text
     setCurrentTextComplexity(currentText?.complexity ?? null)
+    setReadingComplete(false)
   }, [currentText])
 
   // Create fixed text info if reading from library (shows fixed genre/complexity in OptionsBar)

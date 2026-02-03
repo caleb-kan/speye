@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-vi.mock('../../../lib/supabase', () => ({
+vi.mock('../../../../lib/supabase', () => ({
   supabase: {
     from: vi.fn(),
   },
 }))
 
-import { getQuiz } from '../services/getQuiz'
-import { supabase } from '../../../lib/supabase'
+import { getQuiz } from '../../services/getQuiz'
+import { supabase } from '../../../../lib/supabase'
 
 const mockFrom = vi.mocked(supabase.from)
 

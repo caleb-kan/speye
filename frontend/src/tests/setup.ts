@@ -1,5 +1,6 @@
 import { beforeEach } from 'vitest'
 import { STORAGE_KEYS } from '../constants/storage'
+import { vi } from 'vitest'
 
 // Clear reading preferences before each test to ensure clean state
 beforeEach(() => {
@@ -10,4 +11,15 @@ beforeEach(() => {
       // Ignore errors in environments without full localStorage support
     }
   }
+})
+
+class ResizeObserverMock {
+  observe = vi.fn()
+  unobserve = vi.fn()
+  disconnect = vi.fn()
+}
+
+Object.defineProperty(global, 'ResizeObserver', {
+  writable: true,
+  value: ResizeObserverMock,
 })

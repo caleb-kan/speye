@@ -1,17 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import * as useTextsModule from '../hooks/useTexts.ts'
+import * as useTextsModule from '../../hooks/useTexts.ts'
 import '@testing-library/jest-dom'
-import { renderWithReadingLayout } from './renderLayouts.tsx'
+import { renderWithReadingLayout } from '../helpers/renderLayouts.tsx'
 import {
   DEFAULT_MIN_COMPLEXITY,
   DEFAULT_MAX_COMPLEXITY,
-} from '../constants/complexity'
-import { WPM_PRESETS, DEFAULT_WPM, MIN_WPM, MAX_WPM } from '../constants/wpm'
-import { DEFAULT_VISIBLE_LINES } from '../constants/visibleLines'
-vi.mock('../hooks/useTexts')
-vi.mock('../hooks/useAuth', () => ({
+} from '../../constants/complexity'
+import { WPM_PRESETS, DEFAULT_WPM, MIN_WPM, MAX_WPM } from '../../constants/wpm'
+import { DEFAULT_VISIBLE_LINES } from '../../constants/visibleLines'
+vi.mock('../../hooks/useTexts')
+vi.mock('../../hooks/useAuth', () => ({
   useAuth: () => ({
     user: null,
     session: null,

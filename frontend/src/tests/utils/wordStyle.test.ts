@@ -6,7 +6,7 @@ import {
   MAX_BLUR,
   HIGHLIGHT_WIDTH,
   FORWARD_BLUR_RADIUS,
-} from '../utils/wordStyle'
+} from '../../utils/wordStyle'
 
 describe('getWordStyle', () => {
   describe('current word (distance = 0)', () => {

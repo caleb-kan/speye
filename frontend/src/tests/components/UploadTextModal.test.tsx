@@ -1,15 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
-import { UploadTextModal } from '../components/UploadTextModal'
-import { AuthContext } from '../context/authContext'
-import type { TextInput } from '../components/TextFormModal'
+import { UploadTextModal } from '../../components/UploadTextModal'
+import { AuthContext } from '../../context/authContext'
+import type { TextInput } from '../../components/TextFormModal'
 import type { User, Session } from '@supabase/supabase-js'
 import {
   MAX_TITLE_CHARACTERS,
   MAX_CONTENT_CHARACTERS,
-} from '../constants/textUpload'
-import { formatNumberWithCommas } from '../utils/textUtils'
+} from '../../constants/textUpload'
+import { formatNumberWithCommas } from '../../utils/textUtils'
 
 const mockUser = { id: 'user-123', email: 'test@example.com' } as User
 const mockSession = { user: mockUser } as Session

@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
-import { TextFormModal } from '../components/TextFormModal'
+import { TextFormModal } from '../../components/TextFormModal'
 import {
   MAX_TITLE_CHARACTERS,
   MAX_CONTENT_CHARACTERS,
-} from '../constants/textUpload'
-import { formatNumberWithCommas } from '../utils/textUtils'
+} from '../../constants/textUpload'
+import { formatNumberWithCommas } from '../../utils/textUtils'
 
 describe('TextFormModal', () => {
   const mockOnClose = vi.fn()

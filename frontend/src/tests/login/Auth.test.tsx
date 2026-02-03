@@ -1,13 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor, act } from '@testing-library/react'
 import { renderHook } from '@testing-library/react'
-import { AuthProvider } from '../context/AuthProvider'
-import { useAuth } from '../hooks/useAuth'
-import * as supabaseModule from '../../../lib/supabase'
+import { AuthProvider } from '../../context/AuthProvider'
+import { useAuth } from '../../hooks/useAuth'
+import * as supabaseModule from '../../../../lib/supabase'
+import { createMockAuthSubscription } from '../helpers/mocks'
 import '@testing-library/jest-dom'
 
 // Mock Supabase
-vi.mock('../../../lib/supabase', () => ({
+vi.mock('../../../../lib/supabase', () => ({
   supabase: {
     auth: {
       getSession: vi.fn(),
@@ -36,13 +37,7 @@ describe('AuthProvider', () => {
     // Capture the auth state change callback
     mockSupabase.auth.onAuthStateChange.mockImplementation((callback) => {
       authStateCallback = callback
-      return {
-        data: {
-          subscription: {
-            unsubscribe: vi.fn(),
-          },
-        },
-      } as never
+      return createMockAuthSubscription()
     })
   })
 
@@ -195,13 +190,9 @@ describe('AuthProvider', () => {
 
     it('unsubscribes from auth changes on unmount', async () => {
       const unsubscribeMock = vi.fn()
-      mockSupabase.auth.onAuthStateChange.mockImplementation(() => ({
-        data: {
-          subscription: {
-            unsubscribe: unsubscribeMock,
-          },
-        },
-      }))
+      mockSupabase.auth.onAuthStateChange.mockImplementation(() =>
+        createMockAuthSubscription(unsubscribeMock)
+      )
 
       const { unmount } = render(
         <AuthProvider>
@@ -263,13 +254,9 @@ describe('useAuth Hook', () => {
       error: null,
     })
 
-    mockSupabase.auth.onAuthStateChange.mockImplementation(() => ({
-      data: {
-        subscription: {
-          unsubscribe: vi.fn(),
-        },
-      },
-    }))
+    mockSupabase.auth.onAuthStateChange.mockImplementation(() =>
+      createMockAuthSubscription()
+    )
   })
 
   it('throws error when used outside AuthProvider', () => {
@@ -305,13 +292,7 @@ describe('useAuth Hook', () => {
 
     mockSupabase.auth.onAuthStateChange.mockImplementation((callback) => {
       authStateCallback = callback
-      return {
-        data: {
-          subscription: {
-            unsubscribe: vi.fn(),
-          },
-        },
-      } as never
+      return createMockAuthSubscription()
     })
 
     const wrapper = ({ children }: { children: React.ReactNode }) => (

@@ -1,11 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { BrowserRouter } from 'react-router-dom'
-import { Navbar } from '../components/navbar/Navbar'
-import * as useAuthModule from '../hooks/useAuth'
+import { Navbar } from '../../components/navbar/Navbar'
+import * as useAuthModule from '../../hooks/useAuth'
+import { createMockUser, createMockSession } from '../helpers/mocks'
 import '@testing-library/jest-dom'
 
-vi.mock('../hooks/useAuth')
+vi.mock('../../hooks/useAuth')
 
 const mockUseAuth = vi.mocked(useAuthModule.useAuth)
 
@@ -112,10 +113,12 @@ describe('Navbar', () => {
   })
 
   describe('Auth Section - Logged In', () => {
+    const mockUser = createMockUser({ id: '123', email: 'test@example.com' })
+
     beforeEach(() => {
       mockUseAuth.mockReturnValue({
-        user: { id: '123', email: 'test@example.com' } as never,
-        session: { access_token: 'token' } as never,
+        user: mockUser,
+        session: createMockSession(mockUser),
         loading: false,
         signOut: vi.fn(),
       })

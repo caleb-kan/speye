@@ -1,17 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import { Reader } from '../components/Reader'
-import * as useReaderModule from '../hooks/useReader'
+import { Reader } from '../../components/Reader'
+import * as useReaderModule from '../../hooks/useReader'
 import '@testing-library/jest-dom'
 
-vi.mock('../hooks/useReader')
-vi.mock('../components/TextDisplay', () => ({
+vi.mock('../../hooks/useReader')
+vi.mock('../../components/TextDisplay', () => ({
   TextDisplay: () => <div data-testid="text-display">Text Display</div>,
 }))
-vi.mock('../components/ReadingControls', () => ({
+vi.mock('../../components/ReadingControls', () => ({
   ReadingControls: () => <div data-testid="reading-controls">Controls</div>,
 }))
-vi.mock('../components/Resizable', () => ({
+vi.mock('../../components/Resizable', () => ({
   Resizable: ({ children }: { children: React.ReactNode }) => (
     <div>{children}</div>
   ),

@@ -2,16 +2,21 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { BrowserRouter } from 'react-router-dom'
-import { Login } from '../pages/Login'
-import * as useAuthModule from '../hooks/useAuth'
-import * as supabaseModule from '../../../lib/supabase'
+import { Login } from '../../pages/Login'
+import * as useAuthModule from '../../hooks/useAuth'
+import * as supabaseModule from '../../../../lib/supabase'
+import {
+  createMockUser,
+  createMockSession,
+  createMockAuthError,
+} from '../helpers/mocks'
 import '@testing-library/jest-dom'
 
-vi.mock('../hooks/useAuth')
-vi.mock('../assets/GoogleIcon.svg', () => ({
+vi.mock('../../hooks/useAuth')
+vi.mock('../../assets/GoogleIcon.svg', () => ({
   default: 'google-icon.svg',
 }))
-vi.mock('../../../lib/supabase', () => ({
+vi.mock('../../../../lib/supabase', () => ({
   supabase: {
     auth: {
       signUp: vi.fn(),
@@ -145,7 +150,7 @@ describe('Login Page', () => {
     it('clears error when toggling modes', async () => {
       mockSupabase.auth.signInWithPassword.mockResolvedValue({
         data: { user: null, session: null },
-        error: { message: 'Invalid credentials', name: 'AuthError' } as never,
+        error: createMockAuthError('Invalid credentials'),
       })
 
       const user = userEvent.setup()
@@ -190,10 +195,11 @@ describe('Login Page', () => {
 
   describe('Login Flow', () => {
     it('calls signInWithPassword with form data', async () => {
+      const mockUser = createMockUser({ id: '123', email: 'test@example.com' })
       mockSupabase.auth.signInWithPassword.mockResolvedValue({
         data: {
-          user: { id: '123', email: 'test@example.com' } as never,
-          session: { access_token: 'token' } as never,
+          user: mockUser,
+          session: createMockSession(mockUser),
         },
         error: null,
       })
@@ -238,10 +244,11 @@ describe('Login Page', () => {
     })
 
     it('shows success message on successful login', async () => {
+      const mockUser = createMockUser({ id: '123' })
       mockSupabase.auth.signInWithPassword.mockResolvedValue({
         data: {
-          user: { id: '123' } as never,
-          session: { access_token: 'token' } as never,
+          user: mockUser,
+          session: createMockSession(mockUser),
         },
         error: null,
       })
@@ -261,10 +268,7 @@ describe('Login Page', () => {
     it('shows error message on login failure', async () => {
       mockSupabase.auth.signInWithPassword.mockResolvedValue({
         data: { user: null, session: null },
-        error: {
-          message: 'Invalid login credentials',
-          name: 'AuthError',
-        } as never,
+        error: createMockAuthError('Invalid login credentials'),
       })
 
       const user = userEvent.setup()
@@ -288,9 +292,10 @@ describe('Login Page', () => {
     }
 
     it('calls signUp with form data', async () => {
+      const mockUser = createMockUser({ id: '123', email: 'new@example.com' })
       mockSupabase.auth.signUp.mockResolvedValue({
         data: {
-          user: { id: '123', email: 'new@example.com' } as never,
+          user: mockUser,
           session: null,
         },
         error: null,
@@ -311,9 +316,10 @@ describe('Login Page', () => {
     })
 
     it('shows verification message on successful sign up', async () => {
+      const mockUser = createMockUser({ id: '123' })
       mockSupabase.auth.signUp.mockResolvedValue({
         data: {
-          user: { id: '123' } as never,
+          user: mockUser,
           session: null,
         },
         error: null,
@@ -337,10 +343,7 @@ describe('Login Page', () => {
     it('shows error message on sign up failure', async () => {
       mockSupabase.auth.signUp.mockResolvedValue({
         data: { user: null, session: null },
-        error: {
-          message: 'User already registered',
-          name: 'AuthError',
-        } as never,
+        error: createMockAuthError('User already registered'),
       })
 
       const user = userEvent.setup()
@@ -359,9 +362,10 @@ describe('Login Page', () => {
 
   describe('Navigation', () => {
     it('redirects to home if already logged in', async () => {
+      const mockUser = createMockUser({ id: '123', email: 'test@example.com' })
       mockUseAuth.mockReturnValue({
-        user: { id: '123', email: 'test@example.com' } as never,
-        session: { access_token: 'token' } as never,
+        user: mockUser,
+        session: createMockSession(mockUser),
         loading: false,
         signOut: vi.fn(),
       })
@@ -493,10 +497,7 @@ describe('Login Page', () => {
     it('shows error message on Google OAuth failure', async () => {
       mockSupabase.auth.signInWithOAuth.mockResolvedValue({
         data: { provider: null, url: null },
-        error: {
-          message: 'OAuth provider not configured',
-          name: 'AuthError',
-        } as never,
+        error: createMockAuthError('OAuth provider not configured'),
       })
 
       const user = userEvent.setup()
@@ -543,10 +544,11 @@ describe('Login Page', () => {
 
     it('clears previous success message when clicking Google sign in', async () => {
       // First, simulate a successful login that shows a message
+      const mockUser = createMockUser({ id: '123' })
       mockSupabase.auth.signInWithPassword.mockResolvedValue({
         data: {
-          user: { id: '123' } as never,
-          session: { access_token: 'token' } as never,
+          user: mockUser,
+          session: createMockSession(mockUser),
         },
         error: null,
       })
@@ -565,10 +567,7 @@ describe('Login Page', () => {
       // Now click Google sign in - it should clear the success message
       mockSupabase.auth.signInWithOAuth.mockResolvedValue({
         data: { provider: null, url: null },
-        error: {
-          message: 'OAuth error',
-          name: 'AuthError',
-        } as never,
+        error: createMockAuthError('OAuth error'),
       })
 
       await user.click(

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-vi.mock('../../../lib/supabase', () => ({
+vi.mock('../../../../lib/supabase', () => ({
   supabase: {
     functions: {
       invoke: vi.fn(),
@@ -8,8 +8,8 @@ vi.mock('../../../lib/supabase', () => ({
   },
 }))
 
-import { processText } from '../services/processText'
-import { supabase } from '../../../lib/supabase'
+import { processText } from '../../services/processText'
+import { supabase } from '../../../../lib/supabase'
 
 const mockInvoke = vi.mocked(supabase.functions.invoke)
 

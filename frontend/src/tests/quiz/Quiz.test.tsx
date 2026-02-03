@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import { QuizModal } from '../components/quiz/QuizModal'
+import { QuizModal } from '../../components/quiz/QuizModal'
 import '@testing-library/jest-dom'
-import type { QuestionSet } from '../types/database'
+import type { QuestionSet } from '../../types/database'
 
 const mockQuestionSet: QuestionSet = {
   questions: [

@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import * as useTextsModule from '../hooks/useTexts.ts'
-import type { Text } from '../types/database.ts'
+import * as useTextsModule from '../../hooks/useTexts.ts'
+import type { Text } from '../../types/database.ts'
 import '@testing-library/jest-dom'
-import { renderWithReadingLayout } from './renderLayouts.tsx'
+import { renderWithReadingLayout } from '../helpers/renderLayouts.tsx'
 
-vi.mock('../hooks/useTexts')
-vi.mock('../hooks/useAuth', () => ({
+vi.mock('../../hooks/useTexts')
+vi.mock('../../hooks/useAuth', () => ({
   useAuth: () => ({
     user: null,
     session: null,
@@ -17,14 +17,6 @@ vi.mock('../hooks/useAuth', () => ({
 }))
 Element.prototype.scrollTo = vi.fn()
 window.scrollTo = vi.fn()
-
-// Mock ResizeObserver for tests
-class ResizeObserverMock {
-  observe = vi.fn()
-  unobserve = vi.fn()
-  disconnect = vi.fn()
-}
-global.ResizeObserver = ResizeObserverMock
 
 const mockUseTexts = vi.mocked(useTextsModule.useTexts)
 

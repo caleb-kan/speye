@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { formatNumberWithCommas, countWords } from '../utils/textUtils'
+import { formatNumberWithCommas, countWords } from '../../utils/textUtils'
 
 describe('formatNumberWithCommas', () => {
   it('should format numbers less than 1000 without commas', () => {

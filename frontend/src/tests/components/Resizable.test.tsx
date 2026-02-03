@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { Resizable } from '../components/Resizable'
+import { Resizable } from '../../components/Resizable'
 import {
   MIN_WIDTH_PERCENT,
   MAX_WIDTH_PERCENT,
   DEFAULT_WIDTH_PERCENT,
-} from '../constants/resize'
+} from '../../constants/resize'
 import '@testing-library/jest-dom'
 
 // Mock getBoundingClientRect for consistent testing

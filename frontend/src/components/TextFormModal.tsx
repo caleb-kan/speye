@@ -8,6 +8,7 @@ import {
   TITLE_CHARACTER_WARNING_THRESHOLD,
 } from '../constants/textUpload'
 import { formatNumberWithCommas, countWords } from '../utils/textUtils'
+import { ConfirmDialog } from './ConfirmDialog'
 
 export type { TextInput }
 
@@ -48,8 +49,16 @@ export function TextFormModal({
   const [fiction, setFiction] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showUnsavedWarning, setShowUnsavedWarning] = useState(false)
 
   const config = MODE_CONFIG[mode]
+
+  const hasUnsavedChanges =
+    mode === 'upload'
+      ? content.trim() !== '' || title.trim() !== ''
+      : content.trim() !== initialData?.content ||
+        title.trim() !== (initialData?.title || '') ||
+        fiction !== initialData?.fiction
 
   // Initialize/reset form when modal opens
   useEffect(() => {
@@ -64,6 +73,7 @@ export function TextFormModal({
         setFiction(true)
       }
       setError(null)
+      setShowUnsavedWarning(false)
     }
   }, [isOpen, initialData])
 
@@ -73,13 +83,17 @@ export function TextFormModal({
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onClose()
+        if (hasUnsavedChanges) {
+          setShowUnsavedWarning(true)
+        } else {
+          onClose()
+        }
       }
     }
 
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen, onClose])
+  }, [isOpen, onClose, hasUnsavedChanges])
 
   if (!isOpen) return null
 
@@ -109,8 +123,29 @@ export function TextFormModal({
 
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
+      if (hasUnsavedChanges) {
+        setShowUnsavedWarning(true)
+      } else {
+        onClose()
+      }
+    }
+  }
+
+  const handleCloseClick = () => {
+    if (hasUnsavedChanges) {
+      setShowUnsavedWarning(true)
+    } else {
       onClose()
     }
+  }
+
+  const handleConfirmDiscard = () => {
+    setShowUnsavedWarning(false)
+    onClose()
+  }
+
+  const handleCancelDiscard = () => {
+    setShowUnsavedWarning(false)
   }
 
   const modalId = `${mode}-modal-title`
@@ -130,7 +165,7 @@ export function TextFormModal({
           </h2>
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleCloseClick}
             className="text-text-secondary hover:text-text p-1 rounded-lg hover:bg-bg transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
             aria-label="Close modal"
           >
@@ -234,7 +269,7 @@ export function TextFormModal({
           <div className="flex justify-end gap-3 pt-2">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleCloseClick}
               className="px-4 py-2 text-text-secondary hover:text-text hover:bg-bg rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-bg-secondary"
               disabled={isSubmitting}
             >
@@ -258,6 +293,17 @@ export function TextFormModal({
           </div>
         </form>
       </div>
+
+      <ConfirmDialog
+        isOpen={showUnsavedWarning}
+        title="Discard Changes?"
+        message={`You have unsaved ${mode === 'upload' ? 'text' : 'changes'}. Are you sure you want to leave without saving?`}
+        confirmLabel="Discard"
+        cancelLabel="Keep Editing"
+        onConfirm={handleConfirmDiscard}
+        onCancel={handleCancelDiscard}
+        isDestructive
+      />
     </div>
   )
 }

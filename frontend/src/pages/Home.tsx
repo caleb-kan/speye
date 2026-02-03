@@ -91,10 +91,12 @@ export function Home() {
             onComplete={setReadingComplete}
           />
 
-          <StartQuizButton
-            textId={currentText.id}
-            readingComplete={readingComplete}
-          />
+          <div className="mt-8 py-6">
+            <StartQuizButton
+              textId={currentText.id}
+              readingComplete={readingComplete}
+            />
+          </div>
         </>
       ) : (
         <div className="flex-1 flex items-center justify-center">

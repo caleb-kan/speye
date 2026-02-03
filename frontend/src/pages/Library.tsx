@@ -10,6 +10,8 @@ import {
   Pencil,
   Search,
   X,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useAsyncOperation } from '../hooks/useAsyncOperation'
@@ -27,11 +29,13 @@ import { processText } from '../services/processText'
 import type { Text, TextPreview } from '../types/database'
 import noUiSlider, { type API } from 'nouislider'
 import { MIN_COMPLEXITY, MAX_COMPLEXITY } from '../constants/complexity'
+import { TEXTS_PER_PAGE, TEXT_PREVIEW_LENGTH } from '../constants/library'
 
 type LibraryTab = 'private' | 'public'
+type GenreFilter = 'all' | 'fiction' | 'non-fiction'
 
 interface FilterOptions {
-  genre: 'all' | 'fiction' | 'non-fiction'
+  genre: GenreFilter
   minComplexity: number | null
   maxComplexity: number | null
 }
@@ -55,6 +59,7 @@ export function Library() {
     maxComplexity: null,
   })
   const [showFilters, setShowFilters] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
   const [deleteConfirm, setDeleteConfirm] = useState<{
     isOpen: boolean
     textId: string | null
@@ -63,8 +68,11 @@ export function Library() {
     isOpen: boolean
     text: Text | null
   }>({ isOpen: false, text: null })
+  const [jumpToPageInput, setJumpToPageInput] = useState('')
+  const [isCustomPageFocused, setIsCustomPageFocused] = useState(false)
 
   const complexitySliderRef = useRef<SliderElement>(null)
+  const jumpToPageInputRef = useRef<HTMLInputElement>(null)
 
   const {
     data: privateTexts,
@@ -154,6 +162,7 @@ export function Library() {
         minComplexity: minVal,
         maxComplexity: maxVal,
       }))
+      setCurrentPage(1)
     })
 
     return () => {
@@ -212,6 +221,7 @@ export function Library() {
       minComplexity: null,
       maxComplexity: null,
     })
+    setCurrentPage(1)
 
     // Reset slider
     const slider = complexitySliderRef.current?.noUiSlider
@@ -222,6 +232,7 @@ export function Library() {
 
   const handleResetSearch = () => {
     setSearchQuery('')
+    setCurrentPage(1)
   }
 
   useEffect(() => {
@@ -230,6 +241,7 @@ export function Library() {
     } else if (activeTab === 'public') {
       fetchPublicTexts()
     }
+    setCurrentPage(1)
   }, [activeTab, user, fetchPrivateTexts, fetchPublicTexts])
 
   useEffect(() => {
@@ -347,8 +359,8 @@ export function Library() {
     id: textRecord.id,
     title: textRecord.title,
     preview:
-      textRecord.content.slice(0, 200) +
-      (textRecord.content.length > 200 ? '...' : ''),
+      textRecord.content.slice(0, TEXT_PREVIEW_LENGTH) +
+      (textRecord.content.length > TEXT_PREVIEW_LENGTH ? '...' : ''),
     uploaded_at: textRecord.uploaded_at,
     owner_id: textRecord.owner_id,
     quiz: textRecord.quiz,
@@ -449,6 +461,49 @@ export function Library() {
     filters.minComplexity !== null ||
     filters.maxComplexity !== null
 
+  // Pagination
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredTexts.length / TEXTS_PER_PAGE)
+  )
+  const validatedCurrentPage = Math.min(currentPage, totalPages)
+  const startIndex = (validatedCurrentPage - 1) * TEXTS_PER_PAGE
+  const endIndex = startIndex + TEXTS_PER_PAGE
+  const paginatedTexts = filteredTexts.slice(startIndex, endIndex)
+
+  // Sync currentPage state if it became invalid (e.g., after deleting last item on page)
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages)
+    }
+  }, [currentPage, totalPages])
+
+  const handlePreviousPage = () => {
+    setCurrentPage((prev) => Math.max(1, prev - 1))
+  }
+
+  const handleNextPage = () => {
+    setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+  }
+
+  const handleJumpToPage = () => {
+    const pageNum = parseInt(jumpToPageInput)
+    if (!isNaN(pageNum) && pageNum >= 1 && pageNum <= totalPages) {
+      setCurrentPage(pageNum)
+      setJumpToPageInput('')
+      setIsCustomPageFocused(false)
+      jumpToPageInputRef.current?.blur()
+    }
+  }
+
+  const handleJumpInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleJumpToPage()
+    } else if (e.key === 'Escape') {
+      setJumpToPageInput('')
+    }
+  }
+
   return (
     <div className="flex flex-1 flex-col items-center w-full px-8 py-6 overflow-y-auto">
       <div className="w-full max-w-4xl">
@@ -523,7 +578,10 @@ export function Library() {
                 type="text"
                 placeholder="Search texts by title or content..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value)
+                  setCurrentPage(1)
+                }}
                 className="w-full pl-10 pr-10 py-2.5 bg-bg border border-text-secondary/20 rounded-lg text-text placeholder-text-secondary/60 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
               />
               {searchQuery && (
@@ -574,7 +632,10 @@ export function Library() {
                           <button
                             key={genre}
                             type="button"
-                            onClick={() => setFilters({ ...filters, genre })}
+                            onClick={() => {
+                              setFilters({ ...filters, genre })
+                              setCurrentPage(1)
+                            }}
                             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                               filters.genre === genre
                                 ? 'bg-primary text-bg'
@@ -632,9 +693,9 @@ export function Library() {
           <div className="text-center py-8">
             <p className="text-text-secondary">Loading texts...</p>
           </div>
-        ) : filteredTexts.length > 0 ? (
+        ) : paginatedTexts.length > 0 ? (
           <div className="space-y-4">
-            {filteredTexts.map((text) => (
+            {paginatedTexts.map((text) => (
               <div
                 key={text.id}
                 className="p-4 bg-bg-secondary rounded-lg border border-text-secondary/20"
@@ -731,6 +792,73 @@ export function Library() {
           </div>
         )}
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="mt-8 flex items-center justify-center gap-4">
+          <button
+            type="button"
+            onClick={handlePreviousPage}
+            disabled={validatedCurrentPage === 1}
+            className="p-2 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
+            aria-label="Previous page"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-text-secondary" aria-live="polite">
+              Page {validatedCurrentPage} of {totalPages}
+            </span>
+            <span className="text-text-secondary/30">|</span>
+            <button
+              type="button"
+              onClick={() => {
+                setIsCustomPageFocused(true)
+                jumpToPageInputRef.current?.focus()
+              }}
+              className={`flex items-center px-2 py-1 transition-colors ${
+                isCustomPageFocused || jumpToPageInput
+                  ? 'text-primary'
+                  : 'text-text-secondary hover:text-text'
+              }`}
+              aria-label="Jump to custom page"
+            >
+              <span>custom:&nbsp;</span>
+              <input
+                ref={jumpToPageInputRef}
+                type="text"
+                inputMode="numeric"
+                value={jumpToPageInput}
+                onChange={(e) =>
+                  setJumpToPageInput(e.target.value.replace(/[^0-9]/g, ''))
+                }
+                onKeyDown={handleJumpInputKeyDown}
+                onBlur={() => {
+                  if (!jumpToPageInput) {
+                    setIsCustomPageFocused(false)
+                  }
+                }}
+                placeholder=""
+                className="bg-transparent border-b focus:outline-none text-center border-current"
+                style={{
+                  width: `${Math.max(2, jumpToPageInput.length || 1)}ch`,
+                }}
+              />
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleNextPage}
+            disabled={validatedCurrentPage >= totalPages}
+            className="p-2 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
+            aria-label="Next page"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </div>
+      )}
 
       <UploadTextModal
         isOpen={isModalOpen}

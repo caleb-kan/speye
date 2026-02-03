@@ -17,7 +17,6 @@ import {
   BORDER_TRANSITION_MS,
   WILL_CHANGE_OPACITY,
   END_ZONE_FADE_TRANSITION_MS,
-  PROGRESS_BAR_TRANSITION_MS,
   TRANSITION_EASE_ENTER,
   TRANSITION_EASE_EXIT,
   READING_CONTAINER_CLASSES,
@@ -302,22 +301,6 @@ export function SingleLineTextDisplay({
           >
             {bufferBText}
           </div>
-        </div>
-
-        <div className="absolute bottom-0 left-0 right-0 h-1 bg-bg-secondary/20 rounded-b-xl overflow-hidden">
-          <div
-            className="h-full"
-            style={{
-              width: `${horizontalProgress * 100}%`,
-              background: isInEndZone
-                ? 'var(--color-success)'
-                : isTrackingReliable
-                  ? 'var(--color-primary)'
-                  : 'var(--color-text-secondary)',
-              opacity: isTrackingReliable ? 0.7 : 0.3,
-              transition: `all ${PROGRESS_BAR_TRANSITION_MS}ms`,
-            }}
-          />
         </div>
       </div>
 

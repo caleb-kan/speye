@@ -60,7 +60,8 @@ export function AdaptiveReader({
   const isReadingActive = isCalibrated && !showCalibration
 
   const webgazerEnabled = showCalibration || isCalibrated
-  const showGazeDot = !isReadingActive
+  // Only show gaze dot during active calibration (not during reading, not when disabled)
+  const showGazeDot = showCalibration
 
   // Gaze smoothing - applies temporal averaging with velocity-based outlier rejection
   // Must be declared before useWebGazer so addSample is available for the callback

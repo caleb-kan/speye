@@ -27,6 +27,9 @@ let isGloballyInitialized = false
 // If effect2 starts before the timeout fires, we cancel it.
 let pendingCleanupTimeout: ReturnType<typeof setTimeout> | null = null
 
+/** CSS rule to hide the WebGazer gaze prediction dot */
+const HIDE_GAZE_DOT_CSS = `#${WEBGAZER_GAZE_DOT_ID} { display: none !important; }`
+
 type UseWebGazerOptions = {
   /** Whether WebGazer should be active */
   enabled: boolean
@@ -112,14 +115,16 @@ export function useWebGazer({
 
   // Initialize WebGazer
   useEffect(() => {
+    // When disabled, let any pending cleanup (stopCamera) proceed
+    if (!enabled) {
+      return
+    }
+
     // Cancel any pending cleanup from a previous effect (React StrictMode double-invoke)
+    // Only cancel when we're about to reinitialize - not when disabling
     if (pendingCleanupTimeout) {
       clearTimeout(pendingCleanupTimeout)
       pendingCleanupTimeout = null
-    }
-
-    if (!enabled) {
-      return
     }
 
     // Prevent double initialization within this component instance
@@ -451,14 +456,17 @@ export function useWebGazer({
     if (showPredictionPoints) {
       styleEl.textContent = '' // Remove hiding rule
     } else {
-      styleEl.textContent = `#${WEBGAZER_GAZE_DOT_ID} { display: none !important; }`
+      styleEl.textContent = HIDE_GAZE_DOT_CSS
     }
 
     return () => {
-      // Clean up style element on unmount
-      const el = document.getElementById(WEBGAZER_DOT_STYLE_ID)
+      // On unmount, ensure the dot is hidden (don't remove the style element)
+      // This prevents the dot from becoming visible if WebGazer hasn't fully stopped yet
+      const el = document.getElementById(
+        WEBGAZER_DOT_STYLE_ID
+      ) as HTMLStyleElement | null
       if (el) {
-        el.remove()
+        el.textContent = HIDE_GAZE_DOT_CSS
       }
     }
   }, [showPredictionPoints, status])

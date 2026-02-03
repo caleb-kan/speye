@@ -168,10 +168,12 @@ export function Adaptive() {
         />
       </div>
 
-      <StartQuizButton
-        textId={currentText.id}
-        readingComplete={readingComplete}
-      />
+      <div className="mt-8 py-6">
+        <StartQuizButton
+          textId={currentText.id}
+          readingComplete={readingComplete}
+        />
+      </div>
     </div>
   )
 }

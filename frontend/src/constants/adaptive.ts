@@ -139,9 +139,6 @@ export const CSS_VAR_TRANSITION_DURATION = '--adaptive-transition-duration'
 /** Border transition duration - MUST match TRANSITION_DURATION_MS for consistency */
 export const BORDER_TRANSITION_MS = TRANSITION_DURATION_MS
 
-/** Progress bar animation transition duration (ms) - fast for responsive feel */
-export const PROGRESS_BAR_TRANSITION_MS = 75
-
 /** Calibration point animation transition duration (ms) */
 export const CALIBRATION_POINT_TRANSITION_MS = 200
 

@@ -170,6 +170,7 @@ export function Adaptive() {
 
       <div className="mt-8 py-6">
         <StartQuizButton
+          wpm={wpm}
           textId={currentText.id}
           readingComplete={readingComplete}
         />

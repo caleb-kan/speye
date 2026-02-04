@@ -12,6 +12,7 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  Trophy,
 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useAsyncOperation } from '../hooks/useAsyncOperation'
@@ -23,6 +24,7 @@ import { getLibraryTexts } from '../../../backend/supabase/database/texts/getLib
 import { getTextContent } from '../../../backend/supabase/database/texts/getTextContent'
 import { deleteText } from '../../../backend/supabase/database/texts/deleteText'
 import { updateText } from '../../../backend/supabase/database/texts/updateText'
+import { getTextBestScores } from '../../../backend/supabase/database/texts/getTextBestScores'
 import type { TextInput } from '../components/TextFormModal'
 import { SUCCESS_MESSAGE_DURATION_MS } from '../constants/ui'
 import { processText } from '../services/processText'
@@ -112,6 +114,19 @@ export function Library() {
     },
     [publicTexts, executePublic]
   )
+
+  // User scores for texts (best)
+  const [bestScores, setBestScores] = useState<Record<string, number>>({})
+
+  useEffect(() => {
+    async function fetchScores() {
+      if (user && activeTab === 'private') {
+        const scores = await getTextBestScores(user.id)
+        setBestScores(scores)
+      }
+    }
+    fetchScores()
+  }, [user, activeTab])
 
   // Initialize complexity slider
   useEffect(() => {
@@ -716,6 +731,15 @@ export function Library() {
                         <span className="text-xs text-text-secondary">
                           Complexity: {text.complexity}
                         </span>
+                      )}
+                      {bestScores[text.id] !== undefined && (
+                        <>
+                          <span className="text-text-secondary/30 mx-1">•</span>
+                          <div className="flex items-center gap-1 text-xs font-medium text-emerald-400">
+                            <Trophy className="w-3 h-3" />
+                            <span>{bestScores[text.id]}%</span>
+                          </div>
+                        </>
                       )}
                     </div>
                     <p className="text-text-secondary text-sm leading-relaxed">

@@ -22,14 +22,21 @@ export interface Quiz {
 }
 
 /**
+ * Processing status for queue-based LLM processing
+ */
+export type ProcessingStatus = 'pending' | 'completed' | 'failed'
+
+/**
  * Input data for creating or updating a text.
  * Used by both uploadText and updateText functions.
  */
 export interface TextInput {
-  title: string | null
+  title?: string | null
   content: string
-  fiction: boolean
+  fiction?: boolean | null
   quiz?: Quiz | null
+  processing_status?: ProcessingStatus
+  quiz_valid?: boolean | null
 }
 
 /**
@@ -40,10 +47,12 @@ export interface TextRecord {
   owner_id: string | null
   title: string | null
   content: string
-  fiction: boolean
+  fiction: boolean | null
   uploaded_at: string
   quiz: Quiz | null
   category: string | null
   complexity: number | null
   source: string | null
+  processing_status: ProcessingStatus
+  quiz_valid: boolean | null
 }

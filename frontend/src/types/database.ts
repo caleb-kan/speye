@@ -12,6 +12,8 @@ export type Quiz = {
   questionSets: QuestionSet[]
 }
 
+export type ProcessingStatus = 'pending' | 'completed' | 'failed'
+
 export type Text = {
   id: string
   title: string | null
@@ -19,10 +21,12 @@ export type Text = {
   uploaded_at: string
   owner_id: string | null
   quiz: Quiz | null
-  fiction: boolean
+  fiction: boolean | null
   category: string | null
   complexity: number | null
   source: string | null
+  processing_status: ProcessingStatus
+  quiz_valid: boolean | null
 }
 
 export type TextPreview = {
@@ -32,8 +36,10 @@ export type TextPreview = {
   uploaded_at: string
   owner_id: string | null
   quiz: Quiz | null
-  fiction: boolean
+  fiction: boolean | null
   category: string | null
   complexity: number | null
   source: string | null
+  processing_status: ProcessingStatus
+  quiz_valid: boolean | null
 }

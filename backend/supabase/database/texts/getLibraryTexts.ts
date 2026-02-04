@@ -10,7 +10,7 @@ export async function getLibraryTexts(
   let query = supabase
     .from('texts')
     .select(
-      'id, title, preview, fiction, complexity, uploaded_at, owner_id, quiz, category, source'
+      'id, title, preview, fiction, complexity, uploaded_at, owner_id, quiz, category, source, processing_status, quiz_valid'
     )
     .order('uploaded_at', { ascending: false })
 

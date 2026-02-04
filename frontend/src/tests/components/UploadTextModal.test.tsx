@@ -215,7 +215,7 @@ describe('UploadTextModal', () => {
         expect(mockOnSubmit).toHaveBeenCalledWith({
           title: 'My Test Title',
           content: 'My test text content',
-          fiction: true,
+          fiction: null,
         })
       })
     })
@@ -235,7 +235,7 @@ describe('UploadTextModal', () => {
         expect(mockOnSubmit).toHaveBeenCalledWith({
           title: null,
           content: 'Content without title',
-          fiction: true,
+          fiction: null,
         })
       })
     })
@@ -260,7 +260,7 @@ describe('UploadTextModal', () => {
         expect(mockOnSubmit).toHaveBeenCalledWith({
           title: null,
           content: 'Content with whitespace title',
-          fiction: true,
+          fiction: null,
         })
       })
     })

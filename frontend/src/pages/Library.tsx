@@ -12,10 +12,14 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  Loader2,
+  AlertTriangle,
+  RefreshCw,
   Trophy,
 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useAsyncOperation } from '../hooks/useAsyncOperation'
+import { useLibraryTexts } from '../hooks/useLibraryTexts'
 import { UploadTextModal } from '../components/UploadTextModal'
 import { EditTextModal } from '../components/EditTextModal'
 import { ConfirmDialog } from '../components/ConfirmDialog'
@@ -24,10 +28,10 @@ import { getLibraryTexts } from '../../../backend/supabase/database/texts/getLib
 import { getTextContent } from '../../../backend/supabase/database/texts/getTextContent'
 import { deleteText } from '../../../backend/supabase/database/texts/deleteText'
 import { updateText } from '../../../backend/supabase/database/texts/updateText'
+import { retryProcessing } from '../../../backend/supabase/database/texts/retryProcessing'
 import { getTextBestScores } from '../../../backend/supabase/database/texts/getTextBestScores'
 import type { TextInput } from '../components/TextFormModal'
 import { SUCCESS_MESSAGE_DURATION_MS } from '../constants/ui'
-import { processText } from '../services/processText'
 import type { Text, TextPreview } from '../types/database'
 import noUiSlider, { type API } from 'nouislider'
 import { MIN_COMPLEXITY, MAX_COMPLEXITY } from '../constants/complexity'
@@ -72,36 +76,27 @@ export function Library() {
   }>({ isOpen: false, text: null })
   const [jumpToPageInput, setJumpToPageInput] = useState('')
   const [isCustomPageFocused, setIsCustomPageFocused] = useState(false)
+  // Track which texts are currently being retried to prevent double-clicks
+  const [retryingTextIds, setRetryingTextIds] = useState<Set<string>>(new Set())
 
   const complexitySliderRef = useRef<SliderElement>(null)
   const jumpToPageInputRef = useRef<HTMLInputElement>(null)
 
+  // Private texts with real-time subscription
   const {
-    data: privateTexts,
+    texts: privateTexts,
     loading: privateLoading,
     error: privateError,
-    execute: executePrivate,
-    setData: setPrivateTexts,
-  } = useAsyncOperation<TextPreview[]>()
+    setTexts: setPrivateTexts,
+  } = useLibraryTexts(user?.id ?? null)
+
+  // Public texts (no real-time needed)
   const {
     data: publicTexts,
     loading: publicLoading,
     error: publicError,
     execute: executePublic,
   } = useAsyncOperation<TextPreview[]>()
-
-  const fetchPrivateTexts = useCallback(
-    async (force = false) => {
-      if (!user) return
-      if (privateTexts !== null && !force) return
-
-      await executePrivate(async () => {
-        const result = await getLibraryTexts({ type: 'user', userId: user.id })
-        return result || []
-      })
-    },
-    [user, privateTexts, executePrivate]
-  )
 
   const fetchPublicTexts = useCallback(
     async (force = false) => {
@@ -251,13 +246,12 @@ export function Library() {
   }
 
   useEffect(() => {
-    if (activeTab === 'private' && user) {
-      fetchPrivateTexts()
-    } else if (activeTab === 'public') {
+    // Private texts are fetched automatically by useLibraryTexts
+    if (activeTab === 'public') {
       fetchPublicTexts()
     }
     setCurrentPage(1)
-  }, [activeTab, user, fetchPrivateTexts, fetchPublicTexts])
+  }, [activeTab, fetchPublicTexts])
 
   useEffect(() => {
     if (!successMessage) return
@@ -285,41 +279,15 @@ export function Library() {
       throw new Error('You must be logged in to upload texts')
     }
 
-    const needsTitle = !data.title
+    // Upload immediately with pending status
+    // Database trigger will queue it for background processing
+    // Real-time subscription will automatically add the new text to the list
+    await uploadText(user.id, {
+      ...data,
+      processing_status: 'pending',
+    })
 
-    try {
-      // Single LLM call to generate title (if needed) and quiz and classify fiction
-      const result = await processText({
-        content: data.content,
-        generateTitle: needsTitle,
-      })
-
-      const finalTitle = needsTitle ? result.title : data.title
-
-      await uploadText(user.id, {
-        ...data,
-        title: finalTitle,
-        fiction: result.fiction,
-        quiz: { questionSets: result.questionSets },
-      })
-
-      if (needsTitle && !result.title) {
-        setSuccessMessage(
-          'Text uploaded successfully, but title generation failed. The text was saved without a title.'
-        )
-      } else {
-        setSuccessMessage('Text uploaded successfully!')
-      }
-    } catch (error) {
-      console.error('Failed to process text:', error)
-      // Fallback: upload without quiz if processing fails
-      await uploadText(user.id, { ...data })
-      setSuccessMessage(
-        'Text uploaded successfully, but processing failed. Default genre assigned.'
-      )
-    }
-
-    fetchPrivateTexts(true)
+    setSuccessMessage('Text uploaded! Processing in background...')
   }
 
   const handleDeleteClick = (textId: string) => {
@@ -329,13 +297,13 @@ export function Library() {
   const handleDeleteConfirm = async () => {
     if (!user || !deleteConfirm.textId) return
 
+    const textIdToDelete = deleteConfirm.textId
     setDeleteError(null)
     try {
-      await deleteText(deleteConfirm.textId)
-      setPrivateTexts(
-        privateTexts
-          ? privateTexts.filter((t) => t.id !== deleteConfirm.textId)
-          : null
+      await deleteText(textIdToDelete)
+      // Use functional update to avoid stale closure issues
+      setPrivateTexts((prev) =>
+        prev ? prev.filter((t) => t.id !== textIdToDelete) : null
       )
       setSuccessMessage('Text deleted successfully!')
     } catch (err) {
@@ -349,6 +317,43 @@ export function Library() {
 
   const handleDeleteCancel = () => {
     setDeleteConfirm({ isOpen: false, textId: null })
+  }
+
+  const handleRetryProcessing = async (textId: string) => {
+    // Prevent double-clicks by tracking in-progress retries
+    if (retryingTextIds.has(textId)) return
+
+    setRetryingTextIds((prev) => new Set(prev).add(textId))
+
+    try {
+      await retryProcessing(textId)
+      // Update local state to show pending status using functional update
+      // to avoid stale closure issues with real-time subscription updates
+      setPrivateTexts((prev) =>
+        prev
+          ? prev.map((t) =>
+              t.id === textId
+                ? {
+                    ...t,
+                    processing_status: 'pending' as const,
+                    quiz_valid: null,
+                  }
+                : t
+            )
+          : null
+      )
+      setSuccessMessage('Text queued for reprocessing!')
+    } catch (err) {
+      setDeleteError(
+        err instanceof Error ? err.message : 'Failed to retry processing'
+      )
+    } finally {
+      setRetryingTextIds((prev) => {
+        const next = new Set(prev)
+        next.delete(textId)
+        return next
+      })
+    }
   }
 
   const handleEditClick = async (textPreview: TextPreview) => {
@@ -383,68 +388,42 @@ export function Library() {
     category: textRecord.category,
     complexity: textRecord.complexity,
     source: textRecord.source,
+    processing_status: textRecord.processing_status,
+    quiz_valid: textRecord.quiz_valid,
   })
 
   const updatePrivateTextsWithPreview = (
     textId: string,
     preview: TextPreview
   ) => {
-    setPrivateTexts(
-      privateTexts
-        ? privateTexts.map((t) => (t.id === textId ? preview : t))
-        : null
+    // Use functional update to avoid stale closure issues
+    setPrivateTexts((prev) =>
+      prev ? prev.map((t) => (t.id === textId ? preview : t)) : null
     )
   }
 
   const handleEditSubmit = async (textId: string, data: TextInput) => {
-    const needsTitle = !data.title
-    let finalTitle = data.title
+    // Update text content and clear quiz in a single operation
+    // Set quiz_valid to false (not null) so retry button shows if retryProcessing fails
+    const updatedTextRecord = await updateText(textId, {
+      ...data,
+      quiz: null,
+      quiz_valid: false,
+    })
 
-    try {
-      const result = await processText({
-        content: data.content,
-        generateTitle: needsTitle,
-      })
-
-      if (needsTitle) {
-        finalTitle = result.title
-      }
-
-      const updatedTextRecord = await updateText(textId, {
-        ...data,
-        title: finalTitle,
-        quiz: { questionSets: result.questionSets },
-      })
-
-      updatePrivateTextsWithPreview(
-        textId,
-        createPreviewFromText(updatedTextRecord)
-      )
-
-      if (needsTitle && !result.title) {
-        setSuccessMessage(
-          'Text updated successfully, but title generation failed. The text was saved without a title.'
-        )
-      } else {
-        setSuccessMessage('Text updated successfully!')
-      }
-    } catch (error) {
-      console.error('Failed to process text:', error)
-
-      const updatedTextRecord = await updateText(textId, {
-        ...data,
-        title: finalTitle,
-      })
-
-      updatePrivateTextsWithPreview(
-        textId,
-        createPreviewFromText(updatedTextRecord)
-      )
-
-      setSuccessMessage(
-        'Text updated successfully, but quiz regeneration failed.'
-      )
+    // Update local state immediately for responsive UI
+    // Optimistically set pending status for immediate visual feedback
+    // Real-time subscription will sync the actual status from retryProcessing
+    const preview: TextPreview = {
+      ...createPreviewFromText(updatedTextRecord),
+      processing_status: 'pending',
     }
+    updatePrivateTextsWithPreview(textId, preview)
+
+    // Queue for reprocessing via RPC - atomically sets status to pending and queues
+    await retryProcessing(textId)
+
+    setSuccessMessage('Text updated! Reprocessing in background...')
   }
 
   const handleReadText = async (textPreview: TextPreview) => {
@@ -722,16 +701,50 @@ export function Library() {
                       <h3 className="font-medium text-text truncate">
                         {text.title || 'Untitled'}
                       </h3>
+                      {/* Processing status indicators */}
+                      {text.processing_status === 'pending' && (
+                        <span className="flex items-center gap-1 text-xs px-2 py-0.5 bg-warning/10 text-warning rounded">
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                          Processing
+                        </span>
+                      )}
+                      {text.processing_status === 'failed' && (
+                        <span className="flex items-center gap-1 text-xs px-2 py-0.5 bg-error/10 text-error rounded">
+                          <AlertTriangle className="w-3 h-3" />
+                          Failed
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="text-xs px-2 py-0.5 bg-primary/10 text-primary rounded">
-                        {text.fiction ? 'Fiction' : 'Non-Fiction'}
-                      </span>
+                      {text.fiction !== null && (
+                        <span className="text-xs px-2 py-0.5 bg-primary/10 text-primary rounded">
+                          {text.fiction ? 'Fiction' : 'Non-Fiction'}
+                        </span>
+                      )}
                       {text.complexity !== null && (
                         <span className="text-xs text-text-secondary">
                           Complexity: {text.complexity}
                         </span>
                       )}
+                      {/* Quiz validity warning */}
+                      {text.quiz_valid === false && (
+                        <span
+                          className="flex items-center gap-1 text-xs text-warning"
+                          title="Quiz may have quality issues"
+                        >
+                          <AlertTriangle className="w-3 h-3" />
+                          Quiz needs review
+                        </span>
+                      )}
+                      {/* Validation in progress */}
+                      {text.quiz_valid === null &&
+                        text.quiz !== null &&
+                        text.processing_status === 'completed' && (
+                          <span className="flex items-center gap-1 text-xs px-2 py-0.5 bg-warning/10 text-warning rounded">
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                            Validating
+                          </span>
+                        )}
                       {bestScores[text.id] !== undefined && (
                         <>
                           <span className="text-text-secondary/30 mx-1">•</span>
@@ -750,29 +763,56 @@ export function Library() {
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleReadText(text)}
-                      className="p-2 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
-                      aria-label="Read text"
-                    >
-                      <Play className="w-4 h-4" />
-                    </button>
-                    {activeTab === 'private' && (
-                      <>
+                    {/* Only show read button if processing is complete */}
+                    {text.processing_status === 'completed' && (
+                      <button
+                        type="button"
+                        onClick={() => handleReadText(text)}
+                        className="p-2 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
+                        aria-label="Read text"
+                        title="Start reading"
+                      >
+                        <Play className="w-4 h-4" />
+                      </button>
+                    )}
+                    {/* Show retry button for failed processing or failed quiz validation */}
+                    {(text.processing_status === 'failed' ||
+                      (text.processing_status === 'completed' &&
+                        text.quiz_valid === false)) &&
+                      activeTab === 'private' && (
                         <button
                           type="button"
-                          onClick={() => handleEditClick(text)}
-                          className="p-2 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
-                          aria-label="Edit text"
+                          onClick={() => handleRetryProcessing(text.id)}
+                          disabled={retryingTextIds.has(text.id)}
+                          className="p-2 text-text-secondary hover:text-warning hover:bg-warning/10 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-warning disabled:opacity-50 disabled:cursor-not-allowed"
+                          aria-label="Retry processing"
+                          title="Regenerate quiz"
                         >
-                          <Pencil className="w-4 h-4" />
+                          <RefreshCw
+                            className={`w-4 h-4 ${retryingTextIds.has(text.id) ? 'animate-spin' : ''}`}
+                          />
                         </button>
+                      )}
+                    {activeTab === 'private' && (
+                      <>
+                        {/* Only show edit when not processing */}
+                        {text.processing_status === 'completed' && (
+                          <button
+                            type="button"
+                            onClick={() => handleEditClick(text)}
+                            className="p-2 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
+                            aria-label="Edit text"
+                            title="Edit text (will regenerate quiz)"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={() => handleDeleteClick(text.id)}
                           className="p-2 text-text-secondary hover:text-error hover:bg-error/10 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-error"
                           aria-label="Delete text"
+                          title="Delete text"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>

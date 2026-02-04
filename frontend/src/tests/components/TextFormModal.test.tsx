@@ -326,7 +326,7 @@ describe('TextFormModal', () => {
         expect(mockOnSubmit).toHaveBeenCalledWith({
           title: 'My Test Title',
           content: 'My test text content',
-          fiction: true,
+          fiction: null, // Upload mode sends null for LLM auto-classification
         })
       })
     })
@@ -375,7 +375,7 @@ describe('TextFormModal', () => {
         expect(mockOnSubmit).toHaveBeenCalledWith({
           title: null,
           content: 'Content without title',
-          fiction: true,
+          fiction: null, // Upload mode sends null for LLM auto-classification
         })
       })
     })

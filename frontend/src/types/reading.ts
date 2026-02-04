@@ -2,7 +2,7 @@ export type Mode = 'standard' | 'adaptive' | 'summarized'
 export type Scrolling = 'dynamic' | 'static'
 
 export interface FixedTextInfo {
-  fiction: boolean
+  fiction: boolean | null
   complexity: number | null
 }
 

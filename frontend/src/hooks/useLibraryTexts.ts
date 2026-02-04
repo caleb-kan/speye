@@ -1,0 +1,89 @@
+import { useState, useCallback, useEffect, useMemo } from 'react'
+import type { Dispatch, SetStateAction } from 'react'
+import { getLibraryTexts } from '../../../backend/supabase/database/texts/getLibraryTexts'
+import { useTextSubscription } from './useTextSubscription'
+import type { TextPreview } from '../types/database'
+
+interface UseLibraryTextsReturn {
+  texts: TextPreview[] | null
+  loading: boolean
+  error: string | null
+  refetch: () => Promise<void>
+  setTexts: Dispatch<SetStateAction<TextPreview[] | null>>
+}
+
+/**
+ * Hook for managing library texts with real-time updates.
+ * Combines initial fetch with Supabase real-time subscription.
+ */
+export function useLibraryTexts(userId: string | null): UseLibraryTextsReturn {
+  const [texts, setTexts] = useState<TextPreview[] | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const fetchTexts = useCallback(async () => {
+    if (!userId) {
+      setTexts(null)
+      return
+    }
+
+    setLoading(true)
+    setError(null)
+
+    try {
+      const result = await getLibraryTexts({ type: 'user', userId })
+      setTexts(result || [])
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Failed to load texts'
+      setError(message)
+    } finally {
+      setLoading(false)
+    }
+  }, [userId])
+
+  // Initial fetch when userId changes
+  useEffect(() => {
+    if (userId) {
+      fetchTexts()
+    } else {
+      setTexts(null)
+    }
+  }, [userId, fetchTexts])
+
+  // Real-time subscription callbacks
+  const subscriptionCallbacks = useMemo(
+    () => ({
+      onInsert: (newText: TextPreview) => {
+        setTexts((prev) => {
+          if (!prev) return [newText]
+          // Prevent duplicates if INSERT arrives during/after fetch
+          if (prev.some((t) => t.id === newText.id)) return prev
+          return [newText, ...prev]
+        })
+      },
+      onUpdate: (updatedText: TextPreview) => {
+        setTexts((prev) =>
+          prev
+            ? prev.map((t) => (t.id === updatedText.id ? updatedText : t))
+            : null
+        )
+      },
+      onDelete: (textId: string) => {
+        setTexts((prev) => (prev ? prev.filter((t) => t.id !== textId) : null))
+      },
+    }),
+    []
+  )
+
+  // Subscribe to real-time updates
+  useTextSubscription(userId, subscriptionCallbacks)
+
+  return {
+    texts,
+    loading,
+    error,
+    refetch: fetchTexts,
+    setTexts,
+  }
+}

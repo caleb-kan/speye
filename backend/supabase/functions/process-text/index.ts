@@ -246,7 +246,8 @@ Deno.serve(async (req: Request) => {
     }
 
     const groqClient = new Groq({ apiKey: groqApiKey })
-    const truncatedContent = content.trim().slice(0, 4000)
+    // Match frontend MAX_CONTENT_CHARACTERS limit (15k)
+    const truncatedContent = content.trim().slice(0, 15000)
     const userMessage = config.user_message
       .replace('{text_content}', truncatedContent)
       .replace('{generate_title}', String(generateTitle))

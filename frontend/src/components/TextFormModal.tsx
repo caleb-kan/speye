@@ -66,7 +66,7 @@ export function TextFormModal({
       if (initialData) {
         setTitle(initialData.title || '')
         setContent(initialData.content)
-        setFiction(initialData.fiction)
+        setFiction(initialData.fiction ?? true)
       } else {
         setTitle('')
         setContent('')
@@ -111,7 +111,8 @@ export function TextFormModal({
       await onSubmit({
         title: title.trim() || null,
         content: content.trim(),
-        fiction,
+        // For upload mode, let LLM auto-classify fiction; for edit mode, use user selection
+        fiction: mode === 'upload' ? null : fiction,
       })
       onClose()
     } catch (err) {

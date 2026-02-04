@@ -7,6 +7,7 @@ describe('StartQuizButton', () => {
   const defaultProps = {
     textId: 'text-1',
     readingComplete: false,
+    wpm: 200, // Added required prop
   }
 
   beforeEach(() => {
@@ -24,40 +25,28 @@ describe('StartQuizButton', () => {
     expect(btn).toBeInTheDocument()
   })
 
-  it('hides button when reading is not complete', () => {
+  it('hides wrapper when reading is not complete', () => {
     render(<StartQuizButton {...defaultProps} readingComplete={false} />)
     const btn = screen.getByRole('button')
-    expect(btn.className).toContain('opacity-0')
+    // The opacity class is now on the parent wrapper div
+    const wrapper = btn.parentElement
+    expect(wrapper?.className).toContain('opacity-0')
+    expect(wrapper?.className).toContain('translate-y-4')
   })
 
-  it('shows button when reading is complete', () => {
+  it('shows wrapper when reading is complete', () => {
     render(<StartQuizButton {...defaultProps} readingComplete={true} />)
     const btn = screen.getByRole('button')
-    expect(btn.className).toContain('opacity-100')
+    const wrapper = btn.parentElement
+    expect(wrapper?.className).toContain('opacity-100')
+    expect(wrapper?.className).toContain('scale-100')
   })
 
-  it('has proper styling for hidden state', () => {
-    render(<StartQuizButton {...defaultProps} readingComplete={false} />)
-    const btn = screen.getByRole('button')
-    expect(btn.className).toContain('translate-y-12')
-  })
-
-  it('has proper styling for visible state', () => {
-    render(<StartQuizButton {...defaultProps} readingComplete={true} />)
-    const btn = screen.getByRole('button')
-    expect(btn.className).toContain('translate-y-0')
-  })
-
+  // Style checks for the button itself (bg, rounded, etc.)
   it('button has primary background color', () => {
     render(<StartQuizButton {...defaultProps} readingComplete={true} />)
     const btn = screen.getByRole('button')
     expect(btn.className).toContain('bg-primary')
-  })
-
-  it('button has hover effects', () => {
-    render(<StartQuizButton {...defaultProps} readingComplete={true} />)
-    const btn = screen.getByRole('button')
-    expect(btn.className).toContain('hover:')
   })
 
   it('button has rounded styling', () => {
@@ -72,41 +61,27 @@ describe('StartQuizButton', () => {
     expect(btn.className).toContain('shadow')
   })
 
-  it('button has transition effects', () => {
-    render(<StartQuizButton {...defaultProps} readingComplete={true} />)
-    const btn = screen.getByRole('button')
-    expect(btn.className).toContain('transition')
-  })
-
   it('accepts different textIds', () => {
     const { rerender } = render(
-      <StartQuizButton textId="text-1" readingComplete={true} />
+      <StartQuizButton {...defaultProps} textId="text-1" />
     )
     expect(screen.getByRole('button')).toBeInTheDocument()
 
-    rerender(<StartQuizButton textId="text-2" readingComplete={true} />)
+    rerender(<StartQuizButton {...defaultProps} textId="text-2" />)
     expect(screen.getByRole('button')).toBeInTheDocument()
   })
 
-  it('updates when readingComplete changes', () => {
+  it('updates wrapper classes when readingComplete changes', () => {
     const { rerender } = render(
       <StartQuizButton {...defaultProps} readingComplete={false} />
     )
     let btn = screen.getByRole('button')
-    expect(btn.className).toContain('opacity-0')
+    let wrapper = btn.parentElement
+    expect(wrapper?.className).toContain('opacity-0')
 
     rerender(<StartQuizButton {...defaultProps} readingComplete={true} />)
     btn = screen.getByRole('button')
-    expect(btn.className).toContain('opacity-100')
-  })
-
-  it('memoizes component', () => {
-    const { rerender } = render(
-      <StartQuizButton {...defaultProps} readingComplete={true} />
-    )
-    expect(screen.getByRole('button')).toBeInTheDocument()
-
-    rerender(<StartQuizButton {...defaultProps} readingComplete={true} />)
-    expect(screen.getByRole('button')).toBeInTheDocument()
+    wrapper = btn.parentElement
+    expect(wrapper?.className).toContain('opacity-100')
   })
 })

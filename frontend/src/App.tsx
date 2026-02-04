@@ -6,7 +6,7 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 import { Home } from './pages/Home'
 import { Settings } from './pages/Settings'
 import { Library } from './pages/Library'
-import { Quiz } from './pages/Quiz'
+import { Activity } from './pages/Activity'
 import { NotFound } from './pages/NotFound'
 import { Login } from './pages/Login'
 import { Adaptive } from './pages/Adaptive'
@@ -39,7 +39,7 @@ function App() {
 
                   {/* Pages without OptionsBar */}
                   <Route path="library" element={<Library />} />
-                  <Route path="quiz" element={<Quiz />} />
+                  <Route path="activity" element={<Activity />} />
                   <Route path="settings" element={<Settings />} />
                   <Route path="login" element={<Login />} />
                   <Route path="privacy" element={<Privacy />} />

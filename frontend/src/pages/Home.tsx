@@ -11,10 +11,8 @@ export function Home() {
   const navigate = useNavigate()
   const state = location.state as LocationState | null
   const libraryText = state?.libraryText
-  // Timestamp used to force remount when switching from adaptive mode
   const modeTimestamp = state?._ts
 
-  // Local state to track if reading is finished (for quizzes)
   const [readingComplete, setReadingComplete] = useState(false)
 
   const {
@@ -74,7 +72,7 @@ export function Home() {
           </div>
         </div>
       ) : currentText ? (
-        <>
+        <div className="relative flex-1 flex flex-col w-full h-full overflow-hidden pb-20">
           <Reader
             key={`${currentText.id}-${modeTimestamp ?? ''}`}
             title={currentText.title}
@@ -91,13 +89,12 @@ export function Home() {
             onComplete={setReadingComplete}
           />
 
-          <div className="mt-8 py-6">
-            <StartQuizButton
-              textId={currentText.id}
-              readingComplete={readingComplete}
-            />
-          </div>
-        </>
+          <StartQuizButton
+            wpm={wpm}
+            textId={currentText.id}
+            readingComplete={readingComplete}
+          />
+        </div>
       ) : (
         <div className="flex-1 flex items-center justify-center">
           <span className="text-text-secondary">No texts available</span>

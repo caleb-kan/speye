@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { MODAL_Z_INDEX } from '../../constants/quiz'
 
 type QuizOverlayProps = {
@@ -11,7 +11,33 @@ type QuizOverlayProps = {
 export function QuizOverlay({ isOpen, onClose, children }: QuizOverlayProps) {
   const modalRoot = document.getElementById('modal-root')
 
-  // Prevent background scrolling when modal is open
+  // Controls if the component is actually in the DOM
+  const [isMounted, setIsMounted] = useState(false)
+
+  // Controls the visual opacity/scale styles
+  const [isVisible, setIsVisible] = useState(false)
+
+  useEffect(() => {
+    if (isOpen) {
+      requestAnimationFrame(() => {
+        setIsMounted(true)
+
+        requestAnimationFrame(() => {
+          setIsVisible(true)
+        })
+      })
+    } else {
+      requestAnimationFrame(() => {
+        setIsVisible(false)
+      })
+
+      // Wait for the exit animation (500ms) to finish before removing from DOM
+      const timer = setTimeout(() => setIsMounted(false), 500)
+      return () => clearTimeout(timer)
+    }
+  }, [isOpen])
+
+  // Lock body scroll
   useEffect(() => {
     if (!isOpen) return
     document.body.style.overflow = 'hidden'
@@ -20,39 +46,47 @@ export function QuizOverlay({ isOpen, onClose, children }: QuizOverlayProps) {
     }
   }, [isOpen])
 
-  // Close on Escape key
+  // Escape key
   useEffect(() => {
     if (!isOpen) return
-
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
     }
-
     document.addEventListener('keydown', handleEscape)
     return () => document.removeEventListener('keydown', handleEscape)
   }, [isOpen, onClose])
 
-  if (!isOpen) return null
-
-  if (!modalRoot) {
-    console.error('modal-root element not found')
-    return null
-  }
+  // Don't render anything until we are mounted
+  if (!isMounted || !modalRoot) return null
 
   return createPortal(
     <div
-      className="fixed inset-0"
+      className="fixed inset-0 flex items-center justify-center p-4"
       style={{ zIndex: MODAL_Z_INDEX }}
-      onClick={onClose}
     >
-      {/* Modal */}
-      <div className="relative z-10 flex min-h-screen items-center justify-center">
-        <div
-          className="bg-bg rounded-2xl shadow-2xl max-w-4xl w-full p-4 animate-in fade-in zoom-in-95"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {children}
-        </div>
+      <div
+        className={`
+          absolute inset-0 bg-black/40
+          transition-opacity duration-500 ease-out
+          ${isVisible ? 'opacity-100' : 'opacity-0'}
+        `}
+        onClick={onClose}
+      />
+
+      <div
+        className={`
+          relative w-full max-w-5xl rounded-3xl bg-bg shadow-2xl p-8
+          transform transition-all duration-500 cubic-bezier(0.16, 1, 0.3, 1)
+          
+          ${
+            isVisible
+              ? 'opacity-100 scale-100 translate-y-0'
+              : 'opacity-0 scale-95 translate-y-8'
+          }
+        `}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {children}
       </div>
     </div>,
     modalRoot

@@ -17,7 +17,7 @@ export async function getUserActivity(
   userId: string
 ): Promise<ActivitySession[]> {
   const { data, error } = await supabase
-    .from('user_quizzes')
+    .from('user_activity')
     .select(
       `
       id,

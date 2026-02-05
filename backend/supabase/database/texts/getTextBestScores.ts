@@ -4,7 +4,7 @@ export async function getTextBestScores(
   userId: string
 ): Promise<Record<string, number>> {
   const { data, error } = await supabase
-    .from('user_quizzes')
+    .from('user_activity')
     .select('text_id, score')
     .eq('user_id', userId)
 

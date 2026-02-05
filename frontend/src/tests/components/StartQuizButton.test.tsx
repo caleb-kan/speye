@@ -7,7 +7,9 @@ describe('StartQuizButton', () => {
   const defaultProps = {
     textId: 'text-1',
     readingComplete: false,
-    wpm: 200, // Added required prop
+    wpm: 200,
+    onDismiss: vi.fn(),
+    dismissed: false,
   }
 
   beforeEach(() => {
@@ -26,38 +28,47 @@ describe('StartQuizButton', () => {
   })
 
   it('hides wrapper when reading is not complete', () => {
-    render(<StartQuizButton {...defaultProps} readingComplete={false} />)
-    const btn = screen.getByRole('button')
-    // The opacity class is now on the parent wrapper div
-    const wrapper = btn.parentElement
-    expect(wrapper?.className).toContain('opacity-0')
-    expect(wrapper?.className).toContain('translate-y-4')
+    const { container } = render(
+      <StartQuizButton {...defaultProps} readingComplete={false} />
+    )
+
+    const outerWrapper = container.querySelector('.absolute.inset-0')
+    expect(outerWrapper).toHaveClass('opacity-0')
+
+    const innerWrapper = outerWrapper?.firstElementChild
+    expect(innerWrapper?.className).toContain('scale-50')
+    expect(innerWrapper?.className).toContain('translate-y-12')
   })
 
   it('shows wrapper when reading is complete', () => {
-    render(<StartQuizButton {...defaultProps} readingComplete={true} />)
-    const btn = screen.getByRole('button')
-    const wrapper = btn.parentElement
-    expect(wrapper?.className).toContain('opacity-100')
-    expect(wrapper?.className).toContain('scale-100')
+    const { container } = render(
+      <StartQuizButton {...defaultProps} readingComplete={true} />
+    )
+
+    const outerWrapper = container.querySelector('.absolute.inset-0')
+    expect(outerWrapper).toHaveClass('opacity-100')
+
+    const innerWrapper = outerWrapper?.firstElementChild
+    expect(innerWrapper?.className).toContain('scale-100')
+    expect(innerWrapper?.className).toContain('translate-y-0')
   })
 
-  // Style checks for the button itself (bg, rounded, etc.)
+  // Style checks for the button itself
   it('button has primary background color', () => {
     render(<StartQuizButton {...defaultProps} readingComplete={true} />)
-    const btn = screen.getByRole('button')
+    const btn = screen.getByRole('button', { name: /Start Quiz/ })
     expect(btn.className).toContain('bg-primary')
   })
 
   it('button has rounded styling', () => {
     render(<StartQuizButton {...defaultProps} readingComplete={true} />)
-    const btn = screen.getByRole('button')
+    const btn = screen.getByRole('button', { name: /Start Quiz/ })
     expect(btn.className).toContain('rounded')
   })
 
   it('button has shadow styling', () => {
     render(<StartQuizButton {...defaultProps} readingComplete={true} />)
-    const btn = screen.getByRole('button')
+    const btn = screen.getByRole('button', { name: /Start Quiz/ })
     expect(btn.className).toContain('shadow')
   })
 
@@ -65,23 +76,29 @@ describe('StartQuizButton', () => {
     const { rerender } = render(
       <StartQuizButton {...defaultProps} textId="text-1" />
     )
-    expect(screen.getByRole('button')).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: /Start Quiz/ })
+    ).toBeInTheDocument()
 
     rerender(<StartQuizButton {...defaultProps} textId="text-2" />)
-    expect(screen.getByRole('button')).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: /Start Quiz/ })
+    ).toBeInTheDocument()
   })
 
   it('updates wrapper classes when readingComplete changes', () => {
-    const { rerender } = render(
+    const { container, rerender } = render(
       <StartQuizButton {...defaultProps} readingComplete={false} />
     )
-    let btn = screen.getByRole('button')
-    let wrapper = btn.parentElement
-    expect(wrapper?.className).toContain('opacity-0')
 
+    // Check hidden state
+    const outerWrapper = container.querySelector('.absolute.inset-0')
+    expect(outerWrapper).toHaveClass('opacity-0')
+
+    // Update props to complete
     rerender(<StartQuizButton {...defaultProps} readingComplete={true} />)
-    btn = screen.getByRole('button')
-    wrapper = btn.parentElement
-    expect(wrapper?.className).toContain('opacity-100')
+
+    // Check visible state
+    expect(outerWrapper).toHaveClass('opacity-100')
   })
 })

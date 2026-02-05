@@ -79,6 +79,9 @@ export function Library() {
   // Track which texts are currently being retried to prevent double-clicks
   const [retryingTextIds, setRetryingTextIds] = useState<Set<string>>(new Set())
 
+  const [sortBy, setSortBy] = useState<'complexity' | 'date'>('date')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
+
   const complexitySliderRef = useRef<SliderElement>(null)
   const jumpToPageInputRef = useRef<HTMLInputElement>(null)
 
@@ -243,6 +246,31 @@ export function Library() {
   const handleResetSearch = () => {
     setSearchQuery('')
     setCurrentPage(1)
+  }
+
+  const sortTexts = (texts: TextPreview[]): TextPreview[] => {
+    const sorted = [...texts]
+
+    switch (sortBy) {
+      case 'complexity':
+        sorted.sort((a, b) => {
+          const complexityA = a.complexity ?? 0
+          const complexityB = b.complexity ?? 0
+          return sortDirection === 'asc'
+            ? complexityA - complexityB
+            : complexityB - complexityA
+        })
+        break
+      case 'date':
+        sorted.sort((a, b) => {
+          const dateA = new Date(a.uploaded_at).getTime()
+          const dateB = new Date(b.uploaded_at).getTime()
+          return sortDirection === 'asc' ? dateA - dateB : dateB - dateA
+        })
+        break
+    }
+
+    return sorted
   }
 
   useEffect(() => {
@@ -449,21 +477,23 @@ export function Library() {
     (activeTab === 'public' && publicTexts === null)
 
   const filteredTexts = filterAndSearchTexts(currentTexts)
+  const sortedAndFilteredTexts = sortTexts(filteredTexts)
   const hasActiveFilters =
     searchQuery ||
     filters.genre !== 'all' ||
-    filters.minComplexity !== null ||
-    filters.maxComplexity !== null
+    (filters.minComplexity !== null &&
+      filters.minComplexity > MIN_COMPLEXITY) ||
+    (filters.maxComplexity !== null && filters.maxComplexity < MAX_COMPLEXITY)
 
   // Pagination
   const totalPages = Math.max(
     1,
-    Math.ceil(filteredTexts.length / TEXTS_PER_PAGE)
+    Math.ceil(sortedAndFilteredTexts.length / TEXTS_PER_PAGE)
   )
   const validatedCurrentPage = Math.min(currentPage, totalPages)
   const startIndex = (validatedCurrentPage - 1) * TEXTS_PER_PAGE
   const endIndex = startIndex + TEXTS_PER_PAGE
-  const paginatedTexts = filteredTexts.slice(startIndex, endIndex)
+  const paginatedTexts = sortedAndFilteredTexts.slice(startIndex, endIndex)
 
   // Sync currentPage state if it became invalid (e.g., after deleting last item on page)
   useEffect(() => {
@@ -590,8 +620,8 @@ export function Library() {
               )}
             </div>
 
-            {/* Filter Toggle and Active Filters */}
-            <div className="flex items-center justify-between">
+            {/* Filter Toggle and Sort */}
+            <div className="flex items-center justify-between gap-4 flex-wrap">
               <button
                 type="button"
                 onClick={() => setShowFilters(!showFilters)}
@@ -600,15 +630,39 @@ export function Library() {
                 {showFilters ? 'Hide Filters' : 'Show Filters'}
               </button>
 
-              {hasActiveFilters && (
+              <div className="flex items-center gap-4 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <label
+                    htmlFor="sort-select"
+                    className="text-sm font-medium text-primary"
+                  >
+                    Sort by:
+                  </label>
+                  <select
+                    id="sort-select"
+                    value={sortBy}
+                    onChange={(e) => {
+                      setSortBy(e.target.value as 'complexity' | 'date')
+                      setCurrentPage(1)
+                    }}
+                    className="px-3 py-2 bg-bg border border-primary/30 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  >
+                    <option value="date">Date Created</option>
+                    <option value="complexity">Complexity</option>
+                  </select>
+                </div>
+
                 <button
                   type="button"
-                  onClick={handleClearFilters}
-                  className="px-3 py-2 text-sm text-text-secondary hover:text-primary transition-colors"
+                  onClick={() =>
+                    setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+                  }
+                  className="px-3 py-2 text-primary hover:bg-primary/10 rounded-lg transition-colors text-2xl leading-none flex items-center justify-center"
+                  title={sortDirection === 'asc' ? 'Ascending' : 'Descending'}
                 >
-                  Clear all filters
+                  {sortDirection === 'asc' ? '↑' : '↓'}
                 </button>
-              )}
+              </div>
             </div>
 
             {/* Filter Panel */}
@@ -658,6 +712,17 @@ export function Library() {
                         style={{ width: '100%' }}
                       ></div>
                     </div>
+                    {hasActiveFilters && (
+                      <div className="mt-4 flex justify-center">
+                        <button
+                          type="button"
+                          onClick={handleClearFilters}
+                          className="px-3 py-2 text-sm text-text-secondary hover:text-primary transition-colors"
+                        >
+                          Clear all filters
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -666,8 +731,8 @@ export function Library() {
             {/* Results count */}
             {hasActiveFilters && (
               <p className="text-sm text-text-secondary">
-                Found {filteredTexts.length} text
-                {filteredTexts.length !== 1 ? 's' : ''}
+                Found {sortedAndFilteredTexts.length} text
+                {sortedAndFilteredTexts.length !== 1 ? 's' : ''}
               </p>
             )}
           </div>
@@ -826,18 +891,9 @@ export function Library() {
         ) : (
           <div className="text-center py-8">
             {hasActiveFilters ? (
-              <>
-                <p className="text-text-secondary mb-2">
-                  No texts match your search criteria.
-                </p>
-                <button
-                  type="button"
-                  onClick={handleClearFilters}
-                  className="text-primary hover:underline"
-                >
-                  Clear filters
-                </button>
-              </>
+              <p className="text-text-secondary mb-2">
+                No texts match your search criteria.
+              </p>
             ) : activeTab === 'private' ? (
               <>
                 <p className="text-text-secondary mb-2">

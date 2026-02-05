@@ -5,6 +5,7 @@ import { AdaptiveReadingSession } from '../components/adaptive/AdaptiveReadingSe
 import { useAuth } from '../hooks/useAuth'
 import { useReadingPreferences } from '../hooks/useReadingPreferences'
 import { useTextNavigation } from '../hooks/useTextNavigation'
+import { useReadingPositionSync } from '../hooks/useReadingPositionSync'
 import { Loader2 } from 'lucide-react'
 import type { LocationState, FixedTextInfo } from '../types'
 
@@ -20,6 +21,9 @@ export function Adaptive() {
   const location = useLocation()
   const state = location.state as LocationState | null
   const libraryText = state?.libraryText
+  const preservedText = state?.preservedText
+  const initialReadingPosition = state?.readingPosition ?? 0
+  const modeTimestamp = state?._ts
 
   const { user, loading: authLoading } = useAuth()
   const [currentTextComplexity, setCurrentTextComplexity] = useState<
@@ -55,15 +59,30 @@ export function Adaptive() {
     useTextNavigation({
       filters: { fiction, complexityMin, complexityMax },
       libraryText,
+      preservedText,
       onClearLibraryText: clearLibraryText,
       currentTextComplexity,
     })
 
-  // Update currentTextComplexity when currentText changes
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing derived state from fetched text
     setCurrentTextComplexity(currentText?.complexity ?? null)
   }, [currentText])
+
+  const {
+    position: readingPosition,
+    setPosition: setReadingPosition,
+    resetPosition,
+  } = useReadingPositionSync({
+    textId: currentText?.id ?? null,
+    initialPosition: initialReadingPosition,
+    modeTimestamp,
+  })
+
+  const handleNewTextWithReset = useCallback(() => {
+    resetPosition()
+    handleNewText()
+  }, [resetPosition, handleNewText])
 
   // Create fixed text info if reading from library (shows fixed genre/complexity in OptionsBar)
   const fixedText: FixedTextInfo | undefined = libraryText
@@ -97,7 +116,9 @@ export function Adaptive() {
     onVisibleLinesChange: setVisibleLines,
     isAdaptiveMode: true,
     currentTextComplexity: currentText?.complexity ?? null,
+    currentText: currentText,
     fixedText,
+    readingPosition,
   }
 
   // Show loading state while checking auth
@@ -158,8 +179,10 @@ export function Adaptive() {
         <AdaptiveReadingSession
           key={currentText.id}
           currentText={currentText}
-          onNewText={handleNewText}
+          onNewText={handleNewTextWithReset}
           wpm={wpm}
+          initialWordIndex={readingPosition}
+          onPositionChange={setReadingPosition}
         />
       </div>
     </div>

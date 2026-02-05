@@ -30,6 +30,10 @@ type AdaptiveReaderProps = {
   onNewText: () => void
   /** Called when reading completes */
   onComplete?: (isComplete: boolean) => void
+  /** Initial word index to start from (for restoring position) */
+  initialWordIndex?: number
+  /** Called when reading position changes (for saving position) */
+  onPositionChange?: (wordIndex: number) => void
   /** Show the mini quiz button in controls */
   showMiniQuiz?: boolean
   /** Called when mini quiz button is clicked */
@@ -43,6 +47,8 @@ export function AdaptiveReader({
   source,
   onNewText,
   onComplete,
+  initialWordIndex = 0,
+  onPositionChange,
   showMiniQuiz,
   onStartQuiz,
 }: AdaptiveReaderProps) {
@@ -51,6 +57,11 @@ export function AdaptiveReader({
   const [totalChunks, setTotalChunks] = useState(1)
   const [chunkWordCounts, setChunkWordCounts] = useState<number[]>([])
   const [textFillRatio, setTextFillRatio] = useState(1)
+
+  const onPositionChangeRef = useRef(onPositionChange)
+  useEffect(() => {
+    onPositionChangeRef.current = onPositionChange
+  }, [onPositionChange])
 
   // gazeData state is ONLY used during calibration for AccuracyTest
   // During reading, gaze data flows directly to addSample (no state updates)
@@ -137,6 +148,7 @@ export function AdaptiveReader({
     restart,
     goBack,
     goForward,
+    wordsRead,
   } = useHorizontalReader({
     text,
     gazeX: smoothedGaze?.x ?? null,
@@ -147,7 +159,29 @@ export function AdaptiveReader({
     totalChunks,
     chunkWordCounts,
     textFillRatio,
+    initialWordIndex,
   })
+
+  // Track whether we've started reporting position changes.
+  // Skip reporting the initial 0 when restoring a non-zero position to avoid
+  // overwriting the saved position before the hook applies it.
+  const hasStartedReadingRef = useRef(initialWordIndex === 0)
+
+  useEffect(() => {
+    // When restoring a position (initialWordIndex > 0), don't report wordsRead=0
+    // because the hook hasn't applied the initial position yet
+    if (
+      initialWordIndex > 0 &&
+      wordsRead === 0 &&
+      !hasStartedReadingRef.current
+    ) {
+      return
+    }
+
+    // Once we have words read or started from 0, we can report changes
+    hasStartedReadingRef.current = true
+    onPositionChangeRef.current?.(wordsRead)
+  }, [wordsRead, initialWordIndex])
 
   // Notify parent of completion
   useEffect(() => {

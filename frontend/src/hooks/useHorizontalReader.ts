@@ -45,6 +45,7 @@ type UseHorizontalReaderOptions = {
    * Default: 1.0 (text fills entire container width)
    */
   textFillRatio?: number
+  initialWordIndex?: number
 }
 
 type UseHorizontalReaderReturn = {
@@ -60,6 +61,7 @@ type UseHorizontalReaderReturn = {
   goForward: () => void
   /** Dynamic end-zone threshold adjusted for text fill ratio (0-1) */
   effectiveEndThreshold: number
+  wordsRead: number
 }
 
 /**
@@ -80,6 +82,7 @@ export function useHorizontalReader({
   totalChunks,
   chunkWordCounts,
   textFillRatio = 1.0,
+  initialWordIndex = 0,
 }: UseHorizontalReaderOptions): UseHorizontalReaderReturn {
   const [currentChunk, setCurrentChunk] = useState(0)
   const [isComplete, setIsComplete] = useState(false)
@@ -106,6 +109,37 @@ export function useHorizontalReader({
   const containerLeftRef = useRefSync(containerLeft)
   const containerWidthRef = useRefSync(containerWidth)
   const totalChunksRef = useRefSync(totalChunks)
+
+  const initialPositionAppliedRef = useRef(false)
+
+  useEffect(() => {
+    if (
+      !initialPositionAppliedRef.current &&
+      initialWordIndex > 0 &&
+      chunkWordCounts &&
+      chunkWordCounts.length > 0
+    ) {
+      let cumulative = 0
+      let targetChunk = 0
+      for (let i = 0; i < chunkWordCounts.length; i++) {
+        cumulative += chunkWordCounts[i]
+        if (initialWordIndex < cumulative) {
+          targetChunk = i
+          break
+        }
+        targetChunk = i
+      }
+
+      initialPositionAppliedRef.current = true
+
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: syncing initial position from props
+      setCurrentChunk(targetChunk)
+      if (totalChunks > 0 && targetChunk >= totalChunks - 1) {
+        setIsComplete(true)
+        completionTriggeredRef.current = true
+      }
+    }
+  }, [initialWordIndex, chunkWordCounts, totalChunks])
 
   const wordsRead = useMemo(() => {
     if (currentChunk === 0) return 0
@@ -360,6 +394,7 @@ export function useHorizontalReader({
     readingStartTimeRef.current = null
     lastAdvanceTimeRef.current = 0
     completionTriggeredRef.current = false
+    initialPositionAppliedRef.current = false
   }, [resetTrackingState])
 
   const goBack = useCallback(() => {
@@ -408,5 +443,6 @@ export function useHorizontalReader({
     goBack,
     goForward,
     effectiveEndThreshold: dynamicThresholds.endOfLine,
+    wordsRead,
   }
 }

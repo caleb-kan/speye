@@ -21,19 +21,20 @@ export function useTexts({
 
   // Track previous values to detect changes
   const prevFictionRef = useRef<boolean | null>(null)
+  const initialFetchDoneRef = useRef(false)
   // Track fetch request ID to handle race conditions
   const fetchIdRef = useRef(0)
 
-  const fetchRandomText = useCallback(
-    async (requestId: number) => {
+  const doFetch = useCallback(
+    async (requestId: number, f: boolean, cMin: number, cMax: number) => {
       try {
         setLoading(true)
         setError(null)
 
         const text = await getRandomText({
-          fiction,
-          complexityMin,
-          complexityMax,
+          fiction: f,
+          complexityMin: cMin,
+          complexityMax: cMax,
         })
 
         // Only update state if this is still the latest request
@@ -49,14 +50,14 @@ export function useTexts({
         }
       }
     },
-    [fiction, complexityMin, complexityMax]
+    []
   )
 
   // Public refetch function that can be called externally
   const refetch = useCallback(() => {
     const requestId = ++fetchIdRef.current
-    fetchRandomText(requestId)
-  }, [fetchRandomText])
+    doFetch(requestId, fiction, complexityMin, complexityMax)
+  }, [doFetch, fiction, complexityMin, complexityMax])
 
   // Single effect for all fetch logic
   useEffect(() => {
@@ -64,26 +65,24 @@ export function useTexts({
     const fictionChanged = !isFirstRun && prevFictionRef.current !== fiction
     prevFictionRef.current = fiction
 
-    // Determine if we need to fetch
-    const needsFetch =
-      isFirstRun ||
-      fictionChanged ||
-      currentTextComplexity === null ||
-      currentTextComplexity < complexityMin ||
-      currentTextComplexity > complexityMax
+    if (fictionChanged) {
+      initialFetchDoneRef.current = false
+    }
+
+    const isOutOfRange =
+      currentTextComplexity !== null &&
+      (currentTextComplexity < complexityMin ||
+        currentTextComplexity > complexityMax)
+    const needsInitialFetch = isFirstRun && !initialFetchDoneRef.current
+    const needsFetch = needsInitialFetch || fictionChanged || isOutOfRange
 
     if (needsFetch) {
+      initialFetchDoneRef.current = true
       // Increment fetch ID to invalidate any in-flight requests
       const requestId = ++fetchIdRef.current
-      fetchRandomText(requestId)
+      doFetch(requestId, fiction, complexityMin, complexityMax)
     }
-  }, [
-    fiction,
-    complexityMin,
-    complexityMax,
-    currentTextComplexity,
-    fetchRandomText,
-  ])
+  }, [fiction, complexityMin, complexityMax, currentTextComplexity, doFetch])
 
   return {
     randomText,

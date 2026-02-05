@@ -1,3 +1,5 @@
+import type { Text } from './database'
+
 export type Mode = 'standard' | 'adaptive' | 'summarized'
 export type Scrolling = 'dynamic' | 'static'
 
@@ -22,4 +24,8 @@ export interface ReadingContext {
   setQuizOpen: (open: boolean) => void
   currentTextComplexity: number | null
   setCurrentTextComplexity: (complexity: number | null) => void
+  currentText: Text | null
+  setCurrentText: (text: Text | null) => void
+  readingPosition: number
+  setReadingPosition: (position: number) => void
 }

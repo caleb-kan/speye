@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import type { LocationState } from '../types'
 import type { Mode, Scrolling, FixedTextInfo } from '../types'
+import type { Text } from '../types/database'
 import noUiSlider, { type API } from 'nouislider'
 import { MIN_COMPLEXITY, MAX_COMPLEXITY } from '../constants/complexity'
 import { WPM_PRESETS, MIN_WPM, MAX_WPM } from '../constants/wpm'
@@ -29,8 +30,9 @@ type OptionsBarProps = {
   onInputBlockingChange?: (isBlocking: boolean) => void
   fixedText?: FixedTextInfo
   currentTextComplexity?: number | null
-  /** When true, shows simplified options bar for adaptive mode */
+  currentText?: Text | null
   isAdaptiveMode?: boolean
+  readingPosition?: number
 }
 
 // Extended HTML element type with noUiSlider API
@@ -58,7 +60,9 @@ export function OptionsBar({
   onInputBlockingChange,
   fixedText,
   currentTextComplexity,
+  currentText,
   isAdaptiveMode = false,
+  readingPosition = 0,
 }: OptionsBarProps) {
   const navigate = useNavigate()
   const location = useLocation()
@@ -67,6 +71,35 @@ export function OptionsBar({
   // Get library text from location state (if reading a library text)
   const locationState = location.state as LocationState | null
   const libraryText = locationState?.libraryText
+
+  /**
+   * Build navigation state for mode switching.
+   * - libraryText: locks filters (from library selection)
+   * - preservedText: keeps text but allows filter changes
+   * - Neither: just pass position and timestamp
+   */
+  const buildModeNavigationState = (
+    includeTimestamp: boolean
+  ): LocationState => {
+    const textToPass = libraryText || currentText
+    const baseState: LocationState = { readingPosition }
+
+    if (includeTimestamp) {
+      baseState._ts = Date.now()
+    }
+
+    if (!textToPass) {
+      return baseState
+    }
+
+    // libraryText takes priority - it locks filters
+    if (libraryText) {
+      return { ...baseState, libraryText: textToPass }
+    }
+
+    // Otherwise use preservedText - allows filter changes
+    return { ...baseState, preservedText: textToPass }
+  }
 
   const [customWpm, setCustomWpm] = useState('')
   const [showCustomInput, setShowCustomInput] = useState(false)
@@ -217,11 +250,9 @@ export function OptionsBar({
           <button
             onClick={() => {
               if (isAdaptiveMode) {
-                // Use timestamp in state to force remount when switching from adaptive
+                // Navigate to standard mode, preserving text and position
                 navigate('/home', {
-                  state: libraryText
-                    ? { libraryText, _ts: Date.now() }
-                    : { _ts: Date.now() },
+                  state: buildModeNavigationState(true),
                   replace: true,
                 })
               } else {
@@ -241,9 +272,9 @@ export function OptionsBar({
           <button
             onClick={() => {
               if (!isAdaptiveMode && user) {
-                // Pass library text along if present
+                // Navigate to adaptive mode, preserving text and position
                 navigate('/adaptive', {
-                  state: libraryText ? { libraryText } : null,
+                  state: buildModeNavigationState(false),
                 })
               }
             }}

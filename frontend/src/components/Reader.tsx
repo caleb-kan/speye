@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { TextDisplay } from './TextDisplay'
 import { ReadingControls } from './ReadingControls'
 import { TextTitle } from './TextTitle'
@@ -19,6 +19,8 @@ type ReaderProps = {
   onTextWidthChange: (percent: number) => void
   visibleLines: number
   onComplete?: (isComplete: boolean) => void
+  initialWordIndex?: number
+  onPositionChange?: (wordIndex: number) => void
   showMiniQuiz?: boolean
   onStartQuiz?: () => void
 }
@@ -36,6 +38,8 @@ export function Reader({
   onTextWidthChange,
   visibleLines,
   onComplete,
+  initialWordIndex = 0,
+  onPositionChange,
   showMiniQuiz,
   onStartQuiz,
 }: ReaderProps) {
@@ -48,7 +52,16 @@ export function Reader({
     togglePlayPause,
     restart,
     hasText,
-  } = useReader({ text, wpm, disabled })
+  } = useReader({ text, wpm, disabled, initialWordIndex })
+
+  const onPositionChangeRef = useRef(onPositionChange)
+  useEffect(() => {
+    onPositionChangeRef.current = onPositionChange
+  }, [onPositionChange])
+
+  useEffect(() => {
+    onPositionChangeRef.current?.(currentWordIndex)
+  }, [currentWordIndex])
 
   useEffect(() => {
     if (onComplete) {

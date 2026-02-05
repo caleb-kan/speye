@@ -10,6 +10,8 @@ type UseReaderOptions = {
   wpm: number
   /** Whether keyboard controls are disabled */
   disabled?: boolean
+  /** Initial word index to start from (for restoring position) */
+  initialWordIndex?: number
 }
 
 type UseReaderReturn = {
@@ -42,20 +44,30 @@ type UseReaderReturn = {
  * @param options.text - Text content to read
  * @param options.wpm - Words per minute reading speed
  * @param options.disabled - Whether keyboard controls are disabled
+ * @param options.initialWordIndex - Initial word index to start from (for restoring position)
  */
 export function useReader({
   text,
   wpm,
   disabled = false,
+  initialWordIndex = 0,
 }: UseReaderOptions): UseReaderReturn {
-  const [currentWordIndex, setCurrentWordIndex] = useState(0)
-  const [isPlaying, setIsPlaying] = useState(false)
-  const [isComplete, setIsComplete] = useState(false)
-  const intervalRef = useRef<number | null>(null)
-
   const words = useMemo(() => splitTextToWords(text), [text])
   const hasText = words.length > 0
   const totalWords = words.length
+
+  // Clamp initial index to valid range (0 to totalWords-1, or 0 if no words)
+  const clampedInitialIndex = hasText
+    ? Math.max(0, Math.min(initialWordIndex, totalWords - 1))
+    : 0
+
+  const [currentWordIndex, setCurrentWordIndex] = useState(clampedInitialIndex)
+  const [isPlaying, setIsPlaying] = useState(false)
+  // Only mark complete if we have text AND we're at/past the last word
+  const [isComplete, setIsComplete] = useState(
+    hasText && clampedInitialIndex >= totalWords - 1
+  )
+  const intervalRef = useRef<number | null>(null)
   const progress = calculateProgressPercentage(currentWordIndex, totalWords)
 
   const msPerWord = wpmToMsPerWord(wpm)

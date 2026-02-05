@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Text } from '../types/database'
 import { useTexts } from './useTexts'
 
@@ -11,10 +11,14 @@ type UseTextNavigationOptions = {
   }
   /** Library text passed via navigation state */
   libraryText?: Text | null
+  /** Preserved text from mode switch */
+  preservedText?: Text | null
   /** Callback to clear library text (navigate to clear state) */
   onClearLibraryText: () => void
   /** Current text complexity (to avoid refetch when still in range) */
   currentTextComplexity: number | null
+  /** Callback when filters change and fetch a new text */
+  onFiltersChanged?: () => void
 }
 
 type UseTextNavigationReturn = {
@@ -34,7 +38,8 @@ type UseTextNavigationReturn = {
  * Hook for text navigation with library text support
  *
  * Features:
- * - Library text override (from navigation state)
+ * - Library text override (from navigation state) - locks filters
+ * - Preserved text (from mode switch) - does NOT lock filters
  * - Random text fetching via master's optimized RPC
  * - Consistent handleNewText behavior
  *
@@ -43,33 +48,73 @@ type UseTextNavigationReturn = {
 export function useTextNavigation({
   filters,
   libraryText,
+  preservedText,
   onClearLibraryText,
   currentTextComplexity,
+  onFiltersChanged,
 }: UseTextNavigationOptions): UseTextNavigationReturn {
+  const [filtersChanged, setFiltersChanged] = useState(false)
+  const initialFiltersRef = useRef<typeof filters | null>(null)
+  const preservedTextIdRef = useRef<string | null>(null)
+
+  // Capture the filters at the moment preservedText is set.
+  // INTENTIONALLY excludes `filters` from deps: we want to snapshot the filters
+  // when the preservedText arrives, not re-run when filters change later.
+  // This allows us to detect when the user changes filters AFTER switching modes.
+  useEffect(() => {
+    const newPreservedTextId = preservedText?.id ?? null
+    if (newPreservedTextId !== preservedTextIdRef.current) {
+      preservedTextIdRef.current = newPreservedTextId
+      if (preservedText) {
+        // Snapshot current filters when preservedText is set
+        initialFiltersRef.current = { ...filters }
+        setFiltersChanged(false)
+      } else {
+        initialFiltersRef.current = null
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: snapshot filters when preservedText changes, not when filters change
+  }, [preservedText])
+
+  useEffect(() => {
+    if (preservedText && !filtersChanged && initialFiltersRef.current) {
+      const fictionChanged =
+        filters.fiction !== initialFiltersRef.current.fiction
+
+      const preservedComplexity = preservedText.complexity
+      const isOutOfComplexityRange =
+        preservedComplexity !== null &&
+        (preservedComplexity < filters.complexityMin ||
+          preservedComplexity > filters.complexityMax)
+
+      if (fictionChanged || isOutOfComplexityRange) {
+        setFiltersChanged(true)
+        onFiltersChanged?.()
+      }
+    }
+  }, [filters, preservedText, filtersChanged, onFiltersChanged])
+
   const { randomText, loading, error, refetch } = useTexts({
     ...filters,
-    currentTextComplexity,
+    currentTextComplexity: filtersChanged ? null : currentTextComplexity,
   })
 
-  // Current text: library text takes priority, then fetched random text
-  const currentText = libraryText || randomText
+  const currentText =
+    libraryText ||
+    (preservedText && !filtersChanged ? preservedText : randomText)
 
   const handleNewText = useCallback(() => {
-    if (libraryText) {
-      // Clear library text and switch to fetched texts
+    if (libraryText || preservedText) {
       onClearLibraryText()
     } else {
-      // Fetch a new random text
       refetch()
     }
-  }, [libraryText, onClearLibraryText, refetch])
+  }, [libraryText, preservedText, onClearLibraryText, refetch])
 
   return {
     currentText,
-    // Don't show loading if we have library text
-    loading: loading && !libraryText,
-    // Don't show error if we have library text
-    error: libraryText ? null : error,
+    loading: loading && !libraryText && !(preservedText && !filtersChanged),
+    error: libraryText || (preservedText && !filtersChanged) ? null : error,
     handleNewText,
     refetch,
   }

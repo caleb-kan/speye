@@ -7,12 +7,16 @@ type AdaptiveReadingSessionProps = {
   currentText: Text
   onNewText: () => void
   wpm: number
+  initialWordIndex?: number
+  onPositionChange?: (wordIndex: number) => void
 }
 
 export function AdaptiveReadingSession({
   currentText,
   onNewText,
   wpm,
+  initialWordIndex = 0,
+  onPositionChange,
 }: AdaptiveReadingSessionProps) {
   const [readingComplete, setReadingComplete] = useState(false)
   const [triggerQuiz, setTriggerQuiz] = useState(false)
@@ -26,6 +30,8 @@ export function AdaptiveReadingSession({
         source={currentText.source}
         onNewText={onNewText}
         onComplete={setReadingComplete}
+        initialWordIndex={initialWordIndex}
+        onPositionChange={onPositionChange}
         showMiniQuiz={quizDismissed}
         onStartQuiz={() => setTriggerQuiz(true)}
       />

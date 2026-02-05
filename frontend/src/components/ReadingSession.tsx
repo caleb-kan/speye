@@ -37,6 +37,8 @@ export function ReadingSession({
         onTextWidthChange={context.onTextWidthChange}
         visibleLines={context.visibleLines}
         onComplete={setReadingComplete}
+        initialWordIndex={context.readingPosition}
+        onPositionChange={context.setReadingPosition}
         showMiniQuiz={quizDismissed}
         onStartQuiz={() => setTriggerQuiz(true)}
       />

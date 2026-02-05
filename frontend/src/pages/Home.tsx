@@ -10,6 +10,8 @@ export function Home() {
   const navigate = useNavigate()
   const state = location.state as LocationState | null
   const libraryText = state?.libraryText
+  const preservedText = state?.preservedText
+  // Timestamp used to force remount when switching from adaptive mode
   const modeTimestamp = state?._ts
 
   const context = useOutletContext<ReadingContext>()
@@ -26,16 +28,24 @@ export function Home() {
         complexityMax: context.complexityMax,
       },
       libraryText,
+      preservedText,
       onClearLibraryText: clearLibraryText,
       currentTextComplexity: context.currentTextComplexity,
     })
 
   // Destructure to avoid missing dependency warning in useEffect
-  const { setCurrentTextComplexity } = context
+  const { setCurrentTextComplexity, setCurrentText, setReadingPosition } =
+    context
 
   useEffect(() => {
     setCurrentTextComplexity(currentText?.complexity ?? null)
-  }, [currentText, setCurrentTextComplexity])
+    setCurrentText(currentText)
+  }, [currentText, setCurrentTextComplexity, setCurrentText])
+
+  const handleNewTextWithReset = useCallback(() => {
+    setReadingPosition(0)
+    handleNewText()
+  }, [handleNewText, setReadingPosition])
 
   return (
     <div
@@ -69,7 +79,7 @@ export function Home() {
           currentText={currentText}
           modeTimestamp={modeTimestamp}
           context={context}
-          onNewText={handleNewText}
+          onNewText={handleNewTextWithReset}
         />
       ) : (
         <div className="flex-1 flex items-center justify-center">

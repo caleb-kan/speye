@@ -19,6 +19,10 @@ export type {
  */
 export interface LocationState {
   libraryText?: import('./database').Text
+  /** Text preserved when switching modes  */
+  preservedText?: import('./database').Text
   /** Timestamp to force component remount when switching modes */
   _ts?: number
+  /** Current reading position (word index) to restore when switching modes */
+  readingPosition?: number
 }

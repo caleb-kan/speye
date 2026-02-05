@@ -7,10 +7,11 @@ type Props = {
 }
 
 export function SessionItem({ session, index }: Props) {
-  // Use time_completed, fallback to current date if missing to prevent crash
   const dateStr = session.time_completed || new Date().toISOString()
   const date = new Date(dateStr)
-  const isHighScore = session.score >= 80
+
+  const hasScore = session.score !== null && session.score !== undefined
+  const isHighScore = hasScore && session.score! >= 80
 
   return (
     <div
@@ -58,16 +59,31 @@ export function SessionItem({ session, index }: Props) {
         </div>
       </div>
 
-      {/* Score */}
-      <div className="text-right shrink-0">
-        <div
-          className={`text-xl font-bold tracking-tight ${
-            isHighScore ? 'text-primary' : 'text-text'
-          }`}
-        >
-          {session.score}%
-        </div>
-        <div className="text-[10px] text-text-secondary uppercase">Score</div>
+      {/* Score / Status Section */}
+      <div className="text-right shrink-0 min-w-[3.5rem]">
+        {hasScore ? (
+          <>
+            <div
+              className={`text-xl font-bold tracking-tight ${
+                isHighScore ? 'text-primary' : 'text-text'
+              }`}
+            >
+              {session.score}%
+            </div>
+            <div className="text-[10px] text-text-secondary uppercase">
+              Score
+            </div>
+          </>
+        ) : (
+          <div className="opacity-50 group-hover:opacity-100 transition-opacity">
+            <div className="text-xl font-bold tracking-tight text-text-secondary font-mono flex justify-end">
+              <span className="tracking-widest">—</span>
+            </div>
+            <div className="text-[10px] text-text-secondary uppercase">
+              Quiz Not Taken
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

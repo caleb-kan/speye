@@ -14,7 +14,7 @@ export async function saveQuizResult(params: QuizResultParams) {
   if (!user) throw new Error('User not authenticated')
 
   const { data, error } = await supabase
-    .from('user_quizzes')
+    .from('user_activity')
     .insert([
       {
         user_id: user.id,

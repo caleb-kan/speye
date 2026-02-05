@@ -45,12 +45,30 @@ export function Activity() {
     }
 
     const totalTexts = sessions.length
-    const avgWpm = Math.round(
-      sessions.reduce((acc, curr) => acc + (curr.wpm || 0), 0) / totalTexts
+
+    // Calculate Average WPM (include all sessions with WPM > 0)
+    const validWpmSessions = sessions.filter((s) => (s.wpm || 0) > 0)
+    const avgWpm =
+      validWpmSessions.length > 0
+        ? Math.round(
+            validWpmSessions.reduce((acc, curr) => acc + (curr.wpm || 0), 0) /
+              validWpmSessions.length
+          )
+        : 0
+
+    // Calculate Average Score (ONLY include sessions that actually have a score)
+    const scoredSessions = sessions.filter(
+      (s) => s.score !== null && s.score !== undefined
     )
-    const avgScore = Math.round(
-      sessions.reduce((acc, curr) => acc + (curr.score || 0), 0) / totalTexts
-    )
+
+    const avgScore =
+      scoredSessions.length > 0
+        ? Math.round(
+            scoredSessions.reduce((acc, curr) => acc + (curr.score || 0), 0) /
+              scoredSessions.length
+          )
+        : 0
+
     const streak = 1 // Placeholder logic (TODO: Implement actual streak calculation)
 
     return { totalTexts, avgWpm, avgScore, streak }

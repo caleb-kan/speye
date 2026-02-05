@@ -1,4 +1,4 @@
-import { Zap, Clock } from 'lucide-react'
+import { Zap, Clock, FileQuestion } from 'lucide-react'
 import type { ActivitySession } from '../../services/getUserActivity'
 
 type Props = {
@@ -12,6 +12,9 @@ export function SessionItem({ session, index }: Props) {
 
   const hasScore = session.score !== null && session.score !== undefined
   const isHighScore = hasScore && session.score! >= 80
+
+  // Check if the text object exists
+  const textExists = !!session.text
 
   return (
     <div
@@ -29,21 +32,31 @@ export function SessionItem({ session, index }: Props) {
       {/* Content */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
-          <h4 className="font-medium text-text truncate">
-            {session.text?.title || 'Untitled Text'}
-          </h4>
-          {session.text?.fiction !== undefined && (
-            <span
-              className={`text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wide font-bold ${
-                session.text.fiction
-                  ? 'bg-purple-500/10 text-purple-400'
-                  : 'bg-blue-500/10 text-blue-400'
-              }`}
-            >
-              {session.text.fiction ? 'Fiction' : 'Non-Fic'}
-            </span>
+          {textExists ? (
+            <>
+              <h4 className="font-medium text-text truncate">
+                {session.text!.title}
+              </h4>
+              {session.text!.fiction !== undefined && (
+                <span
+                  className={`text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wide font-bold ${
+                    session.text!.fiction
+                      ? 'bg-purple-500/10 text-purple-400'
+                      : 'bg-blue-500/10 text-blue-400'
+                  }`}
+                >
+                  {session.text!.fiction ? 'Fiction' : 'Non-Fic'}
+                </span>
+              )}
+            </>
+          ) : (
+            <div className="flex items-center gap-2 text-text-secondary/50 group-hover:text-text-secondary transition-colors">
+              <FileQuestion className="w-4 h-4" />
+              <span className="italic font-medium text-sm">Text Deleted</span>
+            </div>
           )}
         </div>
+
         <div className="flex items-center gap-4 text-xs text-text-secondary">
           <span className="flex items-center gap-1">
             <Zap className="w-3 h-3" />
@@ -80,7 +93,7 @@ export function SessionItem({ session, index }: Props) {
               <span className="tracking-widest">—</span>
             </div>
             <div className="text-[10px] text-text-secondary uppercase">
-              Quiz Not Taken
+              No Quiz
             </div>
           </div>
         )}

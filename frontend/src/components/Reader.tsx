@@ -19,6 +19,8 @@ type ReaderProps = {
   onTextWidthChange: (percent: number) => void
   visibleLines: number
   onComplete?: (isComplete: boolean) => void
+  showMiniQuiz?: boolean
+  onStartQuiz?: () => void
 }
 
 export function Reader({
@@ -34,6 +36,8 @@ export function Reader({
   onTextWidthChange,
   visibleLines,
   onComplete,
+  showMiniQuiz,
+  onStartQuiz,
 }: ReaderProps) {
   const {
     currentWordIndex,
@@ -104,6 +108,8 @@ export function Reader({
           currentWord={currentWordIndex + 1}
           totalWords={totalWords}
           disabled={disabled}
+          showMiniQuiz={showMiniQuiz}
+          onStartQuiz={onStartQuiz}
         />
       </div>
     </div>

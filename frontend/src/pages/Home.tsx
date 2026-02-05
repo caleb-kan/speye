@@ -1,8 +1,7 @@
-import { useState, useEffect, useCallback } from 'react'
-import { Reader } from '../components/Reader'
-import { StartQuizButton } from '../components/StartQuizButton'
+import { useEffect, useCallback } from 'react'
 import { useTextNavigation } from '../hooks/useTextNavigation'
 import { useOutletContext, useLocation, useNavigate } from 'react-router-dom'
+import { ReadingSession } from '../components/ReadingSession'
 import type { ReadingContext } from '../types/reading'
 import type { LocationState } from '../types'
 
@@ -13,22 +12,7 @@ export function Home() {
   const libraryText = state?.libraryText
   const modeTimestamp = state?._ts
 
-  const [readingComplete, setReadingComplete] = useState(false)
-
-  const {
-    wpm,
-    scrolling,
-    blurEnabled,
-    fiction,
-    inputBlocking,
-    complexityMin,
-    complexityMax,
-    textWidthPercent,
-    visibleLines,
-    onTextWidthChange,
-    currentTextComplexity,
-    setCurrentTextComplexity,
-  } = useOutletContext<ReadingContext>()
+  const context = useOutletContext<ReadingContext>()
 
   const clearLibraryText = useCallback(() => {
     navigate('/home', { replace: true, state: null })
@@ -36,11 +20,18 @@ export function Home() {
 
   const { currentText, loading, error, handleNewText, refetch } =
     useTextNavigation({
-      filters: { fiction, complexityMin, complexityMax },
+      filters: {
+        fiction: context.fiction,
+        complexityMin: context.complexityMin,
+        complexityMax: context.complexityMax,
+      },
       libraryText,
       onClearLibraryText: clearLibraryText,
-      currentTextComplexity,
+      currentTextComplexity: context.currentTextComplexity,
     })
+
+  // Destructure to avoid missing dependency warning in useEffect
+  const { setCurrentTextComplexity } = context
 
   useEffect(() => {
     setCurrentTextComplexity(currentText?.complexity ?? null)
@@ -72,29 +63,14 @@ export function Home() {
           </div>
         </div>
       ) : currentText ? (
-        <div className="relative flex-1 flex flex-col w-full h-full overflow-hidden pb-20">
-          <Reader
-            key={`${currentText.id}-${modeTimestamp ?? ''}`}
-            title={currentText.title}
-            text={currentText.content}
-            source={currentText.source}
-            wpm={wpm}
-            scrolling={scrolling}
-            blurEnabled={blurEnabled}
-            onNewText={handleNewText}
-            disabled={inputBlocking}
-            textWidthPercent={textWidthPercent}
-            onTextWidthChange={onTextWidthChange}
-            visibleLines={visibleLines}
-            onComplete={setReadingComplete}
-          />
-
-          <StartQuizButton
-            wpm={wpm}
-            textId={currentText.id}
-            readingComplete={readingComplete}
-          />
-        </div>
+        <ReadingSession
+          // Changing the key forces a remount (and state reset) when text changes
+          key={currentText.id}
+          currentText={currentText}
+          modeTimestamp={modeTimestamp}
+          context={context}
+          onNewText={handleNewText}
+        />
       ) : (
         <div className="flex-1 flex items-center justify-center">
           <span className="text-text-secondary">No texts available</span>

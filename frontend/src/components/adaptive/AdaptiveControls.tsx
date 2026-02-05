@@ -1,4 +1,10 @@
-import { RotateCcw, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react'
+import {
+  RotateCcw,
+  RefreshCw,
+  ChevronLeft,
+  ChevronRight,
+  BookOpenCheck,
+} from 'lucide-react'
 import { ProgressBar } from '../ProgressBar'
 import { IconButton } from '../ui/IconButton'
 import { GazeStatusIndicator } from './GazeStatusIndicator'
@@ -26,6 +32,10 @@ type AdaptiveControlsProps = {
   disabled?: boolean
   /** Eye tracking status */
   trackingStatus?: TrackingStatus
+  /** Show the mini quiz button */
+  showMiniQuiz?: boolean
+  /** Called when mini quiz button is clicked */
+  onStartQuiz?: () => void
 }
 
 /**
@@ -51,6 +61,8 @@ export function AdaptiveControls({
   totalPages,
   disabled = false,
   trackingStatus,
+  showMiniQuiz,
+  onStartQuiz,
 }: AdaptiveControlsProps) {
   const canGoBack = currentPage > 0
   const canGoForward = currentPage < totalPages - 1
@@ -64,12 +76,37 @@ export function AdaptiveControls({
         aria-label="Restart reading"
       />
 
-      <IconButton
-        onClick={onNewText}
-        disabled={disabled}
-        icon={<RefreshCw className="w-5 h-5" />}
-        aria-label="New text"
-      />
+      {/* Group New Text & Quiz Button to maintain layout stability */}
+      <div className="flex items-center gap-4">
+        <IconButton
+          onClick={onNewText}
+          disabled={disabled}
+          icon={<RefreshCw className="w-5 h-5" />}
+          aria-label="New text"
+        />
+
+        {/* Mini Quiz Button - Animates width/opacity */}
+        <div
+          className={`
+            transition-all duration-500 ease-out overflow-hidden
+            ${showMiniQuiz ? 'w-10 opacity-100' : 'w-0 opacity-0'}
+          `}
+        >
+          <button
+            onClick={onStartQuiz}
+            disabled={disabled || !showMiniQuiz}
+            className="
+              h-10 w-10 flex items-center justify-center rounded-xl 
+              text-primary hover:text-white hover:bg-primary/20 
+              transition-colors
+              disabled:opacity-50 disabled:cursor-not-allowed
+            "
+            title="Take Quiz"
+          >
+            <BookOpenCheck className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
 
       <ProgressBar
         progress={progress}

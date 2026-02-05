@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { AdaptiveReader } from '../components/adaptive/AdaptiveReader'
 import { OptionsBar } from '../components/OptionsBar'
-import { StartQuizButton } from '../components/StartQuizButton'
+import { AdaptiveReadingSession } from '../components/adaptive/AdaptiveReadingSession'
 import { useAuth } from '../hooks/useAuth'
 import { useReadingPreferences } from '../hooks/useReadingPreferences'
 import { useTextNavigation } from '../hooks/useTextNavigation'
@@ -26,7 +25,6 @@ export function Adaptive() {
   const [currentTextComplexity, setCurrentTextComplexity] = useState<
     number | null
   >(null)
-  const [readingComplete, setReadingComplete] = useState(false)
 
   const {
     preferences,
@@ -61,11 +59,10 @@ export function Adaptive() {
       currentTextComplexity,
     })
 
-  // Update currentTextComplexity and reset completion when currentText changes
+  // Update currentTextComplexity when currentText changes
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing derived state from fetched text
     setCurrentTextComplexity(currentText?.complexity ?? null)
-    setReadingComplete(false)
   }, [currentText])
 
   // Create fixed text info if reading from library (shows fixed genre/complexity in OptionsBar)
@@ -158,21 +155,11 @@ export function Adaptive() {
     <div className="flex-1 flex flex-col">
       <OptionsBar {...optionsBarProps} />
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-        <AdaptiveReader
+        <AdaptiveReadingSession
           key={currentText.id}
-          title={currentText.title}
-          text={currentText.content}
-          source={currentText.source}
+          currentText={currentText}
           onNewText={handleNewText}
-          onComplete={setReadingComplete}
-        />
-      </div>
-
-      <div className="mt-8 py-6">
-        <StartQuizButton
           wpm={wpm}
-          textId={currentText.id}
-          readingComplete={readingComplete}
         />
       </div>
     </div>

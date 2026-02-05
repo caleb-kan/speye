@@ -30,6 +30,10 @@ type AdaptiveReaderProps = {
   onNewText: () => void
   /** Called when reading completes */
   onComplete?: (isComplete: boolean) => void
+  /** Show the mini quiz button in controls */
+  showMiniQuiz?: boolean
+  /** Called when mini quiz button is clicked */
+  onStartQuiz?: () => void
 }
 
 /** Single-line adaptive reader with horizontal gaze tracking and velocity-aware return sweep detection. */
@@ -39,6 +43,8 @@ export function AdaptiveReader({
   source,
   onNewText,
   onComplete,
+  showMiniQuiz,
+  onStartQuiz,
 }: AdaptiveReaderProps) {
   const [containerLeft, setContainerLeft] = useState(0)
   const [containerWidth, setContainerWidth] = useState(DEFAULT_CONTAINER_WIDTH)
@@ -387,6 +393,8 @@ export function AdaptiveReader({
         calculatedWpm={calculatedWpm}
         disabled={false}
         trackingStatus={trackingStatus}
+        showMiniQuiz={showMiniQuiz}
+        onStartQuiz={onStartQuiz}
       />
     </div>
   )

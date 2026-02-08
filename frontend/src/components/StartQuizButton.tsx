@@ -6,7 +6,6 @@ import type { QuestionSet } from '../types/database'
 
 interface StartQuizButtonProps {
   textId: string
-  wpm: number
   readingComplete: boolean
   onDismiss: () => void
   dismissed: boolean
@@ -18,7 +17,6 @@ interface StartQuizButtonProps {
 
 export function StartQuizButton({
   textId,
-  wpm,
   readingComplete,
   onDismiss,
   dismissed,
@@ -153,7 +151,6 @@ export function StartQuizButton({
         onClose={handleCloseQuiz}
         questionSet={quizSet}
         textId={textId}
-        wpm={wpm}
       />
     </>
   )

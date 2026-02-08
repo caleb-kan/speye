@@ -8,6 +8,12 @@ import { useTextNavigation } from '../hooks/useTextNavigation'
 import { useReadingPositionSync } from '../hooks/useReadingPositionSync'
 import { Loader2 } from 'lucide-react'
 import type { LocationState, FixedTextInfo } from '../types'
+import { logUserActivity } from '../services/logUserActivity'
+import {
+  clearReadingActivitySession,
+  loadReadingActivitySession,
+  upsertReadingActivitySession,
+} from '../utils/readingActivityStorage'
 
 /**
  * Adaptive reading mode page
@@ -29,6 +35,9 @@ export function Adaptive() {
   const [currentTextComplexity, setCurrentTextComplexity] = useState<
     number | null
   >(null)
+  const [adaptiveSessionWpm, setAdaptiveSessionWpm] = useState<number | null>(
+    null
+  )
 
   const {
     preferences,
@@ -67,7 +76,17 @@ export function Adaptive() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing derived state from fetched text
     setCurrentTextComplexity(currentText?.complexity ?? null)
+    setAdaptiveSessionWpm(null)
   }, [currentText])
+
+  useEffect(() => {
+    if (!adaptiveSessionWpm || !currentText) return
+    upsertReadingActivitySession({
+      textId: currentText.id,
+      wpm: Math.round(adaptiveSessionWpm),
+      mode: 'adaptive',
+    })
+  }, [adaptiveSessionWpm, currentText])
 
   const {
     position: readingPosition,
@@ -102,6 +121,33 @@ export function Adaptive() {
     onWpmChange: setWpm,
     mode,
     onModeChange: setMode,
+    onModeNavigate: () => {
+      // Log session when switching away from adaptive mode
+
+      if (!currentText) return
+      const session = loadReadingActivitySession()
+      if (!session?.started || session.textId !== currentText.id) return
+
+      const effectiveWpm = adaptiveSessionWpm
+        ? Math.round(adaptiveSessionWpm)
+        : (session.wpm ?? wpm)
+
+      const effectiveProgress = Math.max(
+        session.progressIndex ?? 0,
+        readingPosition
+      )
+
+      void logUserActivity({
+        textId: currentText.id,
+        wpm: effectiveWpm,
+        startTime: session.startTime ?? new Date().toISOString(),
+        endTime: new Date().toISOString(),
+        mode: session.mode ?? 'adaptive',
+        progressIndex: effectiveProgress,
+      })
+
+      clearReadingActivitySession()
+    },
     scrolling,
     onScrollingChange: setScrolling,
     blurEnabled: false,
@@ -183,6 +229,8 @@ export function Adaptive() {
           wpm={wpm}
           initialWordIndex={readingPosition}
           onPositionChange={setReadingPosition}
+          onCalculatedWpmChange={setAdaptiveSessionWpm}
+          adaptiveSessionWpm={adaptiveSessionWpm}
         />
       </div>
     </div>

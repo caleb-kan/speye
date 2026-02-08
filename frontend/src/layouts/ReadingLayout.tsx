@@ -1,10 +1,17 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { OptionsBar } from '../components/OptionsBar'
 import { Outlet, useLocation } from 'react-router-dom'
 import type { ReadingContext, FixedTextInfo, LocationState } from '../types'
+import type { Mode } from '../types/reading'
 import type { Text } from '../types/database'
 import { useReadingPreferences } from '../hooks/useReadingPreferences'
 import { useReadingPositionSync } from '../hooks/useReadingPositionSync'
+import { logUserActivity } from '../services/logUserActivity'
+import {
+  clearReadingActivitySession,
+  loadReadingActivitySession,
+  upsertReadingActivitySession,
+} from '../utils/readingActivityStorage'
 
 export function ReadingLayout() {
   const location = useLocation()
@@ -46,6 +53,40 @@ export function ReadingLayout() {
       modeTimestamp,
     })
 
+  const handleModeSwitch = useCallback(
+    (targetMode: Mode) => {
+      if (!currentText) return
+      const session = loadReadingActivitySession()
+      if (!session?.started || session.textId !== currentText.id) return
+
+      const effectiveProgress = Math.max(
+        session.progressIndex ?? 0,
+        readingPosition
+      )
+
+      void logUserActivity({
+        textId: currentText.id,
+        wpm: session.wpm ?? preferences.wpm,
+        startTime: session.startTime ?? new Date().toISOString(),
+        endTime: new Date().toISOString(),
+        mode: session.mode ?? preferences.mode,
+        progressIndex: effectiveProgress,
+      })
+
+      if (targetMode !== 'standard') {
+        clearReadingActivitySession()
+        upsertReadingActivitySession({
+          textId: currentText.id,
+          startTime: null,
+          started: false,
+          mode: targetMode,
+          progressIndex: effectiveProgress,
+        })
+      }
+    },
+    [currentText, preferences.wpm, preferences.mode, readingPosition]
+  )
+
   return (
     <div
       className={`flex-1 flex flex-col relative transition-all duration-300 ${
@@ -57,6 +98,7 @@ export function ReadingLayout() {
         onWpmChange={setWpm}
         mode={preferences.mode}
         onModeChange={setMode}
+        onModeNavigate={handleModeSwitch}
         scrolling={preferences.scrolling}
         onScrollingChange={setScrolling}
         blurEnabled={preferences.blurEnabled}

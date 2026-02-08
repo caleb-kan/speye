@@ -59,7 +59,7 @@ describe('OptionsBar', () => {
         screen.getByRole('button', { name: /adaptive/i })
       ).toBeInTheDocument()
       expect(
-        screen.getByRole('button', { name: /summarized/i })
+        screen.getByRole('button', { name: /summarised/i })
       ).toBeInTheDocument()
     })
 
@@ -73,15 +73,15 @@ describe('OptionsBar', () => {
         'text-primary'
       )
       expect(
-        screen.getByRole('button', { name: /summarized/i })
+        screen.getByRole('button', { name: /summarised/i })
       ).not.toHaveClass('text-primary')
     })
 
-    it('adaptive and summarized modes are disabled', () => {
+    it('adaptive and summarised modes are disabled', () => {
       renderWithReadingLayout()
 
       expect(screen.getByRole('button', { name: /adaptive/i })).toBeDisabled()
-      expect(screen.getByRole('button', { name: /summarized/i })).toBeDisabled()
+      expect(screen.getByRole('button', { name: /summarised/i })).toBeDisabled()
     })
   })
 

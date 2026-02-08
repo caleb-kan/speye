@@ -1,6 +1,6 @@
 import type { Text } from './database'
 
-export type Mode = 'standard' | 'adaptive' | 'summarized'
+export type Mode = 'standard' | 'adaptive' | 'summarised'
 export type Scrolling = 'dynamic' | 'static'
 
 export interface FixedTextInfo {

@@ -46,17 +46,15 @@ export function Activity() {
 
     const totalTexts = sessions.length
 
-    // Calculate Average WPM (include all sessions with WPM > 0)
-    const validWpmSessions = sessions.filter((s) => (s.wpm || 0) > 0)
+    const validWpmSessions = sessions.filter((s) => (s.wpm ?? 0) > 0)
     const avgWpm =
       validWpmSessions.length > 0
         ? Math.round(
-            validWpmSessions.reduce((acc, curr) => acc + (curr.wpm || 0), 0) /
+            validWpmSessions.reduce((acc, curr) => acc + (curr.wpm ?? 0), 0) /
               validWpmSessions.length
           )
         : 0
 
-    // Calculate Average Score (ONLY include sessions that actually have a score)
     const scoredSessions = sessions.filter(
       (s) => s.score !== null && s.score !== undefined
     )
@@ -64,12 +62,12 @@ export function Activity() {
     const avgScore =
       scoredSessions.length > 0
         ? Math.round(
-            scoredSessions.reduce((acc, curr) => acc + (curr.score || 0), 0) /
+            scoredSessions.reduce((acc, curr) => acc + (curr.score ?? 0), 0) /
               scoredSessions.length
           )
         : 0
 
-    const streak = 1 // Placeholder logic (TODO: Implement actual streak calculation)
+    const streak = 0
 
     return { totalTexts, avgWpm, avgScore, streak }
   }, [sessions])
@@ -87,7 +85,7 @@ export function Activity() {
     const groups: Record<string, ActivitySession[]> = {}
 
     sessions.forEach((session) => {
-      const dateStr = session.time_completed || new Date().toISOString()
+      const dateStr = session.end_time || new Date().toISOString()
       const date = new Date(dateStr).toLocaleDateString()
 
       let label = date
@@ -143,7 +141,7 @@ export function Activity() {
           </div>
           <div className="hidden sm:flex items-center gap-2 text-sm text-text-secondary bg-white/5 px-3 py-1.5 rounded-full border border-white/5">
             <Calendar className="w-4 h-4" />
-            <span>Last 30 Days</span>
+            <span>All Time</span>
           </div>
         </div>
 

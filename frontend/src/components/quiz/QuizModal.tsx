@@ -20,7 +20,6 @@ type QuizModalProps = {
   onClose: () => void
   questionSet: QuestionSet | null
   textId: string
-  wpm: number
 }
 
 export function QuizModal({
@@ -28,7 +27,6 @@ export function QuizModal({
   onClose,
   questionSet,
   textId,
-  wpm,
 }: QuizModalProps) {
   // State
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -65,7 +63,6 @@ export function QuizModal({
     try {
       await saveQuizResult({
         text_id: textId,
-        wpm: wpm,
         score: finalScore,
       })
     } catch (err) {

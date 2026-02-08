@@ -38,6 +38,8 @@ type AdaptiveReaderProps = {
   showMiniQuiz?: boolean
   /** Called when mini quiz button is clicked */
   onStartQuiz?: () => void
+  /** Called when calculated WPM changes */
+  onCalculatedWpmChange?: (wpm: number) => void
 }
 
 /** Single-line adaptive reader with horizontal gaze tracking and velocity-aware return sweep detection. */
@@ -51,6 +53,7 @@ export function AdaptiveReader({
   onPositionChange,
   showMiniQuiz,
   onStartQuiz,
+  onCalculatedWpmChange,
 }: AdaptiveReaderProps) {
   const [containerLeft, setContainerLeft] = useState(0)
   const [containerWidth, setContainerWidth] = useState(DEFAULT_CONTAINER_WIDTH)
@@ -161,6 +164,12 @@ export function AdaptiveReader({
     textFillRatio,
     initialWordIndex,
   })
+
+  useEffect(() => {
+    if (Number.isFinite(calculatedWpm) && calculatedWpm > 0) {
+      onCalculatedWpmChange?.(calculatedWpm)
+    }
+  }, [calculatedWpm, onCalculatedWpmChange])
 
   // Track whether we've started reporting position changes.
   // Skip reporting the initial 0 when restoring a non-zero position to avoid

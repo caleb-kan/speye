@@ -1,17 +1,19 @@
 import { Zap, Clock, FileQuestion } from 'lucide-react'
 import type { ActivitySession } from '../../services/getUserActivity'
 
+const HIGH_SCORE_THRESHOLD = 80
+
 type Props = {
   session: ActivitySession
   index: number
 }
 
 export function SessionItem({ session, index }: Props) {
-  const dateStr = session.time_completed || new Date().toISOString()
+  const dateStr = session.end_time || new Date().toISOString()
   const date = new Date(dateStr)
 
   const hasScore = session.score !== null && session.score !== undefined
-  const isHighScore = hasScore && session.score! >= 80
+  const isHighScore = hasScore && session.score! >= HIGH_SCORE_THRESHOLD
 
   // Check if the text object exists
   const textExists = !!session.text
@@ -90,7 +92,7 @@ export function SessionItem({ session, index }: Props) {
         ) : (
           <div className="opacity-50 group-hover:opacity-100 transition-opacity">
             <div className="text-xl font-bold tracking-tight text-text-secondary font-mono flex justify-end">
-              <span className="tracking-widest">—</span>
+              <span className="tracking-widest">-</span>
             </div>
             <div className="text-[10px] text-text-secondary uppercase">
               No Quiz

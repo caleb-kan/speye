@@ -7,7 +7,6 @@ describe('StartQuizButton', () => {
   const defaultProps = {
     textId: 'text-1',
     readingComplete: false,
-    wpm: 200,
     onDismiss: vi.fn(),
     dismissed: false,
   }

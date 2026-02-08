@@ -54,7 +54,6 @@ describe('QuizModal', () => {
     onClose: vi.fn(),
     questionSet: mockQuestionSet,
     textId: 'test-text-id',
-    wpm: 200,
   }
 
   describe('Visibility', () => {

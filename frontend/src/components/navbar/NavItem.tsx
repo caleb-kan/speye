@@ -6,14 +6,24 @@ type NavItemProps = {
   icon: ReactNode
   label: string
   state?: unknown
+  onBeforeNavigate?: (to: string) => void
 }
 
-export function NavItem({ to, icon, label, state }: NavItemProps) {
+export function NavItem({
+  to,
+  icon,
+  label,
+  state,
+  onBeforeNavigate,
+}: NavItemProps) {
   const location = useLocation()
   const isActive = location.pathname === to
   const isInAdaptiveMode = location.pathname === '/adaptive'
 
   const handleClick = (e: React.MouseEvent) => {
+    // Log activity before navigating
+    onBeforeNavigate?.(to)
+
     // When navigating away from adaptive mode, use window.location
     // to force a full page reload. This ensures WebGazer is properly
     // cleaned up and React re-renders the new page correctly.

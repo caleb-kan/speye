@@ -160,10 +160,10 @@ export function Settings() {
               </div>
               <div className="flex gap-2">
                 <span className="text-text-secondary/50 font-medium shrink-0">
-                  summarized
+                  summarised
                 </span>
                 <span className="text-text-secondary/50">
-                  AI-powered summarization for non-fiction (coming soon)
+                  AI-powered summarisation for non-fiction (coming soon)
                 </span>
               </div>
             </div>

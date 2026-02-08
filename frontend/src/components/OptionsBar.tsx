@@ -15,6 +15,7 @@ type OptionsBarProps = {
   onWpmChange: (wpm: number) => void
   mode: Mode
   onModeChange: (mode: Mode) => void
+  onModeNavigate?: (mode: Mode) => void
   scrolling: Scrolling
   onScrollingChange: (scrolling: Scrolling) => void
   blurEnabled: boolean
@@ -45,6 +46,7 @@ export function OptionsBar({
   onWpmChange,
   mode,
   onModeChange,
+  onModeNavigate,
   scrolling,
   onScrollingChange,
   blurEnabled,
@@ -249,6 +251,9 @@ export function OptionsBar({
           <span className="text-text-secondary mr-1">mode:</span>
           <button
             onClick={() => {
+              if (mode !== 'standard' || isAdaptiveMode) {
+                onModeNavigate?.('standard')
+              }
               if (isAdaptiveMode) {
                 // Navigate to standard mode, preserving text and position
                 navigate('/home', {
@@ -272,6 +277,9 @@ export function OptionsBar({
           <button
             onClick={() => {
               if (!isAdaptiveMode && user) {
+                if (mode !== 'adaptive') {
+                  onModeNavigate?.('adaptive')
+                }
                 // Navigate to adaptive mode, preserving text and position
                 navigate('/adaptive', {
                   state: buildModeNavigationState(false),
@@ -309,9 +317,9 @@ export function OptionsBar({
             disabled
             className="px-3 py-1.5 rounded text-text-secondary opacity-50 cursor-not-allowed flex items-center gap-1"
             title="Coming soon - requires sign in"
-            aria-label="Summarized mode (coming soon, requires sign in)"
+            aria-label="Summarised mode (coming soon, requires sign in)"
           >
-            summarized
+            summarised
             <Lock size={12} />
           </button>
         </div>

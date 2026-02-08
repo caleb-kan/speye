@@ -4,8 +4,8 @@ export interface ActivitySession {
   id: string
   text_id: string
   wpm: number
-  score: number
-  time_completed: string
+  score: number | null
+  end_time: string | null
   text: {
     title: string
     fiction: boolean
@@ -24,7 +24,7 @@ export async function getUserActivity(
       text_id,
       wpm,
       score,
-      time_completed,
+      end_time,
       text:texts (
         title,
         fiction,
@@ -33,7 +33,7 @@ export async function getUserActivity(
     `
     )
     .eq('user_id', userId)
-    .order('time_completed', { ascending: false })
+    .order('end_time', { ascending: false, nullsFirst: false })
 
   if (error) throw error
   return data as unknown as ActivitySession[]

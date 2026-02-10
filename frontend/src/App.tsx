@@ -3,6 +3,7 @@ import { ThemeProvider } from './context/ThemeProvider'
 import { AuthProvider } from './context/AuthProvider'
 import { ReadingPreferencesProvider } from './context/ReadingPreferencesProvider'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { getRuntimeBase } from './utils/getRuntimeBase'
 import { Home } from './pages/Home'
 import { Settings } from './pages/Settings'
 import { Library } from './pages/Library'
@@ -17,12 +18,13 @@ import { ReadingLayout } from './layouts/ReadingLayout'
 import { AdaptiveLayout } from './layouts/AdaptiveLayout'
 
 function App() {
+  const runtimeBase = getRuntimeBase()
   return (
     <ErrorBoundary>
       <ThemeProvider>
         <AuthProvider>
           <ReadingPreferencesProvider>
-            <BrowserRouter basename={import.meta.env.BASE_URL}>
+            <BrowserRouter basename={runtimeBase}>
               <Routes>
                 <Route path="/" element={<RootLayout />}>
                   <Route index element={<Navigate to="/home" replace />} />

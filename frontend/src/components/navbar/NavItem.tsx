@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
 import type { ReactNode } from 'react'
+import { getRuntimeBase } from '../../utils/getRuntimeBase'
 
 type NavItemProps = {
   to: string
@@ -30,11 +31,8 @@ export function NavItem({
     if (isInAdaptiveMode && to !== '/adaptive') {
       e.preventDefault()
       // Build the full URL with base path
-      const basePath = import.meta.env.BASE_URL || '/'
-      const fullPath = basePath.endsWith('/')
-        ? `${basePath}${to.startsWith('/') ? to.slice(1) : to}`
-        : `${basePath}${to}`
-      window.location.href = fullPath
+      const basePath = getRuntimeBase()
+      window.location.href = `${basePath}${to.slice(1)}`
     }
   }
 

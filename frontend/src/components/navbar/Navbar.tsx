@@ -4,6 +4,7 @@ import { Home, BookOpen, ListChecks, Settings, User } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { DefaultAvatar } from '../DefaultAvatar'
 import { getAvatarUrl } from '../../utils/getAvatarUrl'
+import { getRuntimeBase } from '../../utils/getRuntimeBase'
 import { logUserActivity } from '../../services/logUserActivity'
 import {
   clearReadingActivitySession,
@@ -53,11 +54,8 @@ export function Navbar() {
   const handleAdaptiveModeClick = (e: React.MouseEvent, targetPath: string) => {
     if (isInAdaptiveMode && targetPath !== '/adaptive') {
       e.preventDefault()
-      const basePath = import.meta.env.BASE_URL || '/'
-      const fullPath = basePath.endsWith('/')
-        ? `${basePath}${targetPath.startsWith('/') ? targetPath.slice(1) : targetPath}`
-        : `${basePath}${targetPath}`
-      window.location.href = fullPath
+      const basePath = getRuntimeBase()
+      window.location.href = `${basePath}${targetPath.slice(1)}`
     }
   }
 

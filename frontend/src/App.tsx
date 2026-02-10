@@ -10,6 +10,8 @@ import { Library } from './pages/Library'
 import { Activity } from './pages/Activity'
 import { NotFound } from './pages/NotFound'
 import { Login } from './pages/Login'
+import { ForgotPassword } from './pages/ForgotPassword'
+import { ResetPassword } from './pages/ResetPassword'
 import { Adaptive } from './pages/Adaptive'
 import { Privacy } from './pages/Privacy'
 import { Terms } from './pages/Terms'
@@ -44,6 +46,8 @@ function App() {
                   <Route path="activity" element={<Activity />} />
                   <Route path="settings" element={<Settings />} />
                   <Route path="login" element={<Login />} />
+                  <Route path="forgot-password" element={<ForgotPassword />} />
+                  <Route path="reset-password" element={<ResetPassword />} />
                   <Route path="privacy" element={<Privacy />} />
                   <Route path="terms" element={<Terms />} />
 

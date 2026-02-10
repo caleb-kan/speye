@@ -1,57 +1,37 @@
 import type { ChangeEvent, FormEvent } from 'react'
-import { ForgotPasswordButton } from './ForgotPasswordButton'
 
-export type LoginFormProps = {
-  email: string
+export type ResetPasswordFormProps = {
   password: string
+  confirmPassword: string
   error: string | null
   message: string | null
   loading: boolean
-  isSignUp: boolean
-  onEmailChange: (event: ChangeEvent<HTMLInputElement>) => void
   onPasswordChange: (event: ChangeEvent<HTMLInputElement>) => void
+  onConfirmPasswordChange: (event: ChangeEvent<HTMLInputElement>) => void
   onSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>
 }
 
-export function LoginForm({
-  email,
+export function ResetPasswordForm({
   password,
+  confirmPassword,
   error,
   message,
   loading,
-  isSignUp,
-  onEmailChange,
   onPasswordChange,
+  onConfirmPasswordChange,
   onSubmit,
-}: LoginFormProps) {
+}: ResetPasswordFormProps) {
   return (
     <form onSubmit={onSubmit}>
       <div>
-        <label htmlFor="email" className="block text-sm text-text">
-          Email
-        </label>
-        <input
-          id="email"
-          name="email"
-          type="email"
-          autoComplete="email"
-          placeholder="you@example.com"
-          value={email}
-          onChange={onEmailChange}
-          required
-          className="w-full mt-1 py-2 px-3 text-sm border border-text-secondary/30 rounded-lg bg-bg text-text placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
-        />
-      </div>
-
-      <div className="mt-3">
         <label htmlFor="password" className="block text-sm text-text">
-          Password
+          New Password
         </label>
         <input
           id="password"
           name="password"
           type="password"
-          autoComplete={isSignUp ? 'new-password' : 'current-password'}
+          autoComplete="new-password"
           placeholder="••••••••"
           value={password}
           onChange={onPasswordChange}
@@ -59,12 +39,27 @@ export function LoginForm({
           minLength={6}
           className="w-full mt-1 py-2 px-3 text-sm border border-text-secondary/30 rounded-lg bg-bg text-text placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
         />
-        <ForgotPasswordButton isSignUp={isSignUp} />
-        {isSignUp && (
-          <p className="mt-1 text-xs text-text-secondary">
-            Must be at least 6 characters
-          </p>
-        )}
+        <p className="mt-1 text-xs text-text-secondary">
+          Must be at least 6 characters
+        </p>
+      </div>
+
+      <div className="mt-3">
+        <label htmlFor="confirmPassword" className="block text-sm text-text">
+          Confirm Password
+        </label>
+        <input
+          id="confirmPassword"
+          name="confirmPassword"
+          type="password"
+          autoComplete="new-password"
+          placeholder="••••••••"
+          value={confirmPassword}
+          onChange={onConfirmPasswordChange}
+          required
+          minLength={6}
+          className="w-full mt-1 py-2 px-3 text-sm border border-text-secondary/30 rounded-lg bg-bg text-text placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
+        />
       </div>
 
       {error && (
@@ -90,7 +85,7 @@ export function LoginForm({
         disabled={loading}
         className="w-full mt-4 py-2.5 text-sm text-bg font-semibold bg-primary rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-bg-secondary disabled:opacity-50 disabled:cursor-not-allowed transition-all"
       >
-        {loading ? 'Loading...' : isSignUp ? 'Create Account' : 'Sign In'}
+        {loading ? 'Loading...' : 'Reset Password'}
       </button>
     </form>
   )

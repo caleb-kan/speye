@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useMemo } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
-import { getLibraryTexts } from '../../../backend/supabase/database/texts/getLibraryTexts'
+import { fetchUserLibraryTexts } from '../services/libraryService'
 import { useTextSubscription } from './useTextSubscription'
 import type { TextPreview } from '../types/database'
 
@@ -31,7 +31,7 @@ export function useLibraryTexts(userId: string | null): UseLibraryTextsReturn {
     setError(null)
 
     try {
-      const result = await getLibraryTexts({ type: 'user', userId })
+      const result = await fetchUserLibraryTexts(userId)
       setTexts(result || [])
     } catch (err) {
       const message =

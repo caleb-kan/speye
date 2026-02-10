@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import type { Text } from '../types/database'
-import { getRandomText } from '../../../backend/supabase/database/texts/getTexts'
+import { getRandomText } from '../services/textService'
 
 type UseTextsOptions = {
   fiction: boolean

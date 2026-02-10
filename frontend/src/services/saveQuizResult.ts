@@ -1,45 +1,23 @@
-import { supabase } from '../../../lib/supabase'
+import {
+  saveQuizResult as saveQuizResultDb,
+  type QuizResultParams,
+} from '../../../backend/supabase/database/userActivity/saveQuizResult'
+import { getErrorMessage } from '../utils/getErrorMessage'
 
-export type QuizResultParams = {
-  text_id: string
-  score: number
-}
+export type { QuizResultParams }
 
 export async function saveQuizResult(params: QuizResultParams) {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) throw new Error('User not authenticated')
-
-  const { data: latestActivity, error: fetchError } = await supabase
-    .from('user_activity')
-    .select('id')
-    .eq('user_id', user.id)
-    .eq('text_id', params.text_id)
-    .order('end_time', { ascending: false, nullsFirst: false })
-    .order('start_time', { ascending: false })
-    .limit(1)
-
-  if (fetchError) {
-    throw new Error('Failed to find latest activity')
+  if (!params.text_id) {
+    throw new Error('Text ID is required')
   }
 
-  const latestId = latestActivity?.[0]?.id
-  if (!latestId) {
-    throw new Error('No activity found to update')
+  if (Number.isNaN(params.score)) {
+    throw new Error('Score must be a number')
   }
 
-  const { data, error } = await supabase
-    .from('user_activity')
-    .update({ score: params.score })
-    .eq('id', latestId)
-    .select()
-    .single()
-
-  if (error) {
-    throw new Error('Failed to save quiz result')
+  try {
+    return await saveQuizResultDb(params)
+  } catch (err) {
+    throw new Error(getErrorMessage(err, 'Failed to save quiz result'))
   }
-
-  return data
 }

@@ -1,55 +1,27 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import {
-  Plus,
-  BookOpen,
-  Trash2,
-  Play,
-  Lock,
-  Globe,
-  Pencil,
-  Search,
-  X,
-  ChevronLeft,
-  ChevronRight,
-  Loader2,
-  AlertTriangle,
-  RefreshCw,
-  Trophy,
-} from 'lucide-react'
+import type { LibraryTab } from '../components/library/LibraryTabs'
 import { useAuth } from '../hooks/useAuth'
-import { useAsyncOperation } from '../hooks/useAsyncOperation'
 import { useLibraryTexts } from '../hooks/useLibraryTexts'
+import { useLibraryFilters } from '../hooks/useLibraryFilters'
+import { useComplexitySlider } from '../hooks/useComplexitySlider'
+import { useLibraryTextActions } from '../hooks/useLibraryTextActions'
+import { useLibraryPublicTexts } from '../hooks/useLibraryPublicTexts'
+import { useLibraryBestScores } from '../hooks/useLibraryBestScores'
+import { useAutoClearMessage } from '../hooks/useAutoClearMessage'
+import { useLibraryFilterHandlers } from '../hooks/useLibraryFilterHandlers'
+import { useLibraryPagination } from '../hooks/useLibraryPagination'
 import { UploadTextModal } from '../components/UploadTextModal'
 import { EditTextModal } from '../components/EditTextModal'
 import { ConfirmDialog } from '../components/ConfirmDialog'
-import { uploadText } from '../../../backend/supabase/database/texts/uploadText'
-import { getLibraryTexts } from '../../../backend/supabase/database/texts/getLibraryTexts'
-import { getTextContent } from '../../../backend/supabase/database/texts/getTextContent'
-import { deleteText } from '../../../backend/supabase/database/texts/deleteText'
-import { updateText } from '../../../backend/supabase/database/texts/updateText'
-import { retryProcessing } from '../../../backend/supabase/database/texts/retryProcessing'
-import { getTextBestScores } from '../../../backend/supabase/database/texts/getTextBestScores'
-import type { TextInput } from '../components/TextFormModal'
+import { LibraryFilters } from '../components/library/LibraryFilters'
+import { LibraryHeader } from '../components/library/LibraryHeader'
+import { LibraryTabs } from '../components/library/LibraryTabs'
+import { LibraryPagination } from '../components/library/LibraryPagination'
+import { LibraryAlerts } from '../components/library/LibraryAlerts'
+import { LibraryContent } from '../components/library/LibraryContent'
 import { SUCCESS_MESSAGE_DURATION_MS } from '../constants/ui'
-import type { Text, TextPreview } from '../types/database'
-import noUiSlider, { type API } from 'nouislider'
-import { MIN_COMPLEXITY, MAX_COMPLEXITY } from '../constants/complexity'
-import { TEXTS_PER_PAGE, TEXT_PREVIEW_LENGTH } from '../constants/library'
-
-type LibraryTab = 'private' | 'public'
-type GenreFilter = 'all' | 'fiction' | 'non-fiction'
-
-interface FilterOptions {
-  genre: GenreFilter
-  minComplexity: number | null
-  maxComplexity: number | null
-}
-
-// Extended HTML element type with noUiSlider API
-interface SliderElement extends HTMLDivElement {
-  noUiSlider?: API
-}
+import { TEXTS_PER_PAGE } from '../constants/library'
 
 export function Library() {
   const { user } = useAuth()
@@ -58,34 +30,8 @@ export function Library() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [filters, setFilters] = useState<FilterOptions>({
-    genre: 'all',
-    minComplexity: null,
-    maxComplexity: null,
-  })
   const [showFilters, setShowFilters] = useState(false)
-  const [currentPage, setCurrentPage] = useState(1)
-  const [deleteConfirm, setDeleteConfirm] = useState<{
-    isOpen: boolean
-    textId: string | null
-  }>({ isOpen: false, textId: null })
-  const [editModal, setEditModal] = useState<{
-    isOpen: boolean
-    text: Text | null
-  }>({ isOpen: false, text: null })
-  const [jumpToPageInput, setJumpToPageInput] = useState('')
-  const [isCustomPageFocused, setIsCustomPageFocused] = useState(false)
-  // Track which texts are currently being retried to prevent double-clicks
-  const [retryingTextIds, setRetryingTextIds] = useState<Set<string>>(new Set())
 
-  const [sortBy, setSortBy] = useState<'complexity' | 'date'>('date')
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
-
-  const complexitySliderRef = useRef<SliderElement>(null)
-  const jumpToPageInputRef = useRef<HTMLInputElement>(null)
-
-  // Private texts with real-time subscription
   const {
     texts: privateTexts,
     loading: privateLoading,
@@ -93,892 +39,171 @@ export function Library() {
     setTexts: setPrivateTexts,
   } = useLibraryTexts(user?.id ?? null)
 
-  // Public texts (no real-time needed)
-  const {
-    data: publicTexts,
-    loading: publicLoading,
-    error: publicError,
-    execute: executePublic,
-  } = useAsyncOperation<TextPreview[]>()
-
-  const fetchPublicTexts = useCallback(
-    async (force = false) => {
-      if (publicTexts !== null && !force) return
-
-      await executePublic(async () => {
-        const result = await getLibraryTexts({ type: 'public' })
-        return result || []
-      })
-    },
-    [publicTexts, executePublic]
-  )
-
-  // User scores for texts (best)
-  const [bestScores, setBestScores] = useState<Record<string, number>>({})
-
-  useEffect(() => {
-    async function fetchScores() {
-      if (user && activeTab === 'private') {
-        const scores = await getTextBestScores(user.id)
-        setBestScores(scores)
-      }
-    }
-    fetchScores()
-  }, [user, activeTab])
-
-  // Initialize complexity slider
-  useEffect(() => {
-    if (!showFilters) return
-    if (
-      !complexitySliderRef.current ||
-      complexitySliderRef.current.hasChildNodes()
-    )
-      return
-
-    const minValue = filters.minComplexity ?? MIN_COMPLEXITY
-    const maxValue = filters.maxComplexity ?? MAX_COMPLEXITY
-
-    noUiSlider.create(complexitySliderRef.current, {
-      start: [minValue, maxValue],
-      connect: true,
-      behaviour: 'unconstrained-tap',
-      range: {
-        min: MIN_COMPLEXITY,
-        max: MAX_COMPLEXITY,
-      },
-      tooltips: true,
-      step: 1,
-      format: {
-        to: (value) => {
-          const intValue = Math.round(value)
-          if (intValue === MAX_COMPLEXITY) {
-            return `${MAX_COMPLEXITY}+`
-          } else {
-            return intValue.toString()
-          }
-        },
-        from: (value) => {
-          return Number(value)
-        },
-      },
-    })
-
-    const slider = complexitySliderRef.current.noUiSlider
-
-    slider?.on('set', (values: (string | number)[]) => {
-      const val0 = parseInt(String(values[0]))
-      const val1 = parseInt(String(values[1]))
-      const minVal = Math.min(val0, val1)
-      const maxVal = Math.max(val0, val1)
-      setFilters((prev) => ({
-        ...prev,
-        minComplexity: minVal,
-        maxComplexity: maxVal,
-      }))
-      setCurrentPage(1)
-    })
-
-    return () => {
-      slider?.destroy()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- slider only created on mount, filter values are initial state only
-  }, [showFilters])
-
-  // Filter and search texts
-  const filterAndSearchTexts = useCallback(
-    (texts: TextPreview[] | null): TextPreview[] => {
-      if (!texts) return []
-
-      return texts.filter((text) => {
-        // Search filter
-        const searchLower = searchQuery.toLowerCase()
-        const matchesSearch =
-          !searchQuery ||
-          (text.title?.toLowerCase().includes(searchLower) ?? false) ||
-          text.preview.toLowerCase().includes(searchLower)
-
-        if (!matchesSearch) return false
-
-        // Genre filter
-        if (filters.genre !== 'all') {
-          const isFiction = filters.genre === 'fiction'
-          if (text.fiction !== isFiction) return false
-        }
-
-        // Complexity filter
-        if (text.complexity !== null) {
-          if (
-            filters.minComplexity !== null &&
-            text.complexity < filters.minComplexity
-          ) {
-            return false
-          }
-          if (
-            filters.maxComplexity !== null &&
-            text.complexity > filters.maxComplexity
-          ) {
-            return false
-          }
-        }
-
-        return true
-      })
-    },
-    [searchQuery, filters]
-  )
-
-  const handleClearFilters = () => {
-    setSearchQuery('')
-    setFilters({
-      genre: 'all',
-      minComplexity: null,
-      maxComplexity: null,
-    })
-    setCurrentPage(1)
-
-    // Reset slider
-    const slider = complexitySliderRef.current?.noUiSlider
-    if (slider) {
-      slider.set([MIN_COMPLEXITY, MAX_COMPLEXITY])
-    }
-  }
-
-  const handleResetSearch = () => {
-    setSearchQuery('')
-    setCurrentPage(1)
-  }
-
-  const sortTexts = (texts: TextPreview[]): TextPreview[] => {
-    const sorted = [...texts]
-
-    switch (sortBy) {
-      case 'complexity':
-        sorted.sort((a, b) => {
-          const complexityA = a.complexity ?? 0
-          const complexityB = b.complexity ?? 0
-          return sortDirection === 'asc'
-            ? complexityA - complexityB
-            : complexityB - complexityA
-        })
-        break
-      case 'date':
-        sorted.sort((a, b) => {
-          const dateA = new Date(a.uploaded_at).getTime()
-          const dateB = new Date(b.uploaded_at).getTime()
-          return sortDirection === 'asc' ? dateA - dateB : dateB - dateA
-        })
-        break
-    }
-
-    return sorted
-  }
-
-  useEffect(() => {
-    // Private texts are fetched automatically by useLibraryTexts
-    if (activeTab === 'public') {
-      fetchPublicTexts()
-    }
-    setCurrentPage(1)
-  }, [activeTab, fetchPublicTexts])
-
-  useEffect(() => {
-    if (!successMessage) return
-
-    setDeleteError(null)
-    const timer = setTimeout(() => {
-      setSuccessMessage(null)
-    }, SUCCESS_MESSAGE_DURATION_MS)
-
-    return () => clearTimeout(timer)
-  }, [successMessage])
-
-  useEffect(() => {
-    if (!deleteError) return
-
-    const timer = setTimeout(() => {
-      setDeleteError(null)
-    }, SUCCESS_MESSAGE_DURATION_MS)
-
-    return () => clearTimeout(timer)
-  }, [deleteError])
-
-  const handleUpload = async (data: TextInput) => {
-    if (!user) {
-      throw new Error('You must be logged in to upload texts')
-    }
-
-    // Upload immediately with pending status
-    // Database trigger will queue it for background processing
-    // Real-time subscription will automatically add the new text to the list
-    await uploadText(user.id, {
-      ...data,
-      processing_status: 'pending',
-    })
-
-    setSuccessMessage('Text uploaded! Processing in background...')
-  }
-
-  const handleDeleteClick = (textId: string) => {
-    setDeleteConfirm({ isOpen: true, textId })
-  }
-
-  const handleDeleteConfirm = async () => {
-    if (!user || !deleteConfirm.textId) return
-
-    const textIdToDelete = deleteConfirm.textId
-    setDeleteError(null)
-    try {
-      await deleteText(textIdToDelete)
-      // Use functional update to avoid stale closure issues
-      setPrivateTexts((prev) =>
-        prev ? prev.filter((t) => t.id !== textIdToDelete) : null
-      )
-      setSuccessMessage('Text deleted successfully!')
-    } catch (err) {
-      setDeleteError(
-        err instanceof Error ? err.message : 'Failed to delete text'
-      )
-    } finally {
-      setDeleteConfirm({ isOpen: false, textId: null })
-    }
-  }
-
-  const handleDeleteCancel = () => {
-    setDeleteConfirm({ isOpen: false, textId: null })
-  }
-
-  const handleRetryProcessing = async (textId: string) => {
-    // Prevent double-clicks by tracking in-progress retries
-    if (retryingTextIds.has(textId)) return
-
-    setRetryingTextIds((prev) => new Set(prev).add(textId))
-
-    try {
-      await retryProcessing(textId)
-      // Update local state to show pending status using functional update
-      // to avoid stale closure issues with real-time subscription updates
-      setPrivateTexts((prev) =>
-        prev
-          ? prev.map((t) =>
-              t.id === textId
-                ? {
-                    ...t,
-                    processing_status: 'pending' as const,
-                    quiz_valid: null,
-                  }
-                : t
-            )
-          : null
-      )
-      setSuccessMessage('Text queued for reprocessing!')
-    } catch (err) {
-      setDeleteError(
-        err instanceof Error ? err.message : 'Failed to retry processing'
-      )
-    } finally {
-      setRetryingTextIds((prev) => {
-        const next = new Set(prev)
-        next.delete(textId)
-        return next
-      })
-    }
-  }
-
-  const handleEditClick = async (textPreview: TextPreview) => {
-    try {
-      const content = await getTextContent(textPreview.id)
-      const fullText: Text = {
-        ...textPreview,
-        content,
-      }
-      setEditModal({ isOpen: true, text: fullText })
-    } catch (err) {
-      setDeleteError(
-        err instanceof Error ? err.message : 'Failed to load text content'
-      )
-    }
-  }
-
-  const handleEditClose = () => {
-    setEditModal({ isOpen: false, text: null })
-  }
-
-  const createPreviewFromText = (textRecord: Text): TextPreview => ({
-    id: textRecord.id,
-    title: textRecord.title,
-    preview:
-      textRecord.content.slice(0, TEXT_PREVIEW_LENGTH) +
-      (textRecord.content.length > TEXT_PREVIEW_LENGTH ? '...' : ''),
-    uploaded_at: textRecord.uploaded_at,
-    owner_id: textRecord.owner_id,
-    quiz: textRecord.quiz,
-    fiction: textRecord.fiction,
-    category: textRecord.category,
-    complexity: textRecord.complexity,
-    source: textRecord.source,
-    processing_status: textRecord.processing_status,
-    quiz_valid: textRecord.quiz_valid,
-  })
-
-  const updatePrivateTextsWithPreview = (
-    textId: string,
-    preview: TextPreview
-  ) => {
-    // Use functional update to avoid stale closure issues
-    setPrivateTexts((prev) =>
-      prev ? prev.map((t) => (t.id === textId ? preview : t)) : null
-    )
-  }
-
-  const handleEditSubmit = async (textId: string, data: TextInput) => {
-    // Update text content and clear quiz in a single operation
-    // Set quiz_valid to false (not null) so retry button shows if retryProcessing fails
-    const updatedTextRecord = await updateText(textId, {
-      ...data,
-      quiz: null,
-      quiz_valid: false,
-    })
-
-    // Update local state immediately for responsive UI
-    // Optimistically set pending status for immediate visual feedback
-    // Real-time subscription will sync the actual status from retryProcessing
-    const preview: TextPreview = {
-      ...createPreviewFromText(updatedTextRecord),
-      processing_status: 'pending',
-    }
-    updatePrivateTextsWithPreview(textId, preview)
-
-    // Queue for reprocessing via RPC - atomically sets status to pending and queues
-    await retryProcessing(textId)
-
-    setSuccessMessage('Text updated! Reprocessing in background...')
-  }
-
-  const handleReadText = async (textPreview: TextPreview) => {
-    try {
-      const content = await getTextContent(textPreview.id)
-      const fullText: Text = {
-        ...textPreview,
-        content,
-      }
-      navigate('/home', { state: { libraryText: fullText } })
-    } catch (err) {
-      setDeleteError(
-        err instanceof Error ? err.message : 'Failed to load text content'
-      )
-    }
-  }
+  const { publicTexts, publicLoading, publicError } =
+    useLibraryPublicTexts(activeTab)
 
   const currentTexts = activeTab === 'private' ? privateTexts : publicTexts
+
+  const {
+    searchQuery,
+    filters,
+    sortBy,
+    sortDirection,
+    handleSearchChange: handleFilterSearchChange,
+    handleResetSearch: handleFilterResetSearch,
+    setGenreFilter,
+    setSortBy,
+    toggleSortDirection,
+    clearFilters,
+    setFilters,
+    sortedAndFilteredTexts,
+    hasActiveFilters,
+  } = useLibraryFilters(currentTexts)
+
+  const {
+    resetPage,
+    totalPages,
+    validatedCurrentPage,
+    paginatedItems: paginatedTexts,
+    jumpToPage,
+    jumpToPageInputRef,
+    handlePreviousPage,
+    handleNextPage,
+    handleJumpInputKeyDown,
+    handleJumpInputChange,
+    handleJumpInputFocus,
+    handleJumpInputBlur,
+  } = useLibraryPagination(sortedAndFilteredTexts, TEXTS_PER_PAGE)
+
+  const { sliderRef: complexitySliderRef, resetSlider } = useComplexitySlider({
+    showFilters,
+    filters,
+    setFilters,
+    onPageReset: resetPage,
+  })
+
+  const {
+    deleteConfirm,
+    editModal,
+    retryingTextIds,
+    handleUpload,
+    handleDeleteClick,
+    handleDeleteConfirm,
+    handleDeleteCancel,
+    handleRetryProcessing,
+    handleEditClick,
+    handleEditClose,
+    handleEditSubmit,
+    handleReadText,
+  } = useLibraryTextActions({
+    userId: user?.id ?? null,
+    navigate,
+    setPrivateTexts,
+    setSuccessMessage,
+    setDeleteError,
+  })
+
+  const bestScores = useLibraryBestScores(user?.id ?? null, activeTab)
+
+  const {
+    handleSearchChange,
+    handleResetSearch,
+    handleGenreChange,
+    handleSortChange,
+    handleClearFilters,
+  } = useLibraryFilterHandlers({
+    handleFilterSearchChange,
+    handleFilterResetSearch,
+    setGenreFilter,
+    setSortBy,
+    clearFilters,
+    resetSlider,
+    onPageReset: resetPage,
+  })
+
+  useAutoClearMessage(
+    successMessage,
+    setSuccessMessage,
+    SUCCESS_MESSAGE_DURATION_MS
+  )
+  useAutoClearMessage(deleteError, setDeleteError, SUCCESS_MESSAGE_DURATION_MS)
+
   const loading = activeTab === 'private' ? privateLoading : publicLoading
   const fetchError = activeTab === 'private' ? privateError : publicError
   const isInitialLoad =
     (activeTab === 'private' && privateTexts === null) ||
     (activeTab === 'public' && publicTexts === null)
 
-  const filteredTexts = filterAndSearchTexts(currentTexts)
-  const sortedAndFilteredTexts = sortTexts(filteredTexts)
-  const hasActiveFilters =
-    searchQuery ||
-    filters.genre !== 'all' ||
-    (filters.minComplexity !== null &&
-      filters.minComplexity > MIN_COMPLEXITY) ||
-    (filters.maxComplexity !== null && filters.maxComplexity < MAX_COMPLEXITY)
-
-  // Pagination
-  const totalPages = Math.max(
-    1,
-    Math.ceil(sortedAndFilteredTexts.length / TEXTS_PER_PAGE)
-  )
-  const validatedCurrentPage = Math.min(currentPage, totalPages)
-  const startIndex = (validatedCurrentPage - 1) * TEXTS_PER_PAGE
-  const endIndex = startIndex + TEXTS_PER_PAGE
-  const paginatedTexts = sortedAndFilteredTexts.slice(startIndex, endIndex)
-
-  // Sync currentPage state if it became invalid (e.g., after deleting last item on page)
-  useEffect(() => {
-    if (currentPage > totalPages) {
-      setCurrentPage(totalPages)
-    }
-  }, [currentPage, totalPages])
-
-  const handlePreviousPage = () => {
-    setCurrentPage((prev) => Math.max(1, prev - 1))
-  }
-
-  const handleNextPage = () => {
-    setCurrentPage((prev) => Math.min(totalPages, prev + 1))
-  }
-
-  const handleJumpToPage = () => {
-    const pageNum = parseInt(jumpToPageInput)
-    if (!isNaN(pageNum) && pageNum >= 1 && pageNum <= totalPages) {
-      setCurrentPage(pageNum)
-      setJumpToPageInput('')
-      setIsCustomPageFocused(false)
-      jumpToPageInputRef.current?.blur()
-    }
-  }
-
-  const handleJumpInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      handleJumpToPage()
-    } else if (e.key === 'Escape') {
-      setJumpToPageInput('')
-    }
-  }
-
   return (
     <div className="flex flex-1 flex-col items-center w-full px-8 py-6 overflow-y-auto">
       <div className="w-full max-w-4xl">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-semibold text-text">Library</h1>
-            <p className="text-text-secondary mt-1">
-              {activeTab === 'private'
-                ? 'Your personal text library'
-                : 'Browse public texts'}
-            </p>
-          </div>
-          {user && activeTab === 'private' && (
-            <button
-              type="button"
-              onClick={() => setIsModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-primary text-bg rounded-lg hover:opacity-90 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-bg"
-            >
-              <Plus className="w-5 h-5" />
-              Upload Text
-            </button>
-          )}
-        </div>
+        <LibraryHeader
+          activeTab={activeTab}
+          showUpload={Boolean(user && activeTab === 'private')}
+          onUpload={() => setIsModalOpen(true)}
+        />
 
-        {/* Tab Navigation */}
-        <div className="flex gap-2 mb-6 border-b border-text-secondary/20">
-          <button
-            type="button"
-            onClick={() => setActiveTab('private')}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors border-b-2 -mb-px ${
-              activeTab === 'private'
-                ? 'text-primary border-primary'
-                : 'text-text-secondary border-transparent hover:text-text hover:border-text-secondary/50'
-            }`}
-          >
-            <Lock className="w-4 h-4" />
-            Private
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('public')}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors border-b-2 -mb-px ${
-              activeTab === 'public'
-                ? 'text-primary border-primary'
-                : 'text-text-secondary border-transparent hover:text-text hover:border-text-secondary/50'
-            }`}
-          >
-            <Globe className="w-4 h-4" />
-            Public
-          </button>
-        </div>
+        <LibraryTabs
+          activeTab={activeTab}
+          onTabChange={(tab) => {
+            setActiveTab(tab)
+            resetPage()
+          }}
+        />
 
-        {successMessage && (
-          <div className="mb-4 p-3 bg-success/10 border border-success/20 rounded-lg text-success text-sm">
-            {successMessage}
-          </div>
-        )}
+        <LibraryAlerts
+          successMessage={successMessage}
+          errorMessage={fetchError || deleteError}
+        />
 
-        {(fetchError || deleteError) && (
-          <div className="mb-4 p-3 bg-error/10 border border-error/20 rounded-lg text-error text-sm">
-            {fetchError || deleteError}
-          </div>
-        )}
-
-        {/* Search and Filter Section */}
         {!isInitialLoad && (
-          <div className="mb-6 space-y-4">
-            {/* Search Bar */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-text-secondary" />
-              <input
-                type="text"
-                placeholder="Search texts by title or content..."
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value)
-                  setCurrentPage(1)
-                }}
-                className="w-full pl-10 pr-10 py-2.5 bg-bg border border-text-secondary/20 rounded-lg text-text placeholder-text-secondary/60 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={handleResetSearch}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-text-secondary hover:text-text"
-                  aria-label="Clear search"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              )}
-            </div>
-
-            {/* Filter Toggle and Sort */}
-            <div className="flex items-center justify-between gap-4 flex-wrap">
-              <button
-                type="button"
-                onClick={() => setShowFilters(!showFilters)}
-                className="px-3 py-2 text-sm font-medium text-primary hover:bg-primary/10 rounded-lg transition-colors"
-              >
-                {showFilters ? 'Hide Filters' : 'Show Filters'}
-              </button>
-
-              <div className="flex items-center gap-4 flex-wrap">
-                <div className="flex items-center gap-2">
-                  <label
-                    htmlFor="sort-select"
-                    className="text-sm font-medium text-primary"
-                  >
-                    Sort by:
-                  </label>
-                  <select
-                    id="sort-select"
-                    value={sortBy}
-                    onChange={(e) => {
-                      setSortBy(e.target.value as 'complexity' | 'date')
-                      setCurrentPage(1)
-                    }}
-                    className="px-3 py-2 bg-bg border border-primary/30 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                  >
-                    <option value="date">Date Created</option>
-                    <option value="complexity">Complexity</option>
-                  </select>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
-                  }
-                  className="px-3 py-2 text-primary hover:bg-primary/10 rounded-lg transition-colors text-2xl leading-none flex items-center justify-center"
-                  title={sortDirection === 'asc' ? 'Ascending' : 'Descending'}
-                >
-                  {sortDirection === 'asc' ? '↑' : '↓'}
-                </button>
-              </div>
-            </div>
-
-            {/* Filter Panel */}
-            {showFilters && (
-              <div className="p-4 bg-bg-secondary rounded-lg border border-text-secondary/20">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Genre Filter */}
-                  <div>
-                    <label className="block text-sm font-medium text-text mb-2">
-                      Genre
-                    </label>
-                    <div className="flex flex-col gap-2">
-                      {(['all', 'fiction', 'non-fiction'] as const).map(
-                        (genre) => (
-                          <button
-                            key={genre}
-                            type="button"
-                            onClick={() => {
-                              setFilters({ ...filters, genre })
-                              setCurrentPage(1)
-                            }}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                              filters.genre === genre
-                                ? 'bg-primary text-bg'
-                                : 'bg-bg border border-text-secondary/20 text-text-secondary hover:text-text'
-                            }`}
-                          >
-                            {genre === 'all'
-                              ? 'All'
-                              : genre === 'fiction'
-                                ? 'Fiction'
-                                : 'Non-Fiction'}
-                          </button>
-                        )
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Complexity Filter */}
-                  <div>
-                    <label className="block text-sm font-medium text-text mb-2">
-                      Complexity Range
-                    </label>
-                    <div className="flex items-center pt-6">
-                      <div
-                        ref={complexitySliderRef}
-                        style={{ width: '100%' }}
-                      ></div>
-                    </div>
-                    {hasActiveFilters && (
-                      <div className="mt-4 flex justify-center">
-                        <button
-                          type="button"
-                          onClick={handleClearFilters}
-                          className="px-3 py-2 text-sm text-text-secondary hover:text-primary transition-colors"
-                        >
-                          Clear all filters
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Results count */}
-            {hasActiveFilters && (
-              <p className="text-sm text-text-secondary">
-                Found {sortedAndFilteredTexts.length} text
-                {sortedAndFilteredTexts.length !== 1 ? 's' : ''}
-              </p>
-            )}
-          </div>
+          <LibraryFilters
+            searchQuery={searchQuery}
+            onSearchChange={handleSearchChange}
+            onResetSearch={handleResetSearch}
+            showFilters={showFilters}
+            onToggleFilters={() => setShowFilters((prev) => !prev)}
+            sortBy={sortBy}
+            sortDirection={sortDirection}
+            onSortChange={handleSortChange}
+            onToggleSortDirection={toggleSortDirection}
+            filters={filters}
+            onGenreChange={handleGenreChange}
+            onClearFilters={handleClearFilters}
+            hasActiveFilters={hasActiveFilters}
+            resultsCount={sortedAndFilteredTexts.length}
+            sliderRef={complexitySliderRef}
+          />
         )}
 
-        {/* Main Content */}
-        {activeTab === 'private' && !user ? (
-          <div className="text-center py-8">
-            <p className="text-text-secondary mb-2">
-              Sign in to access your personal library.
-            </p>
-            <p className="text-text-secondary text-sm">
-              Save and organize your favorite texts for speed reading practice.
-            </p>
-          </div>
-        ) : loading && isInitialLoad ? (
-          <div className="text-center py-8">
-            <p className="text-text-secondary">Loading texts...</p>
-          </div>
-        ) : paginatedTexts.length > 0 ? (
-          <div className="space-y-4">
-            {paginatedTexts.map((text) => (
-              <div
-                key={text.id}
-                className="p-4 bg-bg-secondary rounded-lg border border-text-secondary/20"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <BookOpen className="w-4 h-4 text-primary" />
-                      <h3 className="font-medium text-text truncate">
-                        {text.title || 'Untitled'}
-                      </h3>
-                      {/* Processing status indicators */}
-                      {text.processing_status === 'pending' && (
-                        <span className="flex items-center gap-1 text-xs px-2 py-0.5 bg-warning/10 text-warning rounded">
-                          <Loader2 className="w-3 h-3 animate-spin" />
-                          Processing
-                        </span>
-                      )}
-                      {text.processing_status === 'failed' && (
-                        <span className="flex items-center gap-1 text-xs px-2 py-0.5 bg-error/10 text-error rounded">
-                          <AlertTriangle className="w-3 h-3" />
-                          Failed
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2 mb-2">
-                      {text.fiction !== null && (
-                        <span className="text-xs px-2 py-0.5 bg-primary/10 text-primary rounded">
-                          {text.fiction ? 'Fiction' : 'Non-Fiction'}
-                        </span>
-                      )}
-                      {text.complexity !== null && (
-                        <span className="text-xs text-text-secondary">
-                          Complexity: {text.complexity}
-                        </span>
-                      )}
-                      {/* Quiz validity warning */}
-                      {text.quiz_valid === false && (
-                        <span
-                          className="flex items-center gap-1 text-xs text-warning"
-                          title="Quiz may have quality issues"
-                        >
-                          <AlertTriangle className="w-3 h-3" />
-                          Quiz needs review
-                        </span>
-                      )}
-                      {/* Validation in progress */}
-                      {text.quiz_valid === null &&
-                        text.quiz !== null &&
-                        text.processing_status === 'completed' && (
-                          <span className="flex items-center gap-1 text-xs px-2 py-0.5 bg-warning/10 text-warning rounded">
-                            <Loader2 className="w-3 h-3 animate-spin" />
-                            Validating
-                          </span>
-                        )}
-                      {bestScores[text.id] !== undefined && (
-                        <>
-                          <span className="text-text-secondary/30 mx-1">•</span>
-                          <div className="flex items-center gap-1 text-xs font-medium text-emerald-400">
-                            <Trophy className="w-3 h-3" />
-                            <span>{bestScores[text.id]}%</span>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                    <p className="text-text-secondary text-sm leading-relaxed">
-                      {text.preview}...
-                    </p>
-                    <p className="text-xs text-text-secondary mt-2">
-                      Uploaded {new Date(text.uploaded_at).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {/* Only show read button if processing is complete */}
-                    {text.processing_status === 'completed' && (
-                      <button
-                        type="button"
-                        onClick={() => handleReadText(text)}
-                        className="p-2 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
-                        aria-label="Read text"
-                        title="Start reading"
-                      >
-                        <Play className="w-4 h-4" />
-                      </button>
-                    )}
-                    {/* Show retry button for failed processing or failed quiz validation */}
-                    {(text.processing_status === 'failed' ||
-                      (text.processing_status === 'completed' &&
-                        text.quiz_valid === false)) &&
-                      activeTab === 'private' && (
-                        <button
-                          type="button"
-                          onClick={() => handleRetryProcessing(text.id)}
-                          disabled={retryingTextIds.has(text.id)}
-                          className="p-2 text-text-secondary hover:text-warning hover:bg-warning/10 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-warning disabled:opacity-50 disabled:cursor-not-allowed"
-                          aria-label="Retry processing"
-                          title="Regenerate quiz"
-                        >
-                          <RefreshCw
-                            className={`w-4 h-4 ${retryingTextIds.has(text.id) ? 'animate-spin' : ''}`}
-                          />
-                        </button>
-                      )}
-                    {activeTab === 'private' && (
-                      <>
-                        {/* Only show edit when not processing */}
-                        {text.processing_status === 'completed' && (
-                          <button
-                            type="button"
-                            onClick={() => handleEditClick(text)}
-                            className="p-2 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
-                            aria-label="Edit text"
-                            title="Edit text (will regenerate quiz)"
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteClick(text.id)}
-                          className="p-2 text-text-secondary hover:text-error hover:bg-error/10 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-error"
-                          aria-label="Delete text"
-                          title="Delete text"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-8">
-            {hasActiveFilters ? (
-              <p className="text-text-secondary mb-2">
-                No texts match your search criteria.
-              </p>
-            ) : activeTab === 'private' ? (
-              <>
-                <p className="text-text-secondary mb-2">
-                  Your uploaded texts will appear here.
-                </p>
-                <p className="text-text-secondary text-sm">
-                  Click "Upload Text" to add your first text for speed reading
-                  practice.
-                </p>
-              </>
-            ) : (
-              <p className="text-text-secondary">
-                No public texts available at the moment.
-              </p>
-            )}
-          </div>
-        )}
+        <LibraryContent
+          activeTab={activeTab}
+          user={user}
+          loading={loading}
+          isInitialLoad={isInitialLoad}
+          hasActiveFilters={hasActiveFilters}
+          paginatedTexts={paginatedTexts}
+          bestScores={bestScores}
+          retryingTextIds={retryingTextIds}
+          onReadText={handleReadText}
+          onRetryProcessing={handleRetryProcessing}
+          onEditText={handleEditClick}
+          onDeleteText={handleDeleteClick}
+        />
       </div>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="mt-8 flex items-center justify-center gap-4">
-          <button
-            type="button"
-            onClick={handlePreviousPage}
-            disabled={validatedCurrentPage === 1}
-            className="p-2 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
-            aria-label="Previous page"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-text-secondary" aria-live="polite">
-              Page {validatedCurrentPage} of {totalPages}
-            </span>
-            <span className="text-text-secondary/30">|</span>
-            <button
-              type="button"
-              onClick={() => {
-                setIsCustomPageFocused(true)
-                jumpToPageInputRef.current?.focus()
-              }}
-              className={`flex items-center px-2 py-1 transition-colors ${
-                isCustomPageFocused || jumpToPageInput
-                  ? 'text-primary'
-                  : 'text-text-secondary hover:text-text'
-              }`}
-              aria-label="Jump to custom page"
-            >
-              <span>custom:&nbsp;</span>
-              <input
-                ref={jumpToPageInputRef}
-                type="text"
-                inputMode="numeric"
-                value={jumpToPageInput}
-                onChange={(e) =>
-                  setJumpToPageInput(e.target.value.replace(/[^0-9]/g, ''))
-                }
-                onKeyDown={handleJumpInputKeyDown}
-                onBlur={() => {
-                  if (!jumpToPageInput) {
-                    setIsCustomPageFocused(false)
-                  }
-                }}
-                placeholder=""
-                className="bg-transparent border-b focus:outline-none text-center border-current"
-                style={{
-                  width: `${Math.max(2, jumpToPageInput.length || 1)}ch`,
-                }}
-              />
-            </button>
-          </div>
-
-          <button
-            type="button"
-            onClick={handleNextPage}
-            disabled={validatedCurrentPage >= totalPages}
-            className="p-2 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
-            aria-label="Next page"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
-        </div>
-      )}
+      <LibraryPagination
+        currentPage={validatedCurrentPage}
+        totalPages={totalPages}
+        jumpToPage={jumpToPage}
+        jumpToPageInputRef={jumpToPageInputRef}
+        onPrevPage={handlePreviousPage}
+        onNextPage={handleNextPage}
+        onJumpInputKeyDown={handleJumpInputKeyDown}
+        onJumpInputChange={handleJumpInputChange}
+        onJumpInputFocus={handleJumpInputFocus}
+        onJumpInputBlur={handleJumpInputBlur}
+      />
 
       <UploadTextModal
         isOpen={isModalOpen}

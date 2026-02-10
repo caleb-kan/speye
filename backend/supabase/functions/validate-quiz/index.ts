@@ -42,7 +42,7 @@ interface ValidationResult {
 }
 
 const config = {
-  model: 'openai/gpt-oss-120b',
+  model: 'llama-3.3-70b-versatile',
   temperature: 0.1,
   max_tokens: 1000,
   system_message: `You are a quiz quality validator. Your job is to evaluate if a quiz accurately tests reading comprehension of a given text. You respond with valid JSON only - no markdown code blocks, no explanations.`,

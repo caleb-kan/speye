@@ -1,3 +1,5 @@
+import { getRuntimeBase } from './getRuntimeBase'
+
 export const buildRedirectUrl = (): string => {
-  return `${window.location.origin}${import.meta.env.BASE_URL}home`
+  return `${window.location.origin}${getRuntimeBase()}home`
 }

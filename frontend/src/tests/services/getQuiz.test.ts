@@ -106,7 +106,7 @@ describe('getQuiz', () => {
   it('should throw error when supabase returns error', async () => {
     createMockChain({
       data: null,
-      error: { message: 'Database error' },
+      error: { message: 'Failed to load quiz' },
     })
 
     await expect(getQuiz('test-id')).rejects.toThrow('Failed to load quiz')

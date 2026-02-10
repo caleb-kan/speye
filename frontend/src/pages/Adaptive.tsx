@@ -1,19 +1,20 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { OptionsBar } from '../components/OptionsBar'
 import { AdaptiveReadingSession } from '../components/adaptive/AdaptiveReadingSession'
 import { useAuth } from '../hooks/useAuth'
 import { useReadingPreferences } from '../hooks/useReadingPreferences'
 import { useTextNavigation } from '../hooks/useTextNavigation'
 import { useReadingPositionSync } from '../hooks/useReadingPositionSync'
-import { Loader2 } from 'lucide-react'
 import type { LocationState, FixedTextInfo } from '../types'
-import { logUserActivity } from '../services/logUserActivity'
-import {
-  clearReadingActivitySession,
-  loadReadingActivitySession,
-  upsertReadingActivitySession,
-} from '../utils/readingActivityStorage'
+import { useAdaptiveActivitySession } from '../hooks/useAdaptiveActivitySession'
+import { useAdaptiveTextSync } from '../hooks/useAdaptiveTextSync'
+import { useAuthRedirect } from '../hooks/useAuthRedirect'
+import { useNewTextWithReset } from '../hooks/useNewTextWithReset'
+import { useClearLocationState } from '../hooks/useClearLocationState'
+import { AdaptiveAuthLoading } from '../components/adaptive/AdaptiveAuthLoading'
+import { AdaptiveTextLoading } from '../components/adaptive/AdaptiveTextLoading'
+import { AdaptiveErrorState } from '../components/adaptive/AdaptiveErrorState'
+import { AdaptiveReaderLayout } from '../components/adaptive/AdaptiveReaderLayout'
 
 /**
  * Adaptive reading mode page
@@ -60,9 +61,7 @@ export function Adaptive() {
     visibleLines,
   } = preferences
 
-  const clearLibraryText = useCallback(() => {
-    navigate('/adaptive', { replace: true, state: null })
-  }, [navigate])
+  const clearLibraryText = useClearLocationState('/adaptive')
 
   const { currentText, loading, error, handleNewText, refetch } =
     useTextNavigation({
@@ -73,20 +72,11 @@ export function Adaptive() {
       currentTextComplexity,
     })
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing derived state from fetched text
-    setCurrentTextComplexity(currentText?.complexity ?? null)
-    setAdaptiveSessionWpm(null)
-  }, [currentText])
-
-  useEffect(() => {
-    if (!adaptiveSessionWpm || !currentText) return
-    upsertReadingActivitySession({
-      textId: currentText.id,
-      wpm: Math.round(adaptiveSessionWpm),
-      mode: 'adaptive',
-    })
-  }, [adaptiveSessionWpm, currentText])
+  useAdaptiveTextSync(
+    currentText,
+    setCurrentTextComplexity,
+    setAdaptiveSessionWpm
+  )
 
   const {
     position: readingPosition,
@@ -98,22 +88,29 @@ export function Adaptive() {
     modeTimestamp,
   })
 
-  const handleNewTextWithReset = useCallback(() => {
-    resetPosition()
-    handleNewText()
-  }, [resetPosition, handleNewText])
+  const { handleModeNavigate } = useAdaptiveActivitySession({
+    currentText: currentText ?? null,
+    adaptiveSessionWpm,
+    readingPosition,
+    fallbackWpm: wpm,
+  })
+
+  const handleNewTextWithReset = useNewTextWithReset(
+    resetPosition,
+    handleNewText
+  )
 
   // Create fixed text info if reading from library (shows fixed genre/complexity in OptionsBar)
   const fixedText: FixedTextInfo | undefined = libraryText
     ? { fiction: libraryText.fiction, complexity: libraryText.complexity }
     : undefined
 
-  // Auth check - redirect to login if not authenticated
-  useEffect(() => {
-    if (!authLoading && !user) {
-      navigate('/login', { state: { returnTo: '/adaptive' } })
-    }
-  }, [user, authLoading, navigate])
+  useAuthRedirect({
+    user,
+    authLoading,
+    navigate,
+    returnTo: '/adaptive',
+  })
 
   // Shared OptionsBar props for adaptive mode (blur is always off in adaptive mode)
   const optionsBarProps = {
@@ -121,33 +118,7 @@ export function Adaptive() {
     onWpmChange: setWpm,
     mode,
     onModeChange: setMode,
-    onModeNavigate: () => {
-      // Log session when switching away from adaptive mode
-
-      if (!currentText) return
-      const session = loadReadingActivitySession()
-      if (!session?.started || session.textId !== currentText.id) return
-
-      const effectiveWpm = adaptiveSessionWpm
-        ? Math.round(adaptiveSessionWpm)
-        : (session.wpm ?? wpm)
-
-      const effectiveProgress = Math.max(
-        session.progressIndex ?? 0,
-        readingPosition
-      )
-
-      void logUserActivity({
-        textId: currentText.id,
-        wpm: effectiveWpm,
-        startTime: session.startTime ?? new Date().toISOString(),
-        endTime: new Date().toISOString(),
-        mode: session.mode ?? 'adaptive',
-        progressIndex: effectiveProgress,
-      })
-
-      clearReadingActivitySession()
-    },
+    onModeNavigate: handleModeNavigate,
     scrolling,
     onScrollingChange: setScrolling,
     blurEnabled: false,
@@ -169,11 +140,7 @@ export function Adaptive() {
 
   // Show loading state while checking auth
   if (authLoading) {
-    return (
-      <div className="flex-1 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-primary animate-spin" />
-      </div>
-    )
+    return <AdaptiveAuthLoading />
   }
 
   // Don't render if not authenticated (will redirect)
@@ -183,56 +150,32 @@ export function Adaptive() {
 
   // Show loading state while fetching texts
   if (loading) {
-    return (
-      <div className="flex-1 flex flex-col">
-        <OptionsBar {...optionsBarProps} />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <Loader2 className="w-8 h-8 text-primary animate-spin mx-auto mb-4" />
-            <p className="text-text-secondary">Loading texts...</p>
-          </div>
-        </div>
-      </div>
-    )
+    return <AdaptiveTextLoading optionsBarProps={optionsBarProps} />
   }
 
   // Show error state
   if (error || !currentText) {
     return (
-      <div className="flex-1 flex flex-col">
-        <OptionsBar {...optionsBarProps} />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center max-w-md">
-            <p className="text-error mb-4">
-              {error || 'No texts available for the selected criteria.'}
-            </p>
-            <button
-              onClick={() => refetch()}
-              className="px-4 py-2 bg-primary text-bg rounded hover:bg-primary/90 transition-colors"
-            >
-              Try Again
-            </button>
-          </div>
-        </div>
-      </div>
+      <AdaptiveErrorState
+        optionsBarProps={optionsBarProps}
+        message={error || 'No texts available for the selected criteria.'}
+        onRetry={() => refetch()}
+      />
     )
   }
 
   return (
-    <div className="flex-1 flex flex-col">
-      <OptionsBar {...optionsBarProps} />
-      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-        <AdaptiveReadingSession
-          key={currentText.id}
-          currentText={currentText}
-          onNewText={handleNewTextWithReset}
-          wpm={wpm}
-          initialWordIndex={readingPosition}
-          onPositionChange={setReadingPosition}
-          onCalculatedWpmChange={setAdaptiveSessionWpm}
-          adaptiveSessionWpm={adaptiveSessionWpm}
-        />
-      </div>
-    </div>
+    <AdaptiveReaderLayout optionsBarProps={optionsBarProps}>
+      <AdaptiveReadingSession
+        key={currentText.id}
+        currentText={currentText}
+        onNewText={handleNewTextWithReset}
+        wpm={wpm}
+        initialWordIndex={readingPosition}
+        onPositionChange={setReadingPosition}
+        onCalculatedWpmChange={setAdaptiveSessionWpm}
+        adaptiveSessionWpm={adaptiveSessionWpm}
+      />
+    </AdaptiveReaderLayout>
   )
 }

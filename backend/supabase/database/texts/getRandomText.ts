@@ -24,5 +24,5 @@ export async function getRandomText(filters: FetchTextsFilters) {
     throw error
   }
 
-  return data?.[0] || []
+  return data?.[0] ?? null
 }

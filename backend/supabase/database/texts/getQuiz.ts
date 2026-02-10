@@ -15,8 +15,12 @@ export async function getQuiz(textId: string): Promise<QuestionSet> {
     errors: error ? error.message : undefined,
   })
 
-  if (error || !data?.quiz) {
-    throw error ?? new Error('Quiz not found')
+  if (error) {
+    throw error
+  }
+
+  if (!data?.quiz) {
+    throw new Error('No quiz available for this text')
   }
 
   const quiz = data.quiz as Quiz

@@ -3,14 +3,15 @@ import type { GazeData } from '../../types/webgazer'
 import { SingleLineTextDisplay } from './SingleLineTextDisplay'
 import { AdaptiveControls } from './AdaptiveControls'
 import { CalibrationOverlay } from './calibration'
+import { CalibrationPrompt } from './CalibrationPrompt'
+import { DriftWarningBanner } from './DriftWarningBanner'
 import { useWebGazer } from '../../hooks/useWebGazer'
 import { useGazeSmoothing } from '../../hooks/useGazeSmoothing'
 import { useHorizontalReader } from '../../hooks/useHorizontalReader'
 import { useCalibration } from '../../hooks/useCalibration'
 import { useCalibrationDriftDetection } from '../../hooks/useCalibrationDriftDetection'
 import { TextTitle } from '../TextTitle'
-import { Button } from '../ui/Button'
-import { Crosshair, Eye, ArrowRight, AlertTriangle, X } from 'lucide-react'
+import { useArrowNavigation } from '../../hooks/useArrowNavigation'
 import { DEFAULT_CONTAINER_WIDTH } from '../../constants/adaptive'
 
 /**
@@ -198,24 +199,11 @@ export function AdaptiveReader({
   }, [isComplete, onComplete])
 
   // Keyboard navigation with arrow keys
-  useEffect(() => {
-    if (!isReadingActive) {
-      return
-    }
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowLeft') {
-        e.preventDefault()
-        goBack()
-      } else if (e.key === 'ArrowRight') {
-        e.preventDefault()
-        goForward()
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isReadingActive, goBack, goForward])
+  useArrowNavigation({
+    enabled: isReadingActive,
+    onBack: goBack,
+    onForward: goForward,
+  })
 
   // Container measurement callback - memoized to prevent infinite loops
   const handleContainerMeasured = useCallback((left: number, width: number) => {
@@ -303,64 +291,12 @@ export function AdaptiveReader({
   // Render calibration prompt if not calibrated
   if (!isCalibrated) {
     return (
-      <div className="flex flex-col flex-1">
-        {title && (
-          <div className="pt-8">
-            <TextTitle title={title} source={source} />
-          </div>
-        )}
-
-        <div className="flex-1 flex items-center justify-center px-6">
-          <div className="text-center max-w-lg">
-            <div className="flex justify-center mb-6">
-              <div className="relative">
-                <Eye className="w-16 h-16 text-primary" />
-                <ArrowRight className="w-6 h-6 text-primary absolute -right-6 top-1/2 -translate-y-1/2" />
-              </div>
-            </div>
-            <h2 className="text-2xl font-semibold text-text mb-4">
-              Horizontal Eye Tracking Setup
-            </h2>
-            <p className="text-text-secondary mb-4">
-              This reader tracks your eyes moving <strong>left to right</strong>{' '}
-              as you read. When your gaze reaches the end of the line, the next
-              chunk appears automatically.
-            </p>
-            <div className="bg-bg-secondary/50 rounded-lg p-4 mb-6 text-left">
-              <p className="text-sm text-text-secondary font-medium mb-2">
-                How it works:
-              </p>
-              <ul className="text-sm text-text-secondary/80 space-y-2">
-                <li className="flex items-start gap-2">
-                  <span className="text-primary mt-0.5">1.</span>
-                  <span>Read each chunk from left to right naturally</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-primary mt-0.5">2.</span>
-                  <span>
-                    When your eyes reach the right side, the next chunk appears
-                  </span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-primary mt-0.5">3.</span>
-                  <span>You can also use arrow keys for manual control</span>
-                </li>
-              </ul>
-            </div>
-            <Button onClick={handleStartCalibration}>
-              <Crosshair className="w-5 h-5 inline-block mr-2 -mt-0.5" />
-              Start Calibration
-            </Button>
-          </div>
-        </div>
-
-        <AdaptiveControls
-          {...sharedControlsProps}
-          progress={0}
-          calculatedWpm={0}
-          disabled={true}
-        />
-      </div>
+      <CalibrationPrompt
+        title={title}
+        source={source}
+        onStartCalibration={handleStartCalibration}
+        controlsProps={sharedControlsProps}
+      />
     )
   }
 
@@ -379,37 +315,10 @@ export function AdaptiveReader({
 
       {/* Drift warning banner */}
       {driftWarning && (
-        <div className="mx-4 mt-4 px-4 py-3 bg-warning/10 border border-warning/30 rounded-lg">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <AlertTriangle className="w-5 h-5 text-warning shrink-0" />
-              <div>
-                <p className="text-sm font-medium text-text">
-                  Eye tracking quality has degraded
-                </p>
-                <p className="text-xs text-text-secondary mt-1">
-                  Try: Check lighting | Face the camera | Keep head still
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                onClick={handleRetryCalibration}
-                className="!px-3 !py-2 text-xs inline-flex items-center whitespace-nowrap"
-              >
-                <Crosshair className="w-4 h-4 mr-1 shrink-0" />
-                Recalibrate
-              </Button>
-              <button
-                onClick={dismissDriftWarning}
-                className="p-1 text-text-secondary hover:text-text rounded"
-                aria-label="Dismiss warning"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        </div>
+        <DriftWarningBanner
+          onRecalibrate={handleRetryCalibration}
+          onDismiss={dismissDriftWarning}
+        />
       )}
 
       {/* Main text display - centered */}

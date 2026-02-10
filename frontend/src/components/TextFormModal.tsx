@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { X } from 'lucide-react'
-import type { TextInput } from '../../../backend/supabase/database/texts/types'
+import type { TextInput } from '../types/database'
 import {
   MAX_TITLE_CHARACTERS,
   MAX_CONTENT_CHARACTERS,

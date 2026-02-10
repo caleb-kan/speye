@@ -1,40 +1,21 @@
-import { supabase } from '../../../lib/supabase'
+import {
+  getUserActivity as getUserActivityDb,
+  type ActivitySession,
+} from '../../../backend/supabase/database/userActivity/getUserActivity'
+import { getErrorMessage } from '../utils/getErrorMessage'
 
-export interface ActivitySession {
-  id: string
-  text_id: string
-  wpm: number
-  score: number | null
-  end_time: string | null
-  text: {
-    title: string
-    fiction: boolean
-    complexity: number
-  } | null
-}
+export type { ActivitySession }
 
 export async function getUserActivity(
   userId: string
 ): Promise<ActivitySession[]> {
-  const { data, error } = await supabase
-    .from('user_activity')
-    .select(
-      `
-      id,
-      text_id,
-      wpm,
-      score,
-      end_time,
-      text:texts (
-        title,
-        fiction,
-        complexity
-      )
-    `
-    )
-    .eq('user_id', userId)
-    .order('end_time', { ascending: false, nullsFirst: false })
+  if (!userId) {
+    throw new Error('User ID is required')
+  }
 
-  if (error) throw error
-  return data as unknown as ActivitySession[]
+  try {
+    return await getUserActivityDb(userId)
+  } catch (err) {
+    throw new Error(getErrorMessage(err, 'Failed to load activity'))
+  }
 }

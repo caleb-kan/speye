@@ -14,6 +14,15 @@ export type Quiz = {
 
 export type ProcessingStatus = 'pending' | 'completed' | 'failed'
 
+export type TextInput = {
+  title?: string | null
+  content: string
+  fiction?: boolean | null
+  quiz?: Quiz | null
+  processing_status?: ProcessingStatus
+  quiz_valid?: boolean | null
+}
+
 export type Text = {
   id: string
   title: string | null

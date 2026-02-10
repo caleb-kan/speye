@@ -1,17 +1,9 @@
-import {
-  useRef,
-  useEffect,
-  useState,
-  useLayoutEffect,
-  useCallback,
-} from 'react'
+import { useRef } from 'react'
 import {
   SINGLE_LINE_FONT_SIZE,
-  SINGLE_LINE_FONT_WEIGHT,
   SINGLE_LINE_LINE_HEIGHT,
   SINGLE_LINE_HEIGHT,
   END_OF_LINE_THRESHOLD,
-  DEFAULT_FONT_FAMILY,
   END_ZONE_APPROACH_FACTOR,
   TRANSITION_DURATION_MS,
   BORDER_TRANSITION_MS,
@@ -29,16 +21,12 @@ import {
   END_ZONE_ACTIVE_OPACITY,
   END_ZONE_APPROACHING_OPACITY,
   TEXT_UNRELIABLE_OPACITY,
-  MIN_TEXT_FILL_RATIO,
 } from '../../constants/adaptive'
 import { calculateDynamicThreshold } from '../../utils/gazeNormalization'
-import {
-  splitTextToFitWidthWithMetadata,
-  type ChunkData,
-} from '../../utils/textChunking'
 import { GazeStatusIndicator } from './GazeStatusIndicator'
-import { getTextAreaBounds } from '../../utils/coordinateSystem'
-import { useResizeObserverWithRef } from '../../hooks/useResizeObserver'
+import { useTextChunks } from '../../hooks/useTextChunks'
+import { useTextFillRatio } from '../../hooks/useTextFillRatio'
+import { useDoubleBufferText } from '../../hooks/useDoubleBufferText'
 
 type SingleLineTextDisplayProps = {
   text: string
@@ -67,141 +55,29 @@ export function SingleLineTextDisplay({
   onTextFillRatioMeasured,
 }: SingleLineTextDisplayProps) {
   const containerRef = useRef<HTMLDivElement>(null)
-
-  const [availableWidth, setAvailableWidth] = useState(0)
-  const [textFillRatio, setTextFillRatio] = useState(1)
-  const fontFamilyRef = useRef(DEFAULT_FONT_FAMILY)
-  const [chunks, setChunks] = useState<ChunkData[]>([])
-
-  // Double-buffer system for smooth crossfade transitions
-  // Both buffers are always in DOM, we just toggle opacity
-  const [activeBuffer, setActiveBuffer] = useState<'A' | 'B'>('A')
-  const [bufferAText, setBufferAText] = useState('')
-  const [bufferBText, setBufferBText] = useState('')
-
-  const lastMeasurementsRef = useRef({ left: 0, width: 0 })
-  const prevChunkRef = useRef(currentChunk)
-  const initializedRef = useRef(false)
+  const { chunks, availableWidth, fontFamily } = useTextChunks({
+    text,
+    containerRef,
+    onContainerMeasured,
+    onTotalChunksCalculated,
+    onChunkWordCounts,
+  })
 
   const currentText =
     chunks[Math.min(currentChunk, chunks.length - 1)]?.text || ''
 
-  // Handle chunk changes with double-buffer crossfade
-  useEffect(() => {
-    if (chunks.length === 0 || !currentText) return
+  const textFillRatio = useTextFillRatio({
+    currentText,
+    availableWidth,
+    fontFamily,
+    onTextFillRatioMeasured,
+  })
 
-    // Initial load: set both buffers to current text, no transition
-    if (!initializedRef.current) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- initialization of derived state
-      setBufferAText(currentText)
-      setBufferBText(currentText)
-      setActiveBuffer('A')
-      initializedRef.current = true
-      prevChunkRef.current = currentChunk
-      return
-    }
-
-    // Only transition if chunk actually changed
-    if (prevChunkRef.current === currentChunk) return
-
-    // Update the inactive buffer with new text, then switch to it
-    if (activeBuffer === 'A') {
-      setBufferBText(currentText)
-      setActiveBuffer('B')
-    } else {
-      setBufferAText(currentText)
-      setActiveBuffer('A')
-    }
-
-    prevChunkRef.current = currentChunk
-  }, [currentChunk, chunks, currentText, activeBuffer])
-
-  const handleResize = useCallback(
-    (rect: DOMRect) => {
-      const textAreaBounds = getTextAreaBounds(rect)
-      if (!textAreaBounds) return
-
-      setAvailableWidth(textAreaBounds.width)
-
-      const container = containerRef.current
-      if (container) {
-        const computedStyle = window.getComputedStyle(container)
-        fontFamilyRef.current = computedStyle.fontFamily || DEFAULT_FONT_FAMILY
-      }
-
-      const last = lastMeasurementsRef.current
-      if (
-        textAreaBounds.left !== last.left ||
-        textAreaBounds.width !== last.width
-      ) {
-        lastMeasurementsRef.current = {
-          left: textAreaBounds.left,
-          width: textAreaBounds.width,
-        }
-        onContainerMeasured?.(textAreaBounds.left, textAreaBounds.width)
-      }
-    },
-    [onContainerMeasured]
-  )
-
-  useResizeObserverWithRef(containerRef, handleResize)
-
-  useLayoutEffect(() => {
-    if (availableWidth <= 0 || !text) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- derived state reset
-      setChunks([])
-      return
-    }
-    // Reset initialization flag when text changes so buffers get reinitialized
-    initializedRef.current = false
-    prevChunkRef.current = 0
-    setChunks(
-      splitTextToFitWidthWithMetadata(
-        text,
-        availableWidth,
-        fontFamilyRef.current
-      )
-    )
-  }, [text, availableWidth])
-
-  useEffect(() => {
-    onTotalChunksCalculated?.(chunks.length)
-    if (chunks.length > 0) {
-      onChunkWordCounts?.(chunks.map((chunk) => chunk.wordCount))
-    }
-  }, [chunks, onTotalChunksCalculated, onChunkWordCounts])
-
-  // Measure text width and report fill ratio for dynamic end-zone calculation
-  useEffect(() => {
-    if (availableWidth <= 0 || !currentText) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset to default when no text
-      setTextFillRatio(1)
-      onTextFillRatioMeasured?.(1)
-      return
-    }
-
-    // Measure actual text width using the same font properties
-    const measureSpan = document.createElement('span')
-    measureSpan.style.visibility = 'hidden'
-    measureSpan.style.position = 'absolute'
-    measureSpan.style.whiteSpace = 'nowrap'
-    measureSpan.style.fontWeight = String(SINGLE_LINE_FONT_WEIGHT)
-    measureSpan.style.fontFamily = fontFamilyRef.current
-    measureSpan.style.fontSize = `${SINGLE_LINE_FONT_SIZE}px`
-    measureSpan.style.lineHeight = String(SINGLE_LINE_LINE_HEIGHT)
-    measureSpan.textContent = currentText
-    document.body.appendChild(measureSpan)
-
-    const textWidth = measureSpan.offsetWidth
-    document.body.removeChild(measureSpan)
-
-    const ratio = Math.min(
-      1,
-      Math.max(MIN_TEXT_FILL_RATIO, textWidth / availableWidth)
-    )
-    setTextFillRatio(ratio)
-    onTextFillRatioMeasured?.(ratio)
-  }, [currentText, availableWidth, onTextFillRatioMeasured])
+  const { activeBuffer, bufferAText, bufferBText } = useDoubleBufferText({
+    currentText,
+    currentChunk,
+    resetKey: text,
+  })
 
   // Calculate local effective threshold to stay in sync with visual positioning
   const localEffectiveThreshold = calculateDynamicThreshold(

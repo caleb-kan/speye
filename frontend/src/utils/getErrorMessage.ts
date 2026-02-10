@@ -1,0 +1,10 @@
+export const getErrorMessage = (
+  err: unknown,
+  fallbackMessage = 'An error occurred'
+): string => {
+  if (err instanceof Error) return err.message
+  if (typeof err === 'object' && err !== null && 'message' in err) {
+    return String((err as { message: unknown }).message)
+  }
+  return fallbackMessage
+}

@@ -16,6 +16,7 @@ export type LibraryContentProps = {
   onRetryProcessing: (textId: string) => Promise<void>
   onEditText: (textPreview: TextPreview) => Promise<void>
   onDeleteText: (textId: string) => void
+  isAdmin?: boolean
 }
 
 export function LibraryContent({
@@ -31,6 +32,7 @@ export function LibraryContent({
   onRetryProcessing,
   onEditText,
   onDeleteText,
+  isAdmin = false,
 }: LibraryContentProps) {
   if (activeTab === 'private' && !user) {
     return (
@@ -64,6 +66,7 @@ export function LibraryContent({
         onRetryProcessing={onRetryProcessing}
         onEditText={onEditText}
         onDeleteText={onDeleteText}
+        isAdmin={isAdmin}
       />
     )
   }

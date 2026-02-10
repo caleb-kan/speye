@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { LibraryTab } from '../components/library/LibraryTabs'
 import { useAuth } from '../hooks/useAuth'
+import { useIsAdmin } from '../hooks/useIsAdmin'
 import { useLibraryTexts } from '../hooks/useLibraryTexts'
 import { useLibraryFilters } from '../hooks/useLibraryFilters'
 import { useComplexitySlider } from '../hooks/useComplexitySlider'
@@ -25,6 +26,7 @@ import { TEXTS_PER_PAGE } from '../constants/library'
 
 export function Library() {
   const { user } = useAuth()
+  const isAdmin = useIsAdmin()
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<LibraryTab>('private')
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -39,7 +41,7 @@ export function Library() {
     setTexts: setPrivateTexts,
   } = useLibraryTexts(user?.id ?? null)
 
-  const { publicTexts, publicLoading, publicError } =
+  const { publicTexts, publicLoading, publicError, refetchPublicTexts } =
     useLibraryPublicTexts(activeTab)
 
   const currentTexts = activeTab === 'private' ? privateTexts : publicTexts
@@ -94,6 +96,7 @@ export function Library() {
     handleEditClick,
     handleEditClose,
     handleEditSubmit,
+    handleMakePublicCopy,
     handleReadText,
   } = useLibraryTextActions({
     userId: user?.id ?? null,
@@ -101,6 +104,8 @@ export function Library() {
     setPrivateTexts,
     setSuccessMessage,
     setDeleteError,
+    activeTab,
+    refetchPublicTexts,
   })
 
   const bestScores = useLibraryBestScores(user?.id ?? null, activeTab)
@@ -189,6 +194,7 @@ export function Library() {
           onRetryProcessing={handleRetryProcessing}
           onEditText={handleEditClick}
           onDeleteText={handleDeleteClick}
+          isAdmin={isAdmin}
         />
       </div>
 
@@ -216,6 +222,7 @@ export function Library() {
         text={editModal.text}
         onClose={handleEditClose}
         onSubmit={handleEditSubmit}
+        onMakePublicCopy={handleMakePublicCopy}
       />
 
       <ConfirmDialog

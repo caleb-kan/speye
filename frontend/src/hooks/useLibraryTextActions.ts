@@ -29,6 +29,8 @@ export type UseLibraryTextActionsParams = {
   setPrivateTexts: Dispatch<SetStateAction<TextPreview[] | null>>
   setSuccessMessage: (message: string | null) => void
   setDeleteError: (message: string | null) => void
+  activeTab: 'private' | 'public'
+  refetchPublicTexts?: () => void
 }
 
 export type UseLibraryTextActionsResult = {
@@ -43,6 +45,7 @@ export type UseLibraryTextActionsResult = {
   handleEditClick: (textPreview: TextPreview) => Promise<void>
   handleEditClose: () => void
   handleEditSubmit: (textId: string, data: TextInput) => Promise<void>
+  handleMakePublicCopy: (textId: string, data: TextInput) => Promise<void>
   handleReadText: (textPreview: TextPreview) => Promise<void>
 }
 
@@ -55,6 +58,8 @@ export const useLibraryTextActions = (
     setPrivateTexts,
     setSuccessMessage,
     setDeleteError,
+    activeTab,
+    refetchPublicTexts,
   } = params
   const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirmState>({
     isOpen: false,
@@ -101,9 +106,15 @@ export const useLibraryTextActions = (
     setDeleteError(null)
     try {
       await deleteLibraryText(textIdToDelete)
-      setPrivateTexts((prev) =>
-        prev ? prev.filter((t) => t.id !== textIdToDelete) : null
-      )
+
+      if (activeTab === 'private') {
+        setPrivateTexts((prev) =>
+          prev ? prev.filter((t) => t.id !== textIdToDelete) : null
+        )
+      } else if (activeTab === 'public' && refetchPublicTexts) {
+        refetchPublicTexts()
+      }
+
       setSuccess('Text deleted successfully!')
     } catch (err) {
       setDeleteError(getErrorMessage(err, 'Failed to delete text'))
@@ -116,6 +127,8 @@ export const useLibraryTextActions = (
     setPrivateTexts,
     setSuccess,
     userId,
+    activeTab,
+    refetchPublicTexts,
   ])
 
   const handleDeleteCancel = useCallback((): void => {
@@ -130,19 +143,25 @@ export const useLibraryTextActions = (
 
       try {
         await retryLibraryTextProcessing(textId)
-        setPrivateTexts((prev) =>
-          prev
-            ? prev.map((t) =>
-                t.id === textId
-                  ? {
-                      ...t,
-                      processing_status: 'pending' as const,
-                      quiz_valid: null,
-                    }
-                  : t
-              )
-            : null
-        )
+
+        if (activeTab === 'private') {
+          setPrivateTexts((prev) =>
+            prev
+              ? prev.map((t) =>
+                  t.id === textId
+                    ? {
+                        ...t,
+                        processing_status: 'pending' as const,
+                        quiz_valid: null,
+                      }
+                    : t
+                )
+              : null
+          )
+        } else if (activeTab === 'public' && refetchPublicTexts) {
+          refetchPublicTexts()
+        }
+
         setSuccess('Text queued for reprocessing!')
       } catch (err) {
         setDeleteError(getErrorMessage(err, 'Failed to retry processing'))
@@ -154,7 +173,14 @@ export const useLibraryTextActions = (
         })
       }
     },
-    [retryingTextIds, setDeleteError, setPrivateTexts, setSuccess]
+    [
+      retryingTextIds,
+      setDeleteError,
+      setPrivateTexts,
+      setSuccess,
+      activeTab,
+      refetchPublicTexts,
+    ]
   )
 
   const handleEditClick = useCallback(
@@ -199,7 +225,12 @@ export const useLibraryTextActions = (
           ...createPreviewFromText(updatedTextRecord),
           processing_status: 'pending',
         }
-        updatePrivateTextsWithPreview(textId, preview)
+
+        if (activeTab === 'private') {
+          updatePrivateTextsWithPreview(textId, preview)
+        } else if (activeTab === 'public' && refetchPublicTexts) {
+          refetchPublicTexts()
+        }
 
         await retryLibraryTextProcessing(textId)
 
@@ -208,7 +239,36 @@ export const useLibraryTextActions = (
         setDeleteError(getErrorMessage(err, 'Failed to update text'))
       }
     },
-    [setDeleteError, setSuccess, updatePrivateTextsWithPreview]
+    [
+      setDeleteError,
+      setSuccess,
+      updatePrivateTextsWithPreview,
+      activeTab,
+      refetchPublicTexts,
+    ]
+  )
+
+  const handleMakePublicCopy = useCallback(
+    async (_textId: string, data: TextInput): Promise<void> => {
+      if (!userId) return
+
+      try {
+        await uploadLibraryText(userId, {
+          ...data,
+          isPublic: true,
+          processing_status: 'pending',
+        })
+
+        setSuccess('Public copy created! Processing in background...')
+
+        if (refetchPublicTexts) {
+          refetchPublicTexts()
+        }
+      } catch (err) {
+        setDeleteError(getErrorMessage(err, 'Failed to create public copy'))
+      }
+    },
+    [userId, setSuccess, setDeleteError, refetchPublicTexts]
   )
 
   const handleReadText = useCallback(
@@ -239,6 +299,7 @@ export const useLibraryTextActions = (
     handleEditClick,
     handleEditClose,
     handleEditSubmit,
+    handleMakePublicCopy,
     handleReadText,
   }
 }

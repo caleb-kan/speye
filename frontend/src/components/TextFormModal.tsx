@@ -18,6 +18,9 @@ interface TextFormModalProps {
   initialData?: TextInput
   onClose: () => void
   onSubmit: (data: TextInput) => Promise<void>
+  isAdmin?: boolean
+  canMakePublicCopy?: boolean
+  onMakePublicCopy?: (data: TextInput) => Promise<void>
 }
 
 const MODE_CONFIG = {
@@ -43,11 +46,16 @@ export function TextFormModal({
   initialData,
   onClose,
   onSubmit,
+  isAdmin = false,
+  canMakePublicCopy = false,
+  onMakePublicCopy,
 }: TextFormModalProps) {
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [fiction, setFiction] = useState(true)
+  const [isPublic, setIsPublic] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isMakingPublicCopy, setIsMakingPublicCopy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showUnsavedWarning, setShowUnsavedWarning] = useState(false)
 
@@ -58,7 +66,8 @@ export function TextFormModal({
       ? content.trim() !== '' || title.trim() !== ''
       : content.trim() !== initialData?.content ||
         title.trim() !== (initialData?.title || '') ||
-        fiction !== initialData?.fiction
+        fiction !== initialData?.fiction ||
+        (isAdmin && isPublic !== (initialData?.isPublic ?? false))
 
   // Initialize/reset form when modal opens
   useEffect(() => {
@@ -67,10 +76,12 @@ export function TextFormModal({
         setTitle(initialData.title || '')
         setContent(initialData.content)
         setFiction(initialData.fiction ?? true)
+        setIsPublic(initialData.isPublic ?? false)
       } else {
         setTitle('')
         setContent('')
         setFiction(true)
+        setIsPublic(false)
       }
       setError(null)
       setShowUnsavedWarning(false)
@@ -113,12 +124,41 @@ export function TextFormModal({
         content: content.trim(),
         // For upload mode, let LLM auto-classify fiction; for edit mode, use user selection
         fiction: mode === 'upload' ? null : fiction,
+        ...(isAdmin && mode === 'upload' && { isPublic }),
       })
       onClose()
     } catch (err) {
       setError(err instanceof Error ? err.message : config.errorMessage)
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  const handleMakePublicCopy = async () => {
+    setError(null)
+
+    if (!content.trim()) {
+      setError('Please enter some text')
+      return
+    }
+
+    if (!onMakePublicCopy) return
+
+    setIsMakingPublicCopy(true)
+    try {
+      await onMakePublicCopy({
+        title: title.trim() || null,
+        content: content.trim(),
+        fiction: fiction,
+        isPublic: true,
+      })
+      onClose()
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Failed to create public copy'
+      )
+    } finally {
+      setIsMakingPublicCopy(false)
     }
   }
 
@@ -261,6 +301,26 @@ export function TextFormModal({
             </div>
           )}
 
+          {isAdmin && mode === 'upload' && (
+            <div>
+              <label
+                htmlFor="upload-visibility-select"
+                className="block text-sm font-medium text-text mb-2 ml-1"
+              >
+                Visibility
+              </label>
+              <select
+                id="upload-visibility-select"
+                value={isPublic ? 'public' : 'private'}
+                onChange={(e) => setIsPublic(e.target.value === 'public')}
+                className="w-full p-3 bg-bg border border-text-secondary/20 rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                disabled={isSubmitting}
+              >
+                <option value="private">Private (Only You)</option>
+                <option value="public">Public (All Users)</option>
+              </select>
+            </div>
+          )}
           {error && (
             <div className="p-3 bg-error/10 border border-error/20 rounded-lg text-error text-sm">
               {error}
@@ -272,16 +332,27 @@ export function TextFormModal({
               type="button"
               onClick={handleCloseClick}
               className="px-4 py-2 text-text-secondary hover:text-text hover:bg-bg rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-bg-secondary"
-              disabled={isSubmitting}
+              disabled={isSubmitting || isMakingPublicCopy}
             >
               Cancel
             </button>
+            {canMakePublicCopy && (
+              <button
+                type="button"
+                onClick={handleMakePublicCopy}
+                className="px-4 py-2 bg-text-secondary/15 text-primary hover:bg-primary/20 hover:text-primary border border-primary/30 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-bg-secondary disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={isSubmitting || isMakingPublicCopy || !content.trim()}
+              >
+                {isMakingPublicCopy ? 'Creating Public Copy...' : 'Make Public'}
+              </button>
+            )}
             <button
               type="submit"
               className="px-4 py-2 bg-primary text-bg rounded-lg hover:opacity-90 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-bg-secondary disabled:opacity-50 disabled:cursor-not-allowed"
               // disable submit if submitting, content is empty, or no changes made in edit mode
               disabled={
                 isSubmitting ||
+                isMakingPublicCopy ||
                 !content.trim() ||
                 (mode === 'edit' &&
                   content.trim() === initialData?.content &&

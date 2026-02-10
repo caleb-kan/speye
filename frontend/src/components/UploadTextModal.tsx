@@ -1,4 +1,5 @@
 import { useAuth } from '../hooks/useAuth'
+import { useIsAdmin } from '../hooks/useIsAdmin'
 import { TextFormModal, type TextInput } from './TextFormModal'
 
 interface UploadTextModalProps {
@@ -13,6 +14,7 @@ export function UploadTextModal({
   onSubmit,
 }: UploadTextModalProps) {
   const { user } = useAuth()
+  const isAdmin = useIsAdmin()
 
   const handleSubmit = async (data: TextInput) => {
     if (!user) {
@@ -27,6 +29,7 @@ export function UploadTextModal({
       mode="upload"
       onClose={onClose}
       onSubmit={handleSubmit}
+      isAdmin={isAdmin}
     />
   )
 }

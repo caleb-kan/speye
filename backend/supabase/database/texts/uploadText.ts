@@ -15,7 +15,7 @@ export async function uploadText(
     .from('texts')
     .insert([
       {
-        owner_id: userId,
+        owner_id: data.isPublic ? null : userId,
         content: data.content,
         complexity: complexity,
         // Optional fields - only include if provided

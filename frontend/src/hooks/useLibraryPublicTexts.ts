@@ -38,7 +38,7 @@ export const useLibraryPublicTexts = (
 
   useEffect(() => {
     if (activeTab === 'public') {
-      fetchPublicTexts()
+      fetchPublicTexts(true)
     }
   }, [activeTab, fetchPublicTexts])
 

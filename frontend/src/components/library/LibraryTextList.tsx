@@ -19,6 +19,7 @@ export type LibraryTextListProps = {
   onRetryProcessing: (textId: string) => void
   onEditText: (text: TextPreview) => void
   onDeleteText: (textId: string) => void
+  isAdmin?: boolean
 }
 
 export function LibraryTextList({
@@ -30,6 +31,7 @@ export function LibraryTextList({
   onRetryProcessing,
   onEditText,
   onDeleteText,
+  isAdmin = false,
 }: LibraryTextListProps) {
   return (
     <div className="space-y-4">
@@ -118,7 +120,7 @@ export function LibraryTextList({
               {(text.processing_status === 'failed' ||
                 (text.processing_status === 'completed' &&
                   text.quiz_valid === false)) &&
-                activeTab === 'private' && (
+                (activeTab === 'private' || isAdmin) && (
                   <button
                     type="button"
                     onClick={() => onRetryProcessing(text.id)}
@@ -132,7 +134,7 @@ export function LibraryTextList({
                     />
                   </button>
                 )}
-              {activeTab === 'private' && (
+              {(activeTab === 'private' || isAdmin) && (
                 <>
                   {text.processing_status === 'completed' && (
                     <button

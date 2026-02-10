@@ -37,6 +37,7 @@ export interface TextInput {
   quiz?: Quiz | null
   processing_status?: ProcessingStatus
   quiz_valid?: boolean | null
+  isPublic?: boolean
 }
 
 /**

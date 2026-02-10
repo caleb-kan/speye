@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { UploadTextModal } from '../../components/UploadTextModal'
 import { AuthContext } from '../../context/authContext'
+import { ROLE_ADMIN } from '../../constants/roles'
 import type { TextInput } from '../../components/TextFormModal'
 import type { User, Session } from '@supabase/supabase-js'
 import {
@@ -365,6 +366,138 @@ describe('UploadTextModal', () => {
       expect(
         screen.queryByText('Please enter some text')
       ).not.toBeInTheDocument()
+    })
+  })
+
+  describe('admin functionality', () => {
+    const mockAdminUser = {
+      id: 'admin-123',
+      email: 'admin@example.com',
+      user_metadata: { role: ROLE_ADMIN },
+    } as unknown as User
+
+    it('should not show visibility dropdown for non-admin users', () => {
+      renderModal({}, { user: mockUser })
+
+      expect(screen.queryByLabelText('Visibility')).not.toBeInTheDocument()
+    })
+
+    it('should show visibility dropdown for admin users', () => {
+      renderModal({}, { user: mockAdminUser })
+
+      expect(screen.getByLabelText('Visibility')).toBeInTheDocument()
+      expect(
+        screen.getByRole('option', { name: 'Private (Only You)' })
+      ).toBeInTheDocument()
+      expect(
+        screen.getByRole('option', { name: 'Public (All Users)' })
+      ).toBeInTheDocument()
+    })
+
+    it('should default to private visibility for admin users', () => {
+      renderModal({}, { user: mockAdminUser })
+
+      const visibilitySelect = screen.getByLabelText('Visibility')
+      expect(visibilitySelect).toHaveValue('private')
+    })
+
+    it('should allow admin to change visibility to public', () => {
+      renderModal({}, { user: mockAdminUser })
+
+      const visibilitySelect = screen.getByLabelText('Visibility')
+      fireEvent.change(visibilitySelect, { target: { value: 'public' } })
+
+      expect(visibilitySelect).toHaveValue('public')
+    })
+
+    it('should submit with isPublic true when admin selects public visibility', async () => {
+      mockOnSubmit.mockResolvedValueOnce(undefined)
+      renderModal({}, { user: mockAdminUser })
+
+      const visibilitySelect = screen.getByLabelText('Visibility')
+      fireEvent.change(visibilitySelect, { target: { value: 'public' } })
+
+      const textarea = screen.getByLabelText('Text Content')
+      fireEvent.change(textarea, { target: { value: 'Public text content' } })
+
+      const uploadButton = screen.getByRole('button', { name: 'Upload Text' })
+      fireEvent.click(uploadButton)
+
+      await waitFor(() => {
+        expect(mockOnSubmit).toHaveBeenCalledWith({
+          title: null,
+          content: 'Public text content',
+          fiction: null,
+          isPublic: true,
+        })
+      })
+    })
+
+    it('should submit with isPublic false when admin selects private visibility', async () => {
+      mockOnSubmit.mockResolvedValueOnce(undefined)
+      renderModal({}, { user: mockAdminUser })
+
+      const visibilitySelect = screen.getByLabelText('Visibility')
+      fireEvent.change(visibilitySelect, { target: { value: 'private' } })
+
+      const textarea = screen.getByLabelText('Text Content')
+      fireEvent.change(textarea, {
+        target: { value: 'Private text content' },
+      })
+
+      const uploadButton = screen.getByRole('button', { name: 'Upload Text' })
+      fireEvent.click(uploadButton)
+
+      await waitFor(() => {
+        expect(mockOnSubmit).toHaveBeenCalledWith({
+          title: null,
+          content: 'Private text content',
+          fiction: null,
+          isPublic: false,
+        })
+      })
+    })
+
+    it('should disable visibility dropdown while submitting', async () => {
+      mockOnSubmit.mockImplementation(
+        () => new Promise((resolve) => setTimeout(resolve, 100))
+      )
+      renderModal({}, { user: mockAdminUser })
+
+      const textarea = screen.getByLabelText('Text Content')
+      fireEvent.change(textarea, { target: { value: 'Some text' } })
+
+      const uploadButton = screen.getByRole('button', { name: 'Upload Text' })
+      fireEvent.click(uploadButton)
+
+      const visibilitySelect = screen.getByLabelText('Visibility')
+      expect(visibilitySelect).toBeDisabled()
+    })
+
+    it('should include visibility selection with title in submission', async () => {
+      mockOnSubmit.mockResolvedValueOnce(undefined)
+      renderModal({}, { user: mockAdminUser })
+
+      const titleInput = screen.getByPlaceholderText('Enter a title...')
+      fireEvent.change(titleInput, { target: { value: 'Public Title' } })
+
+      const visibilitySelect = screen.getByLabelText('Visibility')
+      fireEvent.change(visibilitySelect, { target: { value: 'public' } })
+
+      const textarea = screen.getByLabelText('Text Content')
+      fireEvent.change(textarea, { target: { value: 'Public content' } })
+
+      const uploadButton = screen.getByRole('button', { name: 'Upload Text' })
+      fireEvent.click(uploadButton)
+
+      await waitFor(() => {
+        expect(mockOnSubmit).toHaveBeenCalledWith({
+          title: 'Public Title',
+          content: 'Public content',
+          fiction: null,
+          isPublic: true,
+        })
+      })
     })
   })
 })

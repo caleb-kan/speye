@@ -18,6 +18,7 @@ cache:
     - frontend/node_modules/
     - backend/node_modules/
     - node_modules/
+    - .cache/ms-playwright/
 
 install:
   stage: install
@@ -73,6 +74,22 @@ test:
     - cd ../backend
     - npm run test:run
 
+e2e:
+  stage: test
+  tags:
+    - build
+    - npm
+  rules:
+    - when: on_success
+  needs: [install, lint, format-check]
+  variables:
+    VITE_SUPABASE_URL: 'http://localhost:54321'
+    VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY: 'test-anon-key'
+  script:
+    - cd frontend
+    - npx playwright install --with-deps
+    - npm run test:e2e
+
 build:
   stage: build
   tags:
@@ -80,7 +97,7 @@ build:
     - npm
   rules:
     - when: on_success
-  needs: [install, test]
+  needs: [install, test, e2e]
   script:
     - npm run build
   artifacts:

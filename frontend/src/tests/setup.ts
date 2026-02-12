@@ -1,6 +1,7 @@
 import { beforeEach } from 'vitest'
 import { STORAGE_KEYS } from '../constants/storage'
 import { vi } from 'vitest'
+import '@testing-library/jest-dom'
 
 // Clear reading preferences before each test to ensure clean state
 beforeEach(() => {

@@ -14,6 +14,7 @@ export function Home() {
   const preservedText = state?.preservedText
   // Timestamp used to force remount when switching from adaptive mode
   const modeTimestamp = state?._ts
+  const isSummary = state?.isSummary ?? false
 
   const context = useOutletContext<ReadingContext>()
 
@@ -53,6 +54,7 @@ export function Home() {
         context={context}
         onNewText={handleNewTextWithReset}
         onRefetch={refetch}
+        isSummary={isSummary}
       />
     </div>
   )

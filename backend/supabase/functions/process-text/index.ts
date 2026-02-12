@@ -63,10 +63,10 @@ function checkRateLimit(clientIp: string): {
 const config = {
   model: 'openai/gpt-oss-120b',
   temperature: 0.3,
-  max_tokens: 8000,
+  max_tokens: 12000,
   top_p: 1,
-  system_message: `You are an expert educational content processor. You analyze text and generate both a title and comprehension quiz questions, and then classify if the text is fiction or non-fiction. You respond with valid JSON only - no markdown code blocks, no explanations, no text before or after the JSON object.`,
-  user_message: `Process this text by generating a title and quiz question sets:
+  system_message: `You are an expert educational content processor. You analyze text and generate a title, comprehension quiz questions, classify if the text is fiction or non-fiction, and generate a summary for non-fiction texts. You respond with valid JSON only - no markdown code blocks, no explanations, no text before or after the JSON object.`,
+  user_message: `Process this text by generating a title, quiz question sets, and summary (if non-fiction):
 
 {text_content}
 
@@ -76,12 +76,14 @@ OUTPUT SCHEMA:
 {
   "title": string | null,
   "questionSets": QuestionSet[],
-  "fiction": boolean
+  "fiction": boolean,
+  "summary": string | null
 }
 
 - title: Generate a title ONLY if generateTitle is true, otherwise set to null
 - questionSets: Array of exactly 5 question sets, each containing 5 questions (25 questions total)
 - fiction: true if the text is fiction, false if non-fiction
+- summary: If the text is non-fiction, generate a concise summary. If fiction, set to null.
 
 QuestionSet object:
   - questions: Question[] (exactly 5 questions per set)
@@ -113,6 +115,18 @@ QUIZ REQUIREMENTS:
 8. Randomize correct answer positions across questions (use 0, 1, 2, and 3)
 9. Avoid "all of the above", "none of the above", or negative phrasing
 10. Ensure questions across sets are unique and not repetitive
+11. IMPORTANT: For non-fiction texts, every question must be answerable from BOTH the full text AND the generated summary. Focus on key concepts and main findings, not minor details.
+
+---
+
+SUMMARY REQUIREMENTS (non-fiction only, set to null for fiction):
+1. Length: approximately 20-30% of the original text length, minimum 200 words
+2. Preserve all key arguments, findings, and conclusions
+3. Maintain the logical structure and flow of the original
+4. Use clear, readable prose (not bullet points)
+5. Retain specific facts, names, dates, and data central to the text
+6. Must contain enough information to answer all quiz questions above
+7. Do not add information not in the original text
 
 ---
 
@@ -160,6 +174,7 @@ interface ProcessTextResponse {
   title: string | null
   questionSets: QuestionSet[]
   fiction: boolean
+  summary: string | null
 }
 
 function isValidQuestion(q: QuizQuestion): boolean {
@@ -185,6 +200,15 @@ function isValidResponse(data: unknown): data is ProcessTextResponse {
   if (response.questionSets.length !== 5) return false
 
   if (typeof response.fiction !== 'boolean') return false
+
+  // Validate summary: fiction must be null, non-fiction must be non-empty string
+  if (response.fiction) {
+    if (response.summary !== null && response.summary !== undefined)
+      return false
+  } else {
+    if (typeof response.summary !== 'string' || !response.summary.trim())
+      return false
+  }
 
   return response.questionSets.every(
     (set: QuestionSet) =>
@@ -290,6 +314,7 @@ Deno.serve(async (req: Request) => {
         title: parsed.title,
         questionSets: parsed.questionSets,
         fiction: parsed.fiction,
+        summary: parsed.summary ?? null,
       },
       200,
       {

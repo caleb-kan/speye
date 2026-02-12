@@ -4,6 +4,7 @@ type MockTextOverrides = Partial<{
   id: string
   title: string | null
   content: string
+  summary: string | null
   uploaded_at: string
   owner_id: string | null
   quiz: null
@@ -19,6 +20,7 @@ export const defaultMockText = {
   id: 'text-1',
   title: 'Sample Reading Text',
   content: 'This is a short sample passage for end-to-end testing.',
+  summary: null,
   uploaded_at: new Date().toISOString(),
   owner_id: null,
   quiz: null,

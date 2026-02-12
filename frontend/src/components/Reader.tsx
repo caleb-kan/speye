@@ -23,6 +23,7 @@ type ReaderProps = {
   onPositionChange?: (wordIndex: number) => void
   showMiniQuiz?: boolean
   onStartQuiz?: () => void
+  isSummary?: boolean
 }
 
 export function Reader({
@@ -42,6 +43,7 @@ export function Reader({
   onPositionChange,
   showMiniQuiz,
   onStartQuiz,
+  isSummary,
 }: ReaderProps) {
   const {
     currentWordIndex,
@@ -88,7 +90,7 @@ export function Reader({
       {/* Title with top padding to center between options bar and text */}
       {title && (
         <div className="pt-8">
-          <TextTitle title={title} source={source} />
+          <TextTitle title={title} source={source} isSummary={isSummary} />
         </div>
       )}
 

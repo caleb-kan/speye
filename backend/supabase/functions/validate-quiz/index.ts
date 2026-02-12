@@ -35,6 +35,7 @@ interface ValidateQuizRequest {
   quiz: {
     questionSets: QuestionSet[]
   }
+  summary?: string | null
 }
 
 interface ValidationResult {
@@ -51,6 +52,8 @@ const config = {
 TEXT (excerpt):
 {text_content}
 
+{summary_section}
+
 QUIZ (first question set):
 {quiz_sample}
 
@@ -61,6 +64,7 @@ EVALUATION CRITERIA:
 2. Correct answers should actually be correct based on the text
 3. Wrong options should be plausible but clearly incorrect
 4. Questions should test comprehension, not trivial details
+{summary_criteria}
 
 ---
 
@@ -106,7 +110,7 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ error: 'Invalid JSON body' }, 400)
     }
 
-    const { content, quiz } = body
+    const { content, quiz, summary } = body
 
     if (!content || typeof content !== 'string' || !content.trim()) {
       return jsonResponse({ error: 'Content is required' }, 400)
@@ -128,9 +132,18 @@ Deno.serve(async (req: Request) => {
     const truncatedContent = content.trim().slice(0, 15000)
     const quizSampleJson = JSON.stringify(quizSample, null, 2)
 
+    const summarySection = summary
+      ? `SUMMARY:\n${summary.trim().slice(0, 5000)}`
+      : ''
+    const summaryCriteria = summary
+      ? '5. Every question must also be answerable from the summary alone'
+      : ''
+
     const userMessage = config.user_message
       .replace('{text_content}', truncatedContent)
       .replace('{quiz_sample}', quizSampleJson)
+      .replace('{summary_section}', summarySection)
+      .replace('{summary_criteria}', summaryCriteria)
 
     const response = await groqClient.chat.completions.create({
       model: config.model,

@@ -10,6 +10,7 @@ type ReadingSessionProps = {
   modeTimestamp?: number
   context: ReadingContext
   onNewText: () => void
+  isSummary?: boolean
 }
 
 export function ReadingSession({
@@ -17,6 +18,7 @@ export function ReadingSession({
   modeTimestamp,
   context,
   onNewText,
+  isSummary,
 }: ReadingSessionProps) {
   const [readingComplete, setReadingComplete] = useState(false)
   const [triggerQuiz, setTriggerQuiz] = useState(false)
@@ -47,6 +49,7 @@ export function ReadingSession({
         onPositionChange={handlePositionChange}
         showMiniQuiz={quizDismissed}
         onStartQuiz={() => setTriggerQuiz(true)}
+        isSummary={isSummary}
       />
 
       <StartQuizButton

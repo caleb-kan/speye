@@ -58,9 +58,6 @@ describe('OptionsBar', () => {
       expect(
         screen.getByRole('button', { name: /adaptive/i })
       ).toBeInTheDocument()
-      expect(
-        screen.getByRole('button', { name: /summarised/i })
-      ).toBeInTheDocument()
     })
 
     it('standard mode is selected by default', () => {
@@ -72,16 +69,12 @@ describe('OptionsBar', () => {
       expect(screen.getByRole('button', { name: /adaptive/i })).not.toHaveClass(
         'text-primary'
       )
-      expect(
-        screen.getByRole('button', { name: /summarised/i })
-      ).not.toHaveClass('text-primary')
     })
 
-    it('adaptive and summarised modes are disabled', () => {
+    it('adaptive mode is disabled', () => {
       renderWithReadingLayout()
 
       expect(screen.getByRole('button', { name: /adaptive/i })).toBeDisabled()
-      expect(screen.getByRole('button', { name: /summarised/i })).toBeDisabled()
     })
   })
 

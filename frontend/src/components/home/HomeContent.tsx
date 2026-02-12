@@ -10,6 +10,7 @@ export type HomeContentProps = {
   context: ReadingContext
   onNewText: () => void
   onRefetch: () => void
+  isSummary?: boolean
 }
 
 export function HomeContent({
@@ -20,6 +21,7 @@ export function HomeContent({
   context,
   onNewText,
   onRefetch,
+  isSummary,
 }: HomeContentProps) {
   if (loading) {
     return (
@@ -56,6 +58,7 @@ export function HomeContent({
         modeTimestamp={modeTimestamp}
         context={context}
         onNewText={onNewText}
+        isSummary={isSummary}
       />
     )
   }

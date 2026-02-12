@@ -67,9 +67,10 @@ export function OptionsBar({
   const location = useLocation()
   const { user } = useAuth()
 
-  // Get library text from location state (if reading a library text)
+  // Get library text and summary flag from location state
   const locationState = location.state as LocationState | null
   const libraryText = locationState?.libraryText
+  const isSummary = locationState?.isSummary
 
   const { complexitySliderRef, visibleLinesSliderRef } = useOptionsBarSliders({
     fixedText,
@@ -115,6 +116,7 @@ export function OptionsBar({
                   readingPosition,
                   libraryText,
                   currentText,
+                  isSummary,
                 }),
                 replace: true,
               })
@@ -133,6 +135,7 @@ export function OptionsBar({
                   readingPosition,
                   libraryText,
                   currentText,
+                  isSummary,
                 }),
               })
             }

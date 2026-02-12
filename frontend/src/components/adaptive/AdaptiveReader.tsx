@@ -41,6 +41,8 @@ type AdaptiveReaderProps = {
   onStartQuiz?: () => void
   /** Called when calculated WPM changes */
   onCalculatedWpmChange?: (wpm: number) => void
+  /** Whether the reader is showing a summary */
+  isSummary?: boolean
 }
 
 /** Single-line adaptive reader with horizontal gaze tracking and velocity-aware return sweep detection. */
@@ -55,6 +57,7 @@ export function AdaptiveReader({
   showMiniQuiz,
   onStartQuiz,
   onCalculatedWpmChange,
+  isSummary,
 }: AdaptiveReaderProps) {
   const [containerLeft, setContainerLeft] = useState(0)
   const [containerWidth, setContainerWidth] = useState(DEFAULT_CONTAINER_WIDTH)
@@ -296,6 +299,7 @@ export function AdaptiveReader({
         source={source}
         onStartCalibration={handleStartCalibration}
         controlsProps={sharedControlsProps}
+        isSummary={isSummary}
       />
     )
   }
@@ -305,7 +309,7 @@ export function AdaptiveReader({
     <div className="flex flex-col flex-1 min-h-0">
       <div className="pt-8 shrink-0">
         {title ? (
-          <TextTitle title={title} source={source} />
+          <TextTitle title={title} source={source} isSummary={isSummary} />
         ) : (
           <h2 className="text-2xl font-semibold text-center text-transparent select-none">
             &nbsp;

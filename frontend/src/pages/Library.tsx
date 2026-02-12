@@ -98,6 +98,7 @@ export function Library() {
     handleEditSubmit,
     handleMakePublicCopy,
     handleReadText,
+    handleReadSummary,
   } = useLibraryTextActions({
     userId: user?.id ?? null,
     navigate,
@@ -191,6 +192,7 @@ export function Library() {
           bestScores={bestScores}
           retryingTextIds={retryingTextIds}
           onReadText={handleReadText}
+          onReadSummary={handleReadSummary}
           onRetryProcessing={handleRetryProcessing}
           onEditText={handleEditClick}
           onDeleteText={handleDeleteClick}

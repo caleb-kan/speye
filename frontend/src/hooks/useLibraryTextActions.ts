@@ -47,6 +47,7 @@ export type UseLibraryTextActionsResult = {
   handleEditSubmit: (textId: string, data: TextInput) => Promise<void>
   handleMakePublicCopy: (textId: string, data: TextInput) => Promise<void>
   handleReadText: (textPreview: TextPreview) => Promise<void>
+  handleReadSummary: (textPreview: TextPreview) => Promise<void>
 }
 
 export const useLibraryTextActions = (
@@ -186,10 +187,11 @@ export const useLibraryTextActions = (
   const handleEditClick = useCallback(
     async (textPreview: TextPreview): Promise<void> => {
       try {
-        const content = await fetchTextContent(textPreview.id)
+        const { content, summary } = await fetchTextContent(textPreview.id)
         const fullText: Text = {
           ...textPreview,
           content,
+          summary,
         }
         setEditModal({ isOpen: true, text: fullText })
       } catch (err) {
@@ -219,6 +221,7 @@ export const useLibraryTextActions = (
           ...data,
           quiz: null,
           quiz_valid: false,
+          summary: null,
         })
 
         const preview: TextPreview = {
@@ -274,14 +277,38 @@ export const useLibraryTextActions = (
   const handleReadText = useCallback(
     async (textPreview: TextPreview): Promise<void> => {
       try {
-        const content = await fetchTextContent(textPreview.id)
+        const { content, summary } = await fetchTextContent(textPreview.id)
         const fullText: Text = {
           ...textPreview,
           content,
+          summary,
         }
         navigate('/home', { state: { libraryText: fullText } })
       } catch (err) {
         setDeleteError(getErrorMessage(err, 'Failed to load text content'))
+      }
+    },
+    [navigate, setDeleteError]
+  )
+
+  const handleReadSummary = useCallback(
+    async (textPreview: TextPreview): Promise<void> => {
+      try {
+        const { summary } = await fetchTextContent(textPreview.id)
+        if (!summary) {
+          setDeleteError('No summary available for this text')
+          return
+        }
+        const fullText: Text = {
+          ...textPreview,
+          content: summary,
+          summary,
+        }
+        navigate('/home', {
+          state: { libraryText: fullText, isSummary: true },
+        })
+      } catch (err) {
+        setDeleteError(getErrorMessage(err, 'Failed to load summary'))
       }
     },
     [navigate, setDeleteError]
@@ -301,5 +328,6 @@ export const useLibraryTextActions = (
     handleEditSubmit,
     handleMakePublicCopy,
     handleReadText,
+    handleReadSummary,
   }
 }

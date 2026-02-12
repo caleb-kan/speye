@@ -25,4 +25,6 @@ export interface LocationState {
   _ts?: number
   /** Current reading position (word index) to restore when switching modes */
   readingPosition?: number
+  /** Whether the user is reading a summary instead of the full text */
+  isSummary?: boolean
 }

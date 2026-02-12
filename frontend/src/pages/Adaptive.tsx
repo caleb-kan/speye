@@ -31,6 +31,7 @@ export function Adaptive() {
   const preservedText = state?.preservedText
   const initialReadingPosition = state?.readingPosition ?? 0
   const modeTimestamp = state?._ts
+  const isSummary = state?.isSummary ?? false
 
   const { user, loading: authLoading } = useAuth()
   const [currentTextComplexity, setCurrentTextComplexity] = useState<
@@ -175,6 +176,7 @@ export function Adaptive() {
         onPositionChange={setReadingPosition}
         onCalculatedWpmChange={setAdaptiveSessionWpm}
         adaptiveSessionWpm={adaptiveSessionWpm}
+        isSummary={isSummary}
       />
     </AdaptiveReaderLayout>
   )

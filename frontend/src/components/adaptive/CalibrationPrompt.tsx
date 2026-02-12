@@ -15,6 +15,7 @@ export type CalibrationPromptProps = {
     currentPage: number
     totalPages: number
   }
+  isSummary?: boolean
 }
 
 export function CalibrationPrompt({
@@ -22,12 +23,13 @@ export function CalibrationPrompt({
   source,
   onStartCalibration,
   controlsProps,
+  isSummary,
 }: CalibrationPromptProps) {
   return (
     <div className="flex flex-col flex-1">
       {title && (
         <div className="pt-8">
-          <TextTitle title={title} source={source} />
+          <TextTitle title={title} source={source} isSummary={isSummary} />
         </div>
       )}
 

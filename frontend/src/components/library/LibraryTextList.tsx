@@ -1,6 +1,7 @@
 import {
   AlertTriangle,
   BookOpen,
+  FileText,
   Loader2,
   Pencil,
   Play,
@@ -16,6 +17,7 @@ export type LibraryTextListProps = {
   bestScores: Record<string, number>
   retryingTextIds: Set<string>
   onReadText: (text: TextPreview) => void
+  onReadSummary: (text: TextPreview) => void
   onRetryProcessing: (textId: string) => void
   onEditText: (text: TextPreview) => void
   onDeleteText: (textId: string) => void
@@ -28,6 +30,7 @@ export function LibraryTextList({
   bestScores,
   retryingTextIds,
   onReadText,
+  onReadSummary,
   onRetryProcessing,
   onEditText,
   onDeleteText,
@@ -107,15 +110,28 @@ export function LibraryTextList({
             </div>
             <div className="flex items-center gap-2">
               {text.processing_status === 'completed' && (
-                <button
-                  type="button"
-                  onClick={() => onReadText(text)}
-                  className="p-2 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
-                  aria-label="Read text"
-                  title="Start reading"
-                >
-                  <Play className="w-4 h-4" />
-                </button>
+                <>
+                  <button
+                    type="button"
+                    onClick={() => onReadText(text)}
+                    className="p-2 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
+                    aria-label="Read text"
+                    title="Start reading"
+                  >
+                    <Play className="w-4 h-4" />
+                  </button>
+                  {text.has_summary && (
+                    <button
+                      type="button"
+                      onClick={() => onReadSummary(text)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-primary bg-primary/10 hover:bg-primary/20 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
+                      aria-label="Read summary"
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      Read Summary
+                    </button>
+                  )}
+                </>
               )}
               {(text.processing_status === 'failed' ||
                 (text.processing_status === 'completed' &&

@@ -1,26 +1,35 @@
-import type { ActivitySession } from '../services/getUserActivity'
+import type { CollapsedActivitySession } from '../services/getUserActivity'
 
 export type ActivityStats = {
   totalTexts: number
   avgWpm: number
   avgScore: number
-  streak: number
+  currentStreak: number
+  bestStreak: number
 }
 
 export const computeActivityStats = (
-  sessions: ActivitySession[] | null
+  sessions: CollapsedActivitySession[] | null,
+  now: Date = new Date()
 ): ActivityStats => {
   if (!sessions || sessions.length === 0) {
-    return { totalTexts: 0, avgWpm: 0, avgScore: 0, streak: 0 }
+    return {
+      totalTexts: 0,
+      avgWpm: 0,
+      avgScore: 0,
+      currentStreak: 0,
+      bestStreak: 0,
+    }
   }
 
   const totalTexts = sessions.length
 
-  const validWpmSessions = sessions.filter((s) => s.wpm > 0)
+  // Use the pre-calculated average_wpm from the collapsed session
+  const validWpmSessions = sessions.filter((s) => s.average_wpm > 0)
   const avgWpm =
     validWpmSessions.length > 0
       ? Math.round(
-          validWpmSessions.reduce((acc, curr) => acc + curr.wpm, 0) /
+          validWpmSessions.reduce((acc, curr) => acc + curr.average_wpm, 0) /
             validWpmSessions.length
         )
       : 0
@@ -37,7 +46,67 @@ export const computeActivityStats = (
         )
       : 0
 
-  const streak = 0
+  // Streak Calculation - uses UTC ISO dates (YYYY-MM-DD) for reliable parsing
+  const uniqueActiveDates = new Set<string>()
 
-  return { totalTexts, avgWpm, avgScore, streak }
+  sessions.forEach((session) => {
+    if (session.end_time) {
+      const dateStr = new Date(session.end_time).toISOString().split('T')[0]
+      uniqueActiveDates.add(dateStr)
+    }
+  })
+
+  // ISO date strings (YYYY-MM-DD) sort correctly with localeCompare
+  const sortedDates = Array.from(uniqueActiveDates).sort((a, b) =>
+    b.localeCompare(a)
+  )
+
+  // Current Streak
+  let currentStreak = 0
+
+  const today = now.toISOString().split('T')[0]
+  const yesterdayDate = new Date(now)
+  yesterdayDate.setUTCDate(yesterdayDate.getUTCDate() - 1)
+  const yesterday = yesterdayDate.toISOString().split('T')[0]
+
+  if (sortedDates.length > 0) {
+    const mostRecent = sortedDates[0]
+    if (mostRecent === today || mostRecent === yesterday) {
+      const checkDate = new Date(mostRecent + 'T00:00:00Z')
+      for (const dateStr of sortedDates) {
+        const expectedDateStr = checkDate.toISOString().split('T')[0]
+        if (dateStr === expectedDateStr) {
+          currentStreak++
+          checkDate.setUTCDate(checkDate.getUTCDate() - 1)
+        } else {
+          break
+        }
+      }
+    }
+  }
+
+  // Best Streak
+  let bestStreak = 0
+  let tempStreak = 0
+
+  if (sortedDates.length > 0) {
+    tempStreak = 1
+    bestStreak = 1
+
+    for (let i = 0; i < sortedDates.length - 1; i++) {
+      const currDate = new Date(sortedDates[i] + 'T00:00:00Z')
+      const prevDay = new Date(currDate)
+      prevDay.setUTCDate(prevDay.getUTCDate() - 1)
+
+      if (sortedDates[i + 1] === prevDay.toISOString().split('T')[0]) {
+        tempStreak++
+      } else {
+        bestStreak = Math.max(bestStreak, tempStreak)
+        tempStreak = 1
+      }
+    }
+    bestStreak = Math.max(bestStreak, tempStreak)
+  }
+
+  return { totalTexts, avgWpm, avgScore, currentStreak, bestStreak }
 }

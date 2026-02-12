@@ -1,19 +1,24 @@
 import type { ActivitySession } from '../services/getUserActivity'
 
-export type ActivitySessionsByDate = Record<string, ActivitySession[]>
+interface SessionWithTime {
+  end_time?: string | null
+}
 
-export const groupActivitySessionsByDate = (
-  sessions: ActivitySession[] | null,
+export type ActivitySessionsByDate<T = ActivitySession> = Record<string, T[]>
+
+export const groupActivitySessionsByDate = <T extends SessionWithTime>(
+  sessions: T[] | null,
   now: Date = new Date()
-): ActivitySessionsByDate => {
+): ActivitySessionsByDate<T> => {
   if (!sessions) return {}
 
   const today = now.toLocaleDateString()
+
   const yesterdayDate = new Date(now)
   yesterdayDate.setDate(now.getDate() - 1)
   const yesterday = yesterdayDate.toLocaleDateString()
 
-  const groups: ActivitySessionsByDate = {}
+  const groups: ActivitySessionsByDate<T> = {}
 
   sessions.forEach((session) => {
     const dateStr = session.end_time || now.toISOString()
@@ -24,6 +29,7 @@ export const groupActivitySessionsByDate = (
     else if (date === yesterday) label = 'Yesterday'
 
     if (!groups[label]) groups[label] = []
+
     groups[label].push(session)
   })
 

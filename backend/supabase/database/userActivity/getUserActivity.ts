@@ -5,7 +5,9 @@ export interface ActivitySession {
   id: string
   text_id: string
   wpm: number
+  mode: 'standard' | 'adaptive'
   score: number | null
+  start_time: string | null
   end_time: string | null
   text: {
     title: string
@@ -25,7 +27,9 @@ export async function getUserActivity(
       text_id,
       wpm,
       score,
+      start_time,
       end_time,
+      mode,
       text:texts (
         title,
         fiction,

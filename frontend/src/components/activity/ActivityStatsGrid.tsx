@@ -1,4 +1,4 @@
-import { BookOpen, Target, Trophy, Zap } from 'lucide-react'
+import { BookOpen, Target, Flame, Zap, Trophy } from 'lucide-react'
 import { StatWidget } from './StatWidget'
 import type { ActivityStats } from '../../utils/activityStats'
 
@@ -29,12 +29,21 @@ export function ActivityStatsGrid({ stats }: ActivityStatsGridProps) {
         icon={BookOpen}
         delay={200}
       />
+
       <StatWidget
-        label="Best Streak"
-        value={stats.streak}
+        label="Current Streak"
+        value={stats.currentStreak}
         unit="Days"
-        icon={Trophy}
+        icon={Flame}
         delay={300}
+        subValue={
+          <div className="flex items-center gap-1.5 opacity-100 hover:opacity-80 transition-opacity">
+            <Trophy className="w-5 h-5 text-yellow-400 fill-yellow-400/20" />
+            <span className="text-lg font-bold text-yellow-400">
+              {stats.bestStreak}
+            </span>
+          </div>
+        }
       />
     </div>
   )

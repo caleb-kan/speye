@@ -1,8 +1,12 @@
 import { useEffect, useMemo } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { useAsyncOperation } from '../hooks/useAsyncOperation'
-import { getUserActivity } from '../services/getUserActivity'
-import type { ActivitySession } from '../services/getUserActivity'
+// Import the NEW type
+import {
+  getUserActivity,
+  type CollapsedActivitySession,
+} from '../services/getUserActivity'
+
 import { computeActivityStats } from '../utils/activityStats'
 import { groupActivitySessionsByDate } from '../utils/activityGrouping'
 import { ActivityHeader } from '../components/activity/ActivityHeader'
@@ -18,7 +22,7 @@ export function Activity() {
     loading,
     error,
     execute,
-  } = useAsyncOperation<ActivitySession[]>()
+  } = useAsyncOperation<CollapsedActivitySession[]>()
 
   useEffect(() => {
     if (user) {

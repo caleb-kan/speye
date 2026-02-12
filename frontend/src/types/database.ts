@@ -53,3 +53,14 @@ export type TextPreview = {
   processing_status: ProcessingStatus
   quiz_valid: boolean | null
 }
+
+export type NotificationType = 'info' | 'alert' | 'error'
+
+export type Notification = {
+  id: string
+  user_id: string
+  message: string
+  type: NotificationType
+  seen: boolean
+  created_at: string
+}

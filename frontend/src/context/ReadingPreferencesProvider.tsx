@@ -20,7 +20,10 @@ function loadPreferences(): ReadingPreferences {
       const parsed = JSON.parse(stored)
       return {
         wpm: parsed.wpm ?? DEFAULT_WPM,
-        mode: parsed.mode ?? 'standard',
+        mode:
+          parsed.mode === 'standard' || parsed.mode === 'adaptive'
+            ? parsed.mode
+            : 'standard',
         scrolling: parsed.scrolling ?? 'dynamic',
         blurEnabled: parsed.blurEnabled ?? false,
         fiction: parsed.fiction ?? false,

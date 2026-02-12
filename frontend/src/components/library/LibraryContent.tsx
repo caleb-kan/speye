@@ -13,6 +13,7 @@ export type LibraryContentProps = {
   bestScores: Record<string, number>
   retryingTextIds: Set<string>
   onReadText: (textPreview: TextPreview) => Promise<void>
+  onReadSummary: (textPreview: TextPreview) => Promise<void>
   onRetryProcessing: (textId: string) => Promise<void>
   onEditText: (textPreview: TextPreview) => Promise<void>
   onDeleteText: (textId: string) => void
@@ -29,6 +30,7 @@ export function LibraryContent({
   bestScores,
   retryingTextIds,
   onReadText,
+  onReadSummary,
   onRetryProcessing,
   onEditText,
   onDeleteText,
@@ -63,6 +65,7 @@ export function LibraryContent({
         bestScores={bestScores}
         retryingTextIds={retryingTextIds}
         onReadText={onReadText}
+        onReadSummary={onReadSummary}
         onRetryProcessing={onRetryProcessing}
         onEditText={onEditText}
         onDeleteText={onDeleteText}

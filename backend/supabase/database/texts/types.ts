@@ -38,6 +38,7 @@ export interface TextInput {
   processing_status?: ProcessingStatus
   quiz_valid?: boolean | null
   isPublic?: boolean
+  summary?: string | null
 }
 
 /**
@@ -48,6 +49,7 @@ export interface TextRecord {
   owner_id: string | null
   title: string | null
   content: string
+  summary: string | null
   fiction: boolean | null
   uploaded_at: string
   quiz: Quiz | null

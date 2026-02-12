@@ -24,6 +24,7 @@ const createMockText = (content: string): Text => ({
   id: '1',
   title: 'Test Title',
   content,
+  summary: null,
   uploaded_at: new Date().toISOString(),
   owner_id: null,
   quiz: null,
@@ -31,6 +32,8 @@ const createMockText = (content: string): Text => ({
   category: null,
   complexity: null,
   source: null,
+  processing_status: 'completed',
+  quiz_valid: null,
 })
 
 describe('Reader', () => {

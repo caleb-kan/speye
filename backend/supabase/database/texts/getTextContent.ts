@@ -1,10 +1,12 @@
 import { supabase } from '../../../../lib/supabase'
 import { logDbQuery } from '../logger'
 
-export async function getTextContent(textId: string) {
+export async function getTextContent(
+  textId: string
+): Promise<{ content: string; summary: string | null }> {
   const { data, error } = await supabase
     .from('texts')
-    .select('content')
+    .select('content, summary')
     .eq('id', textId)
     .single()
 
@@ -18,5 +20,8 @@ export async function getTextContent(textId: string) {
     throw error
   }
 
-  return data.content
+  return {
+    content: data.content,
+    summary: (data.summary as string | null) ?? null,
+  }
 }

@@ -6,6 +6,7 @@ export type BuildModeNavigationStateParams = {
   readingPosition: number
   libraryText?: Text | null
   currentText?: Text | null
+  isSummary?: boolean
 }
 
 export const buildModeNavigationState = ({
@@ -13,12 +14,17 @@ export const buildModeNavigationState = ({
   readingPosition,
   libraryText,
   currentText,
+  isSummary,
 }: BuildModeNavigationStateParams): LocationState => {
   const textToPass = libraryText || currentText
   const baseState: LocationState = { readingPosition }
 
   if (includeTimestamp) {
     baseState._ts = Date.now()
+  }
+
+  if (isSummary) {
+    baseState.isSummary = true
   }
 
   if (!textToPass) {

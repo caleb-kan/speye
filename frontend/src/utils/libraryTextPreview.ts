@@ -17,5 +17,6 @@ export const createPreviewFromText = (textRecord: Text): TextPreview => {
     source: textRecord.source,
     processing_status: textRecord.processing_status,
     quiz_valid: textRecord.quiz_valid,
+    has_summary: textRecord.summary !== null,
   }
 }

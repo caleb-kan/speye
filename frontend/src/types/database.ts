@@ -17,6 +17,7 @@ export type ProcessingStatus = 'pending' | 'completed' | 'failed'
 export type TextInput = {
   title?: string | null
   content: string
+  summary?: string | null
   fiction?: boolean | null
   quiz?: Quiz | null
   processing_status?: ProcessingStatus
@@ -28,6 +29,7 @@ export type Text = {
   id: string
   title: string | null
   content: string
+  summary: string | null
   uploaded_at: string
   owner_id: string | null
   quiz: Quiz | null
@@ -52,6 +54,7 @@ export type TextPreview = {
   source: string | null
   processing_status: ProcessingStatus
   quiz_valid: boolean | null
+  has_summary: boolean
 }
 
 export type NotificationType = 'info' | 'alert' | 'error'

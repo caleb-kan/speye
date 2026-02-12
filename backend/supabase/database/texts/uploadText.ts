@@ -22,6 +22,7 @@ export async function uploadText(
         ...(data.title !== undefined && { title: data.title }),
         ...(data.fiction !== undefined && { fiction: data.fiction }),
         ...(data.quiz !== undefined && { quiz: data.quiz }),
+        ...(data.summary !== undefined && { summary: data.summary }),
         ...(data.processing_status !== undefined && {
           processing_status: data.processing_status,
         }),

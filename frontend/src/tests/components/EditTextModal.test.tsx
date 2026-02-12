@@ -33,6 +33,7 @@ describe('EditTextModal', () => {
     id: '1',
     title: 'Test Title',
     content: 'Test content',
+    summary: null,
     fiction: true,
     uploaded_at: '2026-01-01',
     owner_id: 'user1',

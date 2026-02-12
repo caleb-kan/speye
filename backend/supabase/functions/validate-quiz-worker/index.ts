@@ -76,7 +76,7 @@ Deno.serve(async () => {
     // 2. Fetch the text content and quiz from the database
     const { data: text, error: fetchError } = await supabase
       .from('texts')
-      .select('content, quiz, processing_status')
+      .select('content, quiz, processing_status, summary, fiction')
       .eq('id', textId)
       .single()
 
@@ -123,6 +123,7 @@ Deno.serve(async () => {
         body: JSON.stringify({
           content: text.content,
           quiz: text.quiz,
+          summary: text.fiction === false ? text.summary : undefined,
         }),
       }
     )

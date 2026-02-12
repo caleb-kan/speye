@@ -17,7 +17,9 @@ export const fetchUserLibraryTexts = async (
   return getLibraryTexts({ type: 'user', userId })
 }
 
-export const fetchTextContent = async (textId: string): Promise<string> => {
+export const fetchTextContent = async (
+  textId: string
+): Promise<{ content: string; summary: string | null }> => {
   return getTextContent(textId)
 }
 
@@ -46,7 +48,7 @@ export const retryLibraryTextProcessing = async (
 
 export const updateLibraryText = async (
   textId: string,
-  payload: TextInput & { quiz: null; quiz_valid: false }
+  payload: TextInput & { quiz: null; quiz_valid: false; summary: null }
 ): Promise<Text> => {
   return updateText(textId, payload)
 }

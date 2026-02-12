@@ -31,6 +31,7 @@ interface ProcessTextResponse {
   title: string | null
   questionSets: QuestionSet[]
   fiction: boolean
+  summary: string | null
 }
 
 /**
@@ -151,6 +152,7 @@ Deno.serve(async () => {
           title: result.title ?? text.title,
           quiz: { questionSets: result.questionSets },
           fiction: text.fiction ?? result.fiction,
+          summary: result.summary,
           processing_status: 'completed',
         },
         { count: 'exact' }

@@ -61,15 +61,6 @@ export function ModeSelector({
         adaptive
         {!user && !isAdaptiveMode && <Lock size={12} />}
       </button>
-      <button
-        disabled
-        className="px-3 py-1.5 rounded text-text-secondary opacity-50 cursor-not-allowed flex items-center gap-1"
-        title="Coming soon - requires sign in"
-        aria-label="Summarised mode (coming soon, requires sign in)"
-      >
-        summarised
-        <Lock size={12} />
-      </button>
     </div>
   )
 }

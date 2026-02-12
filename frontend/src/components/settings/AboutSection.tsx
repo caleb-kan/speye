@@ -17,12 +17,10 @@ export function AboutSection() {
             <span>Eye-tracking based adaptive speed</span>
           </div>
           <div className="flex gap-2">
-            <span className="text-text-secondary/50 font-medium shrink-0">
+            <span className="text-primary font-medium shrink-0">
               summarised
             </span>
-            <span className="text-text-secondary/50">
-              AI-powered summarisation for non-fiction (coming soon)
-            </span>
+            <span>AI-powered summary for non-fiction texts (via Library)</span>
           </div>
         </div>
       </div>

@@ -21,6 +21,7 @@ type AdaptiveReadingSessionProps = {
   onPositionChange?: (wordIndex: number) => void
   onCalculatedWpmChange?: (wpm: number) => void
   adaptiveSessionWpm?: number | null
+  isSummary?: boolean
 }
 
 export function AdaptiveReadingSession({
@@ -31,6 +32,7 @@ export function AdaptiveReadingSession({
   onPositionChange,
   onCalculatedWpmChange,
   adaptiveSessionWpm,
+  isSummary,
 }: AdaptiveReadingSessionProps) {
   const [readingComplete, setReadingComplete] = useState(false)
   const [triggerQuiz, setTriggerQuiz] = useState(false)
@@ -200,6 +202,7 @@ export function AdaptiveReadingSession({
         onCalculatedWpmChange={onCalculatedWpmChange}
         showMiniQuiz={quizDismissed}
         onStartQuiz={() => setTriggerQuiz(true)}
+        isSummary={isSummary}
       />
 
       <StartQuizButton

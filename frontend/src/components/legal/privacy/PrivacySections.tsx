@@ -22,6 +22,15 @@ function WhatSection() {
         <li>How long you've been reading on the website</li>
         <li>Custom texts</li>
       </ul>
+      <p className="text-sm text-text-secondary leading-relaxed">
+        Sp(eye) does NOT collect:
+      </p>
+      <ul className="list-disc list-inside text-sm text-text-secondary leading-relaxed space-y-1">
+        <li>
+          Eye tracking calibration data (they are stored in your browser's local
+          storage)
+        </li>
+      </ul>
     </SectionShell>
   )
 }

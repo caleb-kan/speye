@@ -42,6 +42,11 @@ describe('CalibrationProgress', () => {
     ).toBeInTheDocument()
   })
 
+  it('displays red dot disclaimer', () => {
+    render(<CalibrationProgress {...defaultProps} />)
+    expect(screen.getByText(/red dot shows the tracker/)).toBeInTheDocument()
+  })
+
   it('displays instruction text', () => {
     render(<CalibrationProgress {...defaultProps} />)
     expect(

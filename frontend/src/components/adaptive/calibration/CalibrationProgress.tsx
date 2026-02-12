@@ -48,6 +48,10 @@ export function CalibrationProgress({
           <p className="text-center text-text-secondary text-sm mt-2">
             Training eye tracker for left-to-right reading
           </p>
+          <p className="text-center text-text-secondary/60 text-xs mt-1">
+            The red dot shows the tracker&apos;s prediction. It may seem off at
+            first but will improve with each click.
+          </p>
         </div>
 
         {/* Reading area - uses shared container for consistent positioning */}

@@ -22,19 +22,19 @@ describe('CalibrationIntro', () => {
 
   it('displays the main title', () => {
     render(<CalibrationIntro {...defaultProps} />)
-    expect(
-      screen.getByText(/Horizontal Eye Tracking Calibration/)
-    ).toBeInTheDocument()
+    expect(screen.getByText(/Eye Tracking Setup/)).toBeInTheDocument()
   })
 
   it('displays instructions', () => {
     render(<CalibrationIntro {...defaultProps} />)
-    expect(screen.getByText(/How it works:/)).toBeInTheDocument()
+    expect(
+      screen.getByText(/A series of dots will appear on screen/)
+    ).toBeInTheDocument()
   })
 
-  it('displays tips for better accuracy', () => {
+  it('displays tips', () => {
     render(<CalibrationIntro {...defaultProps} />)
-    expect(screen.getByText(/Tips for better accuracy:/)).toBeInTheDocument()
+    expect(screen.getByText(/Tips:/)).toBeInTheDocument()
   })
 
   it('calls onStart when start button is clicked', async () => {
@@ -74,11 +74,11 @@ describe('CalibrationIntro', () => {
   it('has proper heading hierarchy', () => {
     render(<CalibrationIntro {...defaultProps} />)
     const h1 = screen.getByRole('heading', { level: 1 })
-    expect(h1).toHaveTextContent(/Horizontal Eye Tracking Calibration/)
+    expect(h1).toHaveTextContent(/Eye Tracking Setup/)
   })
 
   it('displays calibration requirements', () => {
     render(<CalibrationIntro {...defaultProps} />)
-    expect(screen.getByText(/Look THEN click/)).toBeInTheDocument()
+    expect(screen.getByText(/Look before clicking/)).toBeInTheDocument()
   })
 })

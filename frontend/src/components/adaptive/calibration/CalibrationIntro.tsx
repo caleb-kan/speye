@@ -1,8 +1,4 @@
 import { Camera, ArrowRight } from 'lucide-react'
-import {
-  CALIBRATION_CLICKS_PER_POINT,
-  CALIBRATION_ACCURACY_THRESHOLD,
-} from '../../../constants/calibration'
 import type { WebGazerStatus } from '../../../types/adaptive'
 import { Button } from '../../ui/Button'
 import { FullScreenOverlay } from '../../ui/FullScreenOverlay'
@@ -30,52 +26,27 @@ export function CalibrationIntro({
         </div>
 
         <h1 className="text-3xl font-bold text-text mb-4">
-          Horizontal Eye Tracking Calibration
+          Eye Tracking Setup
         </h1>
 
         <p className="text-text-secondary mb-6">
-          This reader tracks your eyes moving <strong>left to right</strong> as
-          you read. We need to calibrate the eye tracker for accurate horizontal
-          tracking.
+          A series of dots will appear on screen. <strong>Look</strong> at each
+          dot, then <strong>click</strong> it. Keep your head still and move
+          only your eyes.
         </p>
 
         <div className="bg-bg-secondary rounded-lg p-4 mb-6 text-left">
-          <h3 className="font-semibold text-text mb-2">How it works:</h3>
-          <ol className="list-decimal list-inside text-text-secondary space-y-1 text-sm">
+          <h3 className="font-semibold text-text mb-2">Tips:</h3>
+          <ul className="text-text-secondary text-sm space-y-1">
             <li>
-              <strong className="text-text">Look</strong> at each point, then{' '}
-              <strong className="text-text">click</strong> it (
-              {CALIBRATION_CLICKS_PER_POINT} times each)
+              <strong>Good lighting</strong> - face a light source, avoid
+              backlighting
             </li>
-            <li>Stare at the center point to measure accuracy</li>
             <li>
-              Accuracy must be at least {CALIBRATION_ACCURACY_THRESHOLD}% to
-              continue
+              <strong>Look before clicking</strong> - focus on the dot for a
+              moment first
             </li>
-          </ol>
-
-          <div className="mt-4 p-3 bg-primary/10 rounded-md border border-primary/20">
-            <h4 className="font-medium text-primary text-sm mb-2">
-              Tips for better accuracy:
-            </h4>
-            <ul className="text-text-secondary text-xs space-y-1">
-              <li>
-                <strong>Keep your head still</strong> - move only your eyes
-              </li>
-              <li>
-                <strong>Good lighting</strong> - face a light source, avoid
-                backlighting
-              </li>
-              <li>
-                <strong>Proper distance</strong> - sit about arm&apos;s length
-                from screen
-              </li>
-              <li>
-                <strong>Look THEN click</strong> - focus on the point for a
-                moment before clicking
-              </li>
-            </ul>
-          </div>
+          </ul>
         </div>
 
         <div className="flex gap-4 justify-center">

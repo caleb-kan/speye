@@ -25,9 +25,7 @@ describe('CalibrationOverlay', () => {
 
   it('displays intro screen on initial load', () => {
     render(<CalibrationOverlay {...defaultProps} />)
-    expect(
-      screen.getByText(/Horizontal Eye Tracking Calibration/)
-    ).toBeInTheDocument()
+    expect(screen.getByText(/Eye Tracking Setup/)).toBeInTheDocument()
   })
 
   it('displays loading screen when initializing', () => {
@@ -56,7 +54,7 @@ describe('CalibrationOverlay', () => {
 
   it('renders intro screen for idle status', () => {
     render(<CalibrationOverlay {...defaultProps} webgazerStatus="idle" />)
-    expect(screen.getByText(/How it works:/)).toBeInTheDocument()
+    expect(screen.getByText(/Tips:/)).toBeInTheDocument()
   })
 
   it('renders calibration progress screen when ready', () => {

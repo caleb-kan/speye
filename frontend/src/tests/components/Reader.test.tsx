@@ -6,6 +6,11 @@ import type { Text } from '../../types/database.ts'
 import '@testing-library/jest-dom'
 import { renderWithReadingLayout } from '../helpers/renderLayouts.tsx'
 
+vi.mock('../../hooks/useRestoreReadingProgress', () => ({
+  // Always return 'false' so the tests skip the "restoring" loading state
+  useRestoreReadingProgress: () => false,
+}))
+
 vi.mock('../../hooks/useTexts')
 vi.mock('../../hooks/useAuth', () => ({
   useAuth: () => ({

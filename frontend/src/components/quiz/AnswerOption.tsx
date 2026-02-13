@@ -23,7 +23,7 @@ export const AnswerOption = memo(function AnswerOption({
         ${
           selected
             ? 'bg-primary text-bg font-medium shadow-lg scale-[1.01]'
-            : 'bg-white/5 text-text-secondary hover:bg-white/10 hover:text-text'
+            : 'bg-bg-secondary/50 text-text-secondary hover:bg-bg-secondary hover:text-text'
         }
       `}
     >

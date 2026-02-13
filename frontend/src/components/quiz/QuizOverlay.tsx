@@ -69,7 +69,7 @@ export function QuizOverlay({ isOpen, onClose, children }: QuizOverlayProps) {
 
       <div
         className={`
-          relative w-full max-w-5xl rounded-3xl bg-bg shadow-2xl p-8
+          relative w-full max-w-6xl rounded-3xl bg-bg shadow-2xl p-8
           transform transition-all duration-500 cubic-bezier(0.16, 1, 0.3, 1)
           
           ${

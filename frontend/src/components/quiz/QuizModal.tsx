@@ -20,6 +20,7 @@ type QuizModalProps = {
   onClose: () => void
   questionSet: QuestionSet | null
   textId: string
+  ownerId: string | null
 }
 
 export function QuizModal({
@@ -27,6 +28,7 @@ export function QuizModal({
   onClose,
   questionSet,
   textId,
+  ownerId,
 }: QuizModalProps) {
   // State
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -34,6 +36,7 @@ export function QuizModal({
 
   const [isFinished, setIsFinished] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [savedWpm, setSavedWpm] = useState<number | null>(null)
 
   if (!questionSet) return null
 
@@ -61,10 +64,13 @@ export function QuizModal({
     setIsFinished(true)
     setIsSaving(true)
     try {
-      await saveQuizResult({
+      const result = await saveQuizResult({
         text_id: textId,
         score: finalScore,
       })
+      if (result?.wpm != null) {
+        setSavedWpm(result.wpm)
+      }
     } catch (err) {
       console.error('Failed to save quiz result:', err)
     } finally {
@@ -94,8 +100,11 @@ export function QuizModal({
             score={finalScore}
             correctCount={correctAnswersCount}
             totalCount={questions.length}
+            textId={textId}
+            ownerId={ownerId}
             onClose={onClose}
             isSaving={isSaving}
+            savedWpm={savedWpm}
           />
         </div>
       ) : (
@@ -134,17 +143,17 @@ export function QuizModal({
             </div>
 
             {/* Next Button Container */}
-            <div className="flex justify-end pt-4 mt-4 border-t border-white/5 h-16">
+            <div className="flex justify-end pt-4 mt-4 border-t border-text-secondary/10 h-16">
               {selectedAnswer !== undefined && (
                 <button
                   onClick={nextQuestion}
                   className="
                     px-8 py-3 rounded-xl
-                    bg-white text-black font-medium text-base
+                    bg-text text-bg font-medium text-base
                     hover:scale-105 active:scale-95
                     transition-all duration-300
                     animate-in fade-in slide-in-from-bottom-2
-                    shadow-lg shadow-white/5
+                    shadow-lg shadow-text/5
                   "
                 >
                   {currentIndex === questions.length - 1

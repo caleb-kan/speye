@@ -207,6 +207,7 @@ export function AdaptiveReadingSession({
 
       <StartQuizButton
         textId={currentText.id}
+        ownerId={currentText.owner_id}
         readingComplete={readingComplete}
         dismissed={quizDismissed}
         onDismiss={() => setQuizDismissed(true)}

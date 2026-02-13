@@ -30,3 +30,8 @@ verify_jwt = false
 # Disable JWT verification - worker is called by pg_cron, not directly by users
 # Security: URL not publicly documented, only processes jobs from internal queue
 verify_jwt = false
+
+[functions.leaderboard]
+# Called by the frontend after quiz save to update Redis leaderboard cache.
+# JWT disabled because the function uses the service role key internally.
+verify_jwt = false

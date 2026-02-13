@@ -1,1 +1,13 @@
 Require all granted
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /project/2025/60021/g256002102/web/
+
+  # Serve existing files and directories as-is
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # SPA fallback
+  RewriteRule ^ index.html [L]
+</IfModule>

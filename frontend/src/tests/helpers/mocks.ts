@@ -1,5 +1,10 @@
 import { vi } from 'vitest'
-import type { User, Session, AuthError } from '@supabase/supabase-js'
+import type {
+  User,
+  Session,
+  AuthError,
+  AuthResponse,
+} from '@supabase/supabase-js'
 
 /**
  * Creates a mock Supabase User object for testing
@@ -88,3 +93,23 @@ export const createMockAuthSubscription = (unsubscribe = vi.fn()) => ({
     },
   },
 })
+
+/**
+ * Creates a mock response for the getSession method
+ */
+export function mockSessionResponse(
+  session: Session | null,
+  user: User | null = session?.user ?? null
+) {
+  if (session && user) {
+    return {
+      data: { session, user },
+      error: null,
+    } satisfies AuthResponse
+  }
+
+  return {
+    data: { session: null, user: null },
+    error: null,
+  } satisfies AuthResponse
+}

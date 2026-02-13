@@ -1,5 +1,6 @@
 import { useNewTextWithReset } from '../hooks/useNewTextWithReset'
 import { useReadingContextSync } from '../hooks/useReadingContextSync'
+import { useRestoreReadingProgress } from '../hooks/useRestoreReadingProgress'
 import { useClearLocationState } from '../hooks/useClearLocationState'
 import { useTextNavigation } from '../hooks/useTextNavigation'
 import { useOutletContext, useLocation } from 'react-router-dom'
@@ -35,6 +36,12 @@ export function Home() {
 
   useReadingContextSync(currentText, context)
 
+  // Capture loading state from hook alongside external loading
+  const isRestoring = useRestoreReadingProgress(
+    currentText,
+    context.setReadingPosition
+  )
+
   const handleNewTextWithReset = useNewTextWithReset(
     () => context.setReadingPosition(0),
     handleNewText
@@ -47,7 +54,7 @@ export function Home() {
       aria-live="polite"
     >
       <HomeContent
-        loading={loading}
+        loading={loading || isRestoring}
         error={error}
         currentText={currentText}
         modeTimestamp={modeTimestamp}

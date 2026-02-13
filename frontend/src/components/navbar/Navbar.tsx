@@ -1,6 +1,14 @@
 import { Link, useLocation } from 'react-router-dom'
 import { NavItem } from './NavItem'
-import { Home, BookOpen, ListChecks, Settings, User } from 'lucide-react'
+import {
+  Home,
+  BookOpen,
+  ListChecks,
+  Settings,
+  User,
+  Shield,
+} from 'lucide-react'
+import { useIsAdmin } from '../../hooks/useIsAdmin'
 import { useAuth } from '../../hooks/useAuth'
 import { DefaultAvatar } from '../DefaultAvatar'
 import { getAvatarUrl } from '../../utils/getAvatarUrl'
@@ -14,6 +22,8 @@ import {
 export function Navbar() {
   const location = useLocation()
   const { user, loading } = useAuth()
+
+  const isAdmin = useIsAdmin()
 
   const isLoginActive = location.pathname === '/login'
   const isSettingsActive = location.pathname === '/settings'
@@ -97,8 +107,18 @@ export function Navbar() {
         onBeforeNavigate={handleBeforeNavigate}
       />
 
-      {/* Horizontal Separator */}
+      {/* Separator between nav and admin/auth */}
       <div className="w-6 h-px bg-text-secondary/30" />
+
+      {/* Admin-only navigation */}
+      {user && isAdmin && (
+        <NavItem
+          to="/admin"
+          icon={<Shield size={22} />}
+          label="Admin"
+          onBeforeNavigate={handleBeforeNavigate}
+        />
+      )}
 
       {/* Auth Section */}
       {loading ? (

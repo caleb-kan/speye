@@ -34,11 +34,17 @@ const createMockText = (content: string): Text => ({
   owner_id: null,
   quiz: null,
   fiction: false,
-  category: null,
   complexity: null,
   source: null,
   processing_status: 'completed',
   quiz_valid: null,
+  llm_decision: null,
+  llm_violation_type: null,
+  admin_decision: null,
+  admin_reviewed_by: null,
+  admin_reviewed_at: null,
+  rejection_reason: null,
+  rejection_stage: null,
 })
 
 describe('Reader', () => {

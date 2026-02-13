@@ -38,11 +38,17 @@ describe('EditTextModal', () => {
     uploaded_at: '2026-01-01',
     owner_id: 'user1',
     quiz: { questionSets: [] },
-    category: null,
     complexity: null,
     source: null,
     processing_status: 'pending',
     quiz_valid: true,
+    llm_decision: null,
+    llm_violation_type: null,
+    admin_decision: null,
+    admin_reviewed_by: null,
+    admin_reviewed_at: null,
+    rejection_reason: null,
+    rejection_stage: null,
   }
 
   const defaultProps = {

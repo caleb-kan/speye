@@ -4,6 +4,12 @@ import userEvent from '@testing-library/user-event'
 import { NotificationRow } from '../../components/notifications/NotificationRow'
 import type { Notification } from '../../types/database'
 
+const mockNavigate = vi.fn()
+
+vi.mock('react-router-dom', () => ({
+  useNavigate: () => mockNavigate,
+}))
+
 vi.mock('../../utils/formatTimestamp', () => ({
   formatTimestamp: () => {
     return `02/11/2026\n10:00:00`
@@ -18,6 +24,7 @@ describe('NotificationRow', () => {
     type: 'info',
     seen: false,
     created_at: '2026-02-11T10:00:00Z',
+    link: null,
   }
 
   const mockOnOpen = vi.fn()
@@ -132,5 +139,56 @@ describe('NotificationRow', () => {
 
     const button = container.querySelector('button')
     expect(button).not.toHaveClass('opacity-80')
+  })
+
+  it('should navigate to link when notification has a link', async () => {
+    const linkedNotification: Notification = {
+      ...mockNotification,
+      link: '/admin',
+    }
+    const user = userEvent.setup()
+
+    render(
+      <NotificationRow notification={linkedNotification} onOpen={mockOnOpen} />
+    )
+
+    await user.click(screen.getByRole('button'))
+
+    expect(mockOnOpen).toHaveBeenCalled()
+    expect(mockNavigate).toHaveBeenCalledWith('/admin')
+  })
+
+  it('should not navigate when notification has no link', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <NotificationRow notification={mockNotification} onOpen={mockOnOpen} />
+    )
+
+    await user.click(screen.getByRole('button'))
+
+    expect(mockOnOpen).toHaveBeenCalled()
+    expect(mockNavigate).not.toHaveBeenCalled()
+  })
+
+  it('should render chevron icon for linked notifications', () => {
+    const linkedNotification: Notification = {
+      ...mockNotification,
+      link: '/library',
+    }
+
+    const { container } = render(
+      <NotificationRow notification={linkedNotification} onOpen={mockOnOpen} />
+    )
+
+    expect(container.querySelector('svg.lucide-chevron-right')).toBeTruthy()
+  })
+
+  it('should not render chevron icon for non-linked notifications', () => {
+    const { container } = render(
+      <NotificationRow notification={mockNotification} onOpen={mockOnOpen} />
+    )
+
+    expect(container.querySelector('svg.lucide-chevron-right')).toBeNull()
   })
 })

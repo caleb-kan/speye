@@ -19,7 +19,7 @@ import { LibraryFilters } from '../components/library/LibraryFilters'
 import { LibraryHeader } from '../components/library/LibraryHeader'
 import { LibraryTabs } from '../components/library/LibraryTabs'
 import { LibraryPagination } from '../components/library/LibraryPagination'
-import { LibraryAlerts } from '../components/library/LibraryAlerts'
+import { AlertMessages } from '../components/ui/AlertMessages'
 import { LibraryContent } from '../components/library/LibraryContent'
 import { SUCCESS_MESSAGE_DURATION_MS } from '../constants/ui'
 import { TEXTS_PER_PAGE } from '../constants/library'
@@ -157,7 +157,7 @@ export function Library() {
           }}
         />
 
-        <LibraryAlerts
+        <AlertMessages
           successMessage={successMessage}
           errorMessage={fetchError || deleteError}
         />

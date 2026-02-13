@@ -4,7 +4,10 @@ import { useCallback, useState } from 'react'
 import type { TextInput } from '../components/TextFormModal'
 import type { Text, TextPreview } from '../types/database'
 import { getErrorMessage } from '../utils/getErrorMessage'
-import { createPreviewFromText } from '../utils/libraryTextPreview'
+import {
+  createPreviewFromText,
+  createTextFromPreview,
+} from '../utils/libraryTextPreview'
 import {
   deleteLibraryText,
   fetchTextContent,
@@ -188,11 +191,7 @@ export const useLibraryTextActions = (
     async (textPreview: TextPreview): Promise<void> => {
       try {
         const { content, summary } = await fetchTextContent(textPreview.id)
-        const fullText: Text = {
-          ...textPreview,
-          content,
-          summary,
-        }
+        const fullText = createTextFromPreview(textPreview, content, summary)
         setEditModal({ isOpen: true, text: fullText })
       } catch (err) {
         setDeleteError(getErrorMessage(err, 'Failed to load text content'))
@@ -278,11 +277,7 @@ export const useLibraryTextActions = (
     async (textPreview: TextPreview): Promise<void> => {
       try {
         const { content, summary } = await fetchTextContent(textPreview.id)
-        const fullText: Text = {
-          ...textPreview,
-          content,
-          summary,
-        }
+        const fullText = createTextFromPreview(textPreview, content, summary)
         navigate('/home', { state: { libraryText: fullText } })
       } catch (err) {
         setDeleteError(getErrorMessage(err, 'Failed to load text content'))
@@ -299,11 +294,7 @@ export const useLibraryTextActions = (
           setDeleteError('No summary available for this text')
           return
         }
-        const fullText: Text = {
-          ...textPreview,
-          content: summary,
-          summary,
-        }
+        const fullText = createTextFromPreview(textPreview, summary, summary)
         navigate('/home', {
           state: { libraryText: fullText, isSummary: true },
         })

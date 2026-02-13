@@ -4,8 +4,10 @@ import userEvent from '@testing-library/user-event'
 import { NotificationToast } from '../../components/notifications/NotificationToast'
 import type { ToastNotification } from '../../context/notificationsContext'
 
+const mockNavigate = vi.fn()
+
 vi.mock('react-router-dom', () => ({
-  useNavigate: () => vi.fn(),
+  useNavigate: () => mockNavigate,
 }))
 
 describe('NotificationToast', () => {
@@ -17,6 +19,7 @@ describe('NotificationToast', () => {
       type: 'info',
       seen: false,
       created_at: '2026-02-11T10:00:00Z',
+      link: null,
     },
     isExiting: false,
   }
@@ -98,5 +101,29 @@ describe('NotificationToast', () => {
     render(<NotificationToast toast={mockToast} onClose={mockOnClose} />)
 
     expect(screen.getByLabelText('Dismiss notification')).toBeInTheDocument()
+  })
+
+  it('should navigate to link when notification has a link', async () => {
+    const linkedToast: ToastNotification = {
+      ...mockToast,
+      notification: { ...mockToast.notification, link: '/admin' },
+    }
+    const user = userEvent.setup()
+
+    render(<NotificationToast toast={linkedToast} onClose={mockOnClose} />)
+
+    await user.click(screen.getByLabelText('Go to details'))
+
+    expect(mockNavigate).toHaveBeenCalledWith('/admin')
+  })
+
+  it('should navigate to /notifications when no link', async () => {
+    const user = userEvent.setup()
+
+    render(<NotificationToast toast={mockToast} onClose={mockOnClose} />)
+
+    await user.click(screen.getByLabelText('Open notifications'))
+
+    expect(mockNavigate).toHaveBeenCalledWith('/notifications')
   })
 })

@@ -35,6 +35,8 @@ async function deleteQueueMessage(msgId: number): Promise<void> {
   }
 }
 
+const QUIZ_QUALITY_REJECTION_REASON = 'Quiz quality insufficient'
+
 Deno.serve(async () => {
   // Note: This worker is called by pg_cron. Security is handled by:
   // 1. verify_jwt = false in config.toml (Supabase doesn't enforce JWT)
@@ -76,7 +78,9 @@ Deno.serve(async () => {
     // 2. Fetch the text content and quiz from the database
     const { data: text, error: fetchError } = await supabase
       .from('texts')
-      .select('content, quiz, processing_status, summary, fiction')
+      .select(
+        'content, quiz, processing_status, summary, fiction, admin_decision'
+      )
       .eq('id', textId)
       .single()
 
@@ -182,7 +186,32 @@ Deno.serve(async () => {
       )
     }
 
-    // 5. Delete the processed message from queue
+    // 5. If quiz is invalid, update text for admin review
+    // Do NOT overwrite llm_decision/llm_violation_type - those reflect
+    // content moderation, not quiz quality
+    // Do NOT overwrite admin_decision if admin already approved this text
+    if (!result.isValid && text.admin_decision !== 'approved') {
+      const { error: rejectionError } = await supabase
+        .from('texts')
+        .update({
+          admin_decision: 'pending',
+          rejection_reason: QUIZ_QUALITY_REJECTION_REASON,
+          rejection_stage: 'validate_quiz',
+        })
+        .eq('id', textId)
+        .eq('processing_status', 'completed')
+        .neq('admin_decision', 'approved')
+
+      if (rejectionError) {
+        console.error('Error updating rejection metadata:', rejectionError)
+      } else {
+        // Note: admin notification is handled by the notify_admins_review_trigger
+        // on the texts table, which fires when admin_decision becomes 'pending'
+        console.log(`Updated text for quiz validation failure: ${textId}`)
+      }
+    }
+
+    // 6. Delete the processed message from queue
     await deleteQueueMessage(job.msg_id)
 
     console.log(

@@ -9,11 +9,17 @@ type MockTextOverrides = Partial<{
   owner_id: string | null
   quiz: null
   fiction: boolean | null
-  category: string | null
   complexity: number | null
   source: string | null
   processing_status: 'pending' | 'completed' | 'failed'
   quiz_valid: boolean | null
+  llm_decision: 'approved' | 'rejected' | null
+  llm_violation_type: string | null
+  admin_decision: 'approved' | 'rejected' | 'pending' | null
+  admin_reviewed_by: string | null
+  admin_reviewed_at: string | null
+  rejection_reason: string | null
+  rejection_stage: 'process_text' | 'validate_quiz' | null
 }>
 
 export const defaultMockText = {
@@ -25,11 +31,17 @@ export const defaultMockText = {
   owner_id: null,
   quiz: null,
   fiction: false,
-  category: null,
   complexity: 4,
   source: null,
   processing_status: 'completed' as const,
   quiz_valid: null,
+  llm_decision: null,
+  llm_violation_type: null,
+  admin_decision: null,
+  admin_reviewed_by: null,
+  admin_reviewed_at: null,
+  rejection_reason: null,
+  rejection_stage: null,
 }
 
 export async function mockRandomText(

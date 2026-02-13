@@ -1,4 +1,10 @@
 import { useEffect, useState } from 'react'
+import {
+  SMALL_CIRCLE_THRESHOLD,
+  DEFAULT_CIRCLE_SIZE,
+  DEFAULT_STROKE_WIDTH,
+  CIRCLE_ANIMATION_DELAY_MS,
+} from '../../constants/quiz'
 
 type Props = {
   percentage: number
@@ -9,20 +15,27 @@ type Props = {
 
 export function CircularProgress({
   percentage,
-  size = 200,
-  strokeWidth = 12,
+  size = DEFAULT_CIRCLE_SIZE,
+  strokeWidth = DEFAULT_STROKE_WIDTH,
   color = 'text-primary',
 }: Props) {
   const [progress, setProgress] = useState(0)
 
   useEffect(() => {
-    const timer = setTimeout(() => setProgress(percentage), 100)
+    const timer = setTimeout(
+      () => setProgress(percentage),
+      CIRCLE_ANIMATION_DELAY_MS
+    )
     return () => clearTimeout(timer)
   }, [percentage])
 
   const radius = (size - strokeWidth) / 2
   const circumference = radius * 2 * Math.PI
   const offset = circumference - (progress / 100) * circumference
+
+  const isSmall = size <= SMALL_CIRCLE_THRESHOLD
+  const percentClass = isSmall ? 'text-xl' : 'text-4xl'
+  const labelClass = isSmall ? 'text-[10px] mt-0.5' : 'text-sm mt-1'
 
   return (
     <div className="relative flex items-center justify-center">
@@ -35,7 +48,7 @@ export function CircularProgress({
           stroke="currentColor"
           strokeWidth={strokeWidth}
           fill="transparent"
-          className="text-white/5"
+          className="text-text-secondary/10"
         />
         {/* Progress Circle */}
         <circle
@@ -54,10 +67,14 @@ export function CircularProgress({
 
       {/* Center Text */}
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-4xl font-bold tracking-tighter text-white animate-in fade-in zoom-in duration-500 delay-100">
+        <span
+          className={`${percentClass} font-bold tracking-tighter text-text animate-in fade-in zoom-in duration-500 delay-100`}
+        >
           {progress}%
         </span>
-        <span className="text-sm font-medium text-text-secondary uppercase tracking-wider mt-1">
+        <span
+          className={`${labelClass} font-medium text-text-secondary uppercase tracking-wider`}
+        >
           Accuracy
         </span>
       </div>

@@ -6,6 +6,7 @@ import type { QuestionSet } from '../types/database'
 
 interface StartQuizButtonProps {
   textId: string
+  ownerId: string | null
   readingComplete: boolean
   onDismiss: () => void
   dismissed: boolean
@@ -17,6 +18,7 @@ interface StartQuizButtonProps {
 
 export function StartQuizButton({
   textId,
+  ownerId,
   readingComplete,
   onDismiss,
   dismissed,
@@ -151,6 +153,7 @@ export function StartQuizButton({
         onClose={handleCloseQuiz}
         questionSet={quizSet}
         textId={textId}
+        ownerId={ownerId}
       />
     </>
   )

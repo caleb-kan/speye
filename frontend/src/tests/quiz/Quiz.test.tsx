@@ -34,6 +34,22 @@ vi.mock('../services/saveQuizResult', () => ({
   saveQuizResult: vi.fn().mockResolvedValue({}),
 }))
 
+// Mock useAuth for QuizResults component
+vi.mock('../../hooks/useAuth', () => ({
+  useAuth: () => ({
+    user: { id: 'test-user-id' },
+    session: null,
+    loading: false,
+    signOut: vi.fn(),
+  }),
+}))
+
+// Mock leaderboard service
+vi.mock('../../services/leaderboardService', () => ({
+  getTextLeaderboard: vi.fn().mockResolvedValue({ top: [], currentUser: null }),
+  updateLeaderboardCache: vi.fn().mockResolvedValue(undefined),
+}))
+
 describe('QuizModal', () => {
   beforeEach(() => {
     const modalRoot = document.createElement('div')
@@ -54,6 +70,7 @@ describe('QuizModal', () => {
     onClose: vi.fn(),
     questionSet: mockQuestionSet,
     textId: 'test-text-id',
+    ownerId: null as string | null,
   }
 
   describe('Visibility', () => {
@@ -161,7 +178,10 @@ describe('QuizModal', () => {
 
       expect(defaultProps.onClose).not.toHaveBeenCalled()
 
-      expect(await screen.findByText(/Quiz Complete/i)).toBeInTheDocument()
+      // Wait for the 3-second score animation phase to end and details to appear
+      expect(
+        await screen.findByText(/Quiz Complete/i, {}, { timeout: 4000 })
+      ).toBeInTheDocument()
 
       const closeButton = screen.getByRole('button', { name: /Save & Close/i })
 

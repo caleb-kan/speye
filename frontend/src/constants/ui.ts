@@ -23,3 +23,10 @@ export const ICON_SIZE = {
   XL: 'w-8 h-8',
   XXL: 'w-16 h-16',
 } as const
+
+export const MIN_WINDOW_WIDTH = 1000
+export const MIN_WINDOW_HEIGHT = 600
+export const MODAL_BACKDROP_BLUR = 3
+export const MODAL_BACKDROP_OPACITY = 0
+export const WINDOW_SIZE_WARNING_MESSAGE =
+  'Your screen size is too small to fully experience the content.'

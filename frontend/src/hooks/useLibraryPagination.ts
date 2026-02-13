@@ -1,6 +1,7 @@
 import type { KeyboardEvent, RefObject } from 'react'
 import { useCallback, useMemo, useRef, useState } from 'react'
 import type { JumpToPageState } from '../components/library/LibraryPagination'
+import { useEscapeKey } from './useEscapeKey'
 
 export type UseLibraryPaginationResult<T> = {
   currentPage: number
@@ -64,12 +65,17 @@ export const useLibraryPagination = <T>(
     (event: KeyboardEvent<HTMLInputElement>) => {
       if (event.key === 'Enter') {
         handleJumpToPage()
-      } else if (event.key === 'Escape') {
-        setJumpToPage((prev) => ({ ...prev, value: '' }))
       }
     },
     [handleJumpToPage]
   )
+
+  const handleEscapeClearInput = useCallback(() => {
+    setJumpToPage({ value: '', isFocused: false })
+    jumpToPageInputRef.current?.blur()
+  }, [])
+
+  useEscapeKey(handleEscapeClearInput, jumpToPage.isFocused)
 
   const handleJumpInputChange = useCallback((value: string) => {
     setJumpToPage((prev) => ({

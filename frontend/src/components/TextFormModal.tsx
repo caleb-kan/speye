@@ -9,6 +9,7 @@ import {
 } from '../constants/textUpload'
 import { formatNumberWithCommas, countWords } from '../utils/textUtils'
 import { ConfirmDialog } from './ConfirmDialog'
+import { useEscapeKey } from '../hooks/useEscapeKey'
 
 export type { TextInput }
 
@@ -89,22 +90,15 @@ export function TextFormModal({
   }, [isOpen, initialData])
 
   // Handle ESC key to close modal
-  useEffect(() => {
-    if (!isOpen) return
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        if (hasUnsavedChanges) {
-          setShowUnsavedWarning(true)
-        } else {
-          onClose()
-        }
-      }
+  const handleEscape = () => {
+    if (hasUnsavedChanges) {
+      setShowUnsavedWarning(true)
+    } else {
+      onClose()
     }
+  }
 
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen, onClose, hasUnsavedChanges])
+  useEscapeKey(handleEscape, isOpen)
 
   if (!isOpen) return null
 

@@ -19,6 +19,7 @@ import { Notifications } from './pages/Notifications'
 import { RootLayout } from './layouts/RootLayout'
 import { ReadingLayout } from './layouts/ReadingLayout'
 import { AdaptiveLayout } from './layouts/AdaptiveLayout'
+import { WindowSizeProvider } from './components/WindowSizeProvider'
 import { NotificationsProvider } from './context/NotificationsProvider'
 
 function App() {
@@ -35,12 +36,24 @@ function App() {
                     <Route index element={<Navigate to="/home" replace />} />
 
                     {/* Pages with OptionsBar */}
-                    <Route element={<ReadingLayout />}>
+                    <Route
+                      element={
+                        <WindowSizeProvider>
+                          <ReadingLayout />
+                        </WindowSizeProvider>
+                      }
+                    >
                       <Route path="home" element={<Home />} />
                     </Route>
 
                     {/* Adaptive reading mode */}
-                    <Route element={<AdaptiveLayout />}>
+                    <Route
+                      element={
+                        <WindowSizeProvider>
+                          <AdaptiveLayout />
+                        </WindowSizeProvider>
+                      }
+                    >
                       <Route path="adaptive" element={<Adaptive />} />
                     </Route>
 

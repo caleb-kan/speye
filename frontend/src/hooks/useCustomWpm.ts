@@ -1,6 +1,7 @@
 import type { ChangeEvent, KeyboardEvent } from 'react'
 import { useCallback, useMemo, useState } from 'react'
 import { MAX_WPM, MIN_WPM, WPM_PRESETS } from '../constants/wpm'
+import { useEscapeKey } from './useEscapeKey'
 
 export type UseCustomWpmParams = {
   wpm: number
@@ -76,12 +77,12 @@ export const useCustomWpm = (
     (event: KeyboardEvent<HTMLInputElement>): void => {
       if (event.key === 'Enter') {
         handleCustomWpmSubmit()
-      } else if (event.key === 'Escape') {
-        resetCustomInput()
       }
     },
-    [handleCustomWpmSubmit, resetCustomInput]
+    [handleCustomWpmSubmit]
   )
+
+  useEscapeKey(resetCustomInput, showCustomInput)
 
   return {
     customWpm,

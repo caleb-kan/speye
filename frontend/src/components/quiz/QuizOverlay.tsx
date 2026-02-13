@@ -1,6 +1,7 @@
 import { createPortal } from 'react-dom'
 import { useEffect, useState } from 'react'
 import { MODAL_Z_INDEX } from '../../constants/quiz'
+import { useEscapeKey } from '../../hooks/useEscapeKey'
 
 type QuizOverlayProps = {
   isOpen: boolean
@@ -47,14 +48,7 @@ export function QuizOverlay({ isOpen, onClose, children }: QuizOverlayProps) {
   }, [isOpen])
 
   // Escape key
-  useEffect(() => {
-    if (!isOpen) return
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    document.addEventListener('keydown', handleEscape)
-    return () => document.removeEventListener('keydown', handleEscape)
-  }, [isOpen, onClose])
+  useEscapeKey(onClose, isOpen)
 
   // Don't render anything until we are mounted
   if (!isMounted || !modalRoot) return null

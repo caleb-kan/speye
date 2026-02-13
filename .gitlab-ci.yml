@@ -132,7 +132,7 @@ deploy-frontend:
     - chmod 600 ~/.ssh/id_rsa
     - ssh-keyscan shell1.doc.ic.ac.uk >> ~/.ssh/known_hosts
   script:
-    - chmod -R g+w frontend/dist/
+    - chmod -R g+rw frontend/dist/
     - ssh cmk123@shell1.doc.ic.ac.uk "rm -rf ${DEPLOY_PATH}_old ${DEPLOY_PATH}_new && mkdir -p ${DEPLOY_PATH}_new"
     - scp -p -r frontend/dist/. cmk123@shell1.doc.ic.ac.uk:${DEPLOY_PATH}_new/
     - ssh cmk123@shell1.doc.ic.ac.uk "mv ${DEPLOY_PATH} ${DEPLOY_PATH}_old 2>/dev/null; mv ${DEPLOY_PATH}_new ${DEPLOY_PATH} && rm -rf ${DEPLOY_PATH}_old"

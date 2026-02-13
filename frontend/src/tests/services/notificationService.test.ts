@@ -9,6 +9,7 @@ vi.mock('../../../../lib/supabase', () => ({
 import {
   getNotifications,
   markNotificationSeen,
+  createNotification,
 } from '../../services/notificationService'
 import { supabase } from '../../../../lib/supabase'
 
@@ -22,6 +23,7 @@ const mockNotifications = [
     type: 'info' as const,
     seen: false,
     created_at: '2026-02-11T10:00:00Z',
+    link: null,
   },
   {
     id: '2',
@@ -30,6 +32,7 @@ const mockNotifications = [
     type: 'alert' as const,
     seen: false,
     created_at: '2026-02-11T10:05:00Z',
+    link: null,
   },
   {
     id: '3',
@@ -38,6 +41,7 @@ const mockNotifications = [
     type: 'error' as const,
     seen: true,
     created_at: '2026-02-11T10:10:00Z',
+    link: null,
   },
 ]
 
@@ -135,6 +139,59 @@ describe('notificationService', () => {
       >)
 
       await expect(markNotificationSeen('notification-1')).rejects.toThrow()
+    })
+  })
+
+  describe('createNotification', () => {
+    it('should create a notification with link', async () => {
+      const mockInsert = vi.fn()
+
+      mockInsert.mockResolvedValue({ error: null })
+      mockFrom.mockReturnValue({
+        insert: mockInsert,
+      } as unknown as ReturnType<typeof supabase.from>)
+
+      await createNotification('user-1', 'Test message', 'info', '/library')
+
+      expect(mockFrom).toHaveBeenCalledWith('notifications')
+      expect(mockInsert).toHaveBeenCalledWith({
+        user_id: 'user-1',
+        message: 'Test message',
+        type: 'info',
+        link: '/library',
+      })
+    })
+
+    it('should create a notification without link', async () => {
+      const mockInsert = vi.fn()
+
+      mockInsert.mockResolvedValue({ error: null })
+      mockFrom.mockReturnValue({
+        insert: mockInsert,
+      } as unknown as ReturnType<typeof supabase.from>)
+
+      await createNotification('user-1', 'Test message', 'alert')
+
+      expect(mockInsert).toHaveBeenCalledWith({
+        user_id: 'user-1',
+        message: 'Test message',
+        type: 'alert',
+      })
+    })
+
+    it('should throw error if insert fails', async () => {
+      const mockInsert = vi.fn()
+
+      mockInsert.mockResolvedValue({
+        error: { message: 'Insert failed' },
+      })
+      mockFrom.mockReturnValue({
+        insert: mockInsert,
+      } as unknown as ReturnType<typeof supabase.from>)
+
+      await expect(
+        createNotification('user-1', 'Test message', 'info')
+      ).rejects.toThrow()
     })
   })
 })

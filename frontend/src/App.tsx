@@ -8,6 +8,7 @@ import { Home } from './pages/Home'
 import { Settings } from './pages/Settings'
 import { Library } from './pages/Library'
 import { Activity } from './pages/Activity'
+import { Admin } from './pages/Admin'
 import { NotFound } from './pages/NotFound'
 import { Login } from './pages/Login'
 import { ForgotPassword } from './pages/ForgotPassword'
@@ -47,6 +48,7 @@ function App() {
                     {/* Pages without OptionsBar */}
                     <Route path="library" element={<Library />} />
                     <Route path="activity" element={<Activity />} />
+                    <Route path="admin" element={<Admin />} />
                     <Route path="settings" element={<Settings />} />
                     <Route path="login" element={<Login />} />
                     <Route

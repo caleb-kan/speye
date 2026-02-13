@@ -17,6 +17,7 @@ interface QueueMessage {
   message: { text_id: string }
 }
 
+// Canonical type definition: backend/supabase/database/texts/types.ts
 interface QuizQuestion {
   question: string
   options: string[]
@@ -90,7 +91,7 @@ Deno.serve(async () => {
     // Include fiction to preserve user's explicit setting when editing
     const { data: text, error: fetchError } = await supabase
       .from('texts')
-      .select('content, title, fiction')
+      .select('content, title, fiction, admin_decision')
       .eq('id', textId)
       .single()
 
@@ -116,19 +117,46 @@ Deno.serve(async () => {
         body: JSON.stringify({
           content: text.content,
           generateTitle: text.title === null,
+          skipContentCheck: text.admin_decision === 'approved',
         }),
       }
     )
 
     if (!processResponse.ok) {
-      const errorText = await processResponse.text()
-      console.error('Error from process-text:', errorText)
+      const errorData = await processResponse.json().catch(() => ({}))
+      console.error('Error from process-text:', errorData)
 
-      // Update status to failed
-      await supabase
-        .from('texts')
-        .update({ processing_status: 'failed' }, { count: 'exact' })
-        .eq('id', textId)
+      // If this is a TOS violation (400 with violation_type), set both failed status and violation fields
+      if (processResponse.status === 400 && errorData.violation_type) {
+        const { error: tosError } = await supabase
+          .from('texts')
+          .update({
+            processing_status: 'failed',
+            llm_decision: 'rejected',
+            llm_violation_type: errorData.violation_type,
+            admin_decision: 'pending',
+            rejection_reason: errorData.violation_type,
+            rejection_stage: 'process_text',
+          })
+          .eq('id', textId)
+          .neq('admin_decision', 'approved')
+
+        if (tosError) {
+          console.error('Error updating TOS violation:', tosError)
+        } else {
+          console.log(`Updated text for TOS violation: ${textId}`)
+        }
+      } else {
+        // Non-TOS failure - just mark as failed
+        const { error: failError } = await supabase
+          .from('texts')
+          .update({ processing_status: 'failed' })
+          .eq('id', textId)
+
+        if (failError) {
+          console.error('Error marking text as failed:', failError)
+        }
+      }
 
       // Delete message - user can manually retry via the retry button
       await deleteQueueMessage(job.msg_id)
@@ -154,6 +182,9 @@ Deno.serve(async () => {
           fiction: text.fiction ?? result.fiction,
           summary: result.summary,
           processing_status: 'completed',
+          llm_decision: 'approved',
+          admin_decision:
+            text.admin_decision === 'approved' ? 'approved' : 'pending',
         },
         { count: 'exact' }
       )
@@ -184,6 +215,9 @@ Deno.serve(async () => {
         { status: 200, headers: { 'Content-Type': 'application/json' } }
       )
     }
+
+    // Note: admin notification is handled by the notify_admins_review_trigger
+    // on the texts table, which fires when admin_decision becomes 'pending'
 
     // 5. Queue validation job
     const { error: queueError } = await queue.rpc('send', {

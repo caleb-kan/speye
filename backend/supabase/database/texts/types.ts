@@ -42,6 +42,21 @@ export interface TextInput {
 }
 
 /**
+ * LLM decision on text content
+ */
+export type LlmDecision = 'approved' | 'rejected'
+
+/**
+ * Admin decision on text content
+ */
+export type AdminDecision = 'approved' | 'rejected' | 'pending'
+
+/**
+ * Pipeline stage where a failure or rejection originated
+ */
+export type FailureStage = 'process_text' | 'validate_quiz'
+
+/**
  * Full text record as stored in the database.
  */
 export interface TextRecord {
@@ -53,9 +68,15 @@ export interface TextRecord {
   fiction: boolean | null
   uploaded_at: string
   quiz: Quiz | null
-  category: string | null
   complexity: number | null
   source: string | null
   processing_status: ProcessingStatus
   quiz_valid: boolean | null
+  llm_decision: LlmDecision | null
+  llm_violation_type: string | null
+  admin_decision: AdminDecision | null
+  admin_reviewed_by: string | null
+  admin_reviewed_at: string | null
+  rejection_reason: string | null
+  rejection_stage: FailureStage | null
 }

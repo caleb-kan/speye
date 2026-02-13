@@ -20,6 +20,7 @@ type SubscriptionStatus = 'disconnected' | 'connecting' | 'connected' | 'error'
 const INITIAL_RETRY_DELAY_MS = 1000
 const MAX_RETRY_DELAY_MS = 30000
 const RETRY_BACKOFF_MULTIPLIER = 2
+const MAX_RETRY_ATTEMPTS = 5
 
 export function useNotificationSubscription(
   userId: string | null,
@@ -30,6 +31,7 @@ export function useNotificationSubscription(
   const callbacksRef = useRef(callbacks)
   const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const retryDelayRef = useRef(INITIAL_RETRY_DELAY_MS)
+  const retryCountRef = useRef(0)
   const mountedRef = useRef(true)
   const subscribeRef = useRef<(() => void) | null>(null)
 
@@ -46,6 +48,9 @@ export function useNotificationSubscription(
 
   const scheduleRetry = useCallback(() => {
     if (!mountedRef.current) return
+
+    retryCountRef.current += 1
+    if (retryCountRef.current > MAX_RETRY_ATTEMPTS) return
 
     clearRetryTimeout()
 
@@ -117,11 +122,14 @@ export function useNotificationSubscription(
         if (subscriptionStatus === 'SUBSCRIBED') {
           setStatus('connected')
           retryDelayRef.current = INITIAL_RETRY_DELAY_MS
+          retryCountRef.current = 0
         } else if (
           subscriptionStatus === 'CHANNEL_ERROR' ||
           subscriptionStatus === 'TIMED_OUT'
         ) {
-          console.error('Notification subscription error:', err)
+          if (retryCountRef.current === 0) {
+            console.error('Notification subscription error:', err)
+          }
           setStatus('error')
           scheduleRetry()
         } else if (subscriptionStatus === 'CLOSED') {

@@ -10,6 +10,7 @@ import {
   Trophy,
 } from 'lucide-react'
 import type { TextPreview } from '../../types/database'
+import { UNTITLED_TEXT_FALLBACK } from '../../constants/admin'
 
 export type LibraryTextListProps = {
   texts: TextPreview[]
@@ -48,7 +49,7 @@ export function LibraryTextList({
               <div className="flex items-center gap-2 mb-1">
                 <BookOpen className="w-4 h-4 text-primary" />
                 <h3 className="font-medium text-text truncate">
-                  {text.title || 'Untitled'}
+                  {text.title || UNTITLED_TEXT_FALLBACK}
                 </h3>
                 {text.processing_status === 'pending' && (
                   <span className="flex items-center gap-1 text-xs px-2 py-0.5 bg-warning/10 text-warning rounded">

@@ -1,3 +1,5 @@
+import { useNavigate } from 'react-router-dom'
+import { ChevronRight } from 'lucide-react'
 import { type Notification } from '../../types/database'
 import { formatTimestamp } from '../../utils/formatTimestamp'
 import { notificationTypeConfig } from '../../utils/notificationTypeConfig'
@@ -9,13 +11,21 @@ export function NotificationRow({
   notification: Notification
   onOpen: () => void
 }) {
+  const navigate = useNavigate()
   const config = notificationTypeConfig[notification.type]
   const Icon = config.icon
+
+  const handleClick = () => {
+    onOpen()
+    if (notification.link) {
+      navigate(notification.link)
+    }
+  }
 
   return (
     <button
       type="button"
-      onClick={onOpen}
+      onClick={handleClick}
       className={`
         flex w-full items-start justify-between gap-4 rounded-xl border px-4 py-4 text-left transition
         hover:bg-bg-secondary/80
@@ -41,9 +51,14 @@ export function NotificationRow({
           </p>
         </div>
       </div>
-      <span className="text-xs text-text-secondary whitespace-pre-line">
-        {formatTimestamp(notification.created_at)}
-      </span>
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-text-secondary whitespace-pre-line">
+          {formatTimestamp(notification.created_at)}
+        </span>
+        {notification.link ? (
+          <ChevronRight size={16} className="text-text-secondary" />
+        ) : null}
+      </div>
     </button>
   )
 }

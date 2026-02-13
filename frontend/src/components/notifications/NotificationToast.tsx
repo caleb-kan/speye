@@ -38,9 +38,9 @@ export const NotificationToast = memo(function NotificationToast({
     >
       <button
         type="button"
-        onClick={() => navigate('/notifications')}
+        onClick={() => navigate(notification.link ?? '/notifications')}
         className="flex w-full items-start gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-        aria-label="Open notifications"
+        aria-label={notification.link ? 'Go to details' : 'Open notifications'}
       >
         <Icon className="mt-0.5" size={18} />
         <div className="flex-1 text-left">

@@ -219,6 +219,10 @@ describe('UploadTextModal', () => {
           fiction: null,
         })
       })
+
+      await waitFor(() => {
+        expect(mockOnClose).toHaveBeenCalled()
+      })
     })
 
     it('should submit null title when title field is empty', async () => {

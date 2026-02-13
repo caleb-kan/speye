@@ -60,26 +60,48 @@ function checkRateLimit(clientIp: string): {
   }
 }
 
-const config = {
-  model: 'openai/gpt-oss-120b',
-  temperature: 0.3,
-  max_tokens: 12000,
-  top_p: 1,
-  system_message: `You are an expert educational content processor. You analyze text and generate a title, comprehension quiz questions, classify if the text is fiction or non-fiction, and generate a summary for non-fiction texts. You respond with valid JSON only - no markdown code blocks, no explanations, no text before or after the JSON object.`,
-  user_message: `Process this text by generating a title, quiz question sets, and summary (if non-fiction):
+// Prompt sections split for clean skipContentCheck handling
+const TOS_CHECK_SYSTEM_SUFFIX =
+  ' You also check if content violates terms of service.'
 
-{text_content}
+const TOS_CHECK_PROMPT = `FIRST, evaluate if the text violates any of these content policies:
+- Unlawful content or promotion of unlawful activities
+- Sexually obscene content
+- Libelous, defamatory, or fraudulent content
+- Discriminatory or abusive content toward any individual or group
+- Hate speech, threatening, or pornographic content
+- Content degrading others based on gender, race, class, ethnicity, national origin, religion, sexual preference, orientation, identity, disability, or other classification
+- Content that incites violence or contains nudity or graphic/gratuitous violence
+- Content that violates privacy or publicity rights
+- Content that solicits or collects personal information without consent
+- Malware or exploit-related content
+- Content that infringes on proprietary rights (patent, trademark, copyright, etc.)
+
+If the text violates ANY of these policies, respond with:
+{
+  "status": "error",
+  "error": "Content violates terms of service",
+  "violation_type": "brief description of violation"
+}
+
+If the text does NOT violate policies, process it by generating a title, quiz question sets, and summary (if non-fiction):
+
+`
+
+const PROCESSING_PROMPT = `{text_content}
 
 ---
 
-OUTPUT SCHEMA:
+OUTPUT SCHEMA (for approved content):
 {
+  "status": "success",
   "title": string | null,
   "questionSets": QuestionSet[],
   "fiction": boolean,
   "summary": string | null
 }
 
+- status: Always "success" for approved content
 - title: Generate a title ONLY if generateTitle is true, otherwise set to null
 - questionSets: Array of exactly 5 question sets, each containing 5 questions (25 questions total)
 - fiction: true if the text is fiction, false if non-fiction
@@ -135,7 +157,14 @@ generateTitle: {generate_title}
 
 ---
 
-Output valid JSON only:`,
+Output valid JSON only:`
+
+const config = {
+  model: 'openai/gpt-oss-120b',
+  temperature: 0.3,
+  max_tokens: 12000,
+  top_p: 1,
+  system_message: `You are an expert educational content processor. You analyze text and generate a title, comprehension quiz questions, classify if the text is fiction or non-fiction, and generate a summary for non-fiction texts.${TOS_CHECK_SYSTEM_SUFFIX} You respond with valid JSON only - no markdown code blocks, no explanations, no text before or after the JSON object.`,
 }
 
 const corsHeaders = {
@@ -160,6 +189,7 @@ function jsonResponse(
   })
 }
 
+// Canonical type definition: backend/supabase/database/texts/types.ts
 interface QuizQuestion {
   question: string
   options: string[]
@@ -170,11 +200,29 @@ interface QuestionSet {
   questions: QuizQuestion[]
 }
 
+interface ErrorResponse {
+  status: 'error'
+  error: string
+  violation_type: string
+}
+
 interface ProcessTextResponse {
+  status: 'success'
   title: string | null
   questionSets: QuestionSet[]
   fiction: boolean
   summary: string | null
+}
+
+function isErrorResponse(data: unknown): data is ErrorResponse {
+  if (!data || typeof data !== 'object') return false
+  const response = data as ErrorResponse
+
+  return (
+    response.status === 'error' &&
+    typeof response.error === 'string' &&
+    typeof response.violation_type === 'string'
+  )
 }
 
 function isValidQuestion(q: QuizQuestion): boolean {
@@ -193,6 +241,8 @@ function isValidResponse(data: unknown): data is ProcessTextResponse {
   if (!data || typeof data !== 'object') return false
   const response = data as ProcessTextResponse
 
+  if (response.status !== 'success') return false
+
   if (response.title !== null && typeof response.title !== 'string')
     return false
 
@@ -201,11 +251,10 @@ function isValidResponse(data: unknown): data is ProcessTextResponse {
 
   if (typeof response.fiction !== 'boolean') return false
 
-  // Validate summary: fiction must be null, non-fiction must be non-empty string
-  if (response.fiction) {
-    if (response.summary !== null && response.summary !== undefined)
-      return false
-  } else {
+  // Validate summary: non-fiction must have a non-empty string summary.
+  // Fiction summary is accepted here and nulled out in the response handler
+  // to avoid rejecting an otherwise valid response due to LLM inconsistency.
+  if (!response.fiction) {
     if (typeof response.summary !== 'string' || !response.summary.trim())
       return false
   }
@@ -253,7 +302,11 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ error: 'Server configuration error' }, 500)
     }
 
-    let body: { content?: unknown; generateTitle?: unknown }
+    let body: {
+      content?: unknown
+      generateTitle?: unknown
+      skipContentCheck?: unknown
+    }
     try {
       body = await req.json()
     } catch {
@@ -261,6 +314,14 @@ Deno.serve(async (req: Request) => {
     }
 
     const { content, generateTitle = true } = body
+
+    // skipContentCheck can only be used by the worker (service role key)
+    // to prevent external callers from bypassing content moderation
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    const authHeader = req.headers.get('Authorization')
+    const isServiceRole =
+      !!serviceRoleKey && authHeader === `Bearer ${serviceRoleKey}`
+    const skipContentCheck = body.skipContentCheck === true && isServiceRole
 
     if (!content || typeof content !== 'string' || !content.trim()) {
       return jsonResponse(
@@ -272,14 +333,31 @@ Deno.serve(async (req: Request) => {
     const groqClient = new Groq({ apiKey: groqApiKey })
     // Match frontend MAX_CONTENT_CHARACTERS limit (15k)
     const truncatedContent = content.trim().slice(0, 15000)
-    const userMessage = config.user_message
-      .replace('{text_content}', truncatedContent)
-      .replace('{generate_title}', String(generateTitle))
+
+    // When admin has approved flagged content, skip TOS check on reprocessing
+    let systemMessage: string
+    let userMessage: string
+    if (skipContentCheck) {
+      systemMessage = config.system_message.replace(TOS_CHECK_SYSTEM_SUFFIX, '')
+      userMessage = (
+        'This text has been reviewed and approved by an administrator. ' +
+        'Do NOT perform any content policy checks. ' +
+        'Process it by generating a title, quiz question sets, and summary (if non-fiction):\n\n' +
+        PROCESSING_PROMPT
+      )
+        .replace('{generate_title}', String(generateTitle))
+        .replace('{text_content}', truncatedContent)
+    } else {
+      systemMessage = config.system_message
+      userMessage = (TOS_CHECK_PROMPT + PROCESSING_PROMPT)
+        .replace('{generate_title}', String(generateTitle))
+        .replace('{text_content}', truncatedContent)
+    }
 
     const response = await groqClient.chat.completions.create({
       model: config.model,
       messages: [
-        { role: 'system', content: config.system_message },
+        { role: 'system', content: systemMessage },
         { role: 'user', content: userMessage },
       ],
       temperature: config.temperature,
@@ -305,6 +383,21 @@ Deno.serve(async (req: Request) => {
       }
     }
 
+    // When skipContentCheck is true (admin-approved reprocessing), ignore
+    // TOS error responses since the admin has explicitly approved this content
+    if (!skipContentCheck && isErrorResponse(parsed)) {
+      return jsonResponse(
+        {
+          error: parsed.error,
+          violation_type: parsed.violation_type,
+        },
+        400,
+        {
+          'X-RateLimit-Remaining': String(rateLimit.remaining),
+        }
+      )
+    }
+
     if (!isValidResponse(parsed)) {
       throw new Error('Response does not match expected format')
     }
@@ -314,7 +407,7 @@ Deno.serve(async (req: Request) => {
         title: parsed.title,
         questionSets: parsed.questionSets,
         fiction: parsed.fiction,
-        summary: parsed.summary ?? null,
+        summary: parsed.fiction ? null : (parsed.summary ?? null),
       },
       200,
       {

@@ -1,18 +1,21 @@
-export type QuizQuestion = {
-  question: string
-  options: string[]
-  correctAnswer: number
-}
+// Shared types re-exported from backend canonical definitions
+export type {
+  QuizQuestion,
+  QuestionSet,
+  Quiz,
+  ProcessingStatus,
+  LlmDecision,
+  AdminDecision,
+  FailureStage,
+} from '../../../backend/supabase/database/texts/types'
 
-export type QuestionSet = {
-  questions: QuizQuestion[]
-}
-
-export type Quiz = {
-  questionSets: QuestionSet[]
-}
-
-export type ProcessingStatus = 'pending' | 'completed' | 'failed'
+import type {
+  Quiz,
+  ProcessingStatus,
+  LlmDecision,
+  AdminDecision,
+  FailureStage,
+} from '../../../backend/supabase/database/texts/types'
 
 export type TextInput = {
   title?: string | null
@@ -34,11 +37,17 @@ export type Text = {
   owner_id: string | null
   quiz: Quiz | null
   fiction: boolean | null
-  category: string | null
   complexity: number | null
   source: string | null
   processing_status: ProcessingStatus
   quiz_valid: boolean | null
+  llm_decision: LlmDecision | null
+  llm_violation_type: string | null
+  admin_decision: AdminDecision | null
+  admin_reviewed_by: string | null
+  admin_reviewed_at: string | null
+  rejection_reason: string | null
+  rejection_stage: FailureStage | null
 }
 
 export type TextPreview = {
@@ -49,12 +58,15 @@ export type TextPreview = {
   owner_id: string | null
   quiz: Quiz | null
   fiction: boolean | null
-  category: string | null
   complexity: number | null
   source: string | null
   processing_status: ProcessingStatus
   quiz_valid: boolean | null
   has_summary: boolean
+  rejection_reason: string | null
+  rejection_stage: FailureStage | null
+  admin_reviewed_by: string | null
+  admin_reviewed_at: string | null
 }
 
 export type NotificationType = 'info' | 'alert' | 'error'
@@ -66,4 +78,5 @@ export type Notification = {
   type: NotificationType
   seen: boolean
   created_at: string
+  link: string | null
 }

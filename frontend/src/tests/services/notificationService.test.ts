@@ -9,6 +9,7 @@ vi.mock('../../../../lib/supabase', () => ({
 import {
   getNotifications,
   markNotificationSeen,
+  markNotificationToastShown,
   createNotification,
 } from '../../services/notificationService'
 import { supabase } from '../../../../lib/supabase'
@@ -22,6 +23,7 @@ const mockNotifications = [
     message: 'Test notification 1',
     type: 'info' as const,
     seen: false,
+    toast_shown: false,
     created_at: '2026-02-11T10:00:00Z',
     link: null,
   },
@@ -31,6 +33,7 @@ const mockNotifications = [
     message: 'Test notification 2',
     type: 'alert' as const,
     seen: false,
+    toast_shown: false,
     created_at: '2026-02-11T10:05:00Z',
     link: null,
   },
@@ -40,6 +43,7 @@ const mockNotifications = [
     message: 'Test notification 3',
     type: 'error' as const,
     seen: true,
+    toast_shown: true,
     created_at: '2026-02-11T10:10:00Z',
     link: null,
   },
@@ -139,6 +143,42 @@ describe('notificationService', () => {
       >)
 
       await expect(markNotificationSeen('notification-1')).rejects.toThrow()
+    })
+  })
+
+  describe('markNotificationToastShown', () => {
+    it('should mark a notification toast as shown', async () => {
+      const mockUpdate = vi.fn()
+      const mockEq = vi.fn()
+
+      mockEq.mockResolvedValue({ error: null })
+      mockUpdate.mockReturnValue({ eq: mockEq })
+      mockFrom.mockReturnValue({ update: mockUpdate } as unknown as ReturnType<
+        typeof supabase.from
+      >)
+
+      await markNotificationToastShown('notification-1')
+
+      expect(mockFrom).toHaveBeenCalledWith('notifications')
+      expect(mockUpdate).toHaveBeenCalledWith({ toast_shown: true })
+      expect(mockEq).toHaveBeenCalledWith('id', 'notification-1')
+    })
+
+    it('should throw error if update fails', async () => {
+      const mockUpdate = vi.fn()
+      const mockEq = vi.fn()
+
+      mockEq.mockResolvedValue({
+        error: { message: 'Update failed' },
+      })
+      mockUpdate.mockReturnValue({ eq: mockEq })
+      mockFrom.mockReturnValue({ update: mockUpdate } as unknown as ReturnType<
+        typeof supabase.from
+      >)
+
+      await expect(
+        markNotificationToastShown('notification-1')
+      ).rejects.toThrow()
     })
   })
 

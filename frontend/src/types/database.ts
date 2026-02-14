@@ -77,6 +77,7 @@ export type Notification = {
   message: string
   type: NotificationType
   seen: boolean
+  toast_shown: boolean
   created_at: string
   link: string | null
 }

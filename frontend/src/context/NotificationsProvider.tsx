@@ -8,11 +8,18 @@ import type { Notification } from '../types/database'
 import {
   getNotifications,
   markNotificationSeen,
+  markNotificationToastShown,
 } from '../services/notificationService'
 import { useNotificationSubscription } from '../hooks/useNotificationSubscription'
 
 const AUTO_CLOSE_MS = 5000
 const EXIT_ANIMATION_MS = 220
+
+const persistToastShown = (notificationId: string) => {
+  markNotificationToastShown(notificationId).catch((error) =>
+    console.error('Failed to mark notification toast shown', error)
+  )
+}
 
 const upsertNotification = (
   items: Notification[],
@@ -42,42 +49,6 @@ export function NotificationsProvider({
   const toastExitTimeoutsRef = useRef(
     new Map<string, ReturnType<typeof setTimeout>>()
   )
-
-  const refresh = useCallback(async () => {
-    if (!userId) {
-      setNotifications([])
-      setToasts([])
-      toastTimeoutsRef.current.forEach((timeout) => clearTimeout(timeout))
-      toastExitTimeoutsRef.current.forEach((timeout) => clearTimeout(timeout))
-      toastTimeoutsRef.current.clear()
-      toastExitTimeoutsRef.current.clear()
-      return
-    }
-
-    setLoading(true)
-    try {
-      const data = await getNotifications(userId)
-      setNotifications(data)
-    } finally {
-      setLoading(false)
-    }
-  }, [userId])
-
-  useEffect(() => {
-    void refresh()
-  }, [refresh])
-
-  useEffect(() => {
-    const toastTimeouts = toastTimeoutsRef.current
-    const toastExitTimeouts = toastExitTimeoutsRef.current
-
-    return () => {
-      toastTimeouts.forEach((timeout) => clearTimeout(timeout))
-      toastExitTimeouts.forEach((timeout) => clearTimeout(timeout))
-      toastTimeouts.clear()
-      toastExitTimeouts.clear()
-    }
-  }, [])
 
   const removeToast = useCallback((notificationId: string) => {
     const timeout = toastTimeoutsRef.current.get(notificationId)
@@ -121,6 +92,7 @@ export function NotificationsProvider({
 
       const removalTimeout = setTimeout(() => {
         removeToast(notificationId)
+        persistToastShown(notificationId)
       }, EXIT_ANIMATION_MS)
 
       toastExitTimeoutsRef.current.set(notificationId, removalTimeout)
@@ -161,6 +133,7 @@ export function NotificationsProvider({
 
         const timeout = setTimeout(() => {
           removeToast(notification.id)
+          persistToastShown(notification.id)
         }, AUTO_CLOSE_MS)
 
         toastTimeoutsRef.current.set(notification.id, timeout)
@@ -171,6 +144,48 @@ export function NotificationsProvider({
     },
     [removeToast]
   )
+
+  const refresh = useCallback(async () => {
+    if (!userId) {
+      setNotifications([])
+      setToasts([])
+      toastTimeoutsRef.current.forEach((timeout) => clearTimeout(timeout))
+      toastExitTimeoutsRef.current.forEach((timeout) => clearTimeout(timeout))
+      toastTimeoutsRef.current.clear()
+      toastExitTimeoutsRef.current.clear()
+      return
+    }
+
+    setLoading(true)
+    try {
+      const data = await getNotifications(userId)
+      setNotifications(data)
+
+      data
+        .filter(
+          (notification) => !notification.toast_shown && !notification.seen
+        )
+        .forEach((notification) => upsertToast(notification))
+    } finally {
+      setLoading(false)
+    }
+  }, [userId, upsertToast])
+
+  useEffect(() => {
+    void refresh()
+  }, [refresh])
+
+  useEffect(() => {
+    const toastTimeouts = toastTimeoutsRef.current
+    const toastExitTimeouts = toastExitTimeoutsRef.current
+
+    return () => {
+      toastTimeouts.forEach((timeout) => clearTimeout(timeout))
+      toastExitTimeouts.forEach((timeout) => clearTimeout(timeout))
+      toastTimeouts.clear()
+      toastExitTimeouts.clear()
+    }
+  }, [])
 
   const markAsSeen = useCallback(async (notificationId: string) => {
     setNotifications((prev) =>
@@ -193,7 +208,7 @@ export function NotificationsProvider({
     },
     onUpdate: (notification) => {
       setNotifications((prev) => upsertNotification(prev, notification))
-      if (notification.seen) {
+      if (notification.seen || notification.toast_shown) {
         removeToast(notification.id)
       } else {
         upsertToast(notification)

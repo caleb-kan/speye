@@ -23,6 +23,7 @@ describe('NotificationRow', () => {
     message: 'Test notification message',
     type: 'info',
     seen: false,
+    toast_shown: false,
     created_at: '2026-02-11T10:00:00Z',
     link: null,
   }

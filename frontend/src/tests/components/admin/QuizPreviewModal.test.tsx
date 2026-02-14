@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { QuizPreviewModal } from '../../../components/admin/QuizPreviewModal'
+import { QuizPreviewModal } from '../../../components/admin/textApproval/QuizPreviewModal'
 import type { Quiz } from '../../../types/database'
 import { UNTITLED_TEXT_FALLBACK } from '../../../constants/admin'
 

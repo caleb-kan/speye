@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { ApprovalItem } from '../../../components/admin/ApprovalItem'
+import { ApprovalItem } from '../../../components/admin/textApproval/ApprovalItem'
 import { UNTITLED_TEXT_FALLBACK } from '../../../constants/admin'
 import { createMockAdminText } from '../../helpers/adminMockFactory'
 

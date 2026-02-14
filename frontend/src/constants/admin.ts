@@ -1,3 +1,5 @@
+import type { NotificationType } from '../types'
+
 export const ADMIN_TEXT_PREVIEW_LENGTH = 150
 
 export const UNTITLED_TEXT_FALLBACK = 'Untitled Text'
@@ -9,3 +11,30 @@ export const ADMIN_BADGE_CLASSES = {
   info: 'bg-primary/20 text-primary',
   orange: 'bg-orange-500/20 text-orange-400',
 } as const
+
+export const NOTIFICATION_TYPES: { value: NotificationType; label: string }[] =
+  [
+    { value: 'info', label: 'Info' },
+    { value: 'alert', label: 'Alert' },
+    { value: 'error', label: 'Error' },
+  ]
+
+export const BROADCAST_VALUE = '__broadcast__'
+
+export const NOTIFICATION_INPUT_CLASS =
+  'w-full text-sm p-3 bg-bg border border-text-secondary/20 rounded-lg text-text placeholder-text-secondary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent'
+
+export const NOTIFICATION_LABEL_CLASS =
+  'block text-sm font-medium text-text mb-2 ml-1'
+
+type PageLink = { value: string; label: string; adminOnly?: boolean }
+export const PAGE_LINKS: PageLink[] = [
+  { value: '', label: 'None' },
+  { value: '/home', label: 'Home' },
+  { value: '/library', label: 'Library' },
+  { value: '/adaptive', label: 'Adaptive Reading' },
+  { value: '/activity', label: 'Activity' },
+  { value: '/settings', label: 'Settings' },
+  { value: '/notifications', label: 'Notifications' },
+  { value: '/admin', label: 'Admin', adminOnly: true },
+]

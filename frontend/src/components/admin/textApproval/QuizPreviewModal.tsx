@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { X, Check } from 'lucide-react'
-import type { Quiz } from '../../types/database'
-import { UNTITLED_TEXT_FALLBACK } from '../../constants/admin'
+import type { Quiz } from '../../../types/database.ts'
+import { UNTITLED_TEXT_FALLBACK } from '../../../constants/admin.ts'
 
 interface QuizPreviewModalProps {
   quiz: Quiz | null

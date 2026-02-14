@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
 import { X, RefreshCw } from 'lucide-react'
-import type { AdminReviewText } from '../../services/adminService'
-import { formatDate } from '../../utils/formatDate'
-import { getReviewStatus } from '../../utils/adminReviewStatus'
-import { StatusBadge } from './StatusBadge'
-import { UNTITLED_TEXT_FALLBACK } from '../../constants/admin'
+import type { AdminReviewText } from '../../../services/adminService.ts'
+import { formatDate } from '../../../utils/formatDate.ts'
+import { getReviewStatus } from '../../../utils/adminReviewStatus.ts'
+import { StatusBadge } from './StatusBadge.tsx'
+import { UNTITLED_TEXT_FALLBACK } from '../../../constants/admin.ts'
 
 interface TextPreviewModalProps {
   text: AdminReviewText | null

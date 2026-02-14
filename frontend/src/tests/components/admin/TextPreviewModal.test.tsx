@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { TextPreviewModal } from '../../../components/admin/TextPreviewModal'
+import { TextPreviewModal } from '../../../components/admin/textApproval/TextPreviewModal'
 import { UNTITLED_TEXT_FALLBACK } from '../../../constants/admin'
 import { createMockAdminText } from '../../helpers/adminMockFactory'
 

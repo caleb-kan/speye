@@ -82,7 +82,7 @@ describe('Admin', () => {
 
     expect(screen.getByText('Admin Panel')).toBeInTheDocument()
     expect(
-      screen.getByText('Review text uploads awaiting approval')
+      screen.getByText('Manage text approvals and send notifications')
     ).toBeInTheDocument()
   })
 

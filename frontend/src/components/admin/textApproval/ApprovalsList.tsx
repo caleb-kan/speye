@@ -1,5 +1,5 @@
-import { ApprovalItem } from './ApprovalItem'
-import type { AdminReviewText } from '../../services/adminService'
+import { ApprovalItem } from './ApprovalItem.tsx'
+import type { AdminReviewText } from '../../../services/adminService.ts'
 
 export interface ApprovalsListProps {
   approvals: AdminReviewText[]

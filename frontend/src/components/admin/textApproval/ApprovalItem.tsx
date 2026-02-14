@@ -1,4 +1,4 @@
-import type { AdminReviewText } from '../../services/adminService'
+import type { AdminReviewText } from '../../../services/adminService.ts'
 import {
   Check,
   Eye,
@@ -8,14 +8,14 @@ import {
   Clock,
   FileQuestion,
 } from 'lucide-react'
-import { formatDate } from '../../utils/formatDate'
-import { getReviewStatus } from '../../utils/adminReviewStatus'
-import { truncateText } from '../../utils/truncateText'
-import { StatusBadge } from './StatusBadge'
+import { formatDate } from '../../../utils/formatDate.ts'
+import { getReviewStatus } from '../../../utils/adminReviewStatus.ts'
+import { truncateText } from '../../../utils/truncateText.ts'
+import { StatusBadge } from './StatusBadge.tsx'
 import {
   ADMIN_TEXT_PREVIEW_LENGTH,
   UNTITLED_TEXT_FALLBACK,
-} from '../../constants/admin'
+} from '../../../constants/admin.ts'
 
 interface ApprovalItemProps {
   text: AdminReviewText

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import type { ReviewStatusInfo } from '../../utils/adminReviewStatus'
+import type { ReviewStatusInfo } from '../../../utils/adminReviewStatus.ts'
 
 interface StatusBadgeProps {
   reviewStatus: ReviewStatusInfo

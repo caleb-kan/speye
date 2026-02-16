@@ -1,8 +1,7 @@
 import type { NavigateFunction } from 'react-router-dom'
 import type { Dispatch, SetStateAction } from 'react'
 import { useCallback, useState } from 'react'
-import type { TextInput } from '../components/TextFormModal'
-import type { Text, TextPreview } from '../types/database'
+import type { Text, TextInput, TextPreview, Quiz } from '../types/database'
 import { getErrorMessage } from '../utils/getErrorMessage'
 import {
   createPreviewFromText,
@@ -13,18 +12,15 @@ import {
   fetchTextContent,
   retryLibraryTextProcessing,
   updateLibraryText,
+  updateLibraryTextQuiz,
   uploadLibraryText,
 } from '../services/libraryService'
 
-export type DeleteConfirmState = {
-  isOpen: boolean
-  textId: string | null
-}
+export type DeleteConfirmState =
+  | { isOpen: false }
+  | { isOpen: true; textId: string }
 
-export type EditModalState = {
-  isOpen: boolean
-  text: Text | null
-}
+export type EditModalState = { isOpen: false } | { isOpen: true; text: Text }
 
 export type UseLibraryTextActionsParams = {
   userId: string | null
@@ -51,6 +47,7 @@ export type UseLibraryTextActionsResult = {
   handleMakePublicCopy: (textId: string, data: TextInput) => Promise<void>
   handleReadText: (textPreview: TextPreview) => Promise<void>
   handleReadSummary: (textPreview: TextPreview) => Promise<void>
+  handleQuizSubmit: (textId: string, quiz: Quiz) => Promise<void>
 }
 
 export const useLibraryTextActions = (
@@ -67,11 +64,9 @@ export const useLibraryTextActions = (
   } = params
   const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirmState>({
     isOpen: false,
-    textId: null,
   })
   const [editModal, setEditModal] = useState<EditModalState>({
     isOpen: false,
-    text: null,
   })
   const [retryingTextIds, setRetryingTextIds] = useState<Set<string>>(new Set())
 
@@ -104,7 +99,7 @@ export const useLibraryTextActions = (
   }, [])
 
   const handleDeleteConfirm = useCallback(async (): Promise<void> => {
-    if (!userId || !deleteConfirm.textId) return
+    if (!userId || !deleteConfirm.isOpen) return
 
     const textIdToDelete = deleteConfirm.textId
     setDeleteError(null)
@@ -123,10 +118,10 @@ export const useLibraryTextActions = (
     } catch (err) {
       setDeleteError(getErrorMessage(err, 'Failed to delete text'))
     } finally {
-      setDeleteConfirm({ isOpen: false, textId: null })
+      setDeleteConfirm({ isOpen: false })
     }
   }, [
-    deleteConfirm.textId,
+    deleteConfirm,
     setDeleteError,
     setPrivateTexts,
     setSuccess,
@@ -136,7 +131,7 @@ export const useLibraryTextActions = (
   ])
 
   const handleDeleteCancel = useCallback((): void => {
-    setDeleteConfirm({ isOpen: false, textId: null })
+    setDeleteConfirm({ isOpen: false })
   }, [])
 
   const handleRetryProcessing = useCallback(
@@ -201,7 +196,7 @@ export const useLibraryTextActions = (
   )
 
   const handleEditClose = useCallback((): void => {
-    setEditModal({ isOpen: false, text: null })
+    setEditModal({ isOpen: false })
   }, [])
 
   const updatePrivateTextsWithPreview = useCallback(
@@ -286,6 +281,35 @@ export const useLibraryTextActions = (
     [navigate, setDeleteError]
   )
 
+  // DB errors from updateLibraryTextQuiz intentionally propagate to
+  // QuizEditor's catch block for inline display. Local state sync is wrapped
+  // separately so a UI update failure does not mask a successful save.
+  const handleQuizSubmit = useCallback(
+    async (textId: string, quiz: Quiz): Promise<void> => {
+      const updatedTextRecord = await updateLibraryTextQuiz(textId, quiz)
+
+      try {
+        const preview: TextPreview = {
+          ...createPreviewFromText(updatedTextRecord),
+          quiz_valid: true,
+        }
+
+        if (activeTab === 'private') {
+          updatePrivateTextsWithPreview(textId, preview)
+        } else if (activeTab === 'public' && refetchPublicTexts) {
+          refetchPublicTexts()
+        }
+      } catch (err) {
+        // Local state sync failed but the quiz was saved successfully.
+        // The UI will refresh on next navigation.
+        console.error('Quiz saved but local state sync failed:', err)
+      }
+
+      setSuccess('Quiz updated successfully!')
+    },
+    [setSuccess, updatePrivateTextsWithPreview, activeTab, refetchPublicTexts]
+  )
+
   const handleReadSummary = useCallback(
     async (textPreview: TextPreview): Promise<void> => {
       try {
@@ -320,5 +344,6 @@ export const useLibraryTextActions = (
     handleMakePublicCopy,
     handleReadText,
     handleReadSummary,
+    handleQuizSubmit,
   }
 }

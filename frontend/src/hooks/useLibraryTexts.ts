@@ -65,7 +65,23 @@ export function useLibraryTexts(userId: string | null): UseLibraryTextsReturn {
       onUpdate: (updatedText: TextPreview) => {
         setTexts((prev) =>
           prev
-            ? prev.map((t) => (t.id === updatedText.id ? updatedText : t))
+            ? prev.map((t) =>
+                t.id === updatedText.id
+                  ? {
+                      ...updatedText,
+                      // Preserve quiz from state when missing in real-time
+                      // payload. PostgreSQL TOAST columns are omitted from WAL
+                      // records when unchanged, so updates to other fields
+                      // (e.g. quiz_valid) arrive with quiz: null. We use ??
+                      // (not truthiness) so an explicit null from a quiz
+                      // deletion is distinguishable only if the column is
+                      // included in the WAL payload. This is an acceptable
+                      // trade-off: quiz deletions also update other fields
+                      // (quiz_valid), ensuring the full row is present.
+                      quiz: updatedText.quiz ?? t.quiz,
+                    }
+                  : t
+              )
             : null
         )
       },

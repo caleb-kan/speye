@@ -4,7 +4,7 @@ import '@testing-library/jest-dom'
 import { UploadTextModal } from '../../components/UploadTextModal'
 import { AuthContext } from '../../context/authContext'
 import { ROLE_ADMIN } from '../../constants/roles'
-import type { TextInput } from '../../components/TextFormModal'
+import type { TextInput } from '../../types/database'
 import type { User, Session } from '@supabase/supabase-js'
 import {
   MAX_TITLE_CHARACTERS,

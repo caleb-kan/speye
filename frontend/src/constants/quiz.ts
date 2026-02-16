@@ -1,3 +1,11 @@
+import {
+  NUM_QUESTION_SETS,
+  NUM_QUESTIONS,
+  NUM_OPTIONS_PER_QUESTION,
+} from '../../../lib/quizConstants'
+
+export { NUM_QUESTION_SETS, NUM_QUESTIONS, NUM_OPTIONS_PER_QUESTION }
+
 // QuizOverlay
 export const MODAL_Z_INDEX = 999
 
@@ -8,7 +16,10 @@ export const LEADERBOARD_FETCH_DELAY_MS = 500
 export const FULL_SCREEN_SCORE_SIZE = 260
 export const PRIVATE_SCORE_SIZE = 220
 export const PUBLIC_SCORE_SIZE = 100
-export const NUM_QUESTIONS = 5
+export const OPTION_LABELS = Array.from(
+  { length: NUM_OPTIONS_PER_QUESTION },
+  (_, i) => String.fromCharCode(65 + i)
+)
 export const MAX_QUIZ_SCORE = 100
 export const LEADERBOARD_TOP_COUNT = 5
 

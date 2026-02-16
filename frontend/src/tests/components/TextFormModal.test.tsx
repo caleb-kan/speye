@@ -841,4 +841,104 @@ describe('TextFormModal', () => {
       })
     })
   })
+
+  describe('embedded mode', () => {
+    it('does not render modal wrapper when embedded', () => {
+      render(
+        <TextFormModal
+          isOpen={true}
+          mode="edit"
+          initialData={{ content: 'Test', title: 'Title', fiction: true }}
+          onClose={mockOnClose}
+          onSubmit={mockOnSubmit}
+          embedded
+        />
+      )
+
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      expect(screen.getByLabelText('Text Content')).toBeInTheDocument()
+    })
+
+    it('does not render Cancel button when embedded', () => {
+      render(
+        <TextFormModal
+          isOpen={true}
+          mode="edit"
+          initialData={{ content: 'Test', title: 'Title', fiction: true }}
+          onClose={mockOnClose}
+          onSubmit={mockOnSubmit}
+          embedded
+        />
+      )
+
+      expect(
+        screen.queryByRole('button', { name: 'Cancel' })
+      ).not.toBeInTheDocument()
+    })
+
+    it('does not close on ESC key when embedded', () => {
+      render(
+        <TextFormModal
+          isOpen={true}
+          mode="edit"
+          initialData={{ content: 'Test', title: 'Title', fiction: true }}
+          onClose={mockOnClose}
+          onSubmit={mockOnSubmit}
+          embedded
+        />
+      )
+
+      fireEvent.keyDown(window, { key: 'Escape' })
+      expect(mockOnClose).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('onUnsavedChangesUpdate', () => {
+    it('reports true when content changes in edit mode', () => {
+      const onUnsavedChangesUpdate = vi.fn()
+      render(
+        <TextFormModal
+          isOpen={true}
+          mode="edit"
+          initialData={{ content: 'Original', title: 'Title', fiction: true }}
+          onClose={mockOnClose}
+          onSubmit={mockOnSubmit}
+          onUnsavedChangesUpdate={onUnsavedChangesUpdate}
+        />
+      )
+
+      fireEvent.change(screen.getByLabelText('Text Content'), {
+        target: { value: 'Modified' },
+      })
+
+      expect(onUnsavedChangesUpdate).toHaveBeenCalledWith(true)
+    })
+
+    it('reports false when content is reverted to original', () => {
+      const onUnsavedChangesUpdate = vi.fn()
+      render(
+        <TextFormModal
+          isOpen={true}
+          mode="edit"
+          initialData={{ content: 'Original', title: 'Title', fiction: true }}
+          onClose={mockOnClose}
+          onSubmit={mockOnSubmit}
+          onUnsavedChangesUpdate={onUnsavedChangesUpdate}
+        />
+      )
+
+      fireEvent.change(screen.getByLabelText('Text Content'), {
+        target: { value: 'Modified' },
+      })
+      fireEvent.change(screen.getByLabelText('Text Content'), {
+        target: { value: 'Original' },
+      })
+
+      const lastCall =
+        onUnsavedChangesUpdate.mock.calls[
+          onUnsavedChangesUpdate.mock.calls.length - 1
+        ]
+      expect(lastCall[0]).toBe(false)
+    })
+  })
 })

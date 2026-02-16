@@ -99,6 +99,7 @@ export function Library() {
     handleMakePublicCopy,
     handleReadText,
     handleReadSummary,
+    handleQuizSubmit,
   } = useLibraryTextActions({
     userId: user?.id ?? null,
     navigate,
@@ -221,10 +222,11 @@ export function Library() {
 
       <EditTextModal
         isOpen={editModal.isOpen}
-        text={editModal.text}
+        text={editModal.isOpen ? editModal.text : null}
         onClose={handleEditClose}
         onSubmit={handleEditSubmit}
         onMakePublicCopy={handleMakePublicCopy}
+        onQuizSubmit={handleQuizSubmit}
       />
 
       <ConfirmDialog

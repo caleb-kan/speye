@@ -80,10 +80,10 @@ describe('EditTextModal', () => {
     renderWithAuth(
       <EditTextModal {...defaultProps} isOpen={true} text={mockText} />
     )
-    expect(screen.getByText('Edit Text')).toBeInTheDocument()
+    expect(screen.getByText('Edit Text & Quiz')).toBeInTheDocument()
   })
 
-  it('calls onClose when modal is closed', () => {
+  it('does not call onClose on initial render', () => {
     const onClose = vi.fn()
     renderWithAuth(
       <EditTextModal
@@ -159,7 +159,7 @@ describe('EditTextModal', () => {
     )
 
     // Modal should still render with empty content textarea
-    expect(screen.getByText('Edit Text')).toBeInTheDocument()
+    expect(screen.getByText('Edit Text & Quiz')).toBeInTheDocument()
     expect(screen.getByLabelText('Text Content')).toHaveValue('')
   })
 
@@ -328,7 +328,7 @@ describe('EditTextModal', () => {
       ).toBeInTheDocument()
     })
 
-    it('should disable other buttons while making public copy', async () => {
+    it('should disable save button while making public copy', async () => {
       const mockOnMakePublicCopy = vi
         .fn()
         .mockImplementation(
@@ -350,10 +350,9 @@ describe('EditTextModal', () => {
       })
       fireEvent.click(makePublicButton)
 
-      const cancelButton = screen.getByRole('button', { name: 'Cancel' })
-      const saveButton = screen.getByRole('button', { name: /Save Changes/i })
-
-      expect(cancelButton).toBeDisabled()
+      const saveButton = screen.getByRole('button', {
+        name: /Save Changes/i,
+      })
       expect(saveButton).toBeDisabled()
     })
 

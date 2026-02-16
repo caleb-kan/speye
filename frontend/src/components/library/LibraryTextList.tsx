@@ -159,7 +159,7 @@ export function LibraryTextList({
                       onClick={() => onEditText(text)}
                       className="p-2 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
                       aria-label="Edit text"
-                      title="Edit text (will regenerate quiz)"
+                      title="Edit text or quiz"
                     >
                       <Pencil className="w-4 h-4" />
                     </button>

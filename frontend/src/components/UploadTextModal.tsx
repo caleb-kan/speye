@@ -1,6 +1,7 @@
 import { useAuth } from '../hooks/useAuth'
 import { useIsAdmin } from '../hooks/useIsAdmin'
-import { TextFormModal, type TextInput } from './TextFormModal'
+import type { TextInput } from '../types/database'
+import { TextFormModal } from './TextFormModal'
 
 interface UploadTextModalProps {
   isOpen: boolean

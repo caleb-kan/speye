@@ -1,10 +1,11 @@
-import type { Text, TextInput, TextPreview } from '../types/database'
+import type { Text, TextInput, TextPreview, Quiz } from '../types/database'
 import { deleteText } from '../../../backend/supabase/database/texts/deleteText'
 import { getLibraryTexts } from '../../../backend/supabase/database/texts/getLibraryTexts'
 import { getTextBestScores } from '../../../backend/supabase/database/texts/getTextBestScores'
 import { getTextContent } from '../../../backend/supabase/database/texts/getTextContent'
 import { retryProcessing } from '../../../backend/supabase/database/texts/retryProcessing'
 import { updateText } from '../../../backend/supabase/database/texts/updateText'
+import { updateTextQuiz } from '../../../backend/supabase/database/texts/updateTextQuiz'
 import { uploadText } from '../../../backend/supabase/database/texts/uploadText'
 
 export const fetchPublicLibraryTexts = async (): Promise<TextPreview[]> => {
@@ -51,4 +52,11 @@ export const updateLibraryText = async (
   payload: TextInput & { quiz: null; quiz_valid: false; summary: null }
 ): Promise<Text> => {
   return updateText(textId, payload)
+}
+
+export const updateLibraryTextQuiz = async (
+  textId: string,
+  quiz: Quiz
+): Promise<Text> => {
+  return updateTextQuiz(textId, quiz)
 }

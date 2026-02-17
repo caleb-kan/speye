@@ -12,10 +12,7 @@ import { formatDate } from '../../../utils/formatDate.ts'
 import { getReviewStatus } from '../../../utils/adminReviewStatus.ts'
 import { truncateText } from '../../../utils/truncateText.ts'
 import { StatusBadge } from './StatusBadge.tsx'
-import {
-  ADMIN_TEXT_PREVIEW_LENGTH,
-  UNTITLED_TEXT_FALLBACK,
-} from '../../../constants/admin.ts'
+import { UNTITLED_TEXT_FALLBACK } from '../../../constants/admin.ts'
 
 interface ApprovalItemProps {
   text: AdminReviewText
@@ -37,8 +34,8 @@ export function ApprovalItem({
   onRegenerate,
 }: ApprovalItemProps) {
   const reviewStatus = getReviewStatus(text)
-  const preview = truncateText(text.content, ADMIN_TEXT_PREVIEW_LENGTH)
   const isProcessing = processing === text.id
+  const preview = truncateText(text.content, 80)
 
   const statusIcon = reviewStatus.isFailure ? (
     <AlertTriangle size={12} />
@@ -47,86 +44,90 @@ export function ApprovalItem({
   )
 
   return (
-    <div className="bg-bg-secondary rounded-lg p-4 border border-border">
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex-1">
-          <div className="flex items-center gap-3 mb-2">
-            <h3 className="font-semibold text-text">
-              {text.title || UNTITLED_TEXT_FALLBACK}
-            </h3>
-            <StatusBadge reviewStatus={reviewStatus} icon={statusIcon} />
-          </div>
-          <div className="flex items-center gap-4 text-sm text-text-secondary mb-2">
-            <span>{formatDate(text.uploaded_at)}</span>
-          </div>
-          {text.rejection_reason && (
-            <div className="text-sm text-error mb-2">
+    <div className="group flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border border-transparent hover:bg-white/5 transition-all gap-4">
+      {/* Left: Info */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-3 mb-1">
+          <h3 className="font-semibold text-text text-sm truncate">
+            {text.title || UNTITLED_TEXT_FALLBACK}
+          </h3>
+          <StatusBadge reviewStatus={reviewStatus} icon={statusIcon} />
+        </div>
+
+        <div className="text-xs text-text-secondary mb-1.5 flex items-center gap-2">
+          <span>{formatDate(text.uploaded_at)}</span>
+          <span className="w-1 h-1 rounded-full bg-white/20"></span>
+          <span className="uppercase tracking-wide text-[10px]">
+            {text.processing_status}
+          </span>
+        </div>
+
+        <p className="text-sm text-text-secondary/70 truncate pr-4">
+          {text.rejection_reason ? (
+            <span className="text-error font-medium">
               Reason: {text.rejection_reason}
-            </div>
+            </span>
+          ) : (
+            preview
           )}
-          <div className="text-sm text-text mb-3">{preview}</div>
-        </div>
+        </p>
+      </div>
 
-        <div className="flex items-center gap-2 ml-4" aria-busy={isProcessing}>
+      {/* Right: Actions */}
+      <div
+        className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
+        aria-busy={isProcessing}
+      >
+        <button
+          onClick={() => onView(text)}
+          className="p-2 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+          title="View details"
+        >
+          <Eye size={16} />
+        </button>
+
+        {text.quiz && (
           <button
-            type="button"
-            onClick={() => onView(text)}
-            className="p-2 text-text-secondary hover:text-text hover:bg-bg rounded-lg transition-colors"
-            title="View full text"
-            aria-label="View full text"
+            onClick={() => onViewQuiz(text)}
+            className="p-2 text-text-secondary hover:text-purple-400 hover:bg-purple-500/10 rounded-lg transition-colors"
+            title="View quiz"
           >
-            <Eye size={16} />
+            <FileQuestion size={16} />
           </button>
+        )}
 
-          {text.quiz && (
-            <button
-              type="button"
-              onClick={() => onViewQuiz(text)}
-              className="p-2 text-text-secondary hover:text-text hover:bg-bg rounded-lg transition-colors"
-              title="View quiz"
-              aria-label="View quiz"
-            >
-              <FileQuestion size={16} />
-            </button>
-          )}
+        <div className="w-px h-4 bg-white/10 mx-1"></div>
 
-          {reviewStatus.canApprove && (
-            <button
-              type="button"
-              onClick={() => onApprove(text.id)}
-              disabled={isProcessing}
-              className="p-2 text-success hover:opacity-80 hover:bg-success/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              title={reviewStatus.approveLabel}
-              aria-label={reviewStatus.approveLabel}
-            >
-              <Check size={16} />
-            </button>
-          )}
-
+        {reviewStatus.canApprove && (
           <button
-            type="button"
-            onClick={() => onReject(text)}
+            onClick={() => onApprove(text.id)}
             disabled={isProcessing}
-            className="p-2 text-error hover:opacity-80 hover:bg-error/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Reject"
-            aria-label="Reject"
+            className="p-2 text-text-secondary hover:text-success hover:bg-success/10 rounded-lg transition-colors"
+            title="Approve"
           >
-            <X size={16} />
+            <Check size={16} />
           </button>
+        )}
 
-          {reviewStatus.canRegenerate && (
-            <button
-              type="button"
-              onClick={() => onRegenerate(text.id)}
-              disabled={isProcessing}
-              className="p-2 text-yellow-400 hover:text-yellow-300 hover:bg-yellow-500/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              title={reviewStatus.regenerateLabel}
-              aria-label={reviewStatus.regenerateLabel}
-            >
-              <RefreshCw size={16} />
-            </button>
-          )}
-        </div>
+        <button
+          onClick={() => onReject(text)}
+          disabled={isProcessing}
+          className="p-2 text-text-secondary hover:text-error hover:bg-error/10 rounded-lg transition-colors"
+          title="Reject"
+        >
+          <X size={16} />
+        </button>
+
+        {reviewStatus.canRegenerate && (
+          <button
+            onClick={() => onRegenerate(text.id)}
+            disabled={isProcessing}
+            className="p-2 text-text-secondary hover:text-yellow-400 hover:bg-yellow-500/10 rounded-lg transition-colors"
+            title="Regenerate"
+          >
+            <RefreshCw size={16} />
+          </button>
+        )}
       </div>
     </div>
   )

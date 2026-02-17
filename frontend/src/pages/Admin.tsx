@@ -1,26 +1,34 @@
 import { useState, useCallback } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { useAdminApprovals } from '../hooks/useAdminApprovals'
+import { useAdminStats } from '../hooks/useAdminStats'
 import { useAutoClearMessage } from '../hooks/useAutoClearMessage'
-import { AdminSection } from '../components/admin/AdminSection'
-import { ApprovalsList } from '../components/admin/textApproval/ApprovalsList.tsx'
-import { EmptyState } from '../components/admin/textApproval/EmptyState.tsx'
+import { ApprovalsList } from '../components/admin/textApproval/ApprovalsList'
 import { AlertMessages } from '../components/ui/AlertMessages'
-import { TextPreviewModal } from '../components/admin/textApproval/TextPreviewModal.tsx'
-import { QuizPreviewModal } from '../components/admin/textApproval/QuizPreviewModal.tsx'
-import { AccessDenied } from '../components/admin/textApproval/AccessDenied.tsx'
-import { NotificationCreator } from '../components/admin/notificationCreator/NotificationCreator.tsx'
-import { AdminPromotion } from '../components/admin/adminPromotion/AdminPromotion.tsx'
+import { TextPreviewModal } from '../components/admin/textApproval/TextPreviewModal'
+import { QuizPreviewModal } from '../components/admin/textApproval/QuizPreviewModal'
+import { AccessDenied } from '../components/admin/textApproval/AccessDenied'
+import { AdminGraphCard } from '../components/admin/AdminGraphCard'
+import { AdminStatsCard } from '../components/admin/AdminStatsCard'
+import { AdminActionPanel } from '../components/admin/AdminActionPanel'
 import { SUCCESS_MESSAGE_DURATION_MS } from '../constants/ui'
 import type { AdminReviewText } from '../services/adminService'
+import { FileText, XCircle, CheckCircle2 } from 'lucide-react'
 
 export function Admin() {
   const { loading: authLoading } = useAuth()
   const [initialShowReject, setInitialShowReject] = useState(false)
 
   const {
+    stats,
+    trend,
+    loading: statsLoading,
+    error: statsError,
+  } = useAdminStats()
+
+  const {
     approvals,
-    loading,
+    loading: approvalsLoading,
     error,
     successMessage,
     processing,
@@ -66,13 +74,12 @@ export function Admin() {
     setQuizPreviewText(null)
   }, [setQuizPreviewText])
 
-  // Gate entire page behind auth + admin check
-  if (authLoading || loading) {
+  if (authLoading || statsLoading || approvalsLoading) {
     return (
-      <div className="p-6 h-full overflow-auto">
-        <div className="max-w-6xl mx-auto">
-          <p className="text-text-secondary animate-pulse">Loading...</p>
-        </div>
+      <div className="p-6 h-full flex items-center justify-center">
+        <p className="text-text-secondary animate-pulse">
+          Loading dashboard...
+        </p>
       </div>
     )
   }
@@ -85,60 +92,115 @@ export function Admin() {
     )
   }
 
+  // Global Stats (+ fallback if stats fail to load)
+  const displayStats = stats ?? {
+    totalTexts: 0,
+    publicTexts: 0,
+    privateTexts: 0,
+    pendingTexts: approvals.length,
+    activeUsers: 0,
+    rejectionRate: '-',
+  }
+
+  const activeUsersTotal = stats ? stats.activeUsers : '-'
+  const rejectionRate = stats ? stats.rejectionRate : '-'
+
   return (
-    <div className="p-6 h-full overflow-hidden flex flex-col">
-      <div className="max-w-6xl mx-auto w-full flex flex-col flex-1 min-h-0">
-        <div className="mb-4 shrink-0">
-          <h1 className="text-3xl font-bold text-text mb-1">Admin Panel</h1>
-          <p className="text-text-secondary text-sm">
-            Manage text approvals, send notifications, and manage admins
-          </p>
-        </div>
-
-        <div className="flex gap-6 flex-1 min-h-0">
-          <AdminSection
-            title="Text Approvals"
-            className="flex-1 min-w-0 flex flex-col overflow-hidden"
-          >
-            <div className="shrink-0">
-              <AlertMessages
-                successMessage={successMessage}
-                errorMessage={error}
-              />
-            </div>
-
-            <div className="flex-1 overflow-y-auto min-h-0">
-              {!error &&
-                (approvals.length === 0 ? (
-                  <EmptyState
-                    title="All caught up!"
-                    message="No texts are currently pending review."
-                  />
-                ) : (
-                  <ApprovalsList
-                    approvals={approvals}
-                    processing={processing}
-                    onView={handleViewText}
-                    onViewQuiz={setQuizPreviewText}
-                    onApprove={handleApprove}
-                    onReject={handleRejectFromCard}
-                    onRegenerate={handleRegenerate}
-                  />
-                ))}
-            </div>
-          </AdminSection>
-
-          <div className="flex flex-col gap-6 w-96 shrink-0 min-h-0 overflow-y-auto">
-            <AdminSection title="Send Notification" className="shrink-0">
-              <NotificationCreator />
-            </AdminSection>
-
-            <AdminSection title="Manage Admins" className="flex-1 min-h-0">
-              <AdminPromotion />
-            </AdminSection>
+    <div className="p-6 h-full overflow-y-auto bg-bg">
+      <div className="max-w-7xl mx-auto space-y-4">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 py-2">
+          <div>
+            <h1 className="text-2xl font-bold text-text mb-1">Admin Panel</h1>
+            <p className="text-text-secondary text-xs">
+              Overview of content moderation and system activity
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="h-2 w-2 rounded-full bg-success animate-pulse"></div>
+            <span className="text-[10px] font-mono text-text-secondary uppercase tracking-wider">
+              [{activeUsersTotal}] Active Users
+            </span>
           </div>
         </div>
 
+        <AlertMessages
+          successMessage={successMessage}
+          errorMessage={error || statsError}
+        />
+
+        {/* Top Stats Row */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <AdminStatsCard
+            title="Total Texts"
+            value={displayStats.totalTexts}
+            icon={<FileText size={18} />}
+            split={[
+              {
+                label: 'Public',
+                value: displayStats.publicTexts,
+                color: 'bg-primary',
+              },
+              {
+                label: 'Private',
+                value: displayStats.privateTexts,
+                color: 'bg-purple-500/50',
+              },
+            ]}
+          />
+
+          <div className="sm:col-span-2">
+            <AdminGraphCard
+              title="Active Users (30d)"
+              total={activeUsersTotal}
+              data={trend}
+              className="p-6 h-full"
+            />
+          </div>
+
+          <AdminStatsCard
+            title="Rejection Rate"
+            value={rejectionRate}
+            icon={<XCircle size={18} />}
+            trendUp={true}
+            className="p-4"
+          />
+        </div>
+
+        {/* Main Dashboard Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-start">
+          {/* Approval Queue (Left Column) */}
+          <div className="lg:col-span-3 h-[500px] lg:h-[60vh] flex flex-col">
+            {approvals.length === 0 ? (
+              <div className="bg-bg-secondary/30 border border-white/5 rounded-2xl p-8 flex flex-col items-center justify-center text-center flex-1 h-full">
+                <CheckCircle2 className="w-12 h-12 text-success/50 mb-3" />
+                <h2 className="text-lg font-semibold text-text mb-1">
+                  All caught up!
+                </h2>
+                <p className="text-text-secondary text-sm">
+                  No texts are currently pending review.
+                </p>
+              </div>
+            ) : (
+              <ApprovalsList
+                approvals={approvals}
+                processing={processing}
+                onView={handleViewText}
+                onViewQuiz={setQuizPreviewText}
+                onApprove={handleApprove}
+                onReject={handleRejectFromCard}
+                onRegenerate={handleRegenerate}
+              />
+            )}
+          </div>
+
+          {/* Action Panel (Right Column) */}
+          <div className="lg:col-span-1 h-[500px] lg:h-[60vh]">
+            <AdminActionPanel />
+          </div>
+        </div>
+
+        {/* Modals */}
         <TextPreviewModal
           text={selectedText}
           processing={processing}

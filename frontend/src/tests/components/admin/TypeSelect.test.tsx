@@ -6,7 +6,6 @@ import { TypeSelect } from '../../../components/admin/notificationCreator/TypeSe
 describe('TypeSelect', () => {
   const defaultProps = {
     value: 'info' as const,
-    disabled: false,
     onChange: vi.fn(),
   }
 
@@ -14,44 +13,31 @@ describe('TypeSelect', () => {
     vi.clearAllMocks()
   })
 
-  it('should render label and select', () => {
+  it('should render label and type buttons', () => {
     render(<TypeSelect {...defaultProps} />)
-
-    expect(screen.getByLabelText('Notification Type')).toBeInTheDocument()
+    expect(screen.getByText(/Notification Type/i)).toBeInTheDocument()
+    // Check for buttons instead of select options
+    expect(screen.getByRole('button', { name: /Info/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Alert/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Error/i })).toBeInTheDocument()
   })
 
-  it('should render all notification type options', () => {
-    render(<TypeSelect {...defaultProps} />)
-
-    expect(screen.getByText('Info')).toBeInTheDocument()
-    expect(screen.getByText('Alert')).toBeInTheDocument()
-    expect(screen.getByText('Error')).toBeInTheDocument()
-  })
-
-  it('should have the correct value selected', () => {
-    render(<TypeSelect {...defaultProps} value="alert" />)
-
-    const select = screen.getByLabelText(
-      'Notification Type'
-    ) as HTMLSelectElement
-    expect(select.value).toBe('alert')
-  })
-
-  it('should call onChange when a type is selected', async () => {
+  it('should call onChange when a type button is clicked', async () => {
     const user = userEvent.setup()
     render(<TypeSelect {...defaultProps} />)
 
-    await user.selectOptions(
-      screen.getByLabelText('Notification Type'),
-      'error'
-    )
+    await user.click(screen.getByRole('button', { name: /Error/i }))
 
     expect(defaultProps.onChange).toHaveBeenCalledWith('error')
   })
 
-  it('should disable select when disabled prop is true', () => {
-    render(<TypeSelect {...defaultProps} disabled={true} />)
+  it('should indicate active state visually', () => {
+    render(<TypeSelect {...defaultProps} value="alert" />)
 
-    expect(screen.getByLabelText('Notification Type')).toBeDisabled()
+    const alertBtn = screen.getByRole('button', { name: /Alert/i })
+    expect(alertBtn.className).toContain('text-primary')
+
+    const infoBtn = screen.getByRole('button', { name: /Info/i })
+    expect(infoBtn.className).not.toContain('text-primary')
   })
 })

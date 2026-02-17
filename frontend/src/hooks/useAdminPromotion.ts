@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { promoteToAdmin } from '../services/userService'
 import { getErrorMessage } from '../utils/getErrorMessage'
 import { useUsers } from './useUsers'
@@ -12,12 +12,28 @@ export function useAdminPromotion() {
   const [error, setError] = useState<string | null>(null)
 
   const filteredUsers = useMemo(() => {
-    if (!searchQuery.trim()) return users
-    const query = searchQuery.toLowerCase()
-    return users.filter((u) => {
-      const username = (u.username ?? '').toLowerCase()
-      return username.includes(query) || u.id.toLowerCase().includes(query)
-    })
+    const q = searchQuery.trim().toLowerCase()
+    if (!q) return users
+
+    return users
+      .map((u) => {
+        const username = (u.username ?? '').toLowerCase()
+        const id = u.id.toLowerCase()
+
+        let score: number | null = null
+        if (username && username.startsWith(q)) score = 0
+        else if (id.startsWith(q)) score = 1
+        else if (username && username.includes(q)) score = 2
+        else if (id.includes(q)) score = 3
+
+        return { u, score, username, id }
+      })
+      .filter((x) => x.score !== null)
+      .sort((a, b) => {
+        if (a.score! !== b.score!) return a.score! - b.score!
+        return (a.username || a.id).localeCompare(b.username || b.id)
+      })
+      .map((x) => x.u)
   }, [users, searchQuery])
 
   const selectedUserLabel = useMemo(() => {

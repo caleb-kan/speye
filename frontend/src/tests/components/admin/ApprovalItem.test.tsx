@@ -23,9 +23,7 @@ describe('ApprovalItem', () => {
     render(<ApprovalItem text={text} processing={null} {...defaultHandlers} />)
 
     expect(screen.getByText('Test Text')).toBeInTheDocument()
-    expect(
-      screen.getByText('Some test content for the preview')
-    ).toBeInTheDocument()
+    expect(screen.getByText(/Some test content/)).toBeInTheDocument()
   })
 
   it('should render fallback title when title is null', () => {
@@ -57,21 +55,21 @@ describe('ApprovalItem', () => {
     const text = createMockAdminText()
     render(<ApprovalItem text={text} processing={null} {...defaultHandlers} />)
 
-    expect(screen.getByLabelText('Approve')).toBeInTheDocument()
+    expect(screen.getByTitle('Approve')).toBeInTheDocument()
   })
 
   it('should not show approve button when processing is still pending', () => {
     const text = createMockAdminText({ processing_status: 'pending' })
     render(<ApprovalItem text={text} processing={null} {...defaultHandlers} />)
 
-    expect(screen.queryByLabelText('Approve')).not.toBeInTheDocument()
+    expect(screen.queryByTitle('Approve')).not.toBeInTheDocument()
   })
 
   it('should show regenerate button for quiz issues', () => {
     const text = createMockAdminText({ rejection_stage: 'validate_quiz' })
     render(<ApprovalItem text={text} processing={null} {...defaultHandlers} />)
 
-    expect(screen.getByLabelText('Regenerate Quiz')).toBeInTheDocument()
+    expect(screen.getByTitle('Regenerate')).toBeInTheDocument()
   })
 
   it('should show quiz view button when quiz exists', () => {
@@ -80,14 +78,14 @@ describe('ApprovalItem', () => {
     })
     render(<ApprovalItem text={text} processing={null} {...defaultHandlers} />)
 
-    expect(screen.getByLabelText('View quiz')).toBeInTheDocument()
+    expect(screen.getByTitle('View quiz')).toBeInTheDocument()
   })
 
   it('should not show quiz view button when quiz is null', () => {
     const text = createMockAdminText({ quiz: null })
     render(<ApprovalItem text={text} processing={null} {...defaultHandlers} />)
 
-    expect(screen.queryByLabelText('View quiz')).not.toBeInTheDocument()
+    expect(screen.queryByTitle('View quiz')).not.toBeInTheDocument()
   })
 
   it('should disable action buttons when processing this text', () => {
@@ -96,8 +94,8 @@ describe('ApprovalItem', () => {
       <ApprovalItem text={text} processing="text-1" {...defaultHandlers} />
     )
 
-    expect(screen.getByLabelText('Approve')).toBeDisabled()
-    expect(screen.getByLabelText('Reject')).toBeDisabled()
+    expect(screen.getByTitle('Approve')).toBeDisabled()
+    expect(screen.getByTitle('Reject')).toBeDisabled()
   })
 
   it('should not disable buttons when processing a different text', () => {
@@ -106,8 +104,8 @@ describe('ApprovalItem', () => {
       <ApprovalItem text={text} processing="other-text" {...defaultHandlers} />
     )
 
-    expect(screen.getByLabelText('Approve')).not.toBeDisabled()
-    expect(screen.getByLabelText('Reject')).not.toBeDisabled()
+    expect(screen.getByTitle('Approve')).not.toBeDisabled()
+    expect(screen.getByTitle('Reject')).not.toBeDisabled()
   })
 
   it('should call onView when eye button clicked', async () => {
@@ -115,7 +113,7 @@ describe('ApprovalItem', () => {
     const text = createMockAdminText()
     render(<ApprovalItem text={text} processing={null} {...defaultHandlers} />)
 
-    await user.click(screen.getByLabelText('View full text'))
+    await user.click(screen.getByTitle('View details'))
 
     expect(defaultHandlers.onView).toHaveBeenCalledWith(text)
   })
@@ -125,7 +123,7 @@ describe('ApprovalItem', () => {
     const text = createMockAdminText()
     render(<ApprovalItem text={text} processing={null} {...defaultHandlers} />)
 
-    await user.click(screen.getByLabelText('Approve'))
+    await user.click(screen.getByTitle('Approve'))
 
     expect(defaultHandlers.onApprove).toHaveBeenCalledWith('text-1')
   })
@@ -135,7 +133,7 @@ describe('ApprovalItem', () => {
     const text = createMockAdminText()
     render(<ApprovalItem text={text} processing={null} {...defaultHandlers} />)
 
-    await user.click(screen.getByLabelText('Reject'))
+    await user.click(screen.getByTitle('Reject'))
 
     expect(defaultHandlers.onReject).toHaveBeenCalledWith(text)
   })
@@ -146,7 +144,7 @@ describe('ApprovalItem', () => {
     render(<ApprovalItem text={text} processing={null} {...defaultHandlers} />)
 
     const preview = screen.getByText(/A+\.\.\./)
-    expect(preview.textContent!.length).toBeLessThan(200)
+    expect(preview.textContent!.length).toBeLessThan(100)
   })
 
   it('should set aria-busy on action container when processing', () => {
@@ -164,7 +162,7 @@ describe('ApprovalItem', () => {
     const text = createMockAdminText({ quiz: { questionSets: [] } })
     render(<ApprovalItem text={text} processing={null} {...defaultHandlers} />)
 
-    await user.click(screen.getByLabelText('View quiz'))
+    await user.click(screen.getByTitle('View quiz'))
 
     expect(defaultHandlers.onViewQuiz).toHaveBeenCalledWith(text)
   })
@@ -174,7 +172,7 @@ describe('ApprovalItem', () => {
     const text = createMockAdminText({ rejection_stage: 'validate_quiz' })
     render(<ApprovalItem text={text} processing={null} {...defaultHandlers} />)
 
-    await user.click(screen.getByLabelText('Regenerate Quiz'))
+    await user.click(screen.getByTitle('Regenerate'))
 
     expect(defaultHandlers.onRegenerate).toHaveBeenCalledWith('text-1')
   })

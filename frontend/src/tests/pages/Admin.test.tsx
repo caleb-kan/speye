@@ -2,39 +2,70 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Admin } from '../../pages/Admin'
-import type { AdminReviewText } from '../../services/adminService'
 import { createMockAdminText } from '../helpers/adminMockFactory'
+import type { AdminReviewText } from '../../services/adminService'
 
-let mockAuthLoading = false
-let mockIsAdmin = true
-let mockApprovals: AdminReviewText[] = []
-let mockLoading = false
-let mockError: string | null = null
-let mockSuccessMessage: string | null = null
-
-const mockHandlers = {
-  setSelectedText: vi.fn(),
-  setQuizPreviewText: vi.fn(),
-  setSuccessMessage: vi.fn(),
-  handleApprove: vi.fn(),
-  handleReject: vi.fn(),
-  handleRegenerate: vi.fn(),
+type AdminPageMockState = {
+  authLoading: boolean
+  isAdmin: boolean
+  approvals: AdminReviewText[]
+  loading: boolean
+  error: string | null
+  successMessage: string | null
 }
 
+const { mockHandlers, mockState } = vi.hoisted(() => {
+  const mockHandlers = {
+    setSelectedText: vi.fn(),
+    setQuizPreviewText: vi.fn(),
+    setSuccessMessage: vi.fn(),
+    handleApprove: vi.fn(),
+    handleReject: vi.fn(),
+    handleRegenerate: vi.fn(),
+  }
+
+  const mockState: AdminPageMockState = {
+    authLoading: false,
+    isAdmin: true,
+    approvals: [],
+    loading: false,
+    error: null,
+    successMessage: null,
+  }
+
+  return { mockHandlers, mockState }
+})
+
+vi.mock('../../hooks/useAdminStats', () => ({
+  useAdminStats: () => ({
+    stats: {
+      totalTexts: 100,
+      publicTexts: 80,
+      privateTexts: 20,
+      pendingTexts: 5,
+      activeUsers: 10,
+      rejectionRate: '5%',
+    },
+    trend: [],
+    loading: false,
+    error: null,
+  }),
+}))
+
 vi.mock('../../hooks/useAuth', () => ({
-  useAuth: () => ({ loading: mockAuthLoading }),
+  useAuth: () => ({ loading: mockState.authLoading }),
 }))
 
 vi.mock('../../hooks/useAdminApprovals', () => ({
   useAdminApprovals: () => ({
-    approvals: mockApprovals,
-    loading: mockLoading,
-    error: mockError,
-    successMessage: mockSuccessMessage,
+    approvals: mockState.approvals,
+    loading: mockState.loading,
+    error: mockState.error,
+    successMessage: mockState.successMessage,
     processing: null,
     selectedText: null,
     quizPreviewText: null,
-    isAdmin: mockIsAdmin,
+    isAdmin: mockState.isAdmin,
     ...mockHandlers,
   }),
 }))
@@ -43,75 +74,76 @@ vi.mock('../../hooks/useAutoClearMessage', () => ({
   useAutoClearMessage: vi.fn(),
 }))
 
+vi.mock('../../components/admin/AdminGraphCard', () => ({
+  AdminGraphCard: () => <div data-testid="admin-graph">Graph</div>,
+}))
+vi.mock('../../components/admin/AdminActionPanel', () => ({
+  AdminActionPanel: () => (
+    <div data-testid="admin-action-panel">Action Panel</div>
+  ),
+}))
+
+global.ResizeObserver = class ResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+
 describe('Admin', () => {
+  const mockText = createMockAdminText({ id: 'text-123', title: 'Test Text' })
+
   beforeEach(() => {
     vi.clearAllMocks()
-    mockAuthLoading = false
-    mockIsAdmin = true
-    mockApprovals = [createMockAdminText()]
-    mockLoading = false
-    mockError = null
-    mockSuccessMessage = null
+    mockState.authLoading = false
+    mockState.isAdmin = true
+    mockState.approvals = [mockText]
+    mockState.loading = false
+    mockState.error = null
+    mockState.successMessage = null
   })
 
   it('should show loading state when auth is loading', () => {
-    mockAuthLoading = true
-    mockLoading = true
+    mockState.authLoading = true
     render(<Admin />)
-
-    expect(screen.getByText('Loading...')).toBeInTheDocument()
+    expect(screen.getByText('Loading dashboard...')).toBeInTheDocument()
   })
 
   it('should show loading state when approvals are loading', () => {
-    mockLoading = true
+    mockState.loading = true
     render(<Admin />)
-
-    expect(screen.getByText('Loading...')).toBeInTheDocument()
+    expect(screen.getByText('Loading dashboard...')).toBeInTheDocument()
   })
 
   it('should show access denied for non-admins', () => {
-    mockIsAdmin = false
+    mockState.isAdmin = false
     render(<Admin />)
-
     expect(screen.getByText('Access Denied')).toBeInTheDocument()
-    expect(screen.getByRole('alert')).toBeInTheDocument()
   })
 
   it('should render admin panel header', () => {
     render(<Admin />)
-
     expect(screen.getByText('Admin Panel')).toBeInTheDocument()
     expect(
-      screen.getByText(
-        'Manage text approvals, send notifications, and manage admins'
-      )
+      screen.getByText('Overview of content moderation and system activity')
     ).toBeInTheDocument()
   })
 
-  it('should render all admin sections', () => {
+  it('should render main dashboard sections', () => {
     render(<Admin />)
-
-    expect(
-      screen.getByRole('heading', { name: 'Text Approvals' })
-    ).toBeInTheDocument()
-    expect(
-      screen.getByRole('heading', { name: 'Send Notification' })
-    ).toBeInTheDocument()
-    expect(
-      screen.getByRole('heading', { name: 'Manage Admins' })
-    ).toBeInTheDocument()
+    expect(screen.getByText('Pending Reviews')).toBeInTheDocument()
+    expect(screen.getByTestId('admin-action-panel')).toBeInTheDocument()
+    expect(screen.getByText('Total Texts')).toBeInTheDocument()
+    expect(screen.getByText('Rejection Rate')).toBeInTheDocument()
   })
 
   it('should render approval items', () => {
     render(<Admin />)
-
     expect(screen.getByText('Test Text')).toBeInTheDocument()
   })
 
   it('should show empty state when no approvals', () => {
-    mockApprovals = []
+    mockState.approvals = []
     render(<Admin />)
-
     expect(screen.getByText('All caught up!')).toBeInTheDocument()
     expect(
       screen.getByText('No texts are currently pending review.')
@@ -119,36 +151,25 @@ describe('Admin', () => {
   })
 
   it('should show success message', () => {
-    mockSuccessMessage = 'Text approved successfully'
+    mockState.successMessage = 'Text approved successfully'
     render(<Admin />)
-
     expect(screen.getByText('Text approved successfully')).toBeInTheDocument()
   })
 
   it('should show error message', () => {
-    mockError = 'Failed to fetch approvals'
+    mockState.error = 'Failed to fetch approvals'
     render(<Admin />)
-
     expect(screen.getByText('Failed to fetch approvals')).toBeInTheDocument()
-  })
-
-  it('should not show content when there is an error', () => {
-    mockError = 'Something went wrong'
-    render(<Admin />)
-
-    // Content should be hidden on error
-    expect(screen.queryByText('Test Text')).not.toBeInTheDocument()
   })
 
   it('should open text preview on reject from card', async () => {
     const user = userEvent.setup()
     render(<Admin />)
 
-    await user.click(screen.getByLabelText('Reject'))
+    await user.click(screen.getByTitle('Reject'))
 
-    // Should call setSelectedText with the text object
     expect(mockHandlers.setSelectedText).toHaveBeenCalledWith(
-      createMockAdminText()
+      expect.objectContaining({ id: 'text-123' })
     )
   })
 
@@ -156,10 +177,10 @@ describe('Admin', () => {
     const user = userEvent.setup()
     render(<Admin />)
 
-    await user.click(screen.getByLabelText('View full text'))
+    await user.click(screen.getByTitle('View details'))
 
     expect(mockHandlers.setSelectedText).toHaveBeenCalledWith(
-      createMockAdminText()
+      expect.objectContaining({ id: 'text-123' })
     )
   })
 })

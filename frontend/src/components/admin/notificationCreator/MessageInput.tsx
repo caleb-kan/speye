@@ -1,27 +1,21 @@
-import {
-  NOTIFICATION_INPUT_CLASS,
-  NOTIFICATION_LABEL_CLASS,
-} from '../../../constants/admin.ts'
-
 interface MessageInputProps {
   value: string
-  disabled: boolean
-  onChange: (message: string) => void
+  sending: boolean
+  onChange: (val: string) => void
 }
 
-export function MessageInput({ value, disabled, onChange }: MessageInputProps) {
+export function MessageInput({ value, sending, onChange }: MessageInputProps) {
   return (
-    <div>
-      <label htmlFor="notif-message" className={NOTIFICATION_LABEL_CLASS}>
+    <div className="space-y-1.5">
+      <label className="text-[10px] uppercase font-bold text-text-secondary">
         Message
       </label>
       <textarea
-        id="notif-message"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="Enter notification message..."
-        className={`${NOTIFICATION_INPUT_CLASS} h-20 resize-none`}
-        disabled={disabled}
+        placeholder="What's happening?"
+        disabled={sending}
+        className="w-full h-24 bg-bg border border-white/10 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-primary/50 transition-colors resize-none placeholder:text-text-secondary/50"
       />
     </div>
   )

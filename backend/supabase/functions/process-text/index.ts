@@ -1,5 +1,8 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
-import Groq from 'npm:groq-sdk@0.5.0'
+import Groq from 'npm:groq-sdk@0.37.0'
+
+// Must match frontend/src/constants/textUpload.ts MAX_CONTENT_CHARACTERS
+const MAX_CONTENT_LENGTH = 15_000
 
 // Rate limiting: 20 requests per minute per IP
 const RATE_LIMIT = {
@@ -60,7 +63,84 @@ function checkRateLimit(clientIp: string): {
   }
 }
 
-// Prompt sections split for clean skipContentCheck handling
+// JSON schemas for Groq structured output (strict: true).
+// Strict mode requires root type: "object", so fullSchema uses a flat
+// object with nullable fields instead of root-level anyOf.
+// Array length constraints (minItems/maxItems) are not supported in
+// strict mode, so cardinality is enforced by prompt + runtime validation.
+// Keep in sync with the TypeScript interfaces below.
+
+/** Wraps a JSON schema type as nullable via anyOf. */
+function nullable(schema: Record<string, unknown>): {
+  anyOf: [Record<string, unknown>, { type: 'null' }]
+} {
+  return { anyOf: [schema, { type: 'null' }] }
+}
+
+const questionSchema = {
+  type: 'object',
+  properties: {
+    question: { type: 'string' },
+    options: {
+      type: 'array',
+      items: { type: 'string' },
+    },
+    correctAnswer: { type: 'integer' },
+  },
+  required: ['question', 'options', 'correctAnswer'],
+  additionalProperties: false,
+} as const
+
+const questionSetSchema = {
+  type: 'object',
+  properties: {
+    questions: {
+      type: 'array',
+      items: questionSchema,
+    },
+  },
+  required: ['questions'],
+  additionalProperties: false,
+} as const
+
+// Used when skipContentCheck is true (admin-approved, no error variant needed)
+const successSchema = {
+  type: 'object',
+  properties: {
+    status: { type: 'string', enum: ['success'] },
+    title: nullable({ type: 'string' }),
+    questionSets: {
+      type: 'array',
+      items: questionSetSchema,
+    },
+    fiction: { type: 'boolean' },
+    summary: nullable({ type: 'string' }),
+  },
+  required: ['status', 'title', 'questionSets', 'fiction', 'summary'],
+  additionalProperties: false,
+} as const
+
+// Used when TOS check is active: flat object with all fields.
+// On error: status="error", error/violation_type populated, others null.
+// On success: status="success", title/questionSets/fiction/summary populated,
+// error/violation_type null. Discriminated by isErrorResponse/isValidResponse.
+const fullSchema = {
+  type: 'object',
+  properties: {
+    ...successSchema.properties,
+    status: { type: 'string', enum: ['success', 'error'] },
+    questionSets: nullable({ type: 'array', items: questionSetSchema }),
+    fiction: nullable({ type: 'boolean' }),
+    error: nullable({ type: 'string' }),
+    violation_type: nullable({ type: 'string' }),
+  },
+  required: [...successSchema.required, 'error', 'violation_type'],
+  additionalProperties: false,
+} as const
+
+// Prompt sections and schemas split for skipContentCheck handling.
+// When true: TOS prompt/suffix excluded, successSchema used.
+// When false: full TOS prompt included, fullSchema (error | success) used.
 const TOS_CHECK_SYSTEM_SUFFIX =
   ' You also check if content violates terms of service.'
 
@@ -77,43 +157,13 @@ const TOS_CHECK_PROMPT = `FIRST, evaluate if the text violates any of these cont
 - Malware or exploit-related content
 - Content that infringes on proprietary rights (patent, trademark, copyright, etc.)
 
-If the text violates ANY of these policies, respond with:
-{
-  "status": "error",
-  "error": "Content violates terms of service",
-  "violation_type": "brief description of violation"
-}
+If the text violates ANY of these policies, set status to "error", provide a description in the "error" field and a brief category in the "violation_type" field, and set title, questionSets, fiction, and summary to null.
 
-If the text does NOT violate policies, process it by generating a title, quiz question sets, and summary (if non-fiction):
+If the text does NOT violate policies, set status to "success", set error and violation_type to null, and process it by generating a title, quiz question sets, and summary (if non-fiction):
 
 `
 
 const PROCESSING_PROMPT = `{text_content}
-
----
-
-OUTPUT SCHEMA (for approved content):
-{
-  "status": "success",
-  "title": string | null,
-  "questionSets": QuestionSet[],
-  "fiction": boolean,
-  "summary": string | null
-}
-
-- status: Always "success" for approved content
-- title: Generate a title ONLY if generateTitle is true, otherwise set to null
-- questionSets: Array of exactly 5 question sets, each containing 5 questions (25 questions total)
-- fiction: true if the text is fiction, false if non-fiction
-- summary: If the text is non-fiction, generate a concise summary. If fiction, set to null.
-
-QuestionSet object:
-  - questions: Question[] (exactly 5 questions per set)
-
-Question object:
-  - question: string (the question text, clear and unambiguous)
-  - options: string[4] (exactly 4 answer choices)
-  - correctAnswer: integer (index 0-3 of the correct option)
 
 ---
 
@@ -155,8 +205,6 @@ SUMMARY REQUIREMENTS (non-fiction only, set to null for fiction):
 CONFIGURATION:
 generateTitle: {generate_title}
 
----
-
 Output valid JSON only:`
 
 const config = {
@@ -164,6 +212,8 @@ const config = {
   temperature: 0.3,
   max_tokens: 12000,
   top_p: 1,
+  // "Respond with valid JSON" retained as belt-and-suspenders alongside
+  // json_schema: the model has been observed ignoring the schema directive.
   system_message: `You are an expert educational content processor. You analyze text and generate a title, comprehension quiz questions, classify if the text is fiction or non-fiction, and generate a summary for non-fiction texts.${TOS_CHECK_SYSTEM_SUFFIX} You respond with valid JSON only - no markdown code blocks, no explanations, no text before or after the JSON object.`,
 }
 
@@ -189,7 +239,10 @@ function jsonResponse(
   })
 }
 
-// Canonical type definition: backend/supabase/database/texts/types.ts
+// Three representations of quiz structure must stay in sync:
+// 1. Canonical types: backend/supabase/database/texts/types.ts
+// 2. JSON schemas: questionSchema, questionSetSchema (above)
+// 3. Local interfaces: QuizQuestion, QuestionSet (below)
 interface QuizQuestion {
   question: string
   options: string[]
@@ -214,6 +267,11 @@ interface ProcessTextResponse {
   summary: string | null
 }
 
+// Must match lib/quizConstants.ts
+const NUM_QUESTION_SETS = 5
+const NUM_QUESTIONS = 5
+const NUM_OPTIONS_PER_QUESTION = 4
+
 function isErrorResponse(data: unknown): data is ErrorResponse {
   if (!data || typeof data !== 'object') return false
   const response = data as ErrorResponse
@@ -228,12 +286,16 @@ function isErrorResponse(data: unknown): data is ErrorResponse {
 function isValidQuestion(q: QuizQuestion): boolean {
   return (
     typeof q.question === 'string' &&
+    q.question.trim().length > 0 &&
     Array.isArray(q.options) &&
-    q.options.length === 4 &&
-    q.options.every((opt: unknown) => typeof opt === 'string') &&
-    typeof q.correctAnswer === 'number' &&
+    q.options.length === NUM_OPTIONS_PER_QUESTION &&
+    q.options.every(
+      (opt: unknown) =>
+        typeof opt === 'string' && (opt as string).trim().length > 0
+    ) &&
+    Number.isInteger(q.correctAnswer) &&
     q.correctAnswer >= 0 &&
-    q.correctAnswer <= 3
+    q.correctAnswer <= NUM_OPTIONS_PER_QUESTION - 1
   )
 }
 
@@ -247,7 +309,7 @@ function isValidResponse(data: unknown): data is ProcessTextResponse {
     return false
 
   if (!Array.isArray(response.questionSets)) return false
-  if (response.questionSets.length !== 5) return false
+  if (response.questionSets.length !== NUM_QUESTION_SETS) return false
 
   if (typeof response.fiction !== 'boolean') return false
 
@@ -263,7 +325,7 @@ function isValidResponse(data: unknown): data is ProcessTextResponse {
     (set: QuestionSet) =>
       set &&
       Array.isArray(set.questions) &&
-      set.questions.length === 5 &&
+      set.questions.length === NUM_QUESTIONS &&
       set.questions.every(isValidQuestion)
   )
 }
@@ -282,16 +344,10 @@ Deno.serve(async (req: Request) => {
 
   if (!rateLimit.allowed) {
     const retryAfter = Math.ceil((rateLimit.resetTime - Date.now()) / 1000)
-    return new Response(
-      JSON.stringify({ error: 'Too many requests. Please try again later.' }),
-      {
-        status: 429,
-        headers: {
-          'Content-Type': 'application/json',
-          'Retry-After': String(retryAfter),
-          ...corsHeaders,
-        },
-      }
+    return jsonResponse(
+      { error: 'Too many requests. Please try again later.' },
+      429,
+      { 'Retry-After': String(retryAfter) }
     )
   }
 
@@ -309,7 +365,8 @@ Deno.serve(async (req: Request) => {
     }
     try {
       body = await req.json()
-    } catch {
+    } catch (parseError) {
+      console.error('Failed to parse request body:', parseError)
       return jsonResponse({ error: 'Invalid JSON body' }, 400)
     }
 
@@ -331,8 +388,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const groqClient = new Groq({ apiKey: groqApiKey })
-    // Match frontend MAX_CONTENT_CHARACTERS limit (15k)
-    const truncatedContent = content.trim().slice(0, 15000)
+    const truncatedContent = content.trim().slice(0, MAX_CONTENT_LENGTH)
 
     // When admin has approved flagged content, skip TOS check on reprocessing
     let systemMessage: string
@@ -363,28 +419,52 @@ Deno.serve(async (req: Request) => {
       temperature: config.temperature,
       max_tokens: config.max_tokens,
       top_p: config.top_p,
+      response_format: {
+        type: 'json_schema',
+        json_schema: {
+          name: skipContentCheck
+            ? 'process_text_success'
+            : 'process_text_response',
+          strict: true,
+          schema: skipContentCheck ? successSchema : fullSchema,
+        },
+      },
     })
 
-    const responseContent = response.choices[0]?.message?.content?.trim()
+    const choice = response.choices[0]
+    if (!choice) {
+      throw new Error('No choices in API response')
+    }
 
+    if (choice.finish_reason === 'length') {
+      throw new Error(
+        'Model response truncated due to token limit ' +
+          `(max_tokens: ${config.max_tokens})`
+      )
+    }
+
+    const responseContent = choice.message?.content?.trim()
     if (!responseContent) {
-      throw new Error('No content in response')
+      throw new Error(
+        `No content in response (finish_reason: ${choice.finish_reason})`
+      )
     }
 
     let parsed: unknown
     try {
       parsed = JSON.parse(responseContent)
-    } catch {
-      const jsonMatch = responseContent.match(/\{[\s\S]*}/)
-      if (jsonMatch) {
-        parsed = JSON.parse(jsonMatch[0])
-      } else {
-        throw new Error('Invalid JSON in response')
-      }
+    } catch (parseError) {
+      console.error(
+        'Structured output returned non-JSON. Raw (first 500 chars):',
+        responseContent.slice(0, 500)
+      )
+      throw new Error(
+        `Structured output returned invalid JSON: ${(parseError as Error).message}`
+      )
     }
 
-    // When skipContentCheck is true (admin-approved reprocessing), ignore
-    // TOS error responses since the admin has explicitly approved this content
+    // When skipContentCheck is true, successSchema prevents error responses
+    // at the schema level. This guard is kept as defense-in-depth.
     if (!skipContentCheck && isErrorResponse(parsed)) {
       return jsonResponse(
         {
@@ -398,7 +478,37 @@ Deno.serve(async (req: Request) => {
       )
     }
 
+    // Catch malformed error responses where the LLM set status "error"
+    // but left error/violation_type as null (passes schema, fails
+    // isErrorResponse). Treat as a TOS rejection so content enters the
+    // admin review flow instead of being silently retryable.
+    if (
+      !skipContentCheck &&
+      typeof parsed === 'object' &&
+      parsed !== null &&
+      (parsed as Record<string, unknown>).status === 'error'
+    ) {
+      console.error(
+        'LLM returned error status with incomplete fields:',
+        JSON.stringify(parsed).slice(0, 500)
+      )
+      return jsonResponse(
+        {
+          error: 'Content flagged but details unavailable',
+          violation_type: 'unknown',
+        },
+        400,
+        {
+          'X-RateLimit-Remaining': String(rateLimit.remaining),
+        }
+      )
+    }
+
     if (!isValidResponse(parsed)) {
+      console.error(
+        'Response validation failed. Parsed (first 500 chars):',
+        JSON.stringify(parsed).slice(0, 500)
+      )
       throw new Error('Response does not match expected format')
     }
 

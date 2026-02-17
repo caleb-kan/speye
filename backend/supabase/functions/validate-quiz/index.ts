@@ -1,5 +1,10 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
-import Groq from 'npm:groq-sdk@0.5.0'
+import Groq from 'npm:groq-sdk@0.37.0'
+
+// Must match frontend/src/constants/textUpload.ts MAX_CONTENT_CHARACTERS
+const MAX_CONTENT_LENGTH = 15_000
+// Truncation limit for summary excerpt sent to the validation LLM
+const MAX_SUMMARY_LENGTH = 5_000
 
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
@@ -43,9 +48,13 @@ interface ValidationResult {
 }
 
 const config = {
+  // json_object mode (not json_schema): llama model does not support strict
+  // structured output, but json_object guarantees valid JSON syntax.
   model: 'llama-3.3-70b-versatile',
   temperature: 0.1,
   max_tokens: 1000,
+  // "Respond with valid JSON" retained as belt-and-suspenders alongside
+  // json_object: ensures the model prioritizes JSON even if the mode fails.
   system_message: `You are a quiz quality validator. Your job is to evaluate if a quiz accurately tests reading comprehension of a given text. You respond with valid JSON only - no markdown code blocks, no explanations.`,
   user_message: `Evaluate if this quiz is a good comprehension test for the given text.
 
@@ -68,8 +77,7 @@ EVALUATION CRITERIA:
 
 ---
 
-Respond with JSON only:
-{ "isValid": true } or { "isValid": false }`,
+Evaluate and return a JSON object with a single field "isValid" set to true or false.`,
 }
 
 function jsonResponse(data: Record<string, unknown>, status = 200): Response {
@@ -106,7 +114,8 @@ Deno.serve(async (req: Request) => {
     let body: ValidateQuizRequest
     try {
       body = await req.json()
-    } catch {
+    } catch (parseError) {
+      console.error('Failed to parse request body:', parseError)
       return jsonResponse({ error: 'Invalid JSON body' }, 400)
     }
 
@@ -128,12 +137,11 @@ Deno.serve(async (req: Request) => {
 
     const groqClient = new Groq({ apiKey: groqApiKey })
 
-    // Match frontend MAX_CONTENT_CHARACTERS limit (15k)
-    const truncatedContent = content.trim().slice(0, 15000)
+    const truncatedContent = content.trim().slice(0, MAX_CONTENT_LENGTH)
     const quizSampleJson = JSON.stringify(quizSample, null, 2)
 
     const summarySection = summary
-      ? `SUMMARY:\n${summary.trim().slice(0, 5000)}`
+      ? `SUMMARY:\n${summary.trim().slice(0, MAX_SUMMARY_LENGTH)}`
       : ''
     const summaryCriteria = summary
       ? '5. Every question must also be answerable from the summary alone'
@@ -153,29 +161,47 @@ Deno.serve(async (req: Request) => {
       ],
       temperature: config.temperature,
       max_tokens: config.max_tokens,
+      response_format: { type: 'json_object' },
     })
 
-    const responseContent = response.choices[0]?.message?.content?.trim()
+    const choice = response.choices[0]
+    if (!choice) {
+      throw new Error('No choices in API response')
+    }
 
+    if (choice.finish_reason === 'length') {
+      throw new Error(
+        'Model response truncated due to token limit ' +
+          `(max_tokens: ${config.max_tokens})`
+      )
+    }
+
+    const responseContent = choice.message?.content?.trim()
     if (!responseContent) {
-      throw new Error('No content in response')
+      throw new Error(
+        `No content in response (finish_reason: ${choice.finish_reason})`
+      )
     }
 
     let parsed: ValidationResult
     try {
       parsed = JSON.parse(responseContent)
-    } catch {
-      // Try to extract JSON from response
-      const jsonMatch = responseContent.match(/\{[\s\S]*\}/)
-      if (jsonMatch) {
-        parsed = JSON.parse(jsonMatch[0])
-      } else {
-        throw new Error('Invalid JSON in response')
-      }
+    } catch (parseError) {
+      console.error(
+        'json_object returned non-JSON. Raw (first 500 chars):',
+        responseContent.slice(0, 500)
+      )
+      throw new Error(
+        `json_object returned invalid JSON: ${(parseError as Error).message}`
+      )
     }
 
     // Validate response structure
     if (typeof parsed.isValid !== 'boolean') {
+      console.error(
+        'Unexpected validation response:',
+        JSON.stringify(parsed).slice(0, 500)
+      )
       throw new Error('Response missing isValid boolean')
     }
 

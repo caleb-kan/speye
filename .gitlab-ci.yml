@@ -75,6 +75,7 @@ test:
 
 e2e:
   stage: test
+  image: mcr.microsoft.com/playwright:v1.58.2-jammy
   tags:
     - build
     - npm
@@ -85,17 +86,12 @@ e2e:
     key: ${CI_COMMIT_REF_SLUG}
     paths:
       - .npm/
-      - .cache/ms-playwright/
-      - frontend/node_modules/
-      - backend/node_modules/
-      - node_modules/
   variables:
-    PLAYWRIGHT_BROWSERS_PATH: '$CI_PROJECT_DIR/.cache/ms-playwright'
+    PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
     VITE_SUPABASE_URL: 'http://localhost:54321'
     VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY: 'test-anon-key'
   script:
     - cd frontend
-    - npx playwright install --with-deps
     - npm run test:e2e
 
 build:

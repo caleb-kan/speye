@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import { QuizModal } from '../../components/quiz/QuizModal'
 import '@testing-library/jest-dom'
 import type { QuestionSet } from '../../types/database'
@@ -29,19 +30,21 @@ const mockQuestionSet: QuestionSet = {
   ],
 }
 
-// Mock the save service
-vi.mock('../services/saveQuizResult', () => ({
-  saveQuizResult: vi.fn().mockResolvedValue({}),
+const mockSaveQuizResult = vi.fn().mockResolvedValue({})
+
+vi.mock('../../services/saveQuizResult', () => ({
+  saveQuizResult: (...args: unknown[]) => mockSaveQuizResult(...args),
 }))
 
-// Mock useAuth for QuizResults component
+const mockUseAuth = vi.fn().mockReturnValue({
+  user: { id: 'test-user-id' },
+  session: null,
+  loading: false,
+  signOut: vi.fn(),
+})
+
 vi.mock('../../hooks/useAuth', () => ({
-  useAuth: () => ({
-    user: { id: 'test-user-id' },
-    session: null,
-    loading: false,
-    signOut: vi.fn(),
-  }),
+  useAuth: (...args: unknown[]) => mockUseAuth(...args),
 }))
 
 // Mock leaderboard service
@@ -56,6 +59,13 @@ describe('QuizModal', () => {
     modalRoot.setAttribute('id', 'modal-root')
     document.body.appendChild(modalRoot)
     vi.clearAllMocks()
+    mockUseAuth.mockReturnValue({
+      user: { id: 'test-user-id' },
+      session: null,
+      loading: false,
+      signOut: vi.fn(),
+    })
+    mockSaveQuizResult.mockResolvedValue({})
   })
 
   afterEach(() => {
@@ -192,6 +202,100 @@ describe('QuizModal', () => {
       fireEvent.click(closeButton)
 
       expect(defaultProps.onClose).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  describe('Anonymous User Flow', () => {
+    beforeEach(() => {
+      mockUseAuth.mockReturnValue({
+        user: null,
+        session: null,
+        loading: false,
+        signOut: vi.fn(),
+      })
+    })
+
+    async function completeQuiz() {
+      await screen.findByText(/Comprehension Quiz/i)
+      const questionCount = mockQuestionSet.questions.length
+      for (let i = 0; i < questionCount; i++) {
+        const options = screen
+          .getAllByRole('button')
+          .filter(
+            (btn) =>
+              !['Next Question', 'Finish Quiz', 'Close', 'Save & Close'].some(
+                (t) => btn.textContent?.includes(t)
+              )
+          )
+        fireEvent.click(options[0])
+        const actionButton = await screen.findByRole('button', {
+          name: i === questionCount - 1 ? /Finish Quiz/i : /Next Question/i,
+        })
+        fireEvent.click(actionButton)
+      }
+    }
+
+    it('does not call saveQuizResult for anonymous users', async () => {
+      render(
+        <MemoryRouter>
+          <QuizModal {...defaultProps} />
+        </MemoryRouter>
+      )
+      await completeQuiz()
+
+      expect(
+        await screen.findByText(/Quiz Complete/i, {}, { timeout: 4000 })
+      ).toBeInTheDocument()
+
+      expect(mockSaveQuizResult).not.toHaveBeenCalled()
+    })
+
+    it('shows "Close" instead of "Save & Close" for anonymous users', async () => {
+      render(
+        <MemoryRouter>
+          <QuizModal {...defaultProps} />
+        </MemoryRouter>
+      )
+      await completeQuiz()
+
+      const closeButton = await screen.findByRole(
+        'button',
+        { name: /^Close$/i },
+        { timeout: 4000 }
+      )
+      expect(closeButton).toBeInTheDocument()
+      expect(screen.queryByText('Save & Close')).not.toBeInTheDocument()
+    })
+
+    it('shows sign-in prompt on public text for anonymous users', async () => {
+      render(
+        <MemoryRouter>
+          <QuizModal {...defaultProps} ownerId={null} />
+        </MemoryRouter>
+      )
+      await completeQuiz()
+
+      expect(
+        await screen.findByText(/Sign in/i, {}, { timeout: 4000 })
+      ).toBeInTheDocument()
+      expect(screen.getByText(/unlock the leaderboard/i)).toBeInTheDocument()
+    })
+
+    it('does not show sign-in prompt on private text for anonymous users', async () => {
+      render(
+        <MemoryRouter>
+          <QuizModal {...defaultProps} ownerId="owner-123" />
+        </MemoryRouter>
+      )
+      await completeQuiz()
+
+      expect(
+        await screen.findByText(/Quiz Complete/i, {}, { timeout: 4000 })
+      ).toBeInTheDocument()
+
+      expect(
+        screen.queryByText(/unlock the leaderboard/i)
+      ).not.toBeInTheDocument()
     })
   })
 

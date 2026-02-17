@@ -11,7 +11,7 @@ export async function saveQuizResult(params: QuizResultParams) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (!user) throw new Error('User not authenticated')
+  if (!user) return null
 
   const { data: latestActivity, error: fetchError } = await supabase
     .from('user_activity')
@@ -33,9 +33,7 @@ export async function saveQuizResult(params: QuizResultParams) {
   }
 
   const latestId = latestActivity?.[0]?.id
-  if (!latestId) {
-    throw new Error('No activity found to update')
-  }
+  if (!latestId) return null
 
   const { data, error } = await supabase
     .from('user_activity')

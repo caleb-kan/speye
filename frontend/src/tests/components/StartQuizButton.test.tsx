@@ -3,6 +3,15 @@ import { render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { StartQuizButton } from '../../components/StartQuizButton'
 
+vi.mock('../../hooks/useAuth', () => ({
+  useAuth: () => ({
+    user: { id: 'test-user-id' },
+    session: null,
+    loading: false,
+    signOut: vi.fn(),
+  }),
+}))
+
 describe('StartQuizButton', () => {
   const defaultProps = {
     textId: 'text-1',

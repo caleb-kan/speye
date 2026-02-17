@@ -4,6 +4,7 @@ import { QuizHeader } from './QuizHeader'
 import { AnswerOption } from './AnswerOption'
 import { QuizResults } from './QuizResults'
 import { saveQuizResult } from '../../services/saveQuizResult'
+import { useAuth } from '../../hooks/useAuth'
 
 export type Question = {
   question: string
@@ -30,7 +31,8 @@ export function QuizModal({
   textId,
   ownerId,
 }: QuizModalProps) {
-  // State
+  const { user } = useAuth()
+
   const [currentIndex, setCurrentIndex] = useState(0)
   const [answers, setAnswers] = useState<number[]>([])
 
@@ -62,6 +64,9 @@ export function QuizModal({
     const finalScore = Math.round((correctCount / questions.length) * 100)
 
     setIsFinished(true)
+
+    if (!user) return
+
     setIsSaving(true)
     try {
       const result = await saveQuizResult({

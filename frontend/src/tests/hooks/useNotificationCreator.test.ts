@@ -3,7 +3,11 @@ import { renderHook, act } from '@testing-library/react'
 import { useNotificationCreator } from '../../hooks/useNotificationCreator'
 
 const mockCreateNotification = vi.fn()
-const mockUsers = [{ id: 'user-1' }, { id: 'user-2' }, { id: 'user-3' }]
+const mockUsers = [
+  { id: 'user-1', username: 'alice' },
+  { id: 'user-2', username: 'bob' },
+  { id: 'user-3', username: 'carol' },
+]
 
 let mockUseUsersReturn = {
   users: mockUsers,

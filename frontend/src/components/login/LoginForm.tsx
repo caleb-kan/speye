@@ -1,27 +1,34 @@
 import type { ChangeEvent, FormEvent } from 'react'
 import { ForgotPasswordButton } from './ForgotPasswordButton'
+import { USERNAME_MIN_LENGTH, USERNAME_MAX_LENGTH } from '../../utils/username'
 
 export type LoginFormProps = {
   email: string
   password: string
+  username: string
   error: string | null
+  usernameError: string | null
   message: string | null
   loading: boolean
   isSignUp: boolean
   onEmailChange: (event: ChangeEvent<HTMLInputElement>) => void
   onPasswordChange: (event: ChangeEvent<HTMLInputElement>) => void
+  onUsernameChange: (event: ChangeEvent<HTMLInputElement>) => void
   onSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>
 }
 
 export function LoginForm({
   email,
   password,
+  username,
   error,
+  usernameError,
   message,
   loading,
   isSignUp,
   onEmailChange,
   onPasswordChange,
+  onUsernameChange,
   onSubmit,
 }: LoginFormProps) {
   return (
@@ -66,6 +73,41 @@ export function LoginForm({
           </p>
         )}
       </div>
+
+      {isSignUp && (
+        <div className="mt-3">
+          <label htmlFor="username" className="block text-sm text-text">
+            Username
+          </label>
+          <input
+            id="username"
+            name="username"
+            type="text"
+            autoComplete="username"
+            placeholder="your_name"
+            value={username}
+            onChange={onUsernameChange}
+            required
+            minLength={USERNAME_MIN_LENGTH}
+            maxLength={USERNAME_MAX_LENGTH}
+            pattern="[A-Za-z0-9_]+"
+            aria-invalid={Boolean(usernameError)}
+            aria-describedby={
+              usernameError ? 'username-error' : 'username-hint'
+            }
+            className="w-full mt-1 py-2 px-3 text-sm border border-text-secondary/30 rounded-lg bg-bg text-text placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
+          />
+          {usernameError ? (
+            <p id="username-error" className="mt-1 text-xs text-error">
+              {usernameError}
+            </p>
+          ) : (
+            <p id="username-hint" className="mt-1 text-xs text-text-secondary">
+              3 to 20 characters, letters, numbers, underscores
+            </p>
+          )}
+        </div>
+      )}
 
       {error && (
         <div

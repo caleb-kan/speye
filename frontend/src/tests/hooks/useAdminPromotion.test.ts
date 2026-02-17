@@ -3,7 +3,11 @@ import { renderHook, act, waitFor } from '@testing-library/react'
 import { useAdminPromotion } from '../../hooks/useAdminPromotion'
 
 const mockPromoteToAdmin = vi.fn()
-const mockUsers = [{ id: 'user-1' }, { id: 'user-2' }, { id: 'admin-user-3' }]
+const mockUsers = [
+  { id: 'user-1', username: 'alice' },
+  { id: 'user-2', username: 'bob' },
+  { id: 'admin-user-3', username: 'admin' },
+]
 
 let mockUseUsersReturn = {
   users: mockUsers,
@@ -55,7 +59,9 @@ describe('useAdminPromotion', () => {
       result.current.setSearchQuery('admin')
     })
 
-    expect(result.current.filteredUsers).toEqual([{ id: 'admin-user-3' }])
+    expect(result.current.filteredUsers).toEqual([
+      { id: 'admin-user-3', username: 'admin' },
+    ])
   })
 
   it('should return all users when search query is empty', async () => {
@@ -79,7 +85,7 @@ describe('useAdminPromotion', () => {
     expect(success).toBe(true)
     expect(mockPromoteToAdmin).toHaveBeenCalledWith('user-1')
     expect(result.current.successMessage).toBe(
-      'User user-1 has been promoted to admin'
+      'User alice has been promoted to admin'
     )
     expect(result.current.selectedUserId).toBeNull()
     expect(result.current.searchQuery).toBe('')

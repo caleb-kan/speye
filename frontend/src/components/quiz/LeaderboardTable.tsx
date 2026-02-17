@@ -10,7 +10,7 @@ type Props = {
   loadError: string | null
 }
 
-const GRID_COLS = 'grid-cols-[20px_28px_16px_1fr_1fr_1fr]'
+const GRID_COLS = 'grid-cols-[20px_28px_1fr_60px_60px_60px]'
 
 function formatWpm(value: number) {
   if (!Number.isFinite(value)) return '-'
@@ -47,14 +47,20 @@ function EntryRow({
         {entry.rank}
       </div>
       <div className="w-7 h-7 rounded-full overflow-hidden border border-text-secondary/20">
-        <DefaultAvatar email={entry.userId} size="sm" />
+        <DefaultAvatar
+          username={entry.username ?? undefined}
+          avatarUrl={entry.avatarUrl ?? undefined}
+          size="sm"
+        />
       </div>
-      <div />
-      <div className="text-sm text-text">{formatWpm(entry.wpm)}</div>
-      <div className="text-sm text-text">
+      <div className="text-sm text-text truncate" title={entry.username ?? ''}>
+        {entry.username ?? ''}
+      </div>
+      <div className="text-sm text-text text-right">{formatWpm(entry.wpm)}</div>
+      <div className="text-sm text-text text-right">
         {formatQuizScore(entry.quizScore)}
       </div>
-      <div className="text-sm text-text" title="Score = WPM x Quiz%">
+      <div className="text-sm text-text text-right" title="Score = WPM x Quiz%">
         {formatOverallScore(entry.overallScore)}
       </div>
     </div>
@@ -80,11 +86,12 @@ export function LeaderboardTable({
         className={`grid ${GRID_COLS} items-center text-xs uppercase tracking-wide text-text-secondary gap-x-2 pb-2 pl-1 pr-2 border-b border-text-secondary/10`}
       >
         <div className="text-center">#</div>
-        <div className="text-center">User</div>
-        <div />
-        <div>WPM</div>
-        <div>Quiz</div>
-        <div title="Score = WPM x Quiz Score">Score</div>
+        <div className="col-span-2">User</div>
+        <div className="text-right">WPM</div>
+        <div className="text-right">Quiz</div>
+        <div className="text-right" title="Score = WPM x Quiz Score">
+          Score
+        </div>
       </div>
 
       <div className="mt-3 space-y-2 max-h-72 overflow-auto pr-1">

@@ -113,7 +113,11 @@ describe('Navbar', () => {
   })
 
   describe('Auth Section - Logged In', () => {
-    const mockUser = createMockUser({ id: '123', email: 'test@example.com' })
+    const mockUser = createMockUser({
+      id: '123',
+      email: 'test@example.com',
+      user_metadata: { username: 'testuser' },
+    })
 
     beforeEach(() => {
       mockUseAuth.mockReturnValue({
@@ -153,7 +157,7 @@ describe('Navbar', () => {
     it('avatar has accessible label', () => {
       renderNavbar()
       expect(
-        screen.getByRole('img', { name: 'Avatar for test@example.com' })
+        screen.getByRole('img', { name: 'Avatar for testuser' })
       ).toBeInTheDocument()
     })
   })

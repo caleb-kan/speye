@@ -9,6 +9,7 @@ import { buildRedirectUrl } from '../utils/authRedirect'
 export type EmailPasswordCredentials = {
   email: string
   password: string
+  username?: string
 }
 
 export const signInWithGoogle = async (
@@ -25,7 +26,14 @@ export const signInWithGoogle = async (
 export const signUpWithEmail = async (
   credentials: EmailPasswordCredentials
 ): Promise<AuthResponse> => {
-  return supabase.auth.signUp(credentials)
+  const { email, password, username } = credentials
+  return supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: username ? { username } : undefined,
+    },
+  })
 }
 
 export const signInWithEmail = async (
@@ -46,4 +54,12 @@ export const updatePassword = async (
   return supabase.auth.updateUser({
     password: newPassword,
   })
+}
+
+export async function updateUsername(username: string): Promise<UserResponse> {
+  const result = await supabase.auth.updateUser({
+    data: { username },
+  })
+  if (result.error) throw result.error
+  return result
 }

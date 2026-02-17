@@ -4,7 +4,10 @@ import userEvent from '@testing-library/user-event'
 import { RecipientSelect } from '../../../components/admin/notificationCreator/RecipientSelect'
 import { BROADCAST_VALUE } from '../../../constants/admin'
 
-const mockUsers = [{ id: 'user-1' }, { id: 'user-2' }]
+const mockUsers = [
+  { id: 'user-1', username: 'alice' },
+  { id: 'user-2', username: 'bob' },
+]
 
 describe('RecipientSelect', () => {
   const defaultProps = {
@@ -29,8 +32,8 @@ describe('RecipientSelect', () => {
   it('should render all user options', () => {
     render(<RecipientSelect {...defaultProps} />)
 
-    expect(screen.getByText('user-1')).toBeInTheDocument()
-    expect(screen.getByText('user-2')).toBeInTheDocument()
+    expect(screen.getByText('alice')).toBeInTheDocument()
+    expect(screen.getByText('bob')).toBeInTheDocument()
   })
 
   it('should render broadcast option', () => {
@@ -78,7 +81,7 @@ describe('RecipientSelect', () => {
     render(
       <RecipientSelect
         {...defaultProps}
-        users={[{ id: 'user-1' }]}
+        users={[{ id: 'user-1', username: 'alice' }]}
         isBroadcast={true}
       />
     )

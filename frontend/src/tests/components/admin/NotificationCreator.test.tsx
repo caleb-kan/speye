@@ -3,7 +3,10 @@ import { render, screen } from '@testing-library/react'
 import { NotificationCreator } from '../../../components/admin/notificationCreator/NotificationCreator'
 
 const mockUseNotificationCreator = {
-  users: [{ id: 'user-1' }, { id: 'user-2' }],
+  users: [
+    { id: 'user-1', username: 'alice' },
+    { id: 'user-2', username: 'bob' },
+  ],
   loadingUsers: false,
   recipient: '',
   setRecipient: vi.fn(),

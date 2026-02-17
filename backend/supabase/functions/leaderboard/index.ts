@@ -33,9 +33,22 @@ type RequestBody = {
   action?: 'update'
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function extractAvatarUrl(user: any): string | null {
+  const metadata = user?.user_metadata
+  const identityData = user?.identities?.[0]?.identity_data
+  return (
+    metadata?.avatar_url ??
+    metadata?.picture ??
+    identityData?.picture ??
+    identityData?.avatar_url ??
+    null
+  )
+}
+
 /**
  * For a given text, compute each user's best entry (highest wpm * score)
- * from user_activity. Returns one entry per user.
+ * from user_activity. Returns one entry per user with username.
  */
 async function computeBestPerUser(textId: string) {
   const { data: rows, error } = await supabase
@@ -44,7 +57,14 @@ async function computeBestPerUser(textId: string) {
     .eq('text_id', textId)
     .not('score', 'is', null)
 
-  if (error || !rows) return []
+  if (error) {
+    console.error(
+      'Failed to fetch user_activity for leaderboard:',
+      error.message
+    )
+    return []
+  }
+  if (!rows) return []
 
   const bestByUser = new Map<
     string,
@@ -63,8 +83,36 @@ async function computeBestPerUser(textId: string) {
     }
   }
 
+  const userIds = Array.from(bestByUser.keys())
+
+  const { data: userData, error: userError } = await supabase
+    .from('users')
+    .select('id, username')
+    .in('id', userIds)
+
+  if (userError) {
+    console.error(
+      'Failed to fetch usernames for leaderboard:',
+      userError.message
+    )
+  }
+
+  // Fetch avatar URLs per user (avoids listUsers which fetches ALL users)
+  const avatarResults = await Promise.all(
+    userIds.map((id) => supabase.auth.admin.getUserById(id))
+  )
+
+  const usernamesByUserId = new Map(
+    (userData ?? []).map((u) => [u.id, u.username])
+  )
+  const avatarUrlsByUserId = new Map(
+    avatarResults.map((r, i) => [userIds[i], extractAvatarUrl(r.data?.user)])
+  )
+
   return Array.from(bestByUser.entries()).map(([userId, stats]) => ({
     userId,
+    username: usernamesByUserId.get(userId) ?? null,
+    avatarUrl: avatarUrlsByUserId.get(userId) ?? null,
     ...stats,
   }))
 }
@@ -86,6 +134,8 @@ async function backfillText(textId: string) {
       member: entry.userId,
     })
     pipeline.hset(`lb_stats:${textId}:${entry.userId}`, {
+      username: entry.username ?? '',
+      avatarUrl: entry.avatarUrl ?? '',
       wpm: entry.wpm,
       quizScore: entry.quizScore,
       overallScore: entry.overallScore,
@@ -136,12 +186,33 @@ async function updateUserEntry(textId: string, userId: string) {
     }
   }
 
+  const { data: userData, error: userError } = await supabase
+    .from('users')
+    .select('username')
+    .eq('id', userId)
+    .maybeSingle()
+
+  if (userError) {
+    console.error('Failed to fetch username for user:', userError.message)
+  }
+
+  const { data: authData, error: authError } =
+    await supabase.auth.admin.getUserById(userId)
+
+  if (authError) {
+    console.error('Failed to fetch auth data for user:', authError.message)
+  }
+  const username = userData?.username ?? null
+  const avatarUrl = extractAvatarUrl(authData?.user)
+
   const statsKey = `lb_stats:${textId}:${userId}`
   const pipeline = redis.pipeline()
 
   // Only update if new score > existing score
-  pipeline.zadd(lbKey, { score: bestOverall, member: userId }, { gt: true })
+  pipeline.zadd(lbKey, { score: bestOverall, member: userId, gt: true })
   pipeline.hset(statsKey, {
+    username: username ?? '',
+    avatarUrl: avatarUrl ?? '',
     wpm: bestWpm,
     quizScore: bestQuizScore,
     overallScore: bestOverall,

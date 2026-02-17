@@ -1,13 +1,13 @@
 import { Radio } from 'lucide-react'
-import type { UserRecord } from '../../../services/userService.ts'
+import type { UsernameRecord } from '../../../services/userService'
 import {
   BROADCAST_VALUE,
   NOTIFICATION_INPUT_CLASS,
   NOTIFICATION_LABEL_CLASS,
-} from '../../../constants/admin.ts'
+} from '../../../constants/admin'
 
 interface RecipientSelectProps {
-  users: UserRecord[]
+  users: UsernameRecord[]
   recipient: string
   isBroadcast: boolean
   disabled: boolean
@@ -47,7 +47,7 @@ export function RecipientSelect({
         <option value={BROADCAST_VALUE}>Broadcast to All Users</option>
         {users.map((user) => (
           <option key={user.id} value={user.id}>
-            {user.id}
+            {user.username || `User ${user.id.slice(0, 8)}...`}
           </option>
         ))}
       </select>

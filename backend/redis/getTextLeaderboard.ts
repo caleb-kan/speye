@@ -53,6 +53,8 @@ function buildEntry(
 ): LeaderboardEntry {
   return {
     userId,
+    username: stats.username || null,
+    avatarUrl: stats.avatarUrl || null,
     wpm: Number(stats.wpm) || 0,
     quizScore: Number(stats.quizScore) || 0,
     overallScore,

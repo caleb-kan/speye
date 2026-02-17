@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { Search } from 'lucide-react'
-import type { UserRecord } from '../../../services/userService'
+import type { UsernameRecord } from '../../../services/userService'
 import {
   NOTIFICATION_INPUT_CLASS,
   NOTIFICATION_LABEL_CLASS,
@@ -9,10 +9,10 @@ import {
 interface UserSearchProps {
   searchQuery: string
   onSearchChange: (value: string) => void
-  filteredUsers: UserRecord[]
+  filteredUsers: UsernameRecord[]
   loadingUsers: boolean
   selectedUserId: string | null
-  onSelectUser: (userId: string) => void
+  onSelectUser: (user: UsernameRecord) => void
   disabled: boolean
 }
 
@@ -68,7 +68,7 @@ export function UserSearch({
             onSearchChange(e.target.value)
             setOpen(true)
           }}
-          placeholder="Search by user ID..."
+          placeholder="Search by username..."
           className={`${NOTIFICATION_INPUT_CLASS} pl-9`}
           disabled={disabled}
         />
@@ -92,7 +92,7 @@ export function UserSearch({
                 key={user.id}
                 type="button"
                 onClick={() => {
-                  onSelectUser(user.id)
+                  onSelectUser(user)
                   setOpen(false)
                 }}
                 className={`w-full text-left px-3 py-2 text-sm hover:bg-primary/10 transition-colors ${
@@ -101,7 +101,7 @@ export function UserSearch({
                     : 'text-text'
                 }`}
               >
-                {user.id}
+                {user.username || `User ${user.id.slice(0, 8)}...`}
               </button>
             ))
           )}

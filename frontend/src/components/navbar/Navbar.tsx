@@ -12,6 +12,7 @@ import { useIsAdmin } from '../../hooks/useIsAdmin'
 import { useAuth } from '../../hooks/useAuth'
 import { DefaultAvatar } from '../DefaultAvatar'
 import { getAvatarUrl } from '../../utils/getAvatarUrl'
+import { getUsername } from '../../utils/getUsername'
 import { getRuntimeBase } from '../../utils/getRuntimeBase'
 import { logUserActivity } from '../../services/logUserActivity'
 import {
@@ -145,7 +146,7 @@ export function Navbar() {
           `}
         >
           <DefaultAvatar
-            email={user.email}
+            username={getUsername(user)}
             avatarUrl={getAvatarUrl(user)}
             size="sm"
           />

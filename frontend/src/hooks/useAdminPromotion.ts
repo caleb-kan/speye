@@ -14,8 +14,17 @@ export function useAdminPromotion() {
   const filteredUsers = useMemo(() => {
     if (!searchQuery.trim()) return users
     const query = searchQuery.toLowerCase()
-    return users.filter((u) => u.id.toLowerCase().includes(query))
+    return users.filter((u) => {
+      const username = (u.username ?? '').toLowerCase()
+      return username.includes(query) || u.id.toLowerCase().includes(query)
+    })
   }, [users, searchQuery])
+
+  const selectedUserLabel = useMemo(() => {
+    if (!selectedUserId) return null
+    const user = users.find((u) => u.id === selectedUserId)
+    return user?.username?.trim() || null
+  }, [users, selectedUserId])
 
   const handlePromote = useCallback(async (): Promise<boolean> => {
     setError(null)
@@ -29,7 +38,11 @@ export function useAdminPromotion() {
     setPromoting(true)
     try {
       await promoteToAdmin(selectedUserId)
-      setSuccessMessage(`User ${selectedUserId} has been promoted to admin`)
+      setSuccessMessage(
+        selectedUserLabel
+          ? `User ${selectedUserLabel} has been promoted to admin`
+          : 'User has been promoted to admin'
+      )
       setSelectedUserId(null)
       setSearchQuery('')
       return true
@@ -39,7 +52,7 @@ export function useAdminPromotion() {
     } finally {
       setPromoting(false)
     }
-  }, [selectedUserId])
+  }, [selectedUserId, selectedUserLabel])
 
   return {
     loadingUsers,
@@ -48,6 +61,7 @@ export function useAdminPromotion() {
     selectedUserId,
     setSelectedUserId,
     filteredUsers,
+    selectedUserLabel,
     promoting,
     successMessage,
     setSuccessMessage,

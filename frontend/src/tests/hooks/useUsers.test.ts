@@ -5,10 +5,14 @@ import { useUsers } from '../../hooks/useUsers'
 const mockGetUsers = vi.fn()
 
 vi.mock('../../services/userService', () => ({
-  getUsers: (...args: unknown[]) => mockGetUsers(...args),
+  getUsersUsernames: (...args: unknown[]) => mockGetUsers(...args),
 }))
 
-const mockUsers = [{ id: 'user-1' }, { id: 'user-2' }, { id: 'user-3' }]
+const mockUsers = [
+  { id: 'user-1', username: 'alice' },
+  { id: 'user-2', username: 'bob' },
+  { id: 'user-3', username: 'carol' },
+]
 
 describe('useUsers', () => {
   beforeEach(() => {

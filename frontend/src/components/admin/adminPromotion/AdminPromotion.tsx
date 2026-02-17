@@ -15,6 +15,7 @@ export function AdminPromotion() {
     selectedUserId,
     setSelectedUserId,
     filteredUsers,
+    selectedUserLabel,
     promoting,
     successMessage,
     setSuccessMessage,
@@ -30,9 +31,9 @@ export function AdminPromotion() {
     SUCCESS_MESSAGE_DURATION_MS
   )
 
-  const handleSelectUser = (userId: string) => {
-    setSelectedUserId(userId)
-    setSearchQuery(userId)
+  const handleSelectUser = (user: { id: string; username: string | null }) => {
+    setSelectedUserId(user.id)
+    setSearchQuery(user.username ?? '')
     setShowConfirm(false)
   }
 
@@ -87,7 +88,11 @@ export function AdminPromotion() {
       <ConfirmDialog
         isOpen={showConfirm && !!selectedUserId}
         title="Grant Admin Privileges"
-        message={`Are you sure you want to grant admin privileges to ${selectedUserId}?`}
+        message={
+          selectedUserLabel
+            ? `Are you sure you want to grant admin privileges to ${selectedUserLabel}?`
+            : 'Are you sure you want to grant admin privileges to this user?'
+        }
         confirmLabel={promoting ? 'Promoting...' : 'Confirm'}
         onConfirm={handleConfirm}
         onCancel={handleCancel}

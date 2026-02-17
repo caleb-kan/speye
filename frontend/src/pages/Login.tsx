@@ -10,12 +10,15 @@ export function Login() {
   const {
     email,
     password,
+    username,
     error,
+    usernameError,
     message,
     loading,
     isSignUp,
     handleEmailChange,
     handlePasswordChange,
+    handleUsernameChange,
     handleGoogleSignIn,
     handleSubmit,
     toggleMode,
@@ -41,12 +44,15 @@ export function Login() {
         <LoginForm
           email={email}
           password={password}
+          username={username}
           error={error}
+          usernameError={usernameError}
           message={message}
           loading={loading}
           isSignUp={isSignUp}
           onEmailChange={handleEmailChange}
           onPasswordChange={handlePasswordChange}
+          onUsernameChange={handleUsernameChange}
           onSubmit={handleSubmit}
         />
 

@@ -26,6 +26,10 @@ vi.mock('../../../../lib/supabase', () => ({
   },
 }))
 
+vi.mock('../../services/userService', () => ({
+  isUsernameAvailable: vi.fn(),
+}))
+
 const mockNavigate = vi.fn()
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom')
@@ -36,7 +40,27 @@ vi.mock('react-router-dom', async () => {
 })
 
 const mockUseAuth = vi.mocked(useAuthModule.useAuth)
-const mockSupabase = vi.mocked(supabaseModule.supabase)
+
+// Type the auth methods explicitly
+const mockAuthSignUp = vi.fn()
+const mockAuthSignInWithPassword = vi.fn()
+const mockAuthSignInWithOAuth = vi.fn()
+
+// Create a properly typed mock for supabase
+const mockSupabase = {
+  auth: {
+    signUp: mockAuthSignUp,
+    signInWithPassword: mockAuthSignInWithPassword,
+    signInWithOAuth: mockAuthSignInWithOAuth,
+  },
+}
+
+// Override the module mock with our typed version
+vi.mocked(supabaseModule).supabase =
+  mockSupabase as unknown as typeof supabaseModule.supabase
+
+import * as userServiceModule from '../../services/userService'
+const mockUserService = vi.mocked(userServiceModule)
 
 const renderLogin = () => {
   return render(
@@ -55,6 +79,7 @@ describe('Login Page', () => {
       loading: false,
       signOut: vi.fn(),
     })
+    mockUserService.isUsernameAvailable.mockResolvedValue(true)
   })
 
   describe('Rendering', () => {
@@ -148,7 +173,7 @@ describe('Login Page', () => {
     })
 
     it('clears error when toggling modes', async () => {
-      mockSupabase.auth.signInWithPassword.mockResolvedValue({
+      mockAuthSignInWithPassword.mockResolvedValue({
         data: { user: null, session: null },
         error: createMockAuthError('Invalid credentials'),
       })
@@ -196,7 +221,7 @@ describe('Login Page', () => {
   describe('Login Flow', () => {
     it('calls signInWithPassword with form data', async () => {
       const mockUser = createMockUser({ id: '123', email: 'test@example.com' })
-      mockSupabase.auth.signInWithPassword.mockResolvedValue({
+      mockAuthSignInWithPassword.mockResolvedValue({
         data: {
           user: mockUser,
           session: createMockSession(mockUser),
@@ -211,7 +236,7 @@ describe('Login Page', () => {
       await user.type(screen.getByLabelText(/password/i), 'password123')
       await user.click(screen.getByRole('button', { name: /^sign in$/i }))
 
-      expect(mockSupabase.auth.signInWithPassword).toHaveBeenCalledWith({
+      expect(mockAuthSignInWithPassword).toHaveBeenCalledWith({
         email: 'test@example.com',
         password: 'password123',
       })
@@ -219,7 +244,7 @@ describe('Login Page', () => {
 
     it('shows loading state while submitting', async () => {
       let resolvePromise: (value: unknown) => void
-      mockSupabase.auth.signInWithPassword.mockImplementation(
+      mockAuthSignInWithPassword.mockImplementation(
         () =>
           new Promise((resolve) => {
             resolvePromise = resolve
@@ -245,7 +270,7 @@ describe('Login Page', () => {
 
     it('shows success message on successful login', async () => {
       const mockUser = createMockUser({ id: '123' })
-      mockSupabase.auth.signInWithPassword.mockResolvedValue({
+      mockAuthSignInWithPassword.mockResolvedValue({
         data: {
           user: mockUser,
           session: createMockSession(mockUser),
@@ -266,7 +291,7 @@ describe('Login Page', () => {
     })
 
     it('shows error message on login failure', async () => {
-      mockSupabase.auth.signInWithPassword.mockResolvedValue({
+      mockAuthSignInWithPassword.mockResolvedValue({
         data: { user: null, session: null },
         error: createMockAuthError('Invalid login credentials'),
       })
@@ -293,7 +318,7 @@ describe('Login Page', () => {
 
     it('calls signUp with form data', async () => {
       const mockUser = createMockUser({ id: '123', email: 'new@example.com' })
-      mockSupabase.auth.signUp.mockResolvedValue({
+      mockAuthSignUp.mockResolvedValue({
         data: {
           user: mockUser,
           session: null,
@@ -305,19 +330,25 @@ describe('Login Page', () => {
       renderLogin()
       await switchToSignUp(user)
 
+      await user.type(screen.getByLabelText(/username/i), 'testuser')
       await user.type(screen.getByLabelText(/email/i), 'new@example.com')
       await user.type(screen.getByLabelText(/password/i), 'password123')
       await user.click(screen.getByRole('button', { name: /create account/i }))
 
-      expect(mockSupabase.auth.signUp).toHaveBeenCalledWith({
+      expect(mockAuthSignUp).toHaveBeenCalledWith({
         email: 'new@example.com',
         password: 'password123',
+        options: {
+          data: {
+            username: 'testuser',
+          },
+        },
       })
     })
 
     it('shows verification message on successful sign up', async () => {
       const mockUser = createMockUser({ id: '123' })
-      mockSupabase.auth.signUp.mockResolvedValue({
+      mockAuthSignUp.mockResolvedValue({
         data: {
           user: mockUser,
           session: null,
@@ -329,6 +360,7 @@ describe('Login Page', () => {
       renderLogin()
       await switchToSignUp(user)
 
+      await user.type(screen.getByLabelText(/username/i), 'testuser')
       await user.type(screen.getByLabelText(/email/i), 'new@example.com')
       await user.type(screen.getByLabelText(/password/i), 'password123')
       await user.click(screen.getByRole('button', { name: /create account/i }))
@@ -341,7 +373,7 @@ describe('Login Page', () => {
     })
 
     it('shows error message on sign up failure', async () => {
-      mockSupabase.auth.signUp.mockResolvedValue({
+      mockAuthSignUp.mockResolvedValue({
         data: { user: null, session: null },
         error: createMockAuthError('User already registered'),
       })
@@ -350,6 +382,7 @@ describe('Login Page', () => {
       renderLogin()
       await switchToSignUp(user)
 
+      await user.type(screen.getByLabelText(/username/i), 'testuser')
       await user.type(screen.getByLabelText(/email/i), 'existing@example.com')
       await user.type(screen.getByLabelText(/password/i), 'password123')
       await user.click(screen.getByRole('button', { name: /create account/i }))
@@ -474,7 +507,7 @@ describe('Login Page', () => {
     })
 
     it('calls signInWithOAuth when clicking Google button', async () => {
-      mockSupabase.auth.signInWithOAuth.mockResolvedValue({
+      mockAuthSignInWithOAuth.mockResolvedValue({
         data: { provider: 'google', url: 'https://google.com/oauth' },
         error: null,
       })
@@ -486,7 +519,7 @@ describe('Login Page', () => {
         screen.getByRole('button', { name: /continue with google/i })
       )
 
-      expect(mockSupabase.auth.signInWithOAuth).toHaveBeenCalledWith({
+      expect(mockAuthSignInWithOAuth).toHaveBeenCalledWith({
         provider: 'google',
         options: {
           redirectTo: expect.stringContaining('home'),
@@ -495,7 +528,7 @@ describe('Login Page', () => {
     })
 
     it('shows error message on Google OAuth failure', async () => {
-      mockSupabase.auth.signInWithOAuth.mockResolvedValue({
+      mockAuthSignInWithOAuth.mockResolvedValue({
         data: { provider: null, url: null },
         error: createMockAuthError('OAuth provider not configured'),
       })
@@ -516,7 +549,7 @@ describe('Login Page', () => {
 
     it('disables Google button while loading', async () => {
       let resolvePromise: (value: unknown) => void
-      mockSupabase.auth.signInWithOAuth.mockImplementation(
+      mockAuthSignInWithOAuth.mockImplementation(
         () =>
           new Promise((resolve) => {
             resolvePromise = resolve
@@ -545,7 +578,7 @@ describe('Login Page', () => {
     it('clears previous success message when clicking Google sign in', async () => {
       // First, simulate a successful login that shows a message
       const mockUser = createMockUser({ id: '123' })
-      mockSupabase.auth.signInWithPassword.mockResolvedValue({
+      mockAuthSignInWithPassword.mockResolvedValue({
         data: {
           user: mockUser,
           session: createMockSession(mockUser),
@@ -565,7 +598,7 @@ describe('Login Page', () => {
       })
 
       // Now click Google sign in - it should clear the success message
-      mockSupabase.auth.signInWithOAuth.mockResolvedValue({
+      mockAuthSignInWithOAuth.mockResolvedValue({
         data: { provider: null, url: null },
         error: createMockAuthError('OAuth error'),
       })

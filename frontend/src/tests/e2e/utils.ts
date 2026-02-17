@@ -81,7 +81,7 @@ export async function mockAuthTokenSuccess(
           email,
           email_confirmed_at: now,
           app_metadata: {},
-          user_metadata: {},
+          user_metadata: { username: 'testuser' },
           created_at: now,
           updated_at: now,
         },

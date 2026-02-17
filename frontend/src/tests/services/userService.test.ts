@@ -1,63 +1,62 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-vi.mock('../../../../lib/supabase', () => ({
-  supabase: {
-    from: vi.fn(),
-  },
-}))
+vi.mock('../../../../backend/supabase/database/users/getUsersUsernames')
+vi.mock('../../../../backend/supabase/database/users/getUserByUsername')
 
-import { getUsers } from '../../services/userService'
-import { supabase } from '../../../../lib/supabase'
-
-const mockFrom = vi.mocked(supabase.from)
+import {
+  getUsersUsernames,
+  isUsernameAvailable,
+} from '../../services/userService'
+import { getUsersUsernames as mockGetUsers } from '../../../../backend/supabase/database/users/getUsersUsernames'
+import { getUserByUsername as mockGetUserByUsername } from '../../../../backend/supabase/database/users/getUserByUsername'
 
 describe('userService', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
-  describe('getUsers', () => {
-    it('should fetch all user ids', async () => {
-      const mockUsers = [{ id: 'user-1' }, { id: 'user-2' }]
-      const mockSelect = vi.fn()
+  describe('getUsersUsernames', () => {
+    it('should return list of users from database', async () => {
+      const mockUsers = [
+        { id: 'user-1', username: 'alice' },
+        { id: 'user-2', username: 'bob' },
+        { id: 'user-3', username: 'carol' },
+      ]
+      vi.mocked(mockGetUsers).mockResolvedValue(mockUsers)
 
-      mockSelect.mockResolvedValue({ data: mockUsers, error: null })
-      mockFrom.mockReturnValue({ select: mockSelect } as unknown as ReturnType<
-        typeof supabase.from
-      >)
+      const result = await getUsersUsernames()
 
-      const result = await getUsers()
-
-      expect(mockFrom).toHaveBeenCalledWith('users')
-      expect(mockSelect).toHaveBeenCalledWith('id')
       expect(result).toEqual(mockUsers)
     })
 
-    it('should return empty array if no users exist', async () => {
-      const mockSelect = vi.fn()
+    it('should throw error if database query fails', async () => {
+      vi.mocked(mockGetUsers).mockRejectedValue(new Error('DB error'))
 
-      mockSelect.mockResolvedValue({ data: null, error: null })
-      mockFrom.mockReturnValue({ select: mockSelect } as unknown as ReturnType<
-        typeof supabase.from
-      >)
+      await expect(getUsersUsernames()).rejects.toThrow('DB error')
+    })
+  })
 
-      const result = await getUsers()
+  describe('isUsernameAvailable', () => {
+    it('should return true if username is available', async () => {
+      vi.mocked(mockGetUserByUsername).mockResolvedValue(null)
 
-      expect(result).toEqual([])
+      const result = await isUsernameAvailable('newuser')
+
+      expect(result).toBe(true)
     })
 
-    it('should throw error if query fails', async () => {
-      const mockSelect = vi.fn()
+    it('should return false if username already exists', async () => {
+      vi.mocked(mockGetUserByUsername).mockResolvedValue({ id: 'user-1' })
 
-      mockSelect.mockResolvedValue({
-        data: null,
-        error: { message: 'Database error' },
-      })
-      mockFrom.mockReturnValue({ select: mockSelect } as unknown as ReturnType<
-        typeof supabase.from
-      >)
+      const result = await isUsernameAvailable('existinguser')
 
-      await expect(getUsers()).rejects.toThrow()
+      expect(result).toBe(false)
+    })
+
+    it('should throw error if database query fails', async () => {
+      vi.mocked(mockGetUserByUsername).mockRejectedValue(new Error('DB error'))
+
+      await expect(isUsernameAvailable('someuser')).rejects.toThrow('DB error')
     })
   })
 })

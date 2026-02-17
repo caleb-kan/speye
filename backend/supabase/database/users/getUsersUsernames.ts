@@ -1,12 +1,13 @@
 import { supabase } from '../../../../lib/supabase'
 import { logDbQuery } from '../logger'
 
-export type UserRecord = {
+export type UsernameRecord = {
   id: string
+  username: string | null
 }
 
-export async function getUsers(): Promise<UserRecord[]> {
-  const { data, error } = await supabase.from('users').select('id')
+export async function getUsersUsernames(): Promise<UsernameRecord[]> {
+  const { data, error } = await supabase.from('users').select('id, username')
 
   logDbQuery({
     table: 'users',
@@ -18,5 +19,5 @@ export async function getUsers(): Promise<UserRecord[]> {
     throw error
   }
 
-  return (data ?? []) as UserRecord[]
+  return (data ?? []) as UsernameRecord[]
 }

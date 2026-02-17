@@ -11,6 +11,7 @@ import { Activity } from './pages/Activity'
 import { Admin } from './pages/Admin'
 import { NotFound } from './pages/NotFound'
 import { Login } from './pages/Login'
+import { CompleteProfile } from './pages/CompleteProfile'
 import { ForgotPassword } from './pages/ForgotPassword'
 import { ResetPassword } from './pages/ResetPassword'
 import { Adaptive } from './pages/Adaptive'
@@ -22,6 +23,7 @@ import { ReadingLayout } from './layouts/ReadingLayout'
 import { AdaptiveLayout } from './layouts/AdaptiveLayout'
 import { WindowSizeProvider } from './components/WindowSizeProvider'
 import { NotificationsProvider } from './context/NotificationsProvider'
+import { RequireUsername } from './components/auth/RequireUsername'
 
 function App() {
   const runtimeBase = getRuntimeBase()
@@ -36,33 +38,41 @@ function App() {
                   <Route path="/" element={<RootLayout />}>
                     <Route index element={<Navigate to="/home" replace />} />
 
-                    {/* Pages with OptionsBar */}
-                    <Route
-                      element={
-                        <WindowSizeProvider>
-                          <ReadingLayout />
-                        </WindowSizeProvider>
-                      }
-                    >
-                      <Route path="home" element={<Home />} />
+                    <Route element={<RequireUsername />}>
+                      {/* Pages with OptionsBar */}
+                      <Route
+                        element={
+                          <WindowSizeProvider>
+                            <ReadingLayout />
+                          </WindowSizeProvider>
+                        }
+                      >
+                        <Route path="home" element={<Home />} />
+                      </Route>
+
+                      {/* Adaptive reading mode */}
+                      <Route
+                        element={
+                          <WindowSizeProvider>
+                            <AdaptiveLayout />
+                          </WindowSizeProvider>
+                        }
+                      >
+                        <Route path="adaptive" element={<Adaptive />} />
+                      </Route>
+
+                      {/* Pages without OptionsBar */}
+                      <Route path="library" element={<Library />} />
+                      <Route path="activity" element={<Activity />} />
+                      <Route path="admin" element={<Admin />} />
+                      <Route path="settings" element={<Settings />} />
+                      <Route path="notifications" element={<Notifications />} />
                     </Route>
 
-                    {/* Adaptive reading mode */}
                     <Route
-                      element={
-                        <WindowSizeProvider>
-                          <AdaptiveLayout />
-                        </WindowSizeProvider>
-                      }
-                    >
-                      <Route path="adaptive" element={<Adaptive />} />
-                    </Route>
-
-                    {/* Pages without OptionsBar */}
-                    <Route path="library" element={<Library />} />
-                    <Route path="activity" element={<Activity />} />
-                    <Route path="admin" element={<Admin />} />
-                    <Route path="settings" element={<Settings />} />
+                      path="complete-profile"
+                      element={<CompleteProfile />}
+                    />
                     <Route path="login" element={<Login />} />
                     <Route
                       path="forgot-password"
@@ -71,7 +81,6 @@ function App() {
                     <Route path="reset-password" element={<ResetPassword />} />
                     <Route path="privacy" element={<Privacy />} />
                     <Route path="terms" element={<Terms />} />
-                    <Route path="notifications" element={<Notifications />} />
 
                     <Route path="*" element={<NotFound />} />
                   </Route>

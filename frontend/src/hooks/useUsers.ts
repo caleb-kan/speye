@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
-import { getUsers, type UserRecord } from '../services/userService'
+import { getUsersUsernames, type UsernameRecord } from '../services/userService'
 
 export function useUsers() {
-  const [users, setUsers] = useState<UserRecord[]>([])
+  const [users, setUsers] = useState<UsernameRecord[]>([])
   const [loadingUsers, setLoadingUsers] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -10,7 +10,7 @@ export function useUsers() {
 
   useEffect(() => {
     isMounted.current = true
-    getUsers()
+    getUsersUsernames()
       .then((data) => {
         if (isMounted.current) setUsers(data)
       })

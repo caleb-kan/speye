@@ -1,19 +1,14 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import {
-  getTextLeaderboard,
-  type LeaderboardEntry,
-} from '../../services/leaderboardService'
 import { CircularProgress } from './CircularProgress'
 import { LeaderboardTable } from './LeaderboardTable'
 import { useAuth } from '../../hooks/useAuth'
+import { useQuizLeaderboard } from '../../hooks/useQuizLeaderboard'
 import {
   SCORE_ANIMATION_DURATION_MS,
-  LEADERBOARD_FETCH_DELAY_MS,
   FULL_SCREEN_SCORE_SIZE,
   PRIVATE_SCORE_SIZE,
   PUBLIC_SCORE_SIZE,
-  LEADERBOARD_TOP_COUNT,
 } from '../../constants/quiz'
 
 type Props = {
@@ -39,15 +34,19 @@ export function QuizResults({
 }: Props) {
   const { user } = useAuth()
   const userId = user?.id
-  const [topEntries, setTopEntries] = useState<LeaderboardEntry[]>([])
-  const [currentUserEntry, setCurrentUserEntry] =
-    useState<LeaderboardEntry | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [loadError, setLoadError] = useState<string | null>(null)
   const [phase, setPhase] = useState<'score' | 'details'>('score')
 
   const isPublic = ownerId === null
   const canShowLeaderboard = isPublic && userId != null
+
+  const { topEntries, currentUserEntry, isLoading, loadError } =
+    useQuizLeaderboard({
+      textId,
+      isPublic,
+      isSaving,
+      savedWpm,
+      score,
+    })
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -55,76 +54,6 @@ export function QuizResults({
     }, SCORE_ANIMATION_DURATION_MS)
     return () => clearTimeout(timer)
   }, [])
-
-  useEffect(() => {
-    if (!canShowLeaderboard || isSaving) return
-
-    let isActive = true
-    setIsLoading(true)
-    setLoadError(null)
-
-    const timer = setTimeout(async () => {
-      try {
-        const { top, currentUser } = await getTextLeaderboard(textId, userId)
-        if (!isActive) return
-
-        const localOverall =
-          savedWpm != null && userId ? savedWpm * score : null
-
-        const existingInTop = userId
-          ? top.find((e) => e.userId === userId)
-          : undefined
-        const existingEntry = existingInTop ?? currentUser
-
-        const shouldUseLocal =
-          userId != null &&
-          localOverall != null &&
-          (!existingEntry || localOverall > existingEntry.overallScore)
-
-        if (shouldUseLocal) {
-          const localEntry: LeaderboardEntry = {
-            userId: userId,
-            wpm: savedWpm!,
-            quizScore: score,
-            overallScore: localOverall,
-            rank: 1,
-          }
-
-          const others = top.filter((e) => e.userId !== userId)
-          const merged = [...others, localEntry].sort(
-            (a, b) => b.overallScore - a.overallScore
-          )
-          merged.forEach((e, i) => (e.rank = i + 1))
-
-          const userIdx = merged.findIndex((e) => e.userId === userId)
-          if (userIdx < LEADERBOARD_TOP_COUNT) {
-            setTopEntries(merged.slice(0, LEADERBOARD_TOP_COUNT))
-            setCurrentUserEntry(null)
-          } else {
-            setTopEntries(merged.slice(0, LEADERBOARD_TOP_COUNT))
-            setCurrentUserEntry(merged[userIdx])
-          }
-        } else {
-          setTopEntries(top)
-          setCurrentUserEntry(currentUser)
-        }
-      } catch (err) {
-        if (!isActive) return
-        const message =
-          err instanceof Error ? err.message : 'Failed to load leaderboard'
-        setLoadError(message)
-      } finally {
-        if (isActive) {
-          setIsLoading(false)
-        }
-      }
-    }, LEADERBOARD_FETCH_DELAY_MS)
-
-    return () => {
-      isActive = false
-      clearTimeout(timer)
-    }
-  }, [textId, canShowLeaderboard, userId, isSaving, savedWpm, score])
 
   // Full-screen circular score animation
   if (phase === 'score') {

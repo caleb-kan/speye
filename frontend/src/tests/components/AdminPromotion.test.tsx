@@ -14,7 +14,12 @@ let mockHookReturn = {
   setSearchQuery: mockSetSearchQuery,
   selectedUserId: null as string | null,
   setSelectedUserId: mockSetSelectedUserId,
-  filteredUsers: [{ id: 'user-1' }, { id: 'user-2' }, { id: 'admin-user-3' }],
+  filteredUsers: [
+    { id: 'user-1', username: 'alice' },
+    { id: 'user-2', username: 'bob' },
+    { id: 'admin-user-3', username: 'admin' },
+  ],
+  selectedUserLabel: null as string | null,
   promoting: false,
   successMessage: null as string | null,
   setSuccessMessage: mockSetSuccessMessage,
@@ -42,10 +47,11 @@ describe('AdminPromotion', () => {
       selectedUserId: null,
       setSelectedUserId: mockSetSelectedUserId,
       filteredUsers: [
-        { id: 'user-1' },
-        { id: 'user-2' },
-        { id: 'admin-user-3' },
+        { id: 'user-1', username: 'alice' },
+        { id: 'user-2', username: 'bob' },
+        { id: 'admin-user-3', username: 'admin' },
       ],
+      selectedUserLabel: null,
       promoting: false,
       successMessage: null,
       setSuccessMessage: mockSetSuccessMessage,
@@ -58,7 +64,7 @@ describe('AdminPromotion', () => {
   it('should render search input', () => {
     render(<AdminPromotion />)
     expect(
-      screen.getByPlaceholderText('Search by user ID...')
+      screen.getByPlaceholderText('Search by username...')
     ).toBeInTheDocument()
   })
 
@@ -71,12 +77,12 @@ describe('AdminPromotion', () => {
     const user = userEvent.setup()
     render(<AdminPromotion />)
 
-    const input = screen.getByPlaceholderText('Search by user ID...')
+    const input = screen.getByPlaceholderText('Search by username...')
     await user.click(input)
 
-    expect(screen.getByText('user-1')).toBeInTheDocument()
-    expect(screen.getByText('user-2')).toBeInTheDocument()
-    expect(screen.getByText('admin-user-3')).toBeInTheDocument()
+    expect(screen.getByText('alice')).toBeInTheDocument()
+    expect(screen.getByText('bob')).toBeInTheDocument()
+    expect(screen.getByText('admin')).toBeInTheDocument()
   })
 
   it('should show Grant Admin button when user is selected', () => {
@@ -170,7 +176,7 @@ describe('AdminPromotion', () => {
     mockHookReturn.loadingUsers = true
     render(<AdminPromotion />)
 
-    const input = screen.getByPlaceholderText('Search by user ID...')
+    const input = screen.getByPlaceholderText('Search by username...')
     expect(input).toBeDisabled()
   })
 
@@ -180,7 +186,7 @@ describe('AdminPromotion', () => {
     const user = userEvent.setup()
     render(<AdminPromotion />)
 
-    const input = screen.getByPlaceholderText('Search by user ID...')
+    const input = screen.getByPlaceholderText('Search by username...')
     await user.click(input)
 
     expect(screen.getByText('No users found')).toBeInTheDocument()

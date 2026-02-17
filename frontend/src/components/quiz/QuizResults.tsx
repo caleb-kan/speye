@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
   getTextLeaderboard,
   type LeaderboardEntry,
@@ -46,6 +47,7 @@ export function QuizResults({
   const [phase, setPhase] = useState<'score' | 'details'>('score')
 
   const isPublic = ownerId === null
+  const canShowLeaderboard = isPublic && userId != null
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -55,7 +57,7 @@ export function QuizResults({
   }, [])
 
   useEffect(() => {
-    if (!isPublic || isSaving) return
+    if (!canShowLeaderboard || isSaving) return
 
     let isActive = true
     setIsLoading(true)
@@ -122,7 +124,7 @@ export function QuizResults({
       isActive = false
       clearTimeout(timer)
     }
-  }, [textId, isPublic, userId, isSaving, savedWpm, score])
+  }, [textId, canShowLeaderboard, userId, isSaving, savedWpm, score])
 
   // Full-screen circular score animation
   if (phase === 'score') {
@@ -138,9 +140,9 @@ export function QuizResults({
   return (
     <div className="animate-in fade-in duration-500">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center p-4">
-        {/* Left Column: Leaderboard (public) or Score (private) */}
+        {/* Left Column: Leaderboard (public + signed-in) or Score */}
         <div className="flex flex-col items-center justify-center space-y-6 border-r border-text-secondary/10 pr-6 md:pr-12">
-          {isPublic ? (
+          {canShowLeaderboard ? (
             <div className="w-full animate-in fade-in zoom-in-95 duration-500">
               <LeaderboardTable
                 topEntries={topEntries}
@@ -151,7 +153,22 @@ export function QuizResults({
               />
             </div>
           ) : (
-            <CircularProgress percentage={score} size={PRIVATE_SCORE_SIZE} />
+            <div className="flex flex-col items-center justify-center gap-3">
+              {isPublic && userId == null && (
+                <p className="text-sm text-text-secondary text-center max-w-xs">
+                  Want to stack up against the world?
+                  <br />
+                  <Link
+                    to="/login"
+                    className="text-primary hover:underline transition-colors"
+                  >
+                    Sign in
+                  </Link>{' '}
+                  to unlock the leaderboard!
+                </p>
+              )}
+              <CircularProgress percentage={score} size={PRIVATE_SCORE_SIZE} />
+            </div>
           )}
         </div>
 
@@ -178,7 +195,7 @@ export function QuizResults({
               </div>
             </div>
 
-            {isPublic && (
+            {canShowLeaderboard && (
               <div className="shrink-0">
                 <CircularProgress percentage={score} size={PUBLIC_SCORE_SIZE} />
               </div>
@@ -200,7 +217,7 @@ export function QuizResults({
                 shadow-lg shadow-text/5
               "
             >
-              Save & Close
+              {userId ? 'Save & Close' : 'Close'}
             </button>
           </div>
         </div>

@@ -1,130 +1,170 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
-import { NotificationCreator } from '../../../components/admin/notificationCreator/NotificationCreator'
+import { render, screen, cleanup } from '@testing-library/react'
+import { NotificationCreator } from '../../../components/admin/NotificationCreator'
 
-const mockUseNotificationCreator = {
-  users: [
-    { id: 'user-1', username: 'alice' },
-    { id: 'user-2', username: 'bob' },
-  ],
-  loadingUsers: false,
-  recipient: '',
-  setRecipient: vi.fn(),
-  isBroadcast: false,
-  setIsBroadcast: vi.fn(),
-  notificationType: 'info' as const,
-  setNotificationType: vi.fn(),
-  message: '',
-  setMessage: vi.fn(),
-  link: '',
-  setLink: vi.fn(),
-  sending: false,
-  successMessage: null as string | null,
-  setSuccessMessage: vi.fn(),
-  error: null as string | null,
-  setError: vi.fn(),
-  handleSend: vi.fn(),
+type NotificationCreatorMockState = {
+  users: Array<{ id: string; username: string | null }>
+  recipient: string
+  isBroadcast: boolean
+  notificationType: 'info' | 'alert' | 'error'
+  message: string
+  link: string
+  sending: boolean
+  successMessage: string | null
+  error: string | null
 }
 
-let mockIsAdmin = true
+type AdminState = { isAdmin: boolean }
+
+const { mockState, mockSetters, mockAdminState } = vi.hoisted(() => {
+  const mockState: NotificationCreatorMockState = {
+    users: [
+      { id: 'user-1', username: 'alice' },
+      { id: 'user-2', username: 'bob' },
+    ],
+    recipient: '',
+    isBroadcast: false,
+    notificationType: 'info',
+    message: '',
+    link: '',
+    sending: false,
+    successMessage: null,
+    error: null,
+  }
+
+  const mockSetters = {
+    setRecipient: vi.fn(),
+    setIsBroadcast: vi.fn(),
+    setNotificationType: vi.fn(),
+    setMessage: vi.fn(),
+    setLink: vi.fn(),
+    setSuccessMessage: vi.fn(),
+    setError: vi.fn(),
+    handleSend: vi.fn(),
+  }
+
+  const mockAdminState: AdminState = { isAdmin: false }
+
+  return { mockState, mockSetters, mockAdminState }
+})
 
 vi.mock('../../../hooks/useNotificationCreator', () => ({
-  useNotificationCreator: () => mockUseNotificationCreator,
+  useNotificationCreator: () => ({
+    ...mockState,
+    ...mockSetters,
+  }),
 }))
 
 vi.mock('../../../hooks/useIsAdmin', () => ({
-  useIsAdmin: () => mockIsAdmin,
+  useIsAdmin: () => mockAdminState.isAdmin,
 }))
 
 vi.mock('../../../hooks/useAutoClearMessage', () => ({
   useAutoClearMessage: vi.fn(),
 }))
 
+vi.mock('../../../constants/admin', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('../../../constants/admin')>()
+  return {
+    ...actual,
+    PAGE_LINKS: [
+      { value: '/public', label: 'Public Page', adminOnly: false },
+      { value: '/admin', label: 'Admin Page', adminOnly: true },
+    ],
+  }
+})
+
 describe('NotificationCreator', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockIsAdmin = true
-    mockUseNotificationCreator.successMessage = null
-    mockUseNotificationCreator.error = null
-    mockUseNotificationCreator.sending = false
-    mockUseNotificationCreator.loadingUsers = false
-    mockUseNotificationCreator.message = ''
-    mockUseNotificationCreator.recipient = ''
-    mockUseNotificationCreator.isBroadcast = false
+    cleanup()
+    mockState.users = [
+      { id: 'user-1', username: 'alice' },
+      { id: 'user-2', username: 'bob' },
+    ]
+    mockState.recipient = ''
+    mockState.isBroadcast = false
+    mockState.message = ''
+    mockState.sending = false
+    mockState.successMessage = null
+    mockState.error = null
+    mockAdminState.isAdmin = false
   })
 
   it('should render recipient select and form fields', () => {
     render(<NotificationCreator />)
 
-    expect(screen.getByLabelText('Recipient')).toBeInTheDocument()
-    expect(screen.getByLabelText('Notification Type')).toBeInTheDocument()
-    expect(screen.getByLabelText('Message')).toBeInTheDocument()
-    expect(screen.getByLabelText('Link')).toBeInTheDocument()
+    expect(
+      screen.getByText((content) => content.includes('Recipient'))
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText((content) => content.includes('Notification Type'))
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText((content) => content.includes('Message'))
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText((content) => content.includes('Link'))
+    ).toBeInTheDocument()
   })
 
   it('should render send button', () => {
     render(<NotificationCreator />)
-
     expect(
       screen.getByRole('button', { name: /Send Notification/i })
     ).toBeInTheDocument()
   })
 
   it('should show success message when present', () => {
-    mockUseNotificationCreator.successMessage = 'Notification sent'
+    mockState.successMessage = 'Sent successfully!'
     render(<NotificationCreator />)
-
-    expect(screen.getByText('Notification sent')).toBeInTheDocument()
+    expect(screen.getByText('Sent successfully!')).toBeInTheDocument()
   })
 
   it('should show error message when present', () => {
-    mockUseNotificationCreator.error = 'Failed to send'
+    mockState.error = 'Failed to send'
     render(<NotificationCreator />)
-
     expect(screen.getByText('Failed to send')).toBeInTheDocument()
   })
 
   it('should disable inputs when sending', () => {
-    mockUseNotificationCreator.sending = true
+    mockState.sending = true
     render(<NotificationCreator />)
 
-    expect(screen.getByLabelText('Recipient')).toBeDisabled()
-    expect(screen.getByLabelText('Notification Type')).toBeDisabled()
-    expect(screen.getByLabelText('Message')).toBeDisabled()
-  })
+    const selects = screen.getAllByRole('combobox')
+    selects.forEach((select) => {
+      expect(select).toBeDisabled()
+    })
 
-  it('should disable inputs when loading users', () => {
-    mockUseNotificationCreator.loadingUsers = true
-    render(<NotificationCreator />)
+    // Get the text area
+    expect(screen.getByRole('textbox')).toBeDisabled()
 
-    expect(screen.getByLabelText('Recipient')).toBeDisabled()
+    // Get the button
+    expect(
+      screen.getByRole('button', { name: /Dispatching.../i })
+    ).toBeDisabled()
   })
 
   it('should filter admin-only links for non-admins', () => {
-    mockIsAdmin = false
+    mockAdminState.isAdmin = false
     render(<NotificationCreator />)
 
-    const linkSelect = screen.getByLabelText('Link')
-    const options = Array.from(linkSelect.querySelectorAll('option'))
-    const labels = options.map((o) => o.textContent)
-
-    expect(labels).not.toContain('Admin')
+    expect(screen.getByText('Public Page')).toBeInTheDocument()
+    expect(screen.queryByText('Admin Page')).not.toBeInTheDocument()
   })
 
   it('should include admin-only links for admins', () => {
-    mockIsAdmin = true
+    mockAdminState.isAdmin = true
     render(<NotificationCreator />)
 
-    const linkSelect = screen.getByLabelText('Link')
-    const options = Array.from(linkSelect.querySelectorAll('option'))
-    const labels = options.map((o) => o.textContent)
-
-    expect(labels).toContain('Admin')
+    expect(screen.getByText('Public Page')).toBeInTheDocument()
+    expect(screen.getByText('Admin Page')).toBeInTheDocument()
   })
 
   it('should disable send button when message is empty', () => {
-    mockUseNotificationCreator.message = ''
-    mockUseNotificationCreator.recipient = 'user-1'
+    mockState.recipient = 'user-1'
+    mockState.message = '   '
     render(<NotificationCreator />)
 
     expect(
@@ -133,8 +173,8 @@ describe('NotificationCreator', () => {
   })
 
   it('should enable send button when recipient and message are set', () => {
-    mockUseNotificationCreator.message = 'Hello!'
-    mockUseNotificationCreator.recipient = 'user-1'
+    mockState.recipient = 'user-1'
+    mockState.message = 'Hello'
     render(<NotificationCreator />)
 
     expect(
@@ -143,12 +183,13 @@ describe('NotificationCreator', () => {
   })
 
   it('should enable send button for broadcast with message', () => {
-    mockUseNotificationCreator.message = 'Hello!'
-    mockUseNotificationCreator.isBroadcast = true
+    mockState.recipient = ''
+    mockState.isBroadcast = true
+    mockState.message = 'Broadcast message'
     render(<NotificationCreator />)
 
     expect(
-      screen.getByRole('button', { name: /Broadcast/i })
+      screen.getByRole('button', { name: /Send Notification/i })
     ).not.toBeDisabled()
   })
 })

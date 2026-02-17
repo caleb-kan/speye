@@ -3,11 +3,15 @@ import {
   approveText as approveTextDb,
   rejectText as rejectTextDb,
   regenerateQuiz as regenerateQuizDb,
+  getAdminStats as getAdminStatsDb,
+  getUserTrend as getUserTrendDb,
   type AdminReviewText,
-} from '../../../backend/supabase/database/texts/adminService'
+  type AdminStats,
+  type UserTrendData,
+} from '../../../backend/supabase/database/admin/adminService.ts'
 import { retryProcessing } from '../../../backend/supabase/database/texts/retryProcessing'
 
-export type { AdminReviewText }
+export type { AdminReviewText, AdminStats, UserTrendData }
 
 export const fetchPendingApprovals = (): Promise<AdminReviewText[]> => {
   return getPendingAdminReviews()
@@ -37,4 +41,12 @@ export const regenerateQuiz = async (
 
 export const retryTextProcessing = (textId: string): Promise<void> => {
   return retryProcessing(textId)
+}
+
+export async function getAdminStats(): Promise<AdminStats> {
+  return getAdminStatsDb()
+}
+
+export async function getUserTrend(): Promise<UserTrendData[]> {
+  return getUserTrendDb()
 }

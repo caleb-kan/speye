@@ -1,6 +1,6 @@
 import { supabase } from '../../../../lib/supabase'
 import { logDbQuery } from '../logger'
-import type { TextRecord } from './types'
+import type { TextRecord } from '../texts/types'
 
 /**
  * Text record for admin review, omitting fields not needed in the admin panel.
@@ -11,6 +11,20 @@ export type AdminReviewText = Omit<
   TextRecord,
   'summary' | 'fiction' | 'complexity' | 'source'
 >
+
+export type AdminStats = {
+  totalTexts: number
+  publicTexts: number
+  privateTexts: number
+  pendingTexts: number
+  activeUsers: number
+  rejectionRate: string
+}
+
+export type UserTrendData = {
+  activity_date: string
+  active_count: number
+}
 
 export async function getPendingAdminReviews(): Promise<AdminReviewText[]> {
   const { data, error } = await supabase
@@ -47,7 +61,7 @@ export async function getPendingAdminReviews(): Promise<AdminReviewText[]> {
     throw error
   }
 
-  return (data ?? []) as AdminReviewText[]
+  return data ?? []
 }
 
 export async function approveText(
@@ -110,4 +124,42 @@ export async function regenerateQuiz(
   if (error) {
     throw error
   }
+}
+
+export async function getAdminStats(): Promise<AdminStats> {
+  const { data, error } = await supabase.rpc('get_admin_stats')
+
+  logDbQuery({
+    table: 'rpc',
+    action: 'RPC:get_admin_stats',
+    errors: error ? error.message : undefined,
+  })
+
+  if (error) {
+    throw error
+  }
+
+  const stats: AdminStats | null = data
+
+  if (!stats) {
+    throw new Error('No data returned from get_admin_stats')
+  }
+
+  return stats
+}
+
+export async function getUserTrend(): Promise<UserTrendData[]> {
+  const { data, error } = await supabase.rpc('get_active_users_trend')
+
+  logDbQuery({
+    table: 'rpc',
+    action: 'RPC:get_active_users_trend',
+    errors: error ? error.message : undefined,
+  })
+
+  if (error) {
+    throw error
+  }
+
+  return data ?? []
 }

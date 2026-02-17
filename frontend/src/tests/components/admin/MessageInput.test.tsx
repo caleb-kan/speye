@@ -6,7 +6,7 @@ import { MessageInput } from '../../../components/admin/notificationCreator/Mess
 describe('MessageInput', () => {
   const defaultProps = {
     value: '',
-    disabled: false,
+    sending: false,
     onChange: vi.fn(),
   }
 
@@ -16,22 +16,18 @@ describe('MessageInput', () => {
 
   it('should render label and textarea', () => {
     render(<MessageInput {...defaultProps} />)
-
-    expect(screen.getByLabelText('Message')).toBeInTheDocument()
+    expect(screen.getByText('Message')).toBeInTheDocument()
+    expect(screen.getByRole('textbox')).toBeInTheDocument()
   })
 
   it('should render placeholder text', () => {
     render(<MessageInput {...defaultProps} />)
-
-    expect(
-      screen.getByPlaceholderText('Enter notification message...')
-    ).toBeInTheDocument()
+    expect(screen.getByPlaceholderText("What's happening?")).toBeInTheDocument()
   })
 
   it('should display the current value', () => {
     render(<MessageInput {...defaultProps} value="Hello world" />)
-
-    const textarea = screen.getByLabelText('Message') as HTMLTextAreaElement
+    const textarea = screen.getByRole('textbox') as HTMLTextAreaElement
     expect(textarea.value).toBe('Hello world')
   })
 
@@ -39,15 +35,14 @@ describe('MessageInput', () => {
     const user = userEvent.setup()
     render(<MessageInput {...defaultProps} />)
 
-    await user.type(screen.getByLabelText('Message'), 'Hi')
+    await user.type(screen.getByRole('textbox'), 'Hi')
 
     expect(defaultProps.onChange).toHaveBeenCalledWith('H')
     expect(defaultProps.onChange).toHaveBeenCalledWith('i')
   })
 
-  it('should disable textarea when disabled prop is true', () => {
-    render(<MessageInput {...defaultProps} disabled={true} />)
-
-    expect(screen.getByLabelText('Message')).toBeDisabled()
+  it('should disable textarea when sending is true', () => {
+    render(<MessageInput {...defaultProps} sending={true} />)
+    expect(screen.getByRole('textbox')).toBeDisabled()
   })
 })

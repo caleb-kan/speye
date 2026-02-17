@@ -82,7 +82,23 @@ describe('Admin', () => {
 
     expect(screen.getByText('Admin Panel')).toBeInTheDocument()
     expect(
-      screen.getByText('Manage text approvals and send notifications')
+      screen.getByText(
+        'Manage text approvals, send notifications, and manage admins'
+      )
+    ).toBeInTheDocument()
+  })
+
+  it('should render all admin sections', () => {
+    render(<Admin />)
+
+    expect(
+      screen.getByRole('heading', { name: 'Text Approvals' })
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', { name: 'Send Notification' })
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', { name: 'Manage Admins' })
     ).toBeInTheDocument()
   })
 

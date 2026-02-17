@@ -20,7 +20,7 @@ export function MessageInput({ value, disabled, onChange }: MessageInputProps) {
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder="Enter notification message..."
-        className={`${NOTIFICATION_INPUT_CLASS} h-90 resize-none`}
+        className={`${NOTIFICATION_INPUT_CLASS} h-20 resize-none`}
         disabled={disabled}
       />
     </div>

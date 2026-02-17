@@ -1,56 +1,56 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { renderHook, act, waitFor } from '@testing-library/react'
+import { renderHook, act } from '@testing-library/react'
 import { useNotificationCreator } from '../../hooks/useNotificationCreator'
 
-const mockGetUsers = vi.fn()
 const mockCreateNotification = vi.fn()
+const mockUsers = [{ id: 'user-1' }, { id: 'user-2' }, { id: 'user-3' }]
 
-vi.mock('../../services/userService', () => ({
-  getUsers: (...args: unknown[]) => mockGetUsers(...args),
+let mockUseUsersReturn = {
+  users: mockUsers,
+  loadingUsers: false,
+  usersFetchError: null as string | null,
+}
+
+vi.mock('../../hooks/useUsers', () => ({
+  useUsers: () => mockUseUsersReturn,
 }))
 
 vi.mock('../../services/notificationService', () => ({
   createNotification: (...args: unknown[]) => mockCreateNotification(...args),
 }))
 
-const mockUsers = [{ id: 'user-1' }, { id: 'user-2' }, { id: 'user-3' }]
-
 describe('useNotificationCreator', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockGetUsers.mockResolvedValue(mockUsers)
     mockCreateNotification.mockResolvedValue(undefined)
+    mockUseUsersReturn = {
+      users: mockUsers,
+      loadingUsers: false,
+      usersFetchError: null,
+    }
   })
 
   it('should fetch users on mount', async () => {
     const { result } = renderHook(() => useNotificationCreator())
 
-    await waitFor(() => {
-      expect(result.current.loadingUsers).toBe(false)
-    })
-
-    expect(mockGetUsers).toHaveBeenCalled()
+    expect(result.current.loadingUsers).toBe(false)
     expect(result.current.users).toEqual(mockUsers)
   })
 
   it('should set error when user fetch fails', async () => {
-    mockGetUsers.mockRejectedValue(new Error('fail'))
+    mockUseUsersReturn = {
+      users: [],
+      loadingUsers: false,
+      usersFetchError: 'Failed to load users',
+    }
 
     const { result } = renderHook(() => useNotificationCreator())
-
-    await waitFor(() => {
-      expect(result.current.loadingUsers).toBe(false)
-    })
 
     expect(result.current.error).toBe('Failed to load users')
   })
 
   it('should have correct default state', async () => {
     const { result } = renderHook(() => useNotificationCreator())
-
-    await waitFor(() => {
-      expect(result.current.loadingUsers).toBe(false)
-    })
 
     expect(result.current.recipient).toBe('')
     expect(result.current.isBroadcast).toBe(false)
@@ -63,10 +63,6 @@ describe('useNotificationCreator', () => {
 
   it('should send notification to a single recipient', async () => {
     const { result } = renderHook(() => useNotificationCreator())
-
-    await waitFor(() => {
-      expect(result.current.loadingUsers).toBe(false)
-    })
 
     act(() => {
       result.current.setRecipient('user-1')
@@ -91,10 +87,6 @@ describe('useNotificationCreator', () => {
 
   it('should broadcast notification to all users', async () => {
     const { result } = renderHook(() => useNotificationCreator())
-
-    await waitFor(() => {
-      expect(result.current.loadingUsers).toBe(false)
-    })
 
     act(() => {
       result.current.setIsBroadcast(true)
@@ -132,10 +124,6 @@ describe('useNotificationCreator', () => {
   it('should set error when message is empty', async () => {
     const { result } = renderHook(() => useNotificationCreator())
 
-    await waitFor(() => {
-      expect(result.current.loadingUsers).toBe(false)
-    })
-
     act(() => {
       result.current.setRecipient('user-1')
     })
@@ -151,10 +139,6 @@ describe('useNotificationCreator', () => {
   it('should set error when no recipient selected', async () => {
     const { result } = renderHook(() => useNotificationCreator())
 
-    await waitFor(() => {
-      expect(result.current.loadingUsers).toBe(false)
-    })
-
     act(() => {
       result.current.setMessage('Hello!')
     })
@@ -169,10 +153,6 @@ describe('useNotificationCreator', () => {
 
   it('should reset form after successful send', async () => {
     const { result } = renderHook(() => useNotificationCreator())
-
-    await waitFor(() => {
-      expect(result.current.loadingUsers).toBe(false)
-    })
 
     act(() => {
       result.current.setRecipient('user-1')
@@ -197,10 +177,6 @@ describe('useNotificationCreator', () => {
 
     const { result } = renderHook(() => useNotificationCreator())
 
-    await waitFor(() => {
-      expect(result.current.loadingUsers).toBe(false)
-    })
-
     act(() => {
       result.current.setRecipient('user-1')
       result.current.setMessage('Hello!')
@@ -215,10 +191,6 @@ describe('useNotificationCreator', () => {
 
   it('should not include link when link is empty', async () => {
     const { result } = renderHook(() => useNotificationCreator())
-
-    await waitFor(() => {
-      expect(result.current.loadingUsers).toBe(false)
-    })
 
     act(() => {
       result.current.setRecipient('user-1')

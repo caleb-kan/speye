@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { useAdminApprovals } from '../hooks/useAdminApprovals'
 import { useAutoClearMessage } from '../hooks/useAutoClearMessage'
+import { AdminSection } from '../components/admin/AdminSection'
 import { ApprovalsList } from '../components/admin/textApproval/ApprovalsList.tsx'
 import { EmptyState } from '../components/admin/textApproval/EmptyState.tsx'
 import { AlertMessages } from '../components/ui/AlertMessages'
@@ -9,6 +10,7 @@ import { TextPreviewModal } from '../components/admin/textApproval/TextPreviewMo
 import { QuizPreviewModal } from '../components/admin/textApproval/QuizPreviewModal.tsx'
 import { AccessDenied } from '../components/admin/textApproval/AccessDenied.tsx'
 import { NotificationCreator } from '../components/admin/notificationCreator/NotificationCreator.tsx'
+import { AdminPromotion } from '../components/admin/adminPromotion/AdminPromotion.tsx'
 import { SUCCESS_MESSAGE_DURATION_MS } from '../constants/ui'
 import type { AdminReviewText } from '../services/adminService'
 
@@ -89,17 +91,15 @@ export function Admin() {
         <div className="mb-4 shrink-0">
           <h1 className="text-3xl font-bold text-text mb-1">Admin Panel</h1>
           <p className="text-text-secondary text-sm">
-            Manage text approvals and send notifications
+            Manage text approvals, send notifications, and manage admins
           </p>
         </div>
 
         <div className="flex gap-6 flex-1 min-h-0">
-          {/* Text Approvals Section */}
-          <section className="border border-border rounded-lg p-6 flex-1 min-w-0 flex flex-col overflow-hidden">
-            <h2 className="text-xl font-semibold text-text mb-4 shrink-0">
-              Text Approvals
-            </h2>
-
+          <AdminSection
+            title="Text Approvals"
+            className="flex-1 min-w-0 flex flex-col overflow-hidden"
+          >
             <div className="shrink-0">
               <AlertMessages
                 successMessage={successMessage}
@@ -126,15 +126,17 @@ export function Admin() {
                   />
                 ))}
             </div>
-          </section>
+          </AdminSection>
 
-          {/* Send Notification Section */}
-          <section className="border border-border rounded-lg p-6 w-96 shrink-0 overflow-y-auto">
-            <h2 className="text-xl font-semibold text-text mb-4">
-              Send Notification
-            </h2>
-            <NotificationCreator />
-          </section>
+          <div className="flex flex-col gap-6 w-96 shrink-0 min-h-0 overflow-y-auto">
+            <AdminSection title="Send Notification" className="shrink-0">
+              <NotificationCreator />
+            </AdminSection>
+
+            <AdminSection title="Manage Admins" className="flex-1 min-h-0">
+              <AdminPromotion />
+            </AdminSection>
+          </div>
         </div>
 
         <TextPreviewModal

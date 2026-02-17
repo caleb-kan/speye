@@ -1,11 +1,10 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { getUsers, type UserRecord } from '../services/userService'
+import { useState, useCallback } from 'react'
 import { createNotification } from '../services/notificationService'
 import type { NotificationType } from '../types/database'
+import { useUsers } from './useUsers'
 
 export function useNotificationCreator() {
-  const [users, setUsers] = useState<UserRecord[]>([])
-  const [loadingUsers, setLoadingUsers] = useState(true)
+  const { users, loadingUsers, usersFetchError } = useUsers()
 
   const [recipient, setRecipient] = useState('')
   const [isBroadcast, setIsBroadcast] = useState(false)
@@ -17,25 +16,6 @@ export function useNotificationCreator() {
   const [sending, setSending] = useState(false)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-
-  const isMounted = useRef(true)
-
-  useEffect(() => {
-    isMounted.current = true
-    getUsers()
-      .then((data) => {
-        if (isMounted.current) setUsers(data)
-      })
-      .catch(() => {
-        if (isMounted.current) setError('Failed to load users')
-      })
-      .finally(() => {
-        if (isMounted.current) setLoadingUsers(false)
-      })
-    return () => {
-      isMounted.current = false
-    }
-  }, [])
 
   const resetForm = useCallback(() => {
     setRecipient('')
@@ -112,7 +92,7 @@ export function useNotificationCreator() {
     sending,
     successMessage,
     setSuccessMessage,
-    error,
+    error: error ?? usersFetchError,
     setError,
     handleSend,
   }

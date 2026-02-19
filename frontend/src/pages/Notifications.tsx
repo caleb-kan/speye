@@ -1,18 +1,36 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useNotifications } from '../hooks/useNotifications'
 import { useAuth } from '../hooks/useAuth'
 import { NotificationRow } from '../components/notifications/NotificationRow'
+import {
+  NotificationsTabs,
+  type NotificationTab,
+} from '../components/notifications/NotificationsTabs'
+import { Button } from '../components/ui/Button'
+import type { Notification } from '../types/database'
+
+function byDateDescending(a: Notification, b: Notification): number {
+  return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+}
 
 export function Notifications() {
   const { user } = useAuth()
-  const { notifications, loading, markAsSeen } = useNotifications()
+  const { notifications, loading, markAsSeen, markAllAsSeen } =
+    useNotifications()
+  const [activeTab, setActiveTab] = useState<NotificationTab>('unread')
 
-  const sortedNotifications = useMemo(() => {
-    return [...notifications].sort(
-      (a, b) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    )
-  }, [notifications])
+  const unreadNotifications = useMemo(
+    () => [...notifications.filter((n) => !n.seen)].sort(byDateDescending),
+    [notifications]
+  )
+
+  const readNotifications = useMemo(
+    () => [...notifications.filter((n) => n.seen)].sort(byDateDescending),
+    [notifications]
+  )
+
+  const displayedNotifications =
+    activeTab === 'unread' ? unreadNotifications : readNotifications
 
   if (!user) {
     return (
@@ -34,27 +52,50 @@ export function Notifications() {
         </p>
       </div>
 
-      {loading && !sortedNotifications.length ? (
-        <div className="rounded-xl border border-text-secondary/30 bg-bg-secondary p-4 text-text-secondary">
-          Loading notifications...
+      <div>
+        <div className="mb-2 flex items-center justify-between">
+          <NotificationsTabs
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            unreadCount={unreadNotifications.length}
+            readCount={readNotifications.length}
+          />
+          {activeTab === 'unread' ? (
+            <Button
+              variant="secondary"
+              onClick={markAllAsSeen}
+              disabled={unreadNotifications.length === 0}
+              className="text-sm"
+            >
+              Mark all as read
+            </Button>
+          ) : null}
         </div>
-      ) : null}
 
-      {!sortedNotifications.length && !loading ? (
-        <div className="rounded-xl border border-dashed border-text-secondary/40 bg-bg-secondary/40 p-6 text-text-secondary">
-          No notifications yet.
-        </div>
-      ) : (
-        <div className="flex flex-col gap-3">
-          {sortedNotifications.map((notification) => (
-            <NotificationRow
-              key={notification.id}
-              notification={notification}
-              onOpen={() => markAsSeen(notification.id)}
-            />
-          ))}
-        </div>
-      )}
+        {loading && !displayedNotifications.length ? (
+          <div className="rounded-xl border border-text-secondary/30 bg-bg-secondary p-4 text-text-secondary">
+            Loading notifications...
+          </div>
+        ) : null}
+
+        {!displayedNotifications.length && !loading ? (
+          <div className="rounded-xl border border-dashed border-text-secondary/40 bg-bg-secondary/40 p-6 text-text-secondary">
+            {activeTab === 'unread'
+              ? 'No unread notifications.'
+              : 'No read notifications.'}
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {displayedNotifications.map((notification) => (
+              <NotificationRow
+                key={notification.id}
+                notification={notification}
+                onOpen={() => markAsSeen(notification.id)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

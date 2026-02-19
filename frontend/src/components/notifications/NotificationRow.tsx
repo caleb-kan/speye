@@ -14,6 +14,7 @@ export function NotificationRow({
   const navigate = useNavigate()
   const config = notificationTypeConfig[notification.type]
   const Icon = config.icon
+  const hasLink = !!notification.link
 
   const handleClick = () => {
     onOpen()
@@ -28,7 +29,7 @@ export function NotificationRow({
       onClick={handleClick}
       className={`
         flex w-full items-start justify-between gap-4 rounded-xl border px-4 py-4 text-left transition
-        hover:bg-bg-secondary/80
+        ${hasLink ? 'hover:bg-bg-secondary/80 cursor-pointer hover:border-primary/30' : 'cursor-default'}
         focus-visible:outline-none focus-visible:border-2 focus-visible:border-primary
         ${config.classes} ${notification.seen ? 'opacity-80' : ''}
       `}
@@ -55,9 +56,10 @@ export function NotificationRow({
         <span className="text-xs text-text-secondary whitespace-pre-line">
           {formatTimestamp(notification.created_at)}
         </span>
-        {notification.link ? (
-          <ChevronRight size={16} className="text-text-secondary" />
-        ) : null}
+        <ChevronRight
+          size={16}
+          className={`text-text-secondary ${hasLink ? '' : 'invisible'}`}
+        />
       </div>
     </button>
   )

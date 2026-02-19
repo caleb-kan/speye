@@ -21,10 +21,19 @@ export function Button({
   variant = 'primary',
   children,
   className = '',
+  disabled,
   ...props
 }: ButtonProps) {
+  const disabledClasses = disabled
+    ? 'opacity-50 cursor-not-allowed pointer-events-none'
+    : ''
+
   return (
-    <button className={`${variantClasses[variant]} ${className}`} {...props}>
+    <button
+      className={`${variantClasses[variant]} ${disabledClasses} ${className}`}
+      disabled={disabled}
+      {...props}
+    >
       {children}
     </button>
   )

@@ -38,7 +38,7 @@ describe('RecipientSelect', () => {
 
   it('should render broadcast option', () => {
     render(<RecipientSelect {...defaultProps} />)
-    expect(screen.getByText('📡 Broadcast to All Users')).toBeInTheDocument()
+    expect(screen.getByText('Broadcast to All Users')).toBeInTheDocument()
   })
 
   it('should call onRecipientChange when a user is selected', async () => {

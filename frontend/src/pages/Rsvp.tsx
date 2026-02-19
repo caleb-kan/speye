@@ -1,30 +1,18 @@
 import { useState } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
-import { AdaptiveReadingSession } from '../components/adaptive/AdaptiveReadingSession'
-import { useAuth } from '../hooks/useAuth'
+import { useLocation } from 'react-router-dom'
+import { RsvpReadingSession } from '../components/rsvp/RsvpReadingSession'
 import { useReadingPreferences } from '../hooks/useReadingPreferences'
 import { useTextNavigation } from '../hooks/useTextNavigation'
 import { useReadingPositionSync } from '../hooks/useReadingPositionSync'
-import type { LocationState, FixedTextInfo } from '../types'
-import { useAdaptiveActivitySession } from '../hooks/useAdaptiveActivitySession'
-import { useAdaptiveTextSync } from '../hooks/useAdaptiveTextSync'
-import { useAuthRedirect } from '../hooks/useAuthRedirect'
+import { useRsvpActivitySession } from '../hooks/useRsvpActivitySession'
 import { useNewTextWithReset } from '../hooks/useNewTextWithReset'
 import { useClearLocationState } from '../hooks/useClearLocationState'
-import { AdaptiveAuthLoading } from '../components/adaptive/AdaptiveAuthLoading'
-import { AdaptiveTextLoading } from '../components/adaptive/AdaptiveTextLoading'
-import { AdaptiveErrorState } from '../components/adaptive/AdaptiveErrorState'
-import { AdaptiveReaderLayout } from '../components/adaptive/AdaptiveReaderLayout'
+import { RsvpTextLoading } from '../components/rsvp/RsvpTextLoading'
+import { RsvpErrorState } from '../components/rsvp/RsvpErrorState'
+import { RsvpReaderLayout } from '../components/rsvp/RsvpReaderLayout'
+import type { LocationState, FixedTextInfo } from '../types'
 
-/**
- * Adaptive reading mode page
- *
- * Requires authentication. If not logged in, redirects to login page.
- * Uses WebGazer eye tracking for gaze-based reading.
- * Supports reading library texts via navigation state.
- */
-export function Adaptive() {
-  const navigate = useNavigate()
+export function Rsvp() {
   const location = useLocation()
   const state = location.state as LocationState | null
   const libraryText = state?.libraryText
@@ -33,19 +21,15 @@ export function Adaptive() {
   const modeTimestamp = state?._ts
   const isSummary = state?.isSummary ?? false
 
-  const { user, loading: authLoading } = useAuth()
   const [currentTextComplexity, setCurrentTextComplexity] = useState<
     number | null
   >(null)
-  const [adaptiveSessionWpm, setAdaptiveSessionWpm] = useState<number | null>(
-    null
-  )
+  const [inputBlocking, setInputBlocking] = useState(false)
 
   const {
     preferences,
     setWpm,
     setMode,
-    setScrolling,
     setFiction,
     setComplexityMin,
     setComplexityMax,
@@ -53,17 +37,10 @@ export function Adaptive() {
     setPhraseSize,
   } = useReadingPreferences()
 
-  const {
-    wpm,
-    mode,
-    scrolling,
-    fiction,
-    complexityMin,
-    complexityMax,
-    visibleLines,
-  } = preferences
+  const { wpm, fiction, complexityMin, complexityMax, visibleLines } =
+    preferences
 
-  const clearLibraryText = useClearLocationState('/adaptive')
+  const clearLibraryText = useClearLocationState('/rsvp')
 
   const { currentText, loading, error, handleNewText, refetch } =
     useTextNavigation({
@@ -74,11 +51,11 @@ export function Adaptive() {
       currentTextComplexity,
     })
 
-  useAdaptiveTextSync(
-    currentText,
-    setCurrentTextComplexity,
-    setAdaptiveSessionWpm
-  )
+  // Sync text complexity when text changes (adjust state during render)
+  const derivedComplexity = currentText?.complexity ?? null
+  if (derivedComplexity !== currentTextComplexity) {
+    setCurrentTextComplexity(derivedComplexity)
+  }
 
   const {
     position: readingPosition,
@@ -90,9 +67,8 @@ export function Adaptive() {
     modeTimestamp,
   })
 
-  const { handleModeNavigate } = useAdaptiveActivitySession({
+  const { handleModeNavigate } = useRsvpActivitySession({
     currentText: currentText ?? null,
-    adaptiveSessionWpm,
     readingPosition,
     fallbackWpm: wpm,
   })
@@ -102,29 +78,16 @@ export function Adaptive() {
     handleNewText
   )
 
-  // Create fixed text info if reading from library (shows fixed genre/complexity in OptionsBar)
   const fixedText: FixedTextInfo | undefined = libraryText
     ? { fiction: libraryText.fiction, complexity: libraryText.complexity }
     : undefined
 
-  useAuthRedirect({
-    user,
-    authLoading,
-    navigate,
-    returnTo: '/adaptive',
-  })
-
-  // Shared OptionsBar props for adaptive mode (blur is always off in adaptive mode)
   const optionsBarProps = {
     wpm,
     onWpmChange: setWpm,
-    mode,
+    mode: preferences.mode,
     onModeChange: setMode,
     onModeNavigate: handleModeNavigate,
-    scrolling,
-    onScrollingChange: setScrolling,
-    blurEnabled: false,
-    onBlurChange: () => {},
     fiction,
     onFictionChange: setFiction,
     complexityMin,
@@ -135,31 +98,20 @@ export function Adaptive() {
     onVisibleLinesChange: setVisibleLines,
     phraseSize: preferences.phraseSize,
     onPhraseSizeChange: setPhraseSize,
+    onInputBlockingChange: setInputBlocking,
     currentTextComplexity: currentText?.complexity ?? null,
     currentText: currentText,
     fixedText,
     readingPosition,
   }
 
-  // Show loading state while checking auth
-  if (authLoading) {
-    return <AdaptiveAuthLoading />
-  }
-
-  // Don't render if not authenticated (will redirect)
-  if (!user) {
-    return null
-  }
-
-  // Show loading state while fetching texts
   if (loading) {
-    return <AdaptiveTextLoading optionsBarProps={optionsBarProps} />
+    return <RsvpTextLoading optionsBarProps={optionsBarProps} />
   }
 
-  // Show error state
   if (error || !currentText) {
     return (
-      <AdaptiveErrorState
+      <RsvpErrorState
         optionsBarProps={optionsBarProps}
         message={error || 'No texts available for the selected criteria.'}
         onRetry={() => refetch()}
@@ -168,18 +120,20 @@ export function Adaptive() {
   }
 
   return (
-    <AdaptiveReaderLayout optionsBarProps={optionsBarProps}>
-      <AdaptiveReadingSession
+    <RsvpReaderLayout optionsBarProps={optionsBarProps}>
+      <RsvpReadingSession
         key={currentText.id}
         currentText={currentText}
-        onNewText={handleNewTextWithReset}
+        modeTimestamp={modeTimestamp}
         wpm={wpm}
-        initialWordIndex={readingPosition}
+        phraseSize={preferences.phraseSize}
+        visibleLines={visibleLines}
+        readingPosition={readingPosition}
         onPositionChange={setReadingPosition}
-        onCalculatedWpmChange={setAdaptiveSessionWpm}
-        adaptiveSessionWpm={adaptiveSessionWpm}
+        inputBlocking={inputBlocking}
+        onNewText={handleNewTextWithReset}
         isSummary={isSummary}
       />
-    </AdaptiveReaderLayout>
+    </RsvpReaderLayout>
   )
 }

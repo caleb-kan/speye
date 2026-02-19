@@ -15,12 +15,14 @@ import { CompleteProfile } from './pages/CompleteProfile'
 import { ForgotPassword } from './pages/ForgotPassword'
 import { ResetPassword } from './pages/ResetPassword'
 import { Adaptive } from './pages/Adaptive'
+import { Rsvp } from './pages/Rsvp'
 import { Privacy } from './pages/Privacy'
 import { Terms } from './pages/Terms'
 import { Notifications } from './pages/Notifications'
 import { RootLayout } from './layouts/RootLayout'
 import { ReadingLayout } from './layouts/ReadingLayout'
 import { AdaptiveLayout } from './layouts/AdaptiveLayout'
+import { RsvpLayout } from './layouts/RsvpLayout'
 import { WindowSizeProvider } from './components/WindowSizeProvider'
 import { NotificationsProvider } from './context/NotificationsProvider'
 import { RequireUsername } from './components/auth/RequireUsername'
@@ -59,6 +61,17 @@ function App() {
                         }
                       >
                         <Route path="adaptive" element={<Adaptive />} />
+                      </Route>
+
+                      {/* RSVP reading mode */}
+                      <Route
+                        element={
+                          <WindowSizeProvider>
+                            <RsvpLayout />
+                          </WindowSizeProvider>
+                        }
+                      >
+                        <Route path="rsvp" element={<Rsvp />} />
                       </Route>
 
                       {/* Pages without OptionsBar */}

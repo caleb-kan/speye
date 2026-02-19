@@ -15,7 +15,7 @@ export function RootLayout() {
       <NotificationToaster />
 
       {/* Right content shell */}
-      <div className="flex-1 ml-14 flex flex-col">
+      <div className="flex-1 flex flex-col">
         {/* Page content */}
         <main className="relative flex-1 flex flex-col min-h-0 overflow-auto pt-12">
           <Outlet />

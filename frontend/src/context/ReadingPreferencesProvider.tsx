@@ -11,7 +11,9 @@ import {
 } from '../constants/complexity'
 import { DEFAULT_WIDTH_PERCENT } from '../constants/resize'
 import { DEFAULT_VISIBLE_LINES } from '../constants/visibleLines'
+import { DEFAULT_PHRASE_SIZE } from '../constants/rsvp'
 import { STORAGE_KEYS } from '../constants/storage'
+import { DEFAULT_MODE } from '../constants/modes'
 
 function loadPreferences(): ReadingPreferences {
   try {
@@ -21,9 +23,11 @@ function loadPreferences(): ReadingPreferences {
       return {
         wpm: parsed.wpm ?? DEFAULT_WPM,
         mode:
-          parsed.mode === 'standard' || parsed.mode === 'adaptive'
+          parsed.mode === 'standard' ||
+          parsed.mode === 'adaptive' ||
+          parsed.mode === 'rsvp'
             ? parsed.mode
-            : 'standard',
+            : DEFAULT_MODE,
         scrolling: parsed.scrolling ?? 'dynamic',
         blurEnabled: parsed.blurEnabled ?? false,
         fiction: parsed.fiction ?? false,
@@ -31,6 +35,7 @@ function loadPreferences(): ReadingPreferences {
         complexityMax: parsed.complexityMax ?? DEFAULT_MAX_COMPLEXITY,
         textWidthPercent: parsed.textWidthPercent ?? DEFAULT_WIDTH_PERCENT,
         visibleLines: parsed.visibleLines ?? DEFAULT_VISIBLE_LINES,
+        phraseSize: parsed.phraseSize ?? DEFAULT_PHRASE_SIZE,
       }
     }
   } catch {
@@ -38,7 +43,7 @@ function loadPreferences(): ReadingPreferences {
   }
   return {
     wpm: DEFAULT_WPM,
-    mode: 'standard',
+    mode: DEFAULT_MODE,
     scrolling: 'dynamic',
     blurEnabled: false,
     fiction: false,
@@ -46,6 +51,7 @@ function loadPreferences(): ReadingPreferences {
     complexityMax: DEFAULT_MAX_COMPLEXITY,
     textWidthPercent: DEFAULT_WIDTH_PERCENT,
     visibleLines: DEFAULT_VISIBLE_LINES,
+    phraseSize: DEFAULT_PHRASE_SIZE,
   }
 }
 
@@ -124,6 +130,11 @@ export function ReadingPreferencesProvider({
     [updatePreferences]
   )
 
+  const setPhraseSize = useCallback(
+    (phraseSize: number) => updatePreferences({ phraseSize }),
+    [updatePreferences]
+  )
+
   const value = useMemo(
     () => ({
       preferences,
@@ -136,6 +147,7 @@ export function ReadingPreferencesProvider({
       setComplexityMax,
       setTextWidthPercent,
       setVisibleLines,
+      setPhraseSize,
     }),
     [
       preferences,
@@ -148,6 +160,7 @@ export function ReadingPreferencesProvider({
       setComplexityMax,
       setTextWidthPercent,
       setVisibleLines,
+      setPhraseSize,
     ]
   )
 

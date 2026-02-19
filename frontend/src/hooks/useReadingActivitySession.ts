@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react'
-import type { Mode, ReadingContext } from '../types/reading'
+import type { Mode, ActivitySessionContext } from '../types/reading'
 import type { Text } from '../types/database'
 import {
   logUserActivity,
@@ -14,7 +14,7 @@ import {
 
 export type UseReadingActivitySessionParams = {
   currentText: Text
-  context: ReadingContext
+  context: ActivitySessionContext
   readingComplete: boolean
 }
 
@@ -48,8 +48,8 @@ export const useReadingActivitySession = (
     const existing = loadReadingActivitySession()
     if (existing?.textId === currentText.id) {
       if (
-        context.mode === 'standard' &&
-        (existing.mode !== 'standard' || !existing.started)
+        context.mode !== 'adaptive' &&
+        (existing.mode !== context.mode || !existing.started)
       ) {
         startTimeRef.current = null
         pendingStartIndexRef.current = context.readingPosition
@@ -72,7 +72,7 @@ export const useReadingActivitySession = (
       }> = {}
       if (
         existing.wpm !== context.wpm &&
-        (!existing.started || existing.mode !== 'standard')
+        (!existing.started || existing.mode === 'adaptive')
       ) {
         updates.wpm = context.wpm
       }
@@ -179,7 +179,7 @@ export const useReadingActivitySession = (
 
   useEffect(() => {
     const activitySession = loadReadingActivitySession()
-    if (!activitySession?.started || activitySession.mode !== 'standard') return
+    if (!activitySession?.started || activitySession.mode === 'adaptive') return
     if (activitySession.wpm === context.wpm) return
 
     const now = new Date().toISOString()

@@ -22,6 +22,12 @@ export function AboutSection() {
             </span>
             <span>AI-powered summary for non-fiction texts (via Library)</span>
           </div>
+          <div className="flex gap-2">
+            <span className="text-primary font-medium shrink-0">rsvp</span>
+            <span>
+              Rapid Serial Visual Presentation — displays a few words at a time
+            </span>
+          </div>
         </div>
       </div>
     </section>

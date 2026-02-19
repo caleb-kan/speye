@@ -1,11 +1,12 @@
 import { supabase } from '../../../../lib/supabase'
 import { logDbQuery } from '../logger'
+import type { Mode } from '../../../../frontend/src/types/reading'
 
 export interface ActivitySession {
   id: string
   text_id: string
   wpm: number
-  mode: 'standard' | 'adaptive'
+  mode: Mode
   score: number | null
   start_time: string | null
   end_time: string | null

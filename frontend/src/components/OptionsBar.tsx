@@ -11,6 +11,7 @@ import { ModeSelector } from './optionsBar/ModeSelector'
 import { GenreSelector } from './optionsBar/GenreSelector'
 import { ComplexitySelector } from './optionsBar/ComplexitySelector'
 import { StandardOptions } from './optionsBar/StandardOptions'
+import { RsvpOptions } from './optionsBar/RsvpOptions'
 
 type OptionsBarProps = {
   wpm: number
@@ -18,10 +19,10 @@ type OptionsBarProps = {
   mode: Mode
   onModeChange: (mode: Mode) => void
   onModeNavigate?: (mode: Mode) => void
-  scrolling: Scrolling
-  onScrollingChange: (scrolling: Scrolling) => void
-  blurEnabled: boolean
-  onBlurChange: (enabled: boolean) => void
+  scrolling?: Scrolling
+  onScrollingChange?: (scrolling: Scrolling) => void
+  blurEnabled?: boolean
+  onBlurChange?: (enabled: boolean) => void
   fiction: boolean
   onFictionChange: (fiction: boolean) => void
   complexityMin: number
@@ -30,11 +31,12 @@ type OptionsBarProps = {
   onComplexityMaxChange: (max: number) => void
   visibleLines: number
   onVisibleLinesChange: (lines: number) => void
+  phraseSize?: number
+  onPhraseSizeChange?: (size: number) => void
   onInputBlockingChange?: (isBlocking: boolean) => void
   fixedText?: FixedTextInfo
   currentTextComplexity?: number | null
   currentText?: Text | null
-  isAdaptiveMode?: boolean
   readingPosition?: number
 }
 
@@ -44,10 +46,10 @@ export function OptionsBar({
   mode,
   onModeChange,
   onModeNavigate,
-  scrolling,
-  onScrollingChange,
-  blurEnabled,
-  onBlurChange,
+  scrolling = 'static',
+  onScrollingChange = () => {},
+  blurEnabled = false,
+  onBlurChange = () => {},
   fiction,
   onFictionChange,
   complexityMin,
@@ -56,11 +58,12 @@ export function OptionsBar({
   onComplexityMaxChange,
   visibleLines,
   onVisibleLinesChange,
+  phraseSize,
+  onPhraseSizeChange,
   onInputBlockingChange,
   fixedText,
   currentTextComplexity,
   currentText,
-  isAdaptiveMode = false,
   readingPosition = 0,
 }: OptionsBarProps) {
   const navigate = useNavigate()
@@ -72,15 +75,18 @@ export function OptionsBar({
   const libraryText = locationState?.libraryText
   const isSummary = locationState?.isSummary
 
-  const { complexitySliderRef, visibleLinesSliderRef } = useOptionsBarSliders({
-    fixedText,
-    complexityMin,
-    complexityMax,
-    onComplexityMinChange,
-    onComplexityMaxChange,
-    visibleLines,
-    onVisibleLinesChange,
-  })
+  const { complexitySliderRef, visibleLinesSliderRef, phraseSizeSliderRef } =
+    useOptionsBarSliders({
+      fixedText,
+      complexityMin,
+      complexityMax,
+      onComplexityMinChange,
+      onComplexityMaxChange,
+      visibleLines,
+      onVisibleLinesChange,
+      phraseSize,
+      onPhraseSizeChange,
+    })
 
   const {
     customWpm,
@@ -103,32 +109,43 @@ export function OptionsBar({
       <div className="flex flex-wrap items-center justify-center gap-6 py-4 text-sm">
         <ModeSelector
           mode={mode}
-          isAdaptiveMode={isAdaptiveMode}
           user={user}
           onStandardClick={() => {
-            if (mode !== 'standard' || isAdaptiveMode) {
+            if (mode !== 'standard') {
               onModeNavigate?.('standard')
-            }
-            if (isAdaptiveMode) {
-              navigate('/home', {
-                state: buildModeNavigationState({
-                  includeTimestamp: true,
-                  readingPosition,
-                  libraryText,
-                  currentText,
-                  isSummary,
-                }),
-                replace: true,
-              })
-            } else {
               onModeChange('standard')
+              if (mode === 'adaptive' || mode === 'rsvp') {
+                navigate('/home', {
+                  state: buildModeNavigationState({
+                    includeTimestamp: true,
+                    readingPosition,
+                    libraryText,
+                    currentText,
+                    isSummary,
+                  }),
+                  replace: true,
+                })
+              }
             }
           }}
+          onRsvpClick={() => {
+            if (mode === 'rsvp') return
+            onModeNavigate?.('rsvp')
+            onModeChange('rsvp')
+            navigate('/rsvp', {
+              state: buildModeNavigationState({
+                includeTimestamp: true,
+                readingPosition,
+                libraryText,
+                currentText,
+                isSummary,
+              }),
+            })
+          }}
           onAdaptiveClick={() => {
-            if (!isAdaptiveMode && user) {
-              if (mode !== 'adaptive') {
-                onModeNavigate?.('adaptive')
-              }
+            if (mode !== 'adaptive' && user) {
+              onModeNavigate?.('adaptive')
+              onModeChange('adaptive')
               navigate('/adaptive', {
                 state: buildModeNavigationState({
                   includeTimestamp: false,
@@ -160,7 +177,7 @@ export function OptionsBar({
           sliderRef={complexitySliderRef}
         />
 
-        {!isAdaptiveMode && (
+        {mode === 'standard' && (
           <StandardOptions
             scrolling={scrolling}
             onScrollingChange={onScrollingChange}
@@ -169,6 +186,24 @@ export function OptionsBar({
             wpm={wpm}
             onWpmChange={onWpmChange}
             visibleLinesSliderRef={visibleLinesSliderRef}
+            showCustomInput={showCustomInput}
+            isWpmInvalid={isWpmInvalid}
+            customWpm={customWpm}
+            isCustomActive={isCustomActive}
+            onOpenCustomInput={openCustomInput}
+            onResetCustomInput={resetCustomInput}
+            onCustomWpmChange={handleCustomWpmChange}
+            onCustomWpmSubmit={handleCustomWpmSubmit}
+            onCustomWpmKeyDown={handleCustomWpmKeyDown}
+          />
+        )}
+
+        {mode === 'rsvp' && (
+          <RsvpOptions
+            wpm={wpm}
+            onWpmChange={onWpmChange}
+            visibleLinesSliderRef={visibleLinesSliderRef}
+            phraseSizeSliderRef={phraseSizeSliderRef}
             showCustomInput={showCustomInput}
             isWpmInvalid={isWpmInvalid}
             customWpm={customWpm}

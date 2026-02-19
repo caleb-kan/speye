@@ -13,10 +13,10 @@ export const useArrowNavigation = (params: UseArrowNavigationParams): void => {
     if (!enabled) return
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'ArrowLeft') {
+      if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
         event.preventDefault()
         onBack()
-      } else if (event.key === 'ArrowRight') {
+      } else if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
         event.preventDefault()
         onForward()
       }

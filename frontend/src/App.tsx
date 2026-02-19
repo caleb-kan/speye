@@ -18,6 +18,7 @@ import { Adaptive } from './pages/Adaptive'
 import { Privacy } from './pages/Privacy'
 import { Terms } from './pages/Terms'
 import { Notifications } from './pages/Notifications'
+import { License } from './pages/License'
 import { RootLayout } from './layouts/RootLayout'
 import { ReadingLayout } from './layouts/ReadingLayout'
 import { AdaptiveLayout } from './layouts/AdaptiveLayout'
@@ -81,6 +82,8 @@ function App() {
                     <Route path="reset-password" element={<ResetPassword />} />
                     <Route path="privacy" element={<Privacy />} />
                     <Route path="terms" element={<Terms />} />
+                    <Route path="notifications" element={<Notifications />} />
+                    <Route path="license" element={<License />} />
 
                     <Route path="*" element={<NotFound />} />
                   </Route>

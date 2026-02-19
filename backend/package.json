@@ -5,7 +5,8 @@
     "lint": "eslint .",
     "test": "vitest",
     "test:run": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "postinstall": "patch-package"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2",
@@ -23,6 +24,11 @@
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.53.1",
+    "patch-package": "^8.0.1",
     "vitest": "^4.0.17"
+  },
+  "overrides": {
+    "minimatch": "^10.2.1",
+    "ajv": "^8.18.0"
   }
 }

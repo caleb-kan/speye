@@ -13,7 +13,8 @@
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
     "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui"
+    "test:e2e:ui": "playwright test --ui",
+    "postinstall": "patch-package"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.90.1",
@@ -51,7 +52,12 @@
     "tailwindcss-animate": "^1.0.7",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.4",
+    "patch-package": "^8.0.1",
     "vite": "^7.2.4",
     "vitest": "^4.0.17"
+  },
+  "overrides": {
+    "minimatch": "^10.2.1",
+    "ajv": "^8.18.0"
   }
 }

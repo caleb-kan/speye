@@ -107,6 +107,7 @@ build:
   artifacts:
     paths:
       - frontend/dist/
+      - frontend/public/license.txt
     expire_in: 1 week
 
 deploy-edge-functions:

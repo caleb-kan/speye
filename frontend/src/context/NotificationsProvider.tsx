@@ -8,6 +8,7 @@ import type { Notification } from '../types/database'
 import {
   getNotifications,
   markNotificationSeen,
+  markAllNotificationsSeen,
   markNotificationToastShown,
 } from '../services/notificationService'
 import { useNotificationSubscription } from '../hooks/useNotificationSubscription'
@@ -201,6 +202,23 @@ export function NotificationsProvider({
     }
   }, [])
 
+  const markAllAsSeen = useCallback(async () => {
+    if (!userId) return
+
+    let prevNotifications: Notification[] = []
+    setNotifications((prev) => {
+      prevNotifications = prev
+      return prev.map((item) => ({ ...item, seen: true }))
+    })
+
+    try {
+      await markAllNotificationsSeen(userId)
+    } catch (error) {
+      console.error('Failed to mark all notifications as seen', error)
+      setNotifications(prevNotifications)
+    }
+  }, [userId])
+
   useNotificationSubscription(userId, {
     onInsert: (notification) => {
       setNotifications((prev) => upsertNotification(prev, notification))
@@ -236,6 +254,7 @@ export function NotificationsProvider({
       removeToast,
       dismissToast,
       markAsSeen,
+      markAllAsSeen,
       refresh,
     }),
     [
@@ -246,6 +265,7 @@ export function NotificationsProvider({
       removeToast,
       dismissToast,
       markAsSeen,
+      markAllAsSeen,
       refresh,
     ]
   )

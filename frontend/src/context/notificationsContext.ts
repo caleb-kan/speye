@@ -14,6 +14,7 @@ export interface NotificationsContextType {
   removeToast: (notificationId: string) => void
   dismissToast: (notificationId: string) => void
   markAsSeen: (notificationId: string) => Promise<void>
+  markAllAsSeen: () => Promise<void>
   refresh: () => Promise<void>
 }
 

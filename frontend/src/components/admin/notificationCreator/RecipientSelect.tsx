@@ -42,7 +42,7 @@ export function RecipientSelect({
         >
           <option value="">Select User...</option>
           <option value={BROADCAST_VALUE} className="font-bold">
-            📡 Broadcast to All Users
+            Broadcast to All Users
           </option>
           {users.map((user) => (
             <option key={user.id} value={user.id}>

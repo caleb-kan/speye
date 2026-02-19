@@ -182,14 +182,41 @@ describe('NotificationRow', () => {
       <NotificationRow notification={linkedNotification} onOpen={mockOnOpen} />
     )
 
-    expect(container.querySelector('svg.lucide-chevron-right')).toBeTruthy()
+    const chevron = container.querySelector('svg.lucide-chevron-right')
+    expect(chevron).toBeTruthy()
+    expect(chevron).not.toHaveClass('invisible')
   })
 
-  it('should not render chevron icon for non-linked notifications', () => {
+  it('should hide chevron icon for non-linked notifications', () => {
     const { container } = render(
       <NotificationRow notification={mockNotification} onOpen={mockOnOpen} />
     )
 
-    expect(container.querySelector('svg.lucide-chevron-right')).toBeNull()
+    const chevron = container.querySelector('svg.lucide-chevron-right')
+    expect(chevron).toBeTruthy()
+    expect(chevron).toHaveClass('invisible')
+  })
+
+  it('should apply cursor-pointer class for clickable notifications', () => {
+    const linkedNotification: Notification = {
+      ...mockNotification,
+      link: '/library',
+    }
+
+    const { container } = render(
+      <NotificationRow notification={linkedNotification} onOpen={mockOnOpen} />
+    )
+
+    const button = container.querySelector('button')
+    expect(button).toHaveClass('cursor-pointer')
+  })
+
+  it('should apply cursor-default class for non-clickable notifications', () => {
+    const { container } = render(
+      <NotificationRow notification={mockNotification} onOpen={mockOnOpen} />
+    )
+
+    const button = container.querySelector('button')
+    expect(button).toHaveClass('cursor-default')
   })
 })

@@ -9,6 +9,7 @@ vi.mock('../../../../lib/supabase', () => ({
 import {
   getNotifications,
   markNotificationSeen,
+  markAllNotificationsSeen,
   markNotificationToastShown,
   createNotification,
 } from '../../services/notificationService'
@@ -143,6 +144,45 @@ describe('notificationService', () => {
       >)
 
       await expect(markNotificationSeen('notification-1')).rejects.toThrow()
+    })
+  })
+
+  describe('markAllNotificationsSeen', () => {
+    it('should mark all notifications as seen for a user', async () => {
+      const mockUpdate = vi.fn()
+      const mockEq1 = vi.fn()
+      const mockEq2 = vi.fn()
+
+      mockEq2.mockResolvedValue({ error: null })
+      mockEq1.mockReturnValue({ eq: mockEq2 })
+      mockUpdate.mockReturnValue({ eq: mockEq1 })
+      mockFrom.mockReturnValue({ update: mockUpdate } as unknown as ReturnType<
+        typeof supabase.from
+      >)
+
+      await markAllNotificationsSeen('user-1')
+
+      expect(mockFrom).toHaveBeenCalledWith('notifications')
+      expect(mockUpdate).toHaveBeenCalledWith({ seen: true })
+      expect(mockEq1).toHaveBeenCalledWith('user_id', 'user-1')
+      expect(mockEq2).toHaveBeenCalledWith('seen', false)
+    })
+
+    it('should throw error if update fails', async () => {
+      const mockUpdate = vi.fn()
+      const mockEq1 = vi.fn()
+      const mockEq2 = vi.fn()
+
+      mockEq2.mockResolvedValue({
+        error: { message: 'Update failed' },
+      })
+      mockEq1.mockReturnValue({ eq: mockEq2 })
+      mockUpdate.mockReturnValue({ eq: mockEq1 })
+      mockFrom.mockReturnValue({ update: mockUpdate } as unknown as ReturnType<
+        typeof supabase.from
+      >)
+
+      await expect(markAllNotificationsSeen('user-1')).rejects.toThrow()
     })
   })
 

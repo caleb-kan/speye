@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   getReviewStatus,
+  isFlaggedForReview,
   type AdminReviewStatus,
 } from '../../utils/adminReviewStatus'
 import { ADMIN_BADGE_CLASSES } from '../../constants/admin'
@@ -143,6 +144,58 @@ describe('getReviewStatus', () => {
 
     expect(result.status).toBe('quiz_quality_issue')
     // Should NOT be quiz_validation_error
+  })
+
+  describe('isFlaggedForReview', () => {
+    it('should return true for tos_violation', () => {
+      const text = createMockAdminText({ rejection_stage: 'process_text' })
+      expect(isFlaggedForReview(text)).toBe(true)
+    })
+
+    it('should return true for quiz_quality_issue', () => {
+      const text = createMockAdminText({ rejection_stage: 'validate_quiz' })
+      expect(isFlaggedForReview(text)).toBe(true)
+    })
+
+    it('should return true for processing_failed', () => {
+      const text = createMockAdminText({
+        processing_status: 'failed',
+        rejection_stage: null,
+      })
+      expect(isFlaggedForReview(text)).toBe(true)
+    })
+
+    it('should return true for quiz_validation_error', () => {
+      const text = createMockAdminText({
+        processing_status: 'completed',
+        quiz_valid: false,
+        rejection_stage: null,
+      })
+      expect(isFlaggedForReview(text)).toBe(true)
+    })
+
+    it('should return false for awaiting_review', () => {
+      const text = createMockAdminText({
+        processing_status: 'completed',
+        quiz_valid: true,
+        rejection_stage: null,
+      })
+      expect(isFlaggedForReview(text)).toBe(false)
+    })
+
+    it('should return false for still_validating', () => {
+      const text = createMockAdminText({
+        processing_status: 'completed',
+        quiz_valid: null,
+        rejection_stage: null,
+      })
+      expect(isFlaggedForReview(text)).toBe(false)
+    })
+
+    it('should return false for still_processing', () => {
+      const text = createMockAdminText({ processing_status: 'pending' })
+      expect(isFlaggedForReview(text)).toBe(false)
+    })
   })
 
   it('should include a non-empty description for every status', () => {

@@ -1,5 +1,9 @@
 import type { NotificationType } from '../types'
 
+export type ApprovalFilterTab = 'flagged' | 'passed'
+
+export const DEFAULT_APPROVAL_FILTER_TAB: ApprovalFilterTab = 'flagged'
+
 export const ADMIN_TEXT_PREVIEW_LENGTH = 150
 
 export const UNTITLED_TEXT_FALLBACK = 'Untitled Text'

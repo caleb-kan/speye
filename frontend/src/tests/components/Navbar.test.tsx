@@ -7,6 +7,12 @@ import { createMockUser, createMockSession } from '../helpers/mocks'
 import '@testing-library/jest-dom'
 
 vi.mock('../../hooks/useAuth')
+vi.mock('../../hooks/useReadingPreferences', () => ({
+  useReadingPreferences: () => ({
+    preferences: { mode: 'standard' },
+    updatePreferences: vi.fn(),
+  }),
+}))
 
 const mockUseAuth = vi.mocked(useAuthModule.useAuth)
 

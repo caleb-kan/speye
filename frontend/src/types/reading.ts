@@ -1,6 +1,6 @@
 import type { Text } from './database'
 
-export type Mode = 'standard' | 'adaptive'
+export type Mode = 'standard' | 'adaptive' | 'rsvp'
 export type Scrolling = 'dynamic' | 'static'
 
 export interface FixedTextInfo {
@@ -8,9 +8,14 @@ export interface FixedTextInfo {
   complexity: number | null
 }
 
-export interface ReadingContext {
+export interface ActivitySessionContext {
   wpm: number
   mode: Mode
+  readingPosition: number
+  setReadingPosition: (position: number) => void
+}
+
+export interface ReadingContext extends ActivitySessionContext {
   scrolling: Scrolling
   blurEnabled: boolean
   fiction: boolean
@@ -26,6 +31,4 @@ export interface ReadingContext {
   setCurrentTextComplexity: (complexity: number | null) => void
   currentText: Text | null
   setCurrentText: (text: Text | null) => void
-  readingPosition: number
-  setReadingPosition: (position: number) => void
 }

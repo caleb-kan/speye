@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react'
 import noUiSlider, { type API } from 'nouislider'
 import { MAX_COMPLEXITY, MIN_COMPLEXITY } from '../constants/complexity'
 import { MAX_VISIBLE_LINES, MIN_VISIBLE_LINES } from '../constants/visibleLines'
+import { MAX_PHRASE_SIZE, MIN_PHRASE_SIZE } from '../constants/rsvp'
 import type { FixedTextInfo } from '../types'
 
 export type SliderElement = HTMLDivElement & {
@@ -17,11 +18,14 @@ export type UseOptionsBarSlidersParams = {
   onComplexityMaxChange: (max: number) => void
   visibleLines: number
   onVisibleLinesChange: (lines: number) => void
+  phraseSize?: number
+  onPhraseSizeChange?: (size: number) => void
 }
 
 export type UseOptionsBarSlidersResult = {
   complexitySliderRef: RefObject<SliderElement | null>
   visibleLinesSliderRef: RefObject<SliderElement | null>
+  phraseSizeSliderRef: RefObject<SliderElement | null>
 }
 
 export const useOptionsBarSliders = (
@@ -35,19 +39,29 @@ export const useOptionsBarSliders = (
     onComplexityMaxChange,
     visibleLines,
     onVisibleLinesChange,
+    phraseSize,
+    onPhraseSizeChange,
   } = params
 
   const complexitySliderRef = useRef<SliderElement>(null)
   const visibleLinesSliderRef = useRef<SliderElement>(null)
+  const phraseSizeSliderRef = useRef<SliderElement>(null)
   const onComplexityMinChangeRef = useRef(onComplexityMinChange)
   const onComplexityMaxChangeRef = useRef(onComplexityMaxChange)
   const onVisibleLinesChangeRef = useRef(onVisibleLinesChange)
+  const onPhraseSizeChangeRef = useRef(onPhraseSizeChange)
 
   useEffect(() => {
     onComplexityMinChangeRef.current = onComplexityMinChange
     onComplexityMaxChangeRef.current = onComplexityMaxChange
     onVisibleLinesChangeRef.current = onVisibleLinesChange
-  }, [onComplexityMinChange, onComplexityMaxChange, onVisibleLinesChange])
+    onPhraseSizeChangeRef.current = onPhraseSizeChange
+  }, [
+    onComplexityMinChange,
+    onComplexityMaxChange,
+    onVisibleLinesChange,
+    onPhraseSizeChange,
+  ])
 
   useEffect(() => {
     if (fixedText) return
@@ -130,5 +144,41 @@ export const useOptionsBarSliders = (
     }
   }, [visibleLines])
 
-  return { complexitySliderRef, visibleLinesSliderRef }
+  useEffect(() => {
+    if (phraseSize === undefined) return
+    if (
+      !phraseSizeSliderRef.current ||
+      phraseSizeSliderRef.current.hasChildNodes()
+    ) {
+      return
+    }
+
+    noUiSlider.create(phraseSizeSliderRef.current, {
+      start: [phraseSize],
+      connect: [true, false],
+      range: {
+        min: MIN_PHRASE_SIZE,
+        max: MAX_PHRASE_SIZE,
+      },
+      tooltips: true,
+      step: 1,
+      format: {
+        to: (value) => Math.round(value).toString(),
+        from: (value) => Number(value),
+      },
+    })
+
+    const slider = phraseSizeSliderRef.current.noUiSlider
+
+    slider?.on('set', (values: (string | number)[]) => {
+      const val = parseInt(String(values[0]), 10)
+      onPhraseSizeChangeRef.current?.(val)
+    })
+
+    return () => {
+      slider?.destroy()
+    }
+  }, [phraseSize])
+
+  return { complexitySliderRef, visibleLinesSliderRef, phraseSizeSliderRef }
 }

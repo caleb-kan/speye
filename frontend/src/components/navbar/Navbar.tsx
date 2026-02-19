@@ -13,16 +13,26 @@ import { useAuth } from '../../hooks/useAuth'
 import { DefaultAvatar } from '../DefaultAvatar'
 import { getAvatarUrl } from '../../utils/getAvatarUrl'
 import { getUsername } from '../../utils/getUsername'
+import { DEFAULT_MODE } from '../../constants/modes'
 import { getRuntimeBase } from '../../utils/getRuntimeBase'
 import { logUserActivity } from '../../services/logUserActivity'
 import {
   clearReadingActivitySession,
   loadReadingActivitySession,
 } from '../../utils/readingActivityStorage'
+import { useReadingPreferences } from '../../hooks/useReadingPreferences'
+import type { Mode } from '../../types/reading'
+
+const MODE_ROUTES: Record<Mode, string> = {
+  standard: '/home',
+  adaptive: '/adaptive',
+  rsvp: '/rsvp',
+}
 
 export function Navbar() {
   const location = useLocation()
   const { user, loading } = useAuth()
+  const { preferences } = useReadingPreferences()
 
   const isAdmin = useIsAdmin()
 
@@ -30,7 +40,9 @@ export function Navbar() {
   const isSettingsActive = location.pathname === '/settings'
   const isInAdaptiveMode = location.pathname === '/adaptive'
   const isInReadingRoute =
-    location.pathname === '/home' || location.pathname === '/adaptive'
+    location.pathname === '/home' ||
+    location.pathname === '/adaptive' ||
+    location.pathname === '/rsvp'
 
   const handleBeforeNavigate = (targetPath: string) => {
     if (!user || !isInReadingRoute) return
@@ -53,7 +65,7 @@ export function Navbar() {
       wpm: activitySession.wpm ?? 0,
       startTime: activitySession.startTime,
       endTime: new Date().toISOString(),
-      mode: activitySession.mode ?? 'standard',
+      mode: activitySession.mode ?? DEFAULT_MODE,
       progressIndex: activitySession.progressIndex ?? 0,
     })
 
@@ -83,7 +95,7 @@ export function Navbar() {
       aria-label="Main navigation"
     >
       <NavItem
-        to="/home"
+        to={MODE_ROUTES[preferences.mode]}
         icon={<Home size={22} />}
         label="Home"
         state={null}

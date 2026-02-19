@@ -3,13 +3,15 @@ import {
   type ActivitySession,
 } from '../../../backend/supabase/database/userActivity/getUserActivity'
 import { getErrorMessage } from '../utils/getErrorMessage'
+import type { Mode } from '../types/reading'
+import { DEFAULT_MODE } from '../constants/modes'
 
 export type { ActivitySession }
 
 export interface ActivitySegment {
   id: string
   wpm: number
-  mode: 'standard' | 'adaptive'
+  mode: Mode
   start_time: string
   end_time: string
   duration: number
@@ -109,7 +111,7 @@ function createCollapsedSession(
     return {
       id: s.id,
       wpm: s.wpm,
-      mode: s.mode ?? 'standard',
+      mode: s.mode ?? DEFAULT_MODE,
       start_time: s.start_time || s.end_time,
       end_time: s.end_time,
       duration: durationSeconds,

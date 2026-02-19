@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { Zap } from 'lucide-react'
 import type { ActivitySegment } from '../../services/getUserActivity'
+import { MODE_COLORS, MODE_LABELS } from '../../constants/modes'
 
 export function TimelineGraph({
   segments,
@@ -30,6 +31,9 @@ export function TimelineGraph({
           <span className="text-[10px] flex items-center gap-1.5">
             <div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div>{' '}
             Adaptive
+          </span>
+          <span className="text-[10px] flex items-center gap-1.5">
+            <div className="w-1.5 h-1.5 rounded-full bg-teal-500"></div> RSVP
           </span>
         </div>
       </div>
@@ -63,11 +67,9 @@ export function TimelineGraph({
                 const widthPercent = (seg.duration / safeTotal) * 100
                 const heightPercent = Math.max(10, (seg.wpm / maxWpm) * 100)
 
-                const isAdaptive = seg.mode === 'adaptive'
-                const baseColor = isAdaptive ? 'bg-purple-500' : 'bg-blue-500'
-                const shadowColor = isAdaptive
-                  ? 'shadow-purple-500/20'
-                  : 'shadow-blue-500/20'
+                const colors = MODE_COLORS[seg.mode] ?? MODE_COLORS.standard
+                const baseColor = colors.base
+                const shadowColor = colors.shadow
 
                 return (
                   <div
@@ -100,9 +102,9 @@ export function TimelineGraph({
                       <div className="flex flex-col gap-1 relative z-10">
                         <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-1 mb-0.5">
                           <span
-                            className={`text-[9px] font-bold uppercase tracking-widest ${isAdaptive ? 'text-purple-400' : 'text-blue-400'}`}
+                            className={`text-[9px] font-bold uppercase tracking-widest ${colors.text}`}
                           >
-                            {isAdaptive ? 'Adaptive' : 'Standard'}
+                            {MODE_LABELS[seg.mode] ?? 'Standard'}
                           </span>
                           <span className="text-[9px] font-mono text-text-secondary">
                             {formatDuration(seg.duration)}

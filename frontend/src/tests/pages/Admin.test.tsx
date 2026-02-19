@@ -90,7 +90,12 @@ global.ResizeObserver = class ResizeObserver {
 }
 
 describe('Admin', () => {
-  const mockText = createMockAdminText({ id: 'text-123', title: 'Test Text' })
+  // rejection_stage makes this text 'flagged' so it appears in the default tab
+  const mockText = createMockAdminText({
+    id: 'text-123',
+    title: 'Test Text',
+    rejection_stage: 'process_text',
+  })
 
   beforeEach(() => {
     vi.clearAllMocks()

@@ -22,6 +22,24 @@ export type ReviewStatusInfo = {
   regenerateLabel: string
 }
 
+// Exhaustive mapping ensures every status is explicitly categorized.
+// Adding a new AdminReviewStatus without mapping it here causes a
+// compile error, preventing silent miscategorization.
+const STATUS_IS_FLAGGED: Record<AdminReviewStatus, boolean> = {
+  tos_violation: true,
+  quiz_quality_issue: true,
+  processing_failed: true,
+  quiz_validation_error: true,
+  awaiting_review: false,
+  still_validating: false,
+  still_processing: false,
+}
+
+export function isFlaggedForReview(text: AdminReviewText): boolean {
+  const { status } = getReviewStatus(text)
+  return STATUS_IS_FLAGGED[status]
+}
+
 export function getReviewStatus(text: AdminReviewText): ReviewStatusInfo {
   // TOS violation takes priority (rejection_stage is set by the worker)
   if (text.rejection_stage === 'process_text') {

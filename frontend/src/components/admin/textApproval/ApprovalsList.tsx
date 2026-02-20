@@ -14,6 +14,7 @@ export interface ApprovalsListProps {
   onViewQuiz: (text: AdminReviewText) => void
   onApprove: (textId: string) => void
   onReject: (text: AdminReviewText) => void
+  onDelete: (textId: string) => void
   onRegenerate: (textId: string) => void
 }
 

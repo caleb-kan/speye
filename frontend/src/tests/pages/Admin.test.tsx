@@ -22,6 +22,7 @@ const { mockHandlers, mockState } = vi.hoisted(() => {
     handleApprove: vi.fn(),
     handleReject: vi.fn(),
     handleRegenerate: vi.fn(),
+    handleDelete: vi.fn(),
   }
 
   const mockState: AdminPageMockState = {
@@ -94,7 +95,7 @@ describe('Admin', () => {
   const mockText = createMockAdminText({
     id: 'text-123',
     title: 'Test Text',
-    rejection_stage: 'process_text',
+    rejection_stage: 'validate_quiz',
   })
 
   beforeEach(() => {

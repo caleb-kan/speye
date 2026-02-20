@@ -11,6 +11,7 @@ describe('ApprovalItem', () => {
     onViewQuiz: vi.fn(),
     onApprove: vi.fn(),
     onReject: vi.fn(),
+    onDelete: vi.fn(),
     onRegenerate: vi.fn(),
   }
 
@@ -43,6 +44,7 @@ describe('ApprovalItem', () => {
   it('should show TOS Violation badge for process_text rejection', () => {
     const text = createMockAdminText({
       rejection_stage: 'process_text',
+      llm_violation_type: 'hate_speech',
       rejection_reason: 'hate speech',
     })
     render(<ApprovalItem text={text} processing={null} {...defaultHandlers} />)
@@ -175,5 +177,30 @@ describe('ApprovalItem', () => {
     await user.click(screen.getByTitle('Regenerate'))
 
     expect(defaultHandlers.onRegenerate).toHaveBeenCalledWith('text-1')
+  })
+
+  it('should show delete button for TOS violations', () => {
+    const text = createMockAdminText({
+      rejection_stage: 'process_text',
+      llm_violation_type: 'hate_speech',
+    })
+    render(<ApprovalItem text={text} processing={null} {...defaultHandlers} />)
+
+    expect(screen.getByTitle('Delete')).toBeInTheDocument()
+    expect(screen.queryByTitle('Approve')).not.toBeInTheDocument()
+    expect(screen.queryByTitle('Reject')).not.toBeInTheDocument()
+  })
+
+  it('should call onDelete with text id when delete clicked', async () => {
+    const user = userEvent.setup()
+    const text = createMockAdminText({
+      rejection_stage: 'process_text',
+      llm_violation_type: 'hate_speech',
+    })
+    render(<ApprovalItem text={text} processing={null} {...defaultHandlers} />)
+
+    await user.click(screen.getByTitle('Delete'))
+
+    expect(defaultHandlers.onDelete).toHaveBeenCalledWith('text-1')
   })
 })

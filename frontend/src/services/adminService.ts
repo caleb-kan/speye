@@ -2,6 +2,7 @@ import {
   getPendingAdminReviews,
   approveText as approveTextDb,
   rejectText as rejectTextDb,
+  deleteTosViolation as deleteTosViolationDb,
   regenerateQuiz as regenerateQuizDb,
   getAdminStats as getAdminStatsDb,
   getUserTrend as getUserTrendDb,
@@ -37,6 +38,13 @@ export const regenerateQuiz = async (
   adminId: string
 ): Promise<void> => {
   await regenerateQuizDb(textId, adminId)
+}
+
+export const deleteTosViolation = (
+  textId: string,
+  adminId: string
+): Promise<void> => {
+  return deleteTosViolationDb(textId, adminId)
 }
 
 export const retryTextProcessing = (textId: string): Promise<void> => {

@@ -8,6 +8,7 @@ export const createMockAdminText = (
   content: 'Some test content for the preview',
   uploaded_at: '2026-01-15T10:30:00Z',
   owner_id: 'user-1',
+  owner_username: 'testuser',
   processing_status: 'completed',
   quiz_valid: true,
   quiz: null,

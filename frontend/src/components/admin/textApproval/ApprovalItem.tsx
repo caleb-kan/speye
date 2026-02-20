@@ -3,6 +3,7 @@ import {
   Check,
   Eye,
   X,
+  Trash2,
   AlertTriangle,
   RefreshCw,
   Clock,
@@ -21,6 +22,7 @@ interface ApprovalItemProps {
   onViewQuiz: (text: AdminReviewText) => void
   onApprove: (textId: string) => void
   onReject: (text: AdminReviewText) => void
+  onDelete: (textId: string) => void
   onRegenerate: (textId: string) => void
 }
 
@@ -31,6 +33,7 @@ export function ApprovalItem({
   onViewQuiz,
   onApprove,
   onReject,
+  onDelete,
   onRegenerate,
 }: ApprovalItemProps) {
   const reviewStatus = getReviewStatus(text)
@@ -57,6 +60,12 @@ export function ApprovalItem({
         <div className="text-xs text-text-secondary mb-1.5 flex items-center gap-2">
           <span>{formatDate(text.uploaded_at)}</span>
           <span className="w-1 h-1 rounded-full bg-white/20"></span>
+          {text.owner_username && (
+            <>
+              <span>{text.owner_username}</span>
+              <span className="w-1 h-1 rounded-full bg-white/20"></span>
+            </>
+          )}
           <span className="uppercase tracking-wide text-[10px]">
             {text.processing_status}
           </span>
@@ -96,7 +105,12 @@ export function ApprovalItem({
           </button>
         )}
 
-        <div className="w-px h-4 bg-white/10 mx-1"></div>
+        {(reviewStatus.canApprove ||
+          reviewStatus.canReject ||
+          reviewStatus.canDelete ||
+          reviewStatus.canRegenerate) && (
+          <div className="w-px h-4 bg-white/10 mx-1"></div>
+        )}
 
         {reviewStatus.canApprove && (
           <button
@@ -109,14 +123,27 @@ export function ApprovalItem({
           </button>
         )}
 
-        <button
-          onClick={() => onReject(text)}
-          disabled={isProcessing}
-          className="p-2 text-text-secondary hover:text-error hover:bg-error/10 rounded-lg transition-colors"
-          title="Reject"
-        >
-          <X size={16} />
-        </button>
+        {reviewStatus.canReject && (
+          <button
+            onClick={() => onReject(text)}
+            disabled={isProcessing}
+            className="p-2 text-text-secondary hover:text-error hover:bg-error/10 rounded-lg transition-colors"
+            title="Reject"
+          >
+            <X size={16} />
+          </button>
+        )}
+
+        {reviewStatus.canDelete && (
+          <button
+            onClick={() => onDelete(text.id)}
+            disabled={isProcessing}
+            className="p-2 text-text-secondary hover:text-error hover:bg-error/10 rounded-lg transition-colors"
+            title="Delete"
+          >
+            <Trash2 size={16} />
+          </button>
+        )}
 
         {reviewStatus.canRegenerate && (
           <button

@@ -10,6 +10,7 @@ describe('TextPreviewModal', () => {
     onClose: vi.fn(),
     onApprove: vi.fn(),
     onReject: vi.fn(),
+    onDelete: vi.fn(),
     onRegenerate: vi.fn(),
   }
 
@@ -271,6 +272,56 @@ describe('TextPreviewModal', () => {
     await user.click(screen.getByText('Some test content for the preview'))
 
     expect(defaultHandlers.onClose).not.toHaveBeenCalled()
+  })
+
+  it('should show delete button for TOS violations', () => {
+    render(
+      <TextPreviewModal
+        text={createMockAdminText({
+          rejection_stage: 'process_text',
+          llm_violation_type: 'hate_speech',
+        })}
+        processing={null}
+        {...defaultHandlers}
+      />
+    )
+
+    expect(screen.getByText('Delete')).toBeInTheDocument()
+    expect(screen.queryByText('Approve')).not.toBeInTheDocument()
+    expect(screen.queryByText('Reject')).not.toBeInTheDocument()
+  })
+
+  it('should call onDelete when delete button clicked', async () => {
+    const user = userEvent.setup()
+    render(
+      <TextPreviewModal
+        text={createMockAdminText({
+          rejection_stage: 'process_text',
+          llm_violation_type: 'hate_speech',
+        })}
+        processing={null}
+        {...defaultHandlers}
+      />
+    )
+
+    await user.click(screen.getByText('Delete'))
+
+    expect(defaultHandlers.onDelete).toHaveBeenCalledWith('text-1')
+  })
+
+  it('should not show quiz status for TOS violations', () => {
+    render(
+      <TextPreviewModal
+        text={createMockAdminText({
+          rejection_stage: 'process_text',
+          llm_violation_type: 'hate_speech',
+        })}
+        processing={null}
+        {...defaultHandlers}
+      />
+    )
+
+    expect(screen.queryByText(/Quiz:/)).not.toBeInTheDocument()
   })
 
   it('should show regenerate button for quiz issues', () => {

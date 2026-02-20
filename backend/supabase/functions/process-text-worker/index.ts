@@ -91,7 +91,7 @@ Deno.serve(async () => {
     // Include fiction to preserve user's explicit setting when editing
     const { data: text, error: fetchError } = await supabase
       .from('texts')
-      .select('content, title, fiction, admin_decision')
+      .select('content, title, fiction, admin_decision, owner_id')
       .eq('id', textId)
       .single()
 
@@ -126,39 +126,82 @@ Deno.serve(async () => {
       const errorData = await processResponse.json().catch(() => ({}))
       console.error('Error from process-text:', errorData)
 
-      // If this is a TOS violation (400 with violation_type), set both failed status and violation fields
-      if (processResponse.status === 400 && errorData.violation_type) {
-        const { error: tosError } = await supabase
-          .from('texts')
-          .update({
-            processing_status: 'failed',
-            llm_decision: 'rejected',
-            llm_violation_type: errorData.violation_type,
-            admin_decision: 'pending',
-            rejection_reason: errorData.violation_type,
-            rejection_stage: 'process_text',
-          })
-          .eq('id', textId)
-          .neq('admin_decision', 'approved')
+      const violationType =
+        processResponse.status === 400 && errorData.violation_type
+          ? String(errorData.violation_type)
+          : null
 
-        if (tosError) {
-          console.error('Error updating TOS violation:', tosError)
-        } else {
-          console.log(`Updated text for TOS violation: ${textId}`)
+      const rejectionReason = (() => {
+        const reason =
+          typeof errorData.reason === 'string'
+            ? errorData.reason
+            : typeof errorData.error === 'string'
+              ? errorData.error
+              : null
+
+        if (violationType) {
+          // Include both a machine-friendly category and human-friendly message
+          return reason ? `${violationType}: ${reason}` : violationType
         }
-      } else {
-        // Non-TOS failure - just mark as failed
-        const { error: failError } = await supabase
-          .from('texts')
-          .update({ processing_status: 'failed' })
-          .eq('id', textId)
 
-        if (failError) {
-          console.error('Error marking text as failed:', failError)
+        return (
+          reason ??
+          `Text processing failed (HTTP ${processResponse.status} from process-text)`
+        )
+      })()
+
+      // Route all process-text failures to admin review.
+      // TOS violations are shown read-only; other failures can be reprocessed.
+      // If the text was previously admin-approved (e.g. reprocessing), preserve
+      // that admin_decision value.
+      const { error: updateError } = await supabase
+        .from('texts')
+        .update({
+          processing_status: 'failed',
+          llm_decision: 'rejected',
+          llm_violation_type: violationType,
+          admin_decision:
+            text.admin_decision === 'approved' ? 'approved' : 'pending',
+          rejection_reason: rejectionReason,
+          rejection_stage: 'process_text',
+        })
+        .eq('id', textId)
+
+      if (updateError) {
+        console.error(
+          'Error updating text after process-text failure:',
+          updateError
+        )
+      } else {
+        console.log(`Rejected text after process-text failure: ${textId}`)
+      }
+
+      const title = text.title ?? 'Untitled text'
+
+      // Notify text owner
+      if (text.owner_id) {
+        const userMessage = violationType
+          ? `Your text "${title}" was rejected for a content policy violation (${violationType}) and will be deleted.`
+          : `Your text "${title}" failed to process. You may retry from your library.`
+
+        const { error: userNotifError } = await supabase
+          .from('notifications')
+          .insert({
+            user_id: text.owner_id,
+            message: userMessage,
+            type: 'error',
+            // TOS violations are hidden from the library, so don't link there
+            link: violationType ? null : '/library',
+          })
+
+        if (userNotifError) {
+          console.error('Error creating user notification:', userNotifError)
         }
       }
 
-      // Delete message - user can manually retry via the retry button
+      // Admin notification for TOS violations is handled by
+      // notify_admins_review_trigger when admin_decision becomes 'pending'.
+
       await deleteQueueMessage(job.msg_id)
 
       return new Response(JSON.stringify({ error: 'Processing failed' }), {

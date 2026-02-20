@@ -5,7 +5,9 @@ const mockRpc = vi.fn()
 const mockFrom = vi.fn()
 const mockSelect = vi.fn()
 const mockEq = vi.fn()
+const mockOr = vi.fn()
 const mockOrder = vi.fn()
+const mockSingle = vi.fn()
 
 vi.mock('../../../../lib/supabase', () => ({
   supabase: {
@@ -21,6 +23,29 @@ vi.mock('../../../../backend/supabase/database/logger', () => ({
   logDbQuery: vi.fn(),
 }))
 
+// Raw rows as returned by Supabase (includes joined users object)
+const mockRawRows = [
+  {
+    id: 'text-1',
+    title: 'Test',
+    content: 'Content',
+    uploaded_at: '2026-01-01T00:00:00Z',
+    owner_id: 'user-1',
+    processing_status: 'completed',
+    quiz_valid: true,
+    quiz: null,
+    llm_decision: 'approved',
+    llm_violation_type: null,
+    admin_decision: 'pending',
+    admin_reviewed_by: null,
+    admin_reviewed_at: null,
+    rejection_reason: null,
+    rejection_stage: null,
+    users: { username: 'testuser' },
+  },
+]
+
+// Expected result after mapping (owner_username flattened, users removed)
 const mockApprovals: AdminReviewText[] = [
   {
     id: 'text-1',
@@ -28,6 +53,7 @@ const mockApprovals: AdminReviewText[] = [
     content: 'Content',
     uploaded_at: '2026-01-01T00:00:00Z',
     owner_id: 'user-1',
+    owner_username: 'testuser',
     processing_status: 'completed',
     quiz_valid: true,
     quiz: null,
@@ -45,13 +71,18 @@ describe('adminService (frontend)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockSelect.mockReturnValue({ eq: mockEq })
-    mockEq.mockReturnValue({ order: mockOrder })
+    mockEq.mockReturnValue({ or: mockOr, order: mockOrder, single: mockSingle })
+    mockOr.mockReturnValue({ order: mockOrder })
+    mockSingle.mockResolvedValue({
+      data: { llm_violation_type: null, rejection_stage: null },
+      error: null,
+    })
   })
 
   describe('fetchPendingApprovals', () => {
     it('should fetch pending approvals', async () => {
       mockOrder.mockResolvedValue({
-        data: mockApprovals,
+        data: mockRawRows,
         error: null,
       })
 
@@ -158,6 +189,32 @@ describe('adminService (frontend)', () => {
     })
   })
 
+  describe('deleteTosViolation', () => {
+    it('should call admin_delete_tos_violation RPC', async () => {
+      mockRpc.mockResolvedValue({ error: null })
+
+      const { deleteTosViolation } = await import('../../services/adminService')
+      await deleteTosViolation('text-1', 'admin-1')
+
+      expect(mockRpc).toHaveBeenCalledWith('admin_delete_tos_violation', {
+        p_text_id: 'text-1',
+        p_admin_id: 'admin-1',
+      })
+    })
+
+    it('should throw on RPC error', async () => {
+      mockRpc.mockResolvedValue({
+        error: { message: 'Delete failed' },
+      })
+
+      const { deleteTosViolation } = await import('../../services/adminService')
+
+      await expect(deleteTosViolation('text-1', 'admin-1')).rejects.toEqual({
+        message: 'Delete failed',
+      })
+    })
+  })
+
   describe('retryTextProcessing', () => {
     it('should call retry_text_processing RPC', async () => {
       mockRpc.mockResolvedValue({ error: null })
@@ -181,6 +238,46 @@ describe('adminService (frontend)', () => {
 
       await expect(retryTextProcessing('text-1')).rejects.toEqual({
         message: 'Retry failed',
+      })
+    })
+
+    it('should throw when text has TOS violation', async () => {
+      mockSingle.mockResolvedValue({
+        data: {
+          llm_violation_type: 'hate_speech',
+          rejection_stage: 'process_text',
+        },
+        error: null,
+      })
+
+      const { retryTextProcessing } =
+        await import('../../services/adminService')
+
+      await expect(retryTextProcessing('text-1')).rejects.toThrow(
+        'content policy violation'
+      )
+      expect(mockRpc).not.toHaveBeenCalledWith(
+        'retry_text_processing',
+        expect.anything()
+      )
+    })
+
+    it('should allow retry when rejection_stage is process_text but no llm_violation_type', async () => {
+      mockSingle.mockResolvedValue({
+        data: {
+          llm_violation_type: null,
+          rejection_stage: 'process_text',
+        },
+        error: null,
+      })
+      mockRpc.mockResolvedValue({ error: null })
+
+      const { retryTextProcessing } =
+        await import('../../services/adminService')
+      await retryTextProcessing('text-1')
+
+      expect(mockRpc).toHaveBeenCalledWith('retry_text_processing', {
+        p_text_id: 'text-1',
       })
     })
   })

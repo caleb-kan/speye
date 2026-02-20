@@ -10,7 +10,9 @@ import type { TextRecord } from '../texts/types'
 export type AdminReviewText = Omit<
   TextRecord,
   'summary' | 'fiction' | 'complexity' | 'source'
->
+> & {
+  owner_username: string | null
+}
 
 export type AdminStats = {
   totalTexts: number
@@ -45,7 +47,8 @@ export async function getPendingAdminReviews(): Promise<AdminReviewText[]> {
       admin_reviewed_by,
       admin_reviewed_at,
       rejection_reason,
-      rejection_stage
+      rejection_stage,
+      users!texts_owner_id_fkey(username)
     `
     )
     .eq('admin_decision', 'pending')
@@ -61,7 +64,12 @@ export async function getPendingAdminReviews(): Promise<AdminReviewText[]> {
     throw error
   }
 
-  return data ?? []
+  return (data ?? []).map((row) => {
+    const { users, ...rest } = row as typeof row & {
+      users: { username: string } | null
+    }
+    return { ...rest, owner_username: users?.username ?? null }
+  })
 }
 
 export async function approveText(
@@ -98,6 +106,26 @@ export async function rejectText(
   logDbQuery({
     table: 'texts',
     action: 'RPC:admin_reject_text',
+    errors: error ? error.message : undefined,
+  })
+
+  if (error) {
+    throw error
+  }
+}
+
+export async function deleteTosViolation(
+  textId: string,
+  adminId: string
+): Promise<void> {
+  const { error } = await supabase.rpc('admin_delete_tos_violation', {
+    p_text_id: textId,
+    p_admin_id: adminId,
+  })
+
+  logDbQuery({
+    table: 'texts',
+    action: 'RPC:admin_delete_tos_violation',
     errors: error ? error.message : undefined,
   })
 

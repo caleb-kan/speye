@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { X, RefreshCw } from 'lucide-react'
+import { X, RefreshCw, Trash2 } from 'lucide-react'
 import type { AdminReviewText } from '../../../services/adminService.ts'
 import { formatDate } from '../../../utils/formatDate.ts'
 import { getReviewStatus } from '../../../utils/adminReviewStatus.ts'
@@ -13,6 +13,7 @@ interface TextPreviewModalProps {
   onClose: () => void
   onApprove: (textId: string) => void
   onReject: (textId: string, notes?: string) => void
+  onDelete: (textId: string) => void
   onRegenerate: (textId: string) => void
 }
 
@@ -23,6 +24,7 @@ export function TextPreviewModal({
   onClose,
   onApprove,
   onReject,
+  onDelete,
   onRegenerate,
 }: TextPreviewModalProps) {
   const [showRejectForm, setShowRejectForm] = useState(false)
@@ -112,14 +114,23 @@ export function TextPreviewModal({
         </div>
         <div className="p-6">
           <div className="mb-4 text-sm text-text-secondary space-y-1">
-            <div>Uploaded: {formatDate(text.uploaded_at)}</div>
             <div>
-              Processing: {text.processing_status} | Quiz:{' '}
-              {text.quiz_valid === null
-                ? 'validating'
-                : text.quiz_valid
-                  ? 'valid'
-                  : 'invalid'}
+              Uploaded: {formatDate(text.uploaded_at)}
+              {text.owner_username && <span> by {text.owner_username}</span>}
+            </div>
+            <div>
+              Processing: {text.processing_status}
+              {reviewStatus.status !== 'tos_violation' && (
+                <>
+                  {' '}
+                  | Quiz:{' '}
+                  {text.quiz_valid === null
+                    ? 'validating'
+                    : text.quiz_valid
+                      ? 'valid'
+                      : 'invalid'}
+                </>
+              )}
             </div>
             {text.rejection_reason && (
               <div className="text-error">Reason: {text.rejection_reason}</div>
@@ -194,7 +205,7 @@ export function TextPreviewModal({
               </button>
             )}
 
-            {!showRejectForm && (
+            {reviewStatus.canReject && !showRejectForm && (
               <button
                 type="button"
                 onClick={handleRejectClick}
@@ -202,6 +213,18 @@ export function TextPreviewModal({
                 className="px-4 py-2 bg-error text-white rounded-lg hover:bg-error/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Reject
+              </button>
+            )}
+
+            {reviewStatus.canDelete && (
+              <button
+                type="button"
+                onClick={() => onDelete(text.id)}
+                disabled={isProcessing}
+                className="px-4 py-2 bg-error text-white rounded-lg hover:bg-error/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                <Trash2 size={16} />
+                Delete
               </button>
             )}
 

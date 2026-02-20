@@ -7,7 +7,7 @@ import { createMockAdminText } from '../../helpers/adminMockFactory'
 const flaggedText = createMockAdminText({
   id: 'flagged-1',
   title: 'Flagged Text',
-  rejection_stage: 'process_text',
+  rejection_stage: 'validate_quiz',
 })
 
 const passedText = createMockAdminText({
@@ -25,6 +25,7 @@ const defaultHandlers = {
   onApprove: vi.fn(),
   onReject: vi.fn(),
   onRegenerate: vi.fn(),
+  onDelete: vi.fn(),
 }
 
 describe('ApprovalsList', () => {

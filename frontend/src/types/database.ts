@@ -63,6 +63,9 @@ export type TextPreview = {
   processing_status: ProcessingStatus
   quiz_valid: boolean | null
   has_summary: boolean
+  llm_decision: LlmDecision | null
+  llm_violation_type: string | null
+  admin_decision: AdminDecision | null
   rejection_reason: string | null
   rejection_stage: FailureStage | null
   admin_reviewed_by: string | null

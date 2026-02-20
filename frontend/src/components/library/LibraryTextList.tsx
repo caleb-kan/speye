@@ -137,7 +137,11 @@ export function LibraryTextList({
               {(text.processing_status === 'failed' ||
                 (text.processing_status === 'completed' &&
                   text.quiz_valid === false)) &&
-                (activeTab === 'private' || isAdmin) && (
+                (activeTab === 'private' || isAdmin) &&
+                !(
+                  text.rejection_stage === 'process_text' &&
+                  text.llm_violation_type !== null
+                ) && (
                   <button
                     type="button"
                     onClick={() => onRetryProcessing(text.id)}

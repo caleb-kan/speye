@@ -40,6 +40,7 @@ export function Admin() {
     setSuccessMessage,
     handleApprove,
     handleReject,
+    handleDelete,
     handleRegenerate,
   } = useAdminApprovals()
 
@@ -189,6 +190,7 @@ export function Admin() {
                 onViewQuiz={setQuizPreviewText}
                 onApprove={handleApprove}
                 onReject={handleRejectFromCard}
+                onDelete={handleDelete}
                 onRegenerate={handleRegenerate}
               />
             )}
@@ -208,6 +210,7 @@ export function Admin() {
           onClose={handleCloseModal}
           onApprove={handleApprove}
           onReject={handleReject}
+          onDelete={handleDelete}
           onRegenerate={handleRegenerate}
         />
 

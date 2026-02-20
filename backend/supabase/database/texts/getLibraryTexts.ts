@@ -10,12 +10,17 @@ export async function getLibraryTexts(
   let query = supabase
     .from('texts')
     .select(
-      'id, title, preview, fiction, complexity, uploaded_at, owner_id, quiz, source, processing_status, quiz_valid, has_summary, rejection_reason, rejection_stage, admin_reviewed_by, admin_reviewed_at'
+      'id, title, preview, fiction, complexity, uploaded_at, owner_id, quiz, source, processing_status, quiz_valid, has_summary, llm_decision, llm_violation_type, admin_decision, rejection_reason, rejection_stage, admin_reviewed_by, admin_reviewed_at'
     )
     .order('uploaded_at', { ascending: false })
 
   if (owner.type === 'user') {
-    query = query.eq('owner_id', owner.userId)
+    // Hide TOS violations from the user's own library (they'll be deleted by admin)
+    query = query
+      .eq('owner_id', owner.userId)
+      .or(
+        'rejection_stage.is.null,rejection_stage.neq.process_text,llm_violation_type.is.null'
+      )
   } else {
     // Public text visibility rules:
     // 1. Explicitly admin-approved texts

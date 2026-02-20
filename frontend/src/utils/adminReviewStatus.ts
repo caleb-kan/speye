@@ -17,6 +17,8 @@ export type ReviewStatusInfo = {
   description: string
   isFailure: boolean
   canApprove: boolean
+  canReject: boolean
+  canDelete: boolean
   canRegenerate: boolean
   approveLabel: string
   regenerateLabel: string
@@ -41,18 +43,20 @@ export function isFlaggedForReview(text: AdminReviewText): boolean {
 }
 
 export function getReviewStatus(text: AdminReviewText): ReviewStatusInfo {
-  // TOS violation takes priority (rejection_stage is set by the worker)
-  if (text.rejection_stage === 'process_text') {
+  // TOS violation: admin can only delete (text is hidden from user's library)
+  if (text.rejection_stage === 'process_text' && text.llm_violation_type) {
     return {
       status: 'tos_violation',
       label: 'TOS Violation',
       badgeClass: ADMIN_BADGE_CLASSES.error,
       description:
-        'This text was flagged for a content policy violation during processing. Approving will override the flag and reprocess the text.',
+        "This text was rejected for a content policy violation and is hidden from the user's library. Delete it to permanently remove it.",
       isFailure: true,
-      canApprove: true,
+      canApprove: false,
+      canReject: false,
+      canDelete: true,
       canRegenerate: false,
-      approveLabel: 'Approve & Process',
+      approveLabel: '',
       regenerateLabel: '',
     }
   }
@@ -66,6 +70,8 @@ export function getReviewStatus(text: AdminReviewText): ReviewStatusInfo {
         'The generated quiz failed quality validation. You can approve the quiz as-is, regenerate it, or reject the text.',
       isFailure: true,
       canApprove: true,
+      canReject: true,
+      canDelete: false,
       canRegenerate: true,
       approveLabel: 'Approve Quiz',
       regenerateLabel: 'Regenerate Quiz',
@@ -81,6 +87,8 @@ export function getReviewStatus(text: AdminReviewText): ReviewStatusInfo {
         'This text is still being processed by the LLM. Refresh the page to check for updates.',
       isFailure: false,
       canApprove: false,
+      canReject: false,
+      canDelete: false,
       canRegenerate: false,
       approveLabel: '',
       regenerateLabel: '',
@@ -96,6 +104,8 @@ export function getReviewStatus(text: AdminReviewText): ReviewStatusInfo {
         'Text processing failed before completion. You can reprocess the text or reject it.',
       isFailure: true,
       canApprove: false,
+      canReject: true,
+      canDelete: false,
       canRegenerate: true,
       approveLabel: '',
       regenerateLabel: 'Reprocess Text',
@@ -111,6 +121,8 @@ export function getReviewStatus(text: AdminReviewText): ReviewStatusInfo {
         'The quiz validation service encountered an error. You can reprocess the text or reject it.',
       isFailure: true,
       canApprove: false,
+      canReject: true,
+      canDelete: false,
       canRegenerate: true,
       approveLabel: '',
       regenerateLabel: 'Reprocess Text',
@@ -126,6 +138,8 @@ export function getReviewStatus(text: AdminReviewText): ReviewStatusInfo {
         'The quiz is still being validated. Refresh the page to check for updates.',
       isFailure: false,
       canApprove: false,
+      canReject: false,
+      canDelete: false,
       canRegenerate: false,
       approveLabel: '',
       regenerateLabel: '',
@@ -140,6 +154,8 @@ export function getReviewStatus(text: AdminReviewText): ReviewStatusInfo {
       'This text has been processed successfully and is ready for admin review.',
     isFailure: false,
     canApprove: true,
+    canReject: true,
+    canDelete: false,
     canRegenerate: false,
     approveLabel: 'Approve',
     regenerateLabel: '',

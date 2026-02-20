@@ -3,6 +3,7 @@ import {
   fetchPendingApprovals,
   approveText,
   rejectText,
+  deleteTosViolation,
   regenerateQuiz,
   retryTextProcessing,
   type AdminReviewText,
@@ -27,6 +28,7 @@ export type UseAdminApprovalsResult = {
   setSuccessMessage: (message: string | null) => void
   handleApprove: (textId: string) => Promise<void>
   handleReject: (textId: string, notes?: string) => Promise<void>
+  handleDelete: (textId: string) => Promise<void>
   handleRegenerate: (textId: string) => Promise<void>
 }
 
@@ -140,6 +142,28 @@ export const useAdminApprovals = (): UseAdminApprovalsResult => {
     [user, processing]
   )
 
+  const handleDelete = useCallback(
+    async (textId: string) => {
+      if (!user || processing) return
+
+      setProcessing(textId)
+      setError(null)
+      setSuccessMessage(null)
+      try {
+        await deleteTosViolation(textId, user.id)
+
+        setApprovals((prev) => prev.filter((t) => t.id !== textId))
+        setSelectedText(null)
+        setSuccessMessage('Text deleted successfully')
+      } catch (err) {
+        setError(getErrorMessage(err, 'Failed to delete text'))
+      } finally {
+        setProcessing(null)
+      }
+    },
+    [user, processing]
+  )
+
   const handleRegenerate = useCallback(
     async (textId: string) => {
       if (!user || processing) return
@@ -188,6 +212,7 @@ export const useAdminApprovals = (): UseAdminApprovalsResult => {
     setSuccessMessage,
     handleApprove,
     handleReject,
+    handleDelete,
     handleRegenerate,
   }
 }

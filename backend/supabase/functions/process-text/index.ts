@@ -4,6 +4,10 @@ import Groq from 'npm:groq-sdk@0.37.0'
 // Must match frontend/src/constants/textUpload.ts MAX_CONTENT_CHARACTERS
 const MAX_CONTENT_LENGTH = 15_000
 
+// Retries for model outputs that are not valid JSON or don't match the expected
+// response shape. A value of 2 means: initial attempt + 2 retries = 3 attempts.
+const INVALID_OUTPUT_RETRIES = 2
+
 // Rate limiting: 20 requests per minute per IP
 const RATE_LIMIT = {
   maxRequests: 20,
@@ -410,120 +414,172 @@ Deno.serve(async (req: Request) => {
         .replace('{text_content}', truncatedContent)
     }
 
-    const response = await groqClient.chat.completions.create({
-      model: config.model,
-      messages: [
-        { role: 'system', content: systemMessage },
-        { role: 'user', content: userMessage },
-      ],
-      temperature: config.temperature,
-      max_tokens: config.max_tokens,
-      top_p: config.top_p,
-      response_format: {
-        type: 'json_schema',
-        json_schema: {
-          name: skipContentCheck
-            ? 'process_text_success'
-            : 'process_text_response',
-          strict: true,
-          schema: skipContentCheck ? successSchema : fullSchema,
+    let lastInvalidOutputError: Error | null = null
+
+    for (let attempt = 0; attempt <= INVALID_OUTPUT_RETRIES; attempt += 1) {
+      const response = await groqClient.chat.completions.create({
+        model: config.model,
+        messages: [
+          { role: 'system', content: systemMessage },
+          { role: 'user', content: userMessage },
+        ],
+        temperature: config.temperature,
+        max_tokens: config.max_tokens,
+        top_p: config.top_p,
+        response_format: {
+          type: 'json_schema',
+          json_schema: {
+            name: skipContentCheck
+              ? 'process_text_success'
+              : 'process_text_response',
+            strict: true,
+            schema: skipContentCheck ? successSchema : fullSchema,
+          },
         },
-      },
-    })
+      })
 
-    const choice = response.choices[0]
-    if (!choice) {
-      throw new Error('No choices in API response')
-    }
-
-    if (choice.finish_reason === 'length') {
-      throw new Error(
-        'Model response truncated due to token limit ' +
-          `(max_tokens: ${config.max_tokens})`
-      )
-    }
-
-    const responseContent = choice.message?.content?.trim()
-    if (!responseContent) {
-      throw new Error(
-        `No content in response (finish_reason: ${choice.finish_reason})`
-      )
-    }
-
-    let parsed: unknown
-    try {
-      parsed = JSON.parse(responseContent)
-    } catch (parseError) {
-      console.error(
-        'Structured output returned non-JSON. Raw (first 500 chars):',
-        responseContent.slice(0, 500)
-      )
-      throw new Error(
-        `Structured output returned invalid JSON: ${(parseError as Error).message}`
-      )
-    }
-
-    // When skipContentCheck is true, successSchema prevents error responses
-    // at the schema level. This guard is kept as defense-in-depth.
-    if (!skipContentCheck && isErrorResponse(parsed)) {
-      return jsonResponse(
-        {
-          error: parsed.error,
-          violation_type: parsed.violation_type,
-        },
-        400,
-        {
-          'X-RateLimit-Remaining': String(rateLimit.remaining),
-        }
-      )
-    }
-
-    // Catch malformed error responses where the LLM set status "error"
-    // but left error/violation_type as null (passes schema, fails
-    // isErrorResponse). Treat as a TOS rejection so content enters the
-    // admin review flow instead of being silently retryable.
-    if (
-      !skipContentCheck &&
-      typeof parsed === 'object' &&
-      parsed !== null &&
-      (parsed as Record<string, unknown>).status === 'error'
-    ) {
-      console.error(
-        'LLM returned error status with incomplete fields:',
-        JSON.stringify(parsed).slice(0, 500)
-      )
-      return jsonResponse(
-        {
-          error: 'Content flagged but details unavailable',
-          violation_type: 'unknown',
-        },
-        400,
-        {
-          'X-RateLimit-Remaining': String(rateLimit.remaining),
-        }
-      )
-    }
-
-    if (!isValidResponse(parsed)) {
-      console.error(
-        'Response validation failed. Parsed (first 500 chars):',
-        JSON.stringify(parsed).slice(0, 500)
-      )
-      throw new Error('Response does not match expected format')
-    }
-
-    return jsonResponse(
-      {
-        title: parsed.title,
-        questionSets: parsed.questionSets,
-        fiction: parsed.fiction,
-        summary: parsed.fiction ? null : (parsed.summary ?? null),
-      },
-      200,
-      {
-        'X-RateLimit-Remaining': String(rateLimit.remaining),
+      const choice = response.choices[0]
+      if (!choice) {
+        throw new Error('No choices in API response')
       }
-    )
+
+      if (choice.finish_reason === 'length') {
+        throw new Error(
+          'Model response truncated due to token limit ' +
+            `(max_tokens: ${config.max_tokens})`
+        )
+      }
+
+      const responseContent = choice.message?.content?.trim()
+      if (!responseContent) {
+        throw new Error(
+          `No content in response (finish_reason: ${choice.finish_reason})`
+        )
+      }
+
+      let parsed: unknown
+      try {
+        parsed = JSON.parse(responseContent)
+      } catch (parseError) {
+        lastInvalidOutputError = new Error(
+          `Structured output returned invalid JSON: ${(parseError as Error).message}`
+        )
+        console.error(
+          `Attempt ${attempt + 1}/${INVALID_OUTPUT_RETRIES + 1} - ${lastInvalidOutputError.message}. ` +
+            'Raw (first 500 chars):',
+          responseContent.slice(0, 500)
+        )
+
+        if (attempt < INVALID_OUTPUT_RETRIES) {
+          continue
+        }
+
+        return jsonResponse(
+          {
+            error: 'Failed to process text',
+            code: 'invalid_llm_json',
+            reason: lastInvalidOutputError.message,
+          },
+          502,
+          {
+            'X-RateLimit-Remaining': String(rateLimit.remaining),
+          }
+        )
+      }
+
+      // When skipContentCheck is true, successSchema prevents error responses
+      // at the schema level. This guard is kept as defense-in-depth.
+      if (!skipContentCheck && isErrorResponse(parsed)) {
+        return jsonResponse(
+          {
+            error: parsed.error,
+            violation_type: parsed.violation_type,
+          },
+          400,
+          {
+            'X-RateLimit-Remaining': String(rateLimit.remaining),
+          }
+        )
+      }
+
+      // Catch malformed error responses where the LLM set status "error" but
+      // left error/violation_type as null (passes schema, fails isErrorResponse).
+      // Treat as invalid output and retry; if retries are exhausted, return an
+      // "unknown" violation type.
+      if (
+        !skipContentCheck &&
+        typeof parsed === 'object' &&
+        parsed !== null &&
+        (parsed as Record<string, unknown>).status === 'error'
+      ) {
+        lastInvalidOutputError = new Error(
+          'LLM returned error status with incomplete fields'
+        )
+        console.error(
+          `Attempt ${attempt + 1}/${INVALID_OUTPUT_RETRIES + 1} - ${lastInvalidOutputError.message}. ` +
+            'Parsed (first 500 chars):',
+          JSON.stringify(parsed).slice(0, 500)
+        )
+
+        if (attempt < INVALID_OUTPUT_RETRIES) {
+          continue
+        }
+
+        return jsonResponse(
+          {
+            error: 'Content flagged but details unavailable',
+            violation_type: 'unknown',
+          },
+          400,
+          {
+            'X-RateLimit-Remaining': String(rateLimit.remaining),
+          }
+        )
+      }
+
+      if (!isValidResponse(parsed)) {
+        lastInvalidOutputError = new Error(
+          'Response does not match expected format'
+        )
+        console.error(
+          `Attempt ${attempt + 1}/${INVALID_OUTPUT_RETRIES + 1} - ${lastInvalidOutputError.message}. ` +
+            'Parsed (first 500 chars):',
+          JSON.stringify(parsed).slice(0, 500)
+        )
+
+        if (attempt < INVALID_OUTPUT_RETRIES) {
+          continue
+        }
+
+        return jsonResponse(
+          {
+            error: 'Failed to process text',
+            code: 'invalid_llm_output',
+            reason: lastInvalidOutputError.message,
+          },
+          502,
+          {
+            'X-RateLimit-Remaining': String(rateLimit.remaining),
+          }
+        )
+      }
+
+      return jsonResponse(
+        {
+          title: parsed.title,
+          questionSets: parsed.questionSets,
+          fiction: parsed.fiction,
+          summary: parsed.fiction ? null : (parsed.summary ?? null),
+        },
+        200,
+        {
+          'X-RateLimit-Remaining': String(rateLimit.remaining),
+        }
+      )
+    }
+
+    // Should be unreachable because the loop either returns or throws.
+    throw lastInvalidOutputError ?? new Error('Unknown processing error')
   } catch (error) {
     console.error('Error processing text:', error)
     return jsonResponse({ error: 'Failed to process text' }, 500, {

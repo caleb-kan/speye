@@ -6,6 +6,23 @@ import { logDbQuery } from '../logger'
  * Uses atomic RPC to update status and queue in single transaction.
  */
 export async function retryProcessing(textId: string): Promise<void> {
+  // Do not allow retrying a text rejected due to content policy.
+  const { data: text, error: fetchError } = await supabase
+    .from('texts')
+    .select('llm_violation_type, rejection_stage')
+    .eq('id', textId)
+    .single()
+
+  if (fetchError) {
+    throw fetchError
+  }
+
+  if (text?.rejection_stage === 'process_text' && text?.llm_violation_type) {
+    throw new Error(
+      'This text cannot be reprocessed because it was rejected for a content policy violation.'
+    )
+  }
+
   const { error } = await supabase.rpc('retry_text_processing', {
     p_text_id: textId,
   })

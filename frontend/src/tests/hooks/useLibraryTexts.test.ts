@@ -46,6 +46,8 @@ const makeTextPreview = (
   rejection_reason: null,
   rejection_stage: null,
   has_summary: false,
+  admin_reviewed_by: null,
+  admin_reviewed_at: null,
   ...overrides,
 })
 

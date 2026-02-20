@@ -9,7 +9,7 @@ import type { AdminReviewText } from '../../services/adminService'
 import { createMockAdminText } from '../helpers/adminMockFactory'
 
 describe('getReviewStatus', () => {
-  it('should return tos_violation when rejection_stage is process_text', () => {
+  it('should return tos_violation when rejection_stage is process_text and llm_violation_type is set', () => {
     const text = createMockAdminText({
       rejection_stage: 'process_text',
       processing_status: 'failed',
@@ -22,9 +22,11 @@ describe('getReviewStatus', () => {
     expect(result.label).toBe('TOS Violation')
     expect(result.badgeClass).toBe(ADMIN_BADGE_CLASSES.error)
     expect(result.isFailure).toBe(true)
-    expect(result.canApprove).toBe(true)
+    expect(result.canApprove).toBe(false)
+    expect(result.canReject).toBe(false)
+    expect(result.canDelete).toBe(true)
     expect(result.canRegenerate).toBe(false)
-    expect(result.approveLabel).toBe('Approve & Process')
+    expect(result.approveLabel).toBe('')
   })
 
   it('should return quiz_quality_issue when rejection_stage is validate_quiz', () => {
@@ -40,6 +42,8 @@ describe('getReviewStatus', () => {
     expect(result.badgeClass).toBe(ADMIN_BADGE_CLASSES.warning)
     expect(result.isFailure).toBe(true)
     expect(result.canApprove).toBe(true)
+    expect(result.canReject).toBe(true)
+    expect(result.canDelete).toBe(false)
     expect(result.canRegenerate).toBe(true)
     expect(result.approveLabel).toBe('Approve Quiz')
     expect(result.regenerateLabel).toBe('Regenerate Quiz')
@@ -69,6 +73,8 @@ describe('getReviewStatus', () => {
     expect(result.badgeClass).toBe(ADMIN_BADGE_CLASSES.orange)
     expect(result.isFailure).toBe(true)
     expect(result.canApprove).toBe(false)
+    expect(result.canReject).toBe(true)
+    expect(result.canDelete).toBe(false)
     expect(result.canRegenerate).toBe(true)
     expect(result.regenerateLabel).toBe('Reprocess Text')
   })
@@ -128,6 +134,7 @@ describe('getReviewStatus', () => {
     const text = createMockAdminText({
       rejection_stage: 'process_text',
       processing_status: 'completed',
+      llm_violation_type: 'hate_speech',
     })
     const result = getReviewStatus(text)
 
@@ -148,7 +155,10 @@ describe('getReviewStatus', () => {
 
   describe('isFlaggedForReview', () => {
     it('should return true for tos_violation', () => {
-      const text = createMockAdminText({ rejection_stage: 'process_text' })
+      const text = createMockAdminText({
+        rejection_stage: 'process_text',
+        llm_violation_type: 'hate_speech',
+      })
       expect(isFlaggedForReview(text)).toBe(true)
     })
 
@@ -200,7 +210,7 @@ describe('getReviewStatus', () => {
 
   it('should include a non-empty description for every status', () => {
     const scenarios: Partial<AdminReviewText>[] = [
-      { rejection_stage: 'process_text' },
+      { rejection_stage: 'process_text', llm_violation_type: 'hate_speech' },
       { rejection_stage: 'validate_quiz' },
       { processing_status: 'pending' },
       { processing_status: 'failed', rejection_stage: null },

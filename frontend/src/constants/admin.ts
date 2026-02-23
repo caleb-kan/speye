@@ -4,7 +4,7 @@ export type ApprovalFilterTab = 'flagged' | 'passed'
 
 export const DEFAULT_APPROVAL_FILTER_TAB: ApprovalFilterTab = 'flagged'
 
-export const ADMIN_TEXT_PREVIEW_LENGTH = 150
+export const ADMIN_TEXT_PREVIEW_LENGTH = 80
 
 export const UNTITLED_TEXT_FALLBACK = 'Untitled Text'
 
@@ -24,12 +24,6 @@ export const NOTIFICATION_TYPES: { value: NotificationType; label: string }[] =
   ]
 
 export const BROADCAST_VALUE = '__broadcast__'
-
-export const NOTIFICATION_INPUT_CLASS =
-  'w-full text-sm p-3 bg-bg border border-text-secondary/20 rounded-lg text-text placeholder-text-secondary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent'
-
-export const NOTIFICATION_LABEL_CLASS =
-  'block text-sm font-medium text-text mb-2 ml-1'
 
 type PageLink = { value: string; label: string; adminOnly?: boolean }
 export const PAGE_LINKS: PageLink[] = [

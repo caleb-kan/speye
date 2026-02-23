@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import type { TextPreview } from '../../types/database'
 import { UNTITLED_TEXT_FALLBACK } from '../../constants/admin'
+import { TEXT_PREVIEW_LENGTH } from '../../constants/library'
 
 export type LibraryTextListProps = {
   texts: TextPreview[]
@@ -103,7 +104,9 @@ export function LibraryTextList({
                 )}
               </div>
               <p className="text-text-secondary text-sm leading-relaxed">
-                {text.preview}...
+                {text.preview.length >= TEXT_PREVIEW_LENGTH
+                  ? `${text.preview}...`
+                  : text.preview}
               </p>
               <p className="text-xs text-text-secondary mt-2">
                 Uploaded {new Date(text.uploaded_at).toLocaleDateString()}

@@ -1,6 +1,5 @@
 import type { Text, TextPreview } from '../types/database'
 import { TEXT_PREVIEW_LENGTH } from '../constants/library'
-import { truncateText } from './truncateText'
 
 export const createTextFromPreview = (
   textPreview: TextPreview,
@@ -34,7 +33,7 @@ export const createPreviewFromText = (textRecord: Text): TextPreview => {
   return {
     id: textRecord.id,
     title: textRecord.title,
-    preview: truncateText(textRecord.content, TEXT_PREVIEW_LENGTH),
+    preview: textRecord.content.slice(0, TEXT_PREVIEW_LENGTH),
     uploaded_at: textRecord.uploaded_at,
     owner_id: textRecord.owner_id,
     quiz: textRecord.quiz,

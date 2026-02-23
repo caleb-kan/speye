@@ -13,7 +13,10 @@ import { formatDate } from '../../../utils/formatDate.ts'
 import { getReviewStatus } from '../../../utils/adminReviewStatus.ts'
 import { truncateText } from '../../../utils/truncateText.ts'
 import { StatusBadge } from './StatusBadge.tsx'
-import { UNTITLED_TEXT_FALLBACK } from '../../../constants/admin.ts'
+import {
+  UNTITLED_TEXT_FALLBACK,
+  ADMIN_TEXT_PREVIEW_LENGTH,
+} from '../../../constants/admin.ts'
 
 interface ApprovalItemProps {
   text: AdminReviewText
@@ -38,7 +41,7 @@ export function ApprovalItem({
 }: ApprovalItemProps) {
   const reviewStatus = getReviewStatus(text)
   const isProcessing = processing === text.id
-  const preview = truncateText(text.content, 80)
+  const preview = truncateText(text.content, ADMIN_TEXT_PREVIEW_LENGTH)
 
   const statusIcon = reviewStatus.isFailure ? (
     <AlertTriangle size={12} />

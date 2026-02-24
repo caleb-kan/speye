@@ -13,6 +13,30 @@ const redis = new Redis({
 
 const LB_TTL = 60 * 60 * 24 * 7 // 7 days
 
+// Scoring formula duplicated from lib/scoring.ts because Deno edge functions
+// cannot import from the shared lib/ directory. Keep in sync manually.
+// See lib/scoring.ts for full documentation. See also lib/quizConstants.ts.
+const NUM_OPTIONS_PER_QUESTION = 4
+const MAX_QUIZ_SCORE = 100
+const CHANCE_RATE = 1 / NUM_OPTIONS_PER_QUESTION
+const COMPREHENSION_EXPONENT = 1.5
+const SPEED_EXPONENT = 0.7
+const SCORE_SCALE = 10
+
+function computeOverallScore(wpm: number, quizScore: number): number {
+  if (!Number.isFinite(wpm) || !Number.isFinite(quizScore)) return 0
+  if (wpm <= 0 || quizScore <= 0) return 0
+  const rawAccuracy = quizScore / MAX_QUIZ_SCORE
+  const adjustedAccuracy = Math.max(
+    0,
+    (rawAccuracy - CHANCE_RATE) / (1 - CHANCE_RATE)
+  )
+  if (adjustedAccuracy <= 0) return 0
+  const comprehensionFactor = Math.pow(adjustedAccuracy, COMPREHENSION_EXPONENT)
+  const speedFactor = Math.pow(wpm, SPEED_EXPONENT)
+  return Math.round(speedFactor * comprehensionFactor * SCORE_SCALE)
+}
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
@@ -47,8 +71,8 @@ function extractAvatarUrl(user: any): string | null {
 }
 
 /**
- * For a given text, compute each user's best entry (highest wpm * score)
- * from user_activity. Returns one entry per user with username.
+ * For a given text, compute each user's best entry from user_activity.
+ * Best = highest computeOverallScore(wpm, score). Returns one entry per user.
  */
 async function computeBestPerUser(textId: string) {
   const { data: rows, error } = await supabase
@@ -72,7 +96,7 @@ async function computeBestPerUser(textId: string) {
   >()
 
   for (const row of rows) {
-    const overallScore = row.wpm * row.score
+    const overallScore = computeOverallScore(row.wpm, row.score)
     const existing = bestByUser.get(row.user_id)
     if (!existing || overallScore > existing.overallScore) {
       bestByUser.set(row.user_id, {
@@ -178,7 +202,7 @@ async function updateUserEntry(textId: string, userId: string) {
   let bestOverall = 0
 
   for (const row of rows) {
-    const overall = row.wpm * row.score
+    const overall = computeOverallScore(row.wpm, row.score)
     if (overall > bestOverall) {
       bestWpm = row.wpm
       bestQuizScore = row.score
@@ -208,8 +232,9 @@ async function updateUserEntry(textId: string, userId: string) {
   const statsKey = `lb_stats:${textId}:${userId}`
   const pipeline = redis.pipeline()
 
-  // Only update if new score > existing score
-  pipeline.zadd(lbKey, { score: bestOverall, member: userId, gt: true })
+  // bestOverall is already the user's highest-scoring attempt from all rows,
+  // so we unconditionally set it (no GT flag needed).
+  pipeline.zadd(lbKey, { score: bestOverall, member: userId })
   pipeline.hset(statsKey, {
     username: username ?? '',
     avatarUrl: avatarUrl ?? '',

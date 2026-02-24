@@ -11,6 +11,7 @@ import {
   LEADERBOARD_FETCH_DELAY_MS,
   LEADERBOARD_TOP_COUNT,
 } from '../constants/quiz'
+import { computeOverallScore } from '../../../lib/scoring'
 
 type UseQuizLeaderboardParams = {
   textId: string
@@ -60,7 +61,9 @@ export function useQuizLeaderboard({
         if (!isActive) return
 
         const localOverall =
-          savedWpm != null && userId ? savedWpm * score : null
+          savedWpm != null && userId
+            ? computeOverallScore(savedWpm, score)
+            : null
 
         const existingInTop = userId
           ? top.find((e) => e.userId === userId)

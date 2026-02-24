@@ -1,10 +1,16 @@
 import {
+  MAX_QUIZ_SCORE,
   NUM_QUESTION_SETS,
   NUM_QUESTIONS,
   NUM_OPTIONS_PER_QUESTION,
 } from '../../../lib/quizConstants'
 
-export { NUM_QUESTION_SETS, NUM_QUESTIONS, NUM_OPTIONS_PER_QUESTION }
+export {
+  MAX_QUIZ_SCORE,
+  NUM_QUESTION_SETS,
+  NUM_QUESTIONS,
+  NUM_OPTIONS_PER_QUESTION,
+}
 
 // QuizOverlay
 export const MODAL_Z_INDEX = 999
@@ -20,7 +26,6 @@ export const OPTION_LABELS = Array.from(
   { length: NUM_OPTIONS_PER_QUESTION },
   (_, i) => String.fromCharCode(65 + i)
 )
-export const MAX_QUIZ_SCORE = 100
 export const LEADERBOARD_TOP_COUNT = 5
 
 // CircularProgress

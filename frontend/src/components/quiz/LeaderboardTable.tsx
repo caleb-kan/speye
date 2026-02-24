@@ -25,7 +25,7 @@ function formatQuizScore(value: number) {
 
 function formatOverallScore(value: number) {
   if (!Number.isFinite(value)) return '-'
-  return Math.round(value / MAX_QUIZ_SCORE).toString()
+  return Math.round(value).toString()
 }
 
 function EntryRow({
@@ -60,7 +60,10 @@ function EntryRow({
       <div className="text-sm text-text text-right">
         {formatQuizScore(entry.quizScore)}
       </div>
-      <div className="text-sm text-text text-right" title="Score = WPM x Quiz%">
+      <div
+        className="text-sm text-text text-right"
+        title="Combines reading speed and comprehension"
+      >
         {formatOverallScore(entry.overallScore)}
       </div>
     </div>
@@ -89,7 +92,10 @@ export function LeaderboardTable({
         <div className="col-span-2">User</div>
         <div className="text-right">WPM</div>
         <div className="text-right">Quiz</div>
-        <div className="text-right" title="Score = WPM x Quiz Score">
+        <div
+          className="text-right"
+          title="Combines reading speed and comprehension"
+        >
           Score
         </div>
       </div>

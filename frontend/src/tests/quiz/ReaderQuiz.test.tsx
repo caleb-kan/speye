@@ -30,6 +30,8 @@ const baseMockReturn = {
   pause: vi.fn(),
   restart: vi.fn(),
   hasText: true,
+  jumpForward: vi.fn(),
+  jumpBack: vi.fn(),
 }
 
 describe('Reader Component', () => {

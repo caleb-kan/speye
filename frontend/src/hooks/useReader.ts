@@ -35,6 +35,10 @@ type UseReaderReturn = {
   restart: () => void
   /** Whether text content is available */
   hasText: boolean
+  /** Jump forward by a number of words (pauses playback) */
+  jumpForward: (count: number) => void
+  /** Jump back by a number of words (pauses playback) */
+  jumpBack: (count: number) => void
 }
 
 /**
@@ -106,6 +110,35 @@ export function useReader({
     setIsComplete(false)
   }, [clearTimer])
 
+  const jumpForward = useCallback(
+    (count: number) => {
+      if (totalWords === 0) return
+      clearTimer()
+      setIsPlaying(false)
+      setCurrentWordIndex((prev) => {
+        const next = prev + count
+        if (next >= totalWords - 1) {
+          setIsComplete(true)
+          return totalWords - 1
+        }
+        setIsComplete(false)
+        return next
+      })
+    },
+    [totalWords, clearTimer]
+  )
+
+  const jumpBack = useCallback(
+    (count: number) => {
+      if (totalWords === 0) return
+      clearTimer()
+      setIsPlaying(false)
+      setIsComplete(false)
+      setCurrentWordIndex((prev) => Math.max(0, prev - count))
+    },
+    [clearTimer, totalWords]
+  )
+
   useEffect(() => {
     if (isPlaying && currentWordIndex < totalWords) {
       intervalRef.current = window.setInterval(() => {
@@ -148,5 +181,7 @@ export function useReader({
     togglePlayPause,
     restart,
     hasText,
+    jumpForward,
+    jumpBack,
   }
 }

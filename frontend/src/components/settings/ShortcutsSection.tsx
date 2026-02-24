@@ -1,13 +1,12 @@
 type Shortcut = {
   label: string
-  sublabel?: string
   keys: string[]
 }
 
 const shortcuts: Shortcut[] = [
   { label: 'Start / Pause reading', keys: ['Space'] },
-  { label: 'Previous chunk', sublabel: '(Adaptive Mode)', keys: ['←', '↑'] },
-  { label: 'Next chunk', sublabel: '(Adaptive Mode)', keys: ['→', '↓'] },
+  { label: 'Previous chunk', keys: ['←', '↑'] },
+  { label: 'Next chunk', keys: ['→', '↓'] },
 ]
 
 function KeyGroup({ keys }: { keys: string[] }) {
@@ -37,15 +36,7 @@ export function ShortcutsSection() {
             key={shortcut.label}
             className="flex items-center justify-between"
           >
-            <span className="text-sm text-text">
-              {shortcut.label}
-              {shortcut.sublabel && (
-                <span className="text-text-secondary">
-                  {' '}
-                  {shortcut.sublabel}
-                </span>
-              )}
-            </span>
+            <span className="text-sm text-text">{shortcut.label}</span>
             <KeyGroup keys={shortcut.keys} />
           </div>
         ))}

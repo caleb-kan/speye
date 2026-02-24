@@ -15,3 +15,6 @@ export const MAX_TRANSITION_MS = 400
 // Static mode: estimated words per line for render limit calculation
 // Conservative estimate to ensure overflow detection works across text widths
 export const WORDS_PER_LINE_ESTIMATE = 20
+
+// Number of words to jump per arrow key press in standard mode
+export const ARROW_KEY_JUMP_WORDS = 10

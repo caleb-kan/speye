@@ -6,13 +6,28 @@ export type UseArrowNavigationParams = {
   onForward: () => void
 }
 
-export const useArrowNavigation = (params: UseArrowNavigationParams): void => {
-  const { enabled, onBack, onForward } = params
+function isInteractiveTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false
+  return (
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLTextAreaElement ||
+    target instanceof HTMLSelectElement ||
+    target.isContentEditable ||
+    target.closest('[role="separator"]') !== null
+  )
+}
 
+export function useArrowNavigation({
+  enabled,
+  onBack,
+  onForward,
+}: UseArrowNavigationParams): void {
   useEffect(() => {
     if (!enabled) return
 
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (isInteractiveTarget(event.target)) return
+
       if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
         event.preventDefault()
         onBack()

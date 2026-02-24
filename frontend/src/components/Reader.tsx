@@ -1,10 +1,12 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useCallback } from 'react'
 import { TextDisplay } from './TextDisplay'
 import { ReadingControls } from './ReadingControls'
 import { TextTitle } from './TextTitle'
 import { useReader } from '../hooks/useReader'
+import { useArrowNavigation } from '../hooks/useArrowNavigation'
 import type { Scrolling } from '../types/reading'
 import { Resizable } from './Resizable'
+import { ARROW_KEY_JUMP_WORDS } from '../constants/textDisplay'
 
 type ReaderProps = {
   title: string | null
@@ -54,7 +56,23 @@ export function Reader({
     togglePlayPause,
     restart,
     hasText,
+    jumpForward,
+    jumpBack,
   } = useReader({ text, wpm, disabled, initialWordIndex })
+
+  const handleForward = useCallback(() => {
+    jumpForward(ARROW_KEY_JUMP_WORDS)
+  }, [jumpForward])
+
+  const handleBack = useCallback(() => {
+    jumpBack(ARROW_KEY_JUMP_WORDS)
+  }, [jumpBack])
+
+  useArrowNavigation({
+    enabled: hasText && !disabled,
+    onForward: handleForward,
+    onBack: handleBack,
+  })
 
   const onPositionChangeRef = useRef(onPositionChange)
   useEffect(() => {

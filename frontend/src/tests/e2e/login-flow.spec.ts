@@ -3,7 +3,7 @@ import {
   mockAuthTokenError,
   mockAuthTokenSuccess,
   mockRandomText,
-} from './utils'
+} from './utils/utils'
 
 test.describe('Login form', () => {
   test('sign in takes you to the home reader', async ({ page }) => {

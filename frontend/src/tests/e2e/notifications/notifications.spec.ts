@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { mockAuthSession } from './utils'
+import { mockAuthSession } from '../utils/utils'
 
 test.describe('Notifications Page', () => {
   const mockNotifications = [
@@ -66,13 +66,9 @@ test.describe('Notifications Page', () => {
       }
     })
 
-    // Mock realtime subscription
+    // Abort realtime WebSocket connections to prevent retry loops
     await page.route('**/realtime/v1/**', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({}),
-      })
+      await route.abort()
     })
   })
 

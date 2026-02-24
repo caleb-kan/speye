@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { mockRandomText } from './utils'
+import { mockRandomText } from './utils/utils'
 
 test.describe('Primary navigation', () => {
   test('main navigation links move between pages', async ({ page }) => {

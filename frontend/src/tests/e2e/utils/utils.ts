@@ -4,11 +4,28 @@ import type { Page } from '@playwright/test'
  * Derives the Supabase auth storage key from the project URL, matching
  * the logic in @supabase/supabase-js: `sb-${hostname.split('.')[0]}-auth-token`
  */
-function getSupabaseStorageKey(): string {
+export function getSupabaseStorageKey(): string {
   const url = process.env.VITE_SUPABASE_URL ?? 'http://localhost:54321'
   const hostname = new URL(url).hostname.split('.')[0]
   return `sb-${hostname}-auth-token`
 }
+
+/** Encodes an object as a base64url string (no padding). */
+export function toBase64Url(obj: object): string {
+  return Buffer.from(JSON.stringify(obj))
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '')
+}
+
+const FAKE_SIGNATURE = Buffer.from('fake-sig')
+  .toString('base64')
+  .replace(/\+/g, '-')
+  .replace(/\//g, '_')
+  .replace(/=+$/, '')
+
+const SESSION_EXPIRY_SECONDS = 3600
 
 /**
  * Builds a structurally valid JWT (header.payload.signature) that Supabase's
@@ -18,7 +35,7 @@ function getSupabaseStorageKey(): string {
 export function createMockJWT(
   sub = 'user-1',
   email = 'reader@example.com',
-  expiresInSeconds = 3600
+  userMetadata: Record<string, string> = { username: 'testuser' }
 ): string {
   const header = { alg: 'HS256', typ: 'JWT' }
   const payload = {
@@ -26,48 +43,35 @@ export function createMockJWT(
     role: 'authenticated',
     aud: 'authenticated',
     iss: 'supabase',
-    exp: Math.floor(Date.now() / 1000) + expiresInSeconds,
+    exp: Math.floor(Date.now() / 1000) + SESSION_EXPIRY_SECONDS,
     email,
-    user_metadata: { username: 'testuser' },
+    user_metadata: userMetadata,
   }
 
-  const toBase64Url = (obj: object) =>
-    Buffer.from(JSON.stringify(obj))
-      .toString('base64')
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=+$/, '')
-
-  const sig = Buffer.from('fake-sig')
-    .toString('base64')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/, '')
-
-  return `${toBase64Url(header)}.${toBase64Url(payload)}.${sig}`
+  return `${toBase64Url(header)}.${toBase64Url(payload)}.${FAKE_SIGNATURE}`
 }
 
-type MockTextOverrides = Partial<{
-  id: string
-  title: string | null
-  content: string
-  summary: string | null
-  uploaded_at: string
-  owner_id: string | null
-  quiz: null
-  fiction: boolean | null
-  complexity: number | null
-  source: string | null
-  processing_status: 'pending' | 'completed' | 'failed'
-  quiz_valid: boolean | null
-  llm_decision: 'approved' | 'rejected' | null
-  llm_violation_type: string | null
-  admin_decision: 'approved' | 'rejected' | 'pending' | null
-  admin_reviewed_by: string | null
-  admin_reviewed_at: string | null
-  rejection_reason: string | null
-  rejection_stage: 'process_text' | 'validate_quiz' | null
-}>
+interface MockTextOverrides {
+  id?: string
+  title?: string | null
+  content?: string
+  summary?: string | null
+  uploaded_at?: string
+  owner_id?: string | null
+  quiz?: object | null
+  fiction?: boolean | null
+  complexity?: number | null
+  source?: string | null
+  processing_status?: 'pending' | 'completed' | 'failed'
+  quiz_valid?: boolean | null
+  llm_decision?: 'approved' | 'rejected' | null
+  llm_violation_type?: string | null
+  admin_decision?: 'approved' | 'rejected' | 'pending' | null
+  admin_reviewed_by?: string | null
+  admin_reviewed_at?: string | null
+  rejection_reason?: string | null
+  rejection_stage?: 'process_text' | 'validate_quiz' | null
+}
 
 export const defaultMockText = {
   id: 'text-1',
@@ -120,7 +124,7 @@ export async function mockAuthTokenSuccess(
       body: JSON.stringify({
         access_token: jwt,
         token_type: 'bearer',
-        expires_in: 3600,
+        expires_in: SESSION_EXPIRY_SECONDS,
         refresh_token: 'test-refresh-token',
         user: {
           id: 'user-1',
@@ -138,6 +142,12 @@ export async function mockAuthTokenSuccess(
   })
 }
 
+export interface MockSessionOptions {
+  sub?: string
+  email?: string
+  userMetadata?: Record<string, string>
+}
+
 /**
  * Sets up a complete mock auth session: seeds localStorage with a valid
  * session AND mocks all auth network endpoints as fallback. Must be
@@ -145,48 +155,44 @@ export async function mockAuthTokenSuccess(
  */
 export async function mockAuthSession(
   page: Page,
-  email = 'reader@example.com'
+  options: MockSessionOptions = {}
 ) {
+  const {
+    sub = 'user-1',
+    email = 'reader@example.com',
+    userMetadata = { username: 'testuser' },
+  } = options
   const now = new Date().toISOString()
-  const jwt = createMockJWT('user-1', email)
+  const jwt = createMockJWT(sub, email, userMetadata)
   const storageKey = getSupabaseStorageKey()
 
   const mockUser = {
-    id: 'user-1',
+    id: sub,
     aud: 'authenticated',
     role: 'authenticated',
     email,
     email_confirmed_at: now,
     app_metadata: {},
-    user_metadata: { username: 'testuser' },
+    user_metadata: userMetadata,
     created_at: now,
     updated_at: now,
   }
 
   // Seed localStorage so the Supabase client recovers the session on load
   await page.addInitScript(
-    ({ token, key }: { token: string; key: string }) => {
+    ({ token, key, user }: { token: string; key: string; user: object }) => {
       const session = {
         access_token: token,
         token_type: 'bearer',
         expires_in: 3600,
         expires_at: Math.floor(Date.now() / 1000) + 3600,
         refresh_token: 'test-refresh-token',
-        user: {
-          id: 'user-1',
-          email: 'reader@example.com',
-          aud: 'authenticated',
-          role: 'authenticated',
-          app_metadata: {},
-          user_metadata: { username: 'testuser' },
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
+        user,
       }
 
       localStorage.setItem(key, JSON.stringify(session))
     },
-    { token: jwt, key: storageKey }
+    { token: jwt, key: storageKey, user: mockUser }
   )
 
   // Mock token endpoint (handles refresh and grant requests)
@@ -197,7 +203,7 @@ export async function mockAuthSession(
       body: JSON.stringify({
         access_token: jwt,
         token_type: 'bearer',
-        expires_in: 3600,
+        expires_in: SESSION_EXPIRY_SECONDS,
         refresh_token: 'test-refresh-token',
         user: mockUser,
       }),

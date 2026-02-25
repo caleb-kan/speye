@@ -44,15 +44,15 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   if (active && payload && payload.length) {
     return (
       // Added min-w-[120px] to ensure it has a nice shape
-      <div className="bg-gray-900/95 backdrop-blur-md border border-white/10 px-3 py-2 rounded-lg shadow-xl z-50 min-w-[120px]">
-        <p className="text-gray-400 text-[10px] font-medium uppercase tracking-wider mb-0.5">
+      <div className="bg-bg-secondary/95 backdrop-blur-md border border-text-secondary/10 px-3 py-2 rounded-lg shadow-xl z-50 min-w-[120px]">
+        <p className="text-text-secondary text-[10px] font-medium uppercase tracking-wider mb-0.5">
           {label ? formatTooltipDate(label) : ''}
         </p>
         <div className="flex items-baseline gap-1.5">
-          <span className="text-lg font-bold text-white tracking-tight">
+          <span className="text-lg font-bold text-text tracking-tight">
             {payload[0].value}
           </span>
-          <span className="text-[10px] text-blue-400 font-medium">active</span>
+          <span className="text-[10px] text-primary font-medium">active</span>
         </div>
       </div>
     )
@@ -80,12 +80,12 @@ export function AdminGraphCard({
 }: AdminGraphCardProps) {
   return (
     <div
-      className={`relative bg-bg-secondary/30 border border-white/5 rounded-2xl ${className}`}
+      className={`relative bg-bg-secondary/30 border border-text-secondary/10 rounded-2xl ${className}`}
       style={{ height: '160px' }}
     >
       {/* Title + Icon (Top Left) */}
       <div className="absolute top-4 left-4 z-10 flex items-center gap-2 pointer-events-none">
-        <div className="p-1.5 bg-blue-500/10 rounded-md text-blue-400 backdrop-blur-sm">
+        <div className="p-1.5 bg-primary/10 rounded-md text-primary backdrop-blur-sm">
           <Users size={14} />
         </div>
         <span className="text-[10px] text-text-secondary uppercase tracking-wider font-bold drop-shadow-sm">
@@ -112,14 +112,22 @@ export function AdminGraphCard({
           >
             <defs>
               <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4} />
-                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                <stop
+                  offset="5%"
+                  stopColor="var(--color-primary)"
+                  stopOpacity={0.4}
+                />
+                <stop
+                  offset="95%"
+                  stopColor="var(--color-primary)"
+                  stopOpacity={0}
+                />
               </linearGradient>
             </defs>
 
             <CartesianGrid
               vertical={false}
-              stroke="#ffffff"
+              stroke="var(--color-text)"
               strokeOpacity={0.03}
               strokeDasharray="3 3"
             />
@@ -129,7 +137,7 @@ export function AdminGraphCard({
               axisLine={false}
               tickLine={false}
               tick={{
-                fill: '#6b7280',
+                fill: 'var(--color-text-secondary)',
                 fontSize: 10,
                 fontWeight: 700,
                 fontFamily:
@@ -145,7 +153,11 @@ export function AdminGraphCard({
             <YAxis
               axisLine={false}
               tickLine={false}
-              tick={{ fill: '#4b5563', fontSize: 9, fontWeight: 600 }}
+              tick={{
+                fill: 'var(--color-text-secondary)',
+                fontSize: 9,
+                fontWeight: 600,
+              }}
               tickCount={4}
               width={30}
               dx={-5}
@@ -154,7 +166,7 @@ export function AdminGraphCard({
             <Tooltip
               content={<CustomTooltip />}
               cursor={{
-                stroke: '#3b82f6',
+                stroke: 'var(--color-primary)',
                 strokeWidth: 1,
                 strokeDasharray: '3 3',
               }}
@@ -164,11 +176,11 @@ export function AdminGraphCard({
             <Area
               type="monotone"
               dataKey="active_count"
-              stroke="#3b82f6"
+              stroke="var(--color-primary)"
               strokeWidth={2}
               fillOpacity={1}
               fill="url(#colorUsers)"
-              activeDot={{ r: 4, strokeWidth: 0, fill: '#60a5fa' }}
+              activeDot={{ r: 4, strokeWidth: 0, fill: 'var(--color-primary)' }}
             />
           </AreaChart>
         </ResponsiveContainer>

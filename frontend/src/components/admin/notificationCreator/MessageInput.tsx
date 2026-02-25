@@ -15,7 +15,7 @@ export function MessageInput({ value, sending, onChange }: MessageInputProps) {
         onChange={(e) => onChange(e.target.value)}
         placeholder="What's happening?"
         disabled={sending}
-        className="w-full h-24 bg-bg border border-white/10 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-primary/50 transition-colors resize-none placeholder:text-text-secondary/50"
+        className="w-full h-24 bg-bg border border-text-secondary/20 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-primary/50 transition-colors resize-none placeholder:text-text-secondary/50"
       />
     </div>
   )

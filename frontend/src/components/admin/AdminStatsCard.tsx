@@ -39,12 +39,12 @@ export function AdminStatsCard({
 
   return (
     <div
-      className={`relative group bg-bg-secondary/30 border border-white/5 rounded-2xl p-6 flex flex-col justify-between overflow-hidden transition-all duration-300 hover:bg-bg-secondary/50 hover:border-white/10 ${className}`}
+      className={`relative group bg-bg-secondary/30 border border-text-secondary/10 rounded-2xl p-6 flex flex-col justify-between overflow-hidden transition-all duration-300 hover:bg-bg-secondary/50 hover:border-text-secondary/20 ${className}`}
       style={{ minHeight: '150px' }}
     >
       {/* Hover Indicator (only shows if split data is provided) */}
       {split && (
-        <div className="absolute top-4 right-4 text-white/10 group-hover:opacity-0 transition-opacity duration-300">
+        <div className="absolute top-4 right-4 text-text-secondary/20 group-hover:opacity-0 transition-opacity duration-300">
           <div className="animate-bounce">
             <ChevronUp size={16} />
           </div>
@@ -86,7 +86,7 @@ export function AdminStatsCard({
 
       {/* Split Data Overlay (slides up from bottom) */}
       {split && (
-        <div className="absolute bottom-0 left-0 w-full px-6 py-5 bg-bg-secondary/95 backdrop-blur-md border-t border-white/5 translate-y-full transition-transform duration-300 ease-out group-hover:translate-y-0">
+        <div className="absolute bottom-0 left-0 w-full px-6 py-5 bg-bg-secondary/95 backdrop-blur-md border-t border-text-secondary/10 translate-y-full transition-transform duration-300 ease-out group-hover:translate-y-0">
           {/* Visual Bar */}
           <div className="flex h-1.5 w-full rounded-full overflow-hidden mb-3 bg-bg shadow-inner">
             <div

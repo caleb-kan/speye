@@ -35,8 +35,8 @@ export function SessionItem({ session, index }: Props) {
   return (
     <div
       className={`
-        group flex flex-col sm:p-4 sm:rounded-2xl sm:hover:bg-white/5 transition-all duration-300 sm:border sm:border-transparent sm:hover:border-white/5 animate-in slide-in-from-bottom-4 fade-in fill-mode-backwards cursor-pointer
-        ${isExpanded ? 'sm:bg-white/5 sm:border-white/5 z-20 relative' : 'z-0'}
+        group flex flex-col sm:p-4 sm:rounded-2xl sm:hover:bg-text-secondary/10 transition-all duration-300 sm:border sm:border-transparent sm:hover:border-text-secondary/10 animate-in slide-in-from-bottom-4 fade-in fill-mode-backwards cursor-pointer
+        ${isExpanded ? 'sm:bg-text-secondary/10 sm:border-text-secondary/10 z-20 relative' : 'z-0'}
       `}
       style={{ animationDelay: `${index * 50}ms` }}
       onClick={() => {
@@ -51,7 +51,7 @@ export function SessionItem({ session, index }: Props) {
       {/* --- Top Header (Key Information) --- */}
       <div className="relative z-10 flex items-center gap-3 sm:gap-4 w-full">
         {!isMobile && (
-          <div className="flex flex-col items-center justify-center w-10 h-10 sm:w-14 sm:h-14 rounded-xl bg-bg-secondary border border-white/5 text-text-secondary shrink-0 transition-colors group-hover:bg-white/5">
+          <div className="flex flex-col items-center justify-center w-10 h-10 sm:w-14 sm:h-14 rounded-xl bg-bg-secondary border border-text-secondary/10 text-text-secondary shrink-0 transition-colors group-hover:bg-text-secondary/10">
             <span className="text-xs font-bold uppercase">
               {date.toLocaleString('default', { month: 'short' })}
             </span>
@@ -72,8 +72,8 @@ export function SessionItem({ session, index }: Props) {
                   <span
                     className={`shrink-0 text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wide font-bold ${
                       session.text!.fiction
-                        ? 'bg-purple-500/10 text-purple-400'
-                        : 'bg-blue-500/10 text-blue-400'
+                        ? 'bg-primary/10 text-primary'
+                        : 'bg-success/10 text-success'
                     }`}
                   >
                     {session.text!.fiction ? 'Fiction' : 'Non-Fic'}
@@ -107,7 +107,7 @@ export function SessionItem({ session, index }: Props) {
                   ${
                     isExpanded
                       ? 'bg-primary/20 text-primary ring-1 ring-primary/20'
-                      : 'bg-white/5 text-text-secondary/70 hover:text-text-secondary hover:bg-white/10'
+                      : 'bg-text-secondary/10 text-text-secondary/70 hover:text-text-secondary hover:bg-text-secondary/20'
                   }
                 `}
               >
@@ -159,7 +159,9 @@ export function SessionItem({ session, index }: Props) {
           className={`min-h-0 overflow-x-hidden ${overflowVisible ? 'overflow-y-visible' : 'overflow-y-hidden'}`}
         >
           <div
-            className={!isMobile ? 'pt-4 mt-4 border-t border-white/5' : 'mt-2'}
+            className={
+              !isMobile ? 'pt-4 mt-4 border-t border-text-secondary/10' : 'mt-2'
+            }
           >
             <TimelineGraph
               segments={session.segments}

@@ -24,7 +24,6 @@ export type LibraryPaginationProps = {
   onJumpInputChange: (value: string) => void
   onJumpInputFocus: () => void
   onJumpInputBlur: () => void
-  scrollContainerRef?: RefObject<HTMLElement | null>
 }
 
 export function LibraryPagination({
@@ -40,12 +39,11 @@ export function LibraryPagination({
   onJumpInputChange,
   onJumpInputFocus,
   onJumpInputBlur,
-  scrollContainerRef,
 }: LibraryPaginationProps) {
   const [isAtBottom, setIsAtBottom] = useState(false)
 
   useEffect(() => {
-    const container = scrollContainerRef?.current
+    const container = document.querySelector('main')
     if (!container) return
 
     const handleScroll = () => {
@@ -60,15 +58,12 @@ export function LibraryPagination({
     handleScroll()
 
     return () => container.removeEventListener('scroll', handleScroll)
-  }, [scrollContainerRef])
+  }, [])
 
   const navigateAndScroll = (navigate: () => void) => {
     navigate()
     requestAnimationFrame(() => {
-      scrollContainerRef?.current?.scrollTo({ top: 0, behavior: 'smooth' })
-      scrollContainerRef?.current
-        ?.closest('main')
-        ?.scrollTo({ top: 0, behavior: 'smooth' })
+      document.querySelector('main')?.scrollTo({ top: 0, behavior: 'smooth' })
     })
   }
 

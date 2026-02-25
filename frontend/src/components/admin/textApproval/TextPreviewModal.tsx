@@ -93,7 +93,7 @@ export function TextPreviewModal({
       aria-labelledby="text-preview-title"
     >
       <div className="bg-bg rounded-lg max-w-4xl w-full max-h-[80vh] overflow-auto">
-        <div className="sticky top-0 bg-bg border-b border-border p-4 flex items-center justify-between">
+        <div className="sticky top-0 bg-bg border-b border-text-secondary/20 p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <h2
               id="text-preview-title"
@@ -146,7 +146,7 @@ export function TextPreviewModal({
           </pre>
 
           {showRejectForm && (
-            <div className="mt-4 p-4 bg-bg-secondary rounded-lg border border-border">
+            <div className="mt-4 p-4 bg-bg-secondary rounded-lg border border-text-secondary/20">
               <label
                 htmlFor="rejection-notes"
                 className="block text-sm font-medium text-text mb-2"
@@ -157,7 +157,7 @@ export function TextPreviewModal({
                 id="rejection-notes"
                 value={rejectionNotes}
                 onChange={(e) => setRejectionNotes(e.target.value)}
-                className="w-full p-2 bg-bg border border-border rounded-lg text-text text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full p-2 bg-bg border border-text-secondary/20 rounded-lg text-text text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary"
                 rows={3}
                 placeholder="Provide a reason for rejection..."
               />
@@ -173,7 +173,7 @@ export function TextPreviewModal({
                   type="button"
                   onClick={handleRejectConfirm}
                   disabled={isProcessing}
-                  className="px-3 py-1.5 text-sm bg-error text-white rounded-lg hover:bg-error/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-3 py-1.5 text-sm bg-error text-bg rounded-lg hover:bg-error/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Confirm Rejection
                 </button>
@@ -198,7 +198,7 @@ export function TextPreviewModal({
                 type="button"
                 onClick={() => onRegenerate(text.id)}
                 disabled={isProcessing}
-                className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="px-4 py-2 bg-warning text-bg rounded-lg hover:bg-warning/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 <RefreshCw size={16} />
                 {reviewStatus.regenerateLabel}
@@ -210,7 +210,7 @@ export function TextPreviewModal({
                 type="button"
                 onClick={handleRejectClick}
                 disabled={isProcessing}
-                className="px-4 py-2 bg-error text-white rounded-lg hover:bg-error/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-error text-bg rounded-lg hover:bg-error/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Reject
               </button>
@@ -221,7 +221,7 @@ export function TextPreviewModal({
                 type="button"
                 onClick={() => onDelete(text.id)}
                 disabled={isProcessing}
-                className="px-4 py-2 bg-error text-white rounded-lg hover:bg-error/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="px-4 py-2 bg-error text-bg rounded-lg hover:bg-error/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 <Trash2 size={16} />
                 Delete
@@ -233,7 +233,7 @@ export function TextPreviewModal({
                 type="button"
                 onClick={() => onApprove(text.id)}
                 disabled={isProcessing}
-                className="px-4 py-2 bg-success text-white rounded-lg hover:bg-success/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-success text-bg rounded-lg hover:bg-success/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {reviewStatus.approveLabel}
               </button>

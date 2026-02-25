@@ -11,7 +11,7 @@ export function ActivityHeader() {
           Track your speed reading progress and comprehension.
         </p>
       </div>
-      <div className="hidden sm:flex items-center gap-2 text-sm text-text-secondary bg-white/5 px-3 py-1.5 rounded-full border border-white/5">
+      <div className="hidden sm:flex items-center gap-2 text-sm text-text-secondary bg-text-secondary/10 px-3 py-1.5 rounded-full border border-text-secondary/10">
         <Calendar className="w-4 h-4" />
         <span>All Time</span>
       </div>

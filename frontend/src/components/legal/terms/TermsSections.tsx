@@ -3,7 +3,7 @@ import { SectionShell } from '../SectionShell'
 
 export function TermsSections() {
   return (
-    <section className="bg-bg-secondary/70 border border-border rounded-2xl p-6 shadow-sm space-y-4">
+    <section className="bg-bg-secondary/70 border border-text-secondary/20 rounded-2xl p-6 shadow-sm space-y-4">
       <AgreementSection />
       <LimitationsSection />
       <PrivacySection />

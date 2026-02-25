@@ -54,7 +54,7 @@ export function UserSearchInput({
     <div className="relative group">
       <div
         className={`flex items-center bg-bg border rounded-lg px-3 py-2 transition-colors ${
-          isFocused ? 'border-purple-500/50' : 'border-white/10'
+          isFocused ? 'border-primary/50' : 'border-text-secondary/20'
         }`}
       >
         <Search size={14} className="text-text-secondary mr-2" />
@@ -120,7 +120,7 @@ export function UserSearchInput({
               setSearchQuery('')
               setSelectedUserId(null)
             }}
-            className="text-text-secondary hover:text-white"
+            className="text-text-secondary hover:text-text"
             aria-label="Clear selection"
           >
             <X size={12} />
@@ -130,7 +130,7 @@ export function UserSearchInput({
 
       {/* Dropdown Results */}
       {dropdownOpen && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-[#1a1b26] border border-white/10 rounded-lg shadow-2xl z-20 max-h-40 overflow-y-auto custom-scrollbar">
+        <div className="absolute top-full left-0 right-0 mt-1 bg-bg-secondary border border-text-secondary/20 rounded-lg shadow-2xl z-20 max-h-40 overflow-y-auto">
           {loadingUsers ? (
             <div className="p-3 text-xs text-text-secondary text-center animate-pulse">
               Searching directory...
@@ -149,10 +149,10 @@ export function UserSearchInput({
                     setIsFocused(false)
                     onSelect(user.id)
                   }}
-                  className={`w-full text-left px-3 py-2 text-xs text-text-secondary transition-colors border-b border-white/5 last:border-0 ${
+                  className={`w-full text-left px-3 py-2 text-xs text-text-secondary transition-colors border-b border-text-secondary/10 last:border-0 ${
                     isActive
-                      ? 'bg-purple-500/10 text-purple-300'
-                      : 'hover:bg-purple-500/10 hover:text-purple-300'
+                      ? 'bg-primary/10 text-primary'
+                      : 'hover:bg-primary/10 hover:text-primary'
                   }`}
                 >
                   {user.username || user.id}

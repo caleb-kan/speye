@@ -98,7 +98,7 @@ export function LibraryTextList({
                 {bestScores[text.id] !== undefined && (
                   <>
                     <span className="text-text-secondary/30 mx-1">•</span>
-                    <div className="flex items-center gap-1 text-xs font-medium text-emerald-400">
+                    <div className="flex items-center gap-1 text-xs font-medium text-success">
                       <Trophy className="w-3 h-3" />
                       <span>{bestScores[text.id]}%</span>
                     </div>

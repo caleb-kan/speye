@@ -134,7 +134,7 @@ export function ChangeUsernameSection({
           type="button"
           onClick={handleSaveUsername}
           disabled={!canSave}
-          className="flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-primary text-white hover:bg-primary/90 disabled:hover:bg-primary flex items-center justify-center gap-2"
+          className="flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-primary text-bg hover:bg-primary/90 disabled:hover:bg-primary flex items-center justify-center gap-2"
         >
           <Check size={14} aria-hidden="true" />
           {isLoading ? 'Loading...' : 'Save'}

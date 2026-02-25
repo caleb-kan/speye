@@ -20,7 +20,7 @@ export function StatWidget({
 }: Props) {
   return (
     <div
-      className="relative overflow-hidden p-5 rounded-3xl bg-white/5 border border-white/5 backdrop-blur-md shadow-xl animate-in fade-in zoom-in duration-500 fill-mode-backwards group"
+      className="relative overflow-hidden p-5 rounded-3xl bg-text-secondary/10 border border-text-secondary/10 backdrop-blur-md shadow-xl animate-in fade-in zoom-in duration-500 fill-mode-backwards group"
       style={{ animationDelay: `${delay}ms` }}
     >
       {/* Background Decorative Icon */}

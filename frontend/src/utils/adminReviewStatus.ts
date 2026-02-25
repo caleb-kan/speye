@@ -99,7 +99,7 @@ export function getReviewStatus(text: AdminReviewText): ReviewStatusInfo {
     return {
       status: 'processing_failed',
       label: 'Processing Failed',
-      badgeClass: ADMIN_BADGE_CLASSES.orange,
+      badgeClass: ADMIN_BADGE_CLASSES.warning,
       description:
         'Text processing failed before completion. You can reprocess the text or reject it.',
       isFailure: true,

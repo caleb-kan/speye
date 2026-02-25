@@ -38,7 +38,7 @@ export function RecipientSelect({
             }
           }}
           disabled={sending}
-          className="w-full appearance-none bg-bg border border-white/10 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-primary/50 transition-colors text-text"
+          className="w-full appearance-none bg-bg border border-text-secondary/20 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-primary/50 transition-colors text-text"
         >
           <option value="">Select User...</option>
           <option value={BROADCAST_VALUE} className="font-bold">
@@ -65,7 +65,7 @@ export function RecipientSelect({
         </div>
       </div>
       {isBroadcast && (
-        <p className="text-[10px] text-blue-400 flex items-center gap-1 animate-pulse">
+        <p className="text-[10px] text-primary flex items-center gap-1 animate-pulse">
           <Radio size={10} />
           Sending to {users.length} users
         </p>

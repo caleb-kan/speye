@@ -94,14 +94,14 @@ export const ReadingControls = memo(function ReadingControls({
           `}
         >
           {/* The Divider */}
-          <div className="w-px h-8 bg-white/10" />
+          <div className="w-px h-8 bg-text-secondary/20" />
 
           {/* Quiz Button */}
           <button
             onClick={onStartQuiz}
             className="
               h-10 w-10 flex items-center justify-center rounded-xl
-              text-primary hover:text-white hover:bg-primary/20 
+              text-primary hover:text-text hover:bg-primary/20
               transition-all duration-300
               animate-in fade-in zoom-in
             "

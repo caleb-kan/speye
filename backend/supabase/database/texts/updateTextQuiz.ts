@@ -1,7 +1,9 @@
 import { supabase } from '../../../../lib/supabase'
 import {
-  NUM_QUESTION_SETS,
-  NUM_QUESTIONS,
+  MIN_QUESTION_SETS,
+  MAX_QUESTION_SETS,
+  MIN_QUESTIONS,
+  MAX_QUESTIONS,
   NUM_OPTIONS_PER_QUESTION,
 } from '../../../../lib/quizConstants'
 import { logDbQuery } from '../logger'
@@ -17,15 +19,25 @@ export function assertValidQuiz(quiz: Quiz): void {
   if (!quiz?.questionSets || !Array.isArray(quiz.questionSets)) {
     throw new Error('Invalid quiz structure')
   }
-  if (quiz.questionSets.length !== NUM_QUESTION_SETS) {
-    throw new Error(`Quiz must have exactly ${NUM_QUESTION_SETS} question sets`)
+  if (
+    quiz.questionSets.length < MIN_QUESTION_SETS ||
+    quiz.questionSets.length > MAX_QUESTION_SETS
+  ) {
+    throw new Error(
+      `Quiz must have between ${MIN_QUESTION_SETS} and ${MAX_QUESTION_SETS} question sets`
+    )
   }
   for (const set of quiz.questionSets) {
     if (!Array.isArray(set?.questions)) {
       throw new Error('Invalid question set structure')
     }
-    if (set.questions.length !== NUM_QUESTIONS) {
-      throw new Error(`Each set must have exactly ${NUM_QUESTIONS} questions`)
+    if (
+      set.questions.length < MIN_QUESTIONS ||
+      set.questions.length > MAX_QUESTIONS
+    ) {
+      throw new Error(
+        `Each set must have between ${MIN_QUESTIONS} and ${MAX_QUESTIONS} questions`
+      )
     }
     for (const q of set.questions) {
       if (!q || typeof q.question !== 'string' || !q.question.trim()) {

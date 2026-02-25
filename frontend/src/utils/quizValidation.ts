@@ -1,7 +1,9 @@
 import type { Quiz } from '../types/database'
 import {
-  NUM_QUESTION_SETS,
-  NUM_QUESTIONS,
+  MIN_QUESTION_SETS,
+  MAX_QUESTION_SETS,
+  MIN_QUESTIONS,
+  MAX_QUESTIONS,
   NUM_OPTIONS_PER_QUESTION,
   OPTION_LABELS,
 } from '../constants/quiz'
@@ -17,8 +19,13 @@ export function validateQuiz(quiz: Quiz): string[] {
     return [MALFORMED_ERROR]
   }
 
-  if (quiz.questionSets.length !== NUM_QUESTION_SETS) {
-    errors.push(`Quiz must have exactly ${NUM_QUESTION_SETS} question sets`)
+  if (
+    quiz.questionSets.length < MIN_QUESTION_SETS ||
+    quiz.questionSets.length > MAX_QUESTION_SETS
+  ) {
+    errors.push(
+      `Quiz must have between ${MIN_QUESTION_SETS} and ${MAX_QUESTION_SETS} question sets`
+    )
     return errors
   }
 
@@ -30,8 +37,13 @@ export function validateQuiz(quiz: Quiz): string[] {
       continue
     }
 
-    if (set.questions.length !== NUM_QUESTIONS) {
-      errors.push(`Set ${s + 1}: must have exactly ${NUM_QUESTIONS} questions`)
+    if (
+      set.questions.length < MIN_QUESTIONS ||
+      set.questions.length > MAX_QUESTIONS
+    ) {
+      errors.push(
+        `Set ${s + 1}: must have between ${MIN_QUESTIONS} and ${MAX_QUESTIONS} questions`
+      )
       continue
     }
 

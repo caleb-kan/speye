@@ -1,6 +1,5 @@
 import { DefaultAvatar } from '../DefaultAvatar'
 import type { LeaderboardEntry } from '../../services/leaderboardService'
-import { MAX_QUIZ_SCORE, NUM_QUESTIONS } from '../../constants/quiz'
 
 type Props = {
   topEntries: LeaderboardEntry[]
@@ -19,8 +18,7 @@ function formatWpm(value: number) {
 
 function formatQuizScore(value: number) {
   if (!Number.isFinite(value)) return '-'
-  const correct = Math.round((value / MAX_QUIZ_SCORE) * NUM_QUESTIONS)
-  return `${correct}/${NUM_QUESTIONS}`
+  return `${Math.round(value)}%`
 }
 
 function formatOverallScore(value: number) {

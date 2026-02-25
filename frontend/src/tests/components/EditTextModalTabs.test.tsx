@@ -5,7 +5,7 @@ import { EditTextModal } from '../../components/EditTextModal'
 import { AuthContext } from '../../context/authContext'
 import type { Text, Quiz } from '../../types/database'
 import type { User, Session } from '@supabase/supabase-js'
-import { NUM_QUESTION_SETS, NUM_QUESTIONS } from '../../constants/quiz'
+import { MAX_QUESTION_SETS, MIN_QUESTIONS } from '../../constants/quiz'
 
 const mockUser = { id: 'user-123', email: 'test@example.com' } as User
 const mockSession = { user: mockUser } as Session
@@ -35,13 +35,13 @@ const makeQuestion = (text: string) => ({
 })
 
 const makeSet = (prefix: string) => ({
-  questions: Array.from({ length: NUM_QUESTIONS }, (_, i) =>
+  questions: Array.from({ length: MIN_QUESTIONS }, (_, i) =>
     makeQuestion(`${prefix} Q${i + 1}`)
   ),
 })
 
 const mockQuiz: Quiz = {
-  questionSets: Array.from({ length: NUM_QUESTION_SETS }, (_, i) =>
+  questionSets: Array.from({ length: MAX_QUESTION_SETS }, (_, i) =>
     makeSet(`Set${i + 1}`)
   ),
 }

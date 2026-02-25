@@ -183,8 +183,7 @@ export const pendingApprovals = [
 
 /**
  * Helper to generate a question set with 5 questions of 4 options each.
- * The quiz structure requires { questionSets: [5 sets] }, each set has
- * { questions: [5 questions] }, each question has { question, options[4], correctAnswer }.
+ * See lib/quizConstants.ts for valid quiz structure constraints.
  */
 function makeQuestionSet(prefix: string) {
   return {

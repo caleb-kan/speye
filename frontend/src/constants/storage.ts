@@ -4,4 +4,5 @@ export const STORAGE_KEYS = {
   ADAPTIVE_CALIBRATION: 'adaptive-calibration',
   WEBGAZER_REGRESSION_VERSION: 'webgazer-regression-version',
   READING_ACTIVITY_SESSION: 'reading-activity-session',
+  RSVP_OPTIONS_OPEN: 'rsvp-options-open',
 } as const

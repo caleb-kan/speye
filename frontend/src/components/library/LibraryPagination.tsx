@@ -1,5 +1,10 @@
-import type { KeyboardEvent, RefObject } from 'react'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { useEffect, useState, type KeyboardEvent, type RefObject } from 'react'
+import {
+  ChevronFirst,
+  ChevronLast,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react'
 
 export type JumpToPageState = {
   value: string
@@ -11,12 +16,15 @@ export type LibraryPaginationProps = {
   totalPages: number
   jumpToPage: JumpToPageState
   jumpToPageInputRef: RefObject<HTMLInputElement | null>
+  onFirstPage: () => void
   onPrevPage: () => void
   onNextPage: () => void
+  onLastPage: () => void
   onJumpInputKeyDown: (event: KeyboardEvent<HTMLInputElement>) => void
   onJumpInputChange: (value: string) => void
   onJumpInputFocus: () => void
   onJumpInputBlur: () => void
+  scrollContainerRef?: RefObject<HTMLElement | null>
 }
 
 export function LibraryPagination({
@@ -24,40 +32,81 @@ export function LibraryPagination({
   totalPages,
   jumpToPage,
   jumpToPageInputRef,
+  onFirstPage,
   onPrevPage,
   onNextPage,
+  onLastPage,
   onJumpInputKeyDown,
   onJumpInputChange,
   onJumpInputFocus,
   onJumpInputBlur,
+  scrollContainerRef,
 }: LibraryPaginationProps) {
+  const [isAtBottom, setIsAtBottom] = useState(false)
+
+  useEffect(() => {
+    const container = scrollContainerRef?.current
+    if (!container) return
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container
+      const isScrollable = scrollHeight > clientHeight + 1
+      setIsAtBottom(
+        isScrollable && scrollHeight - scrollTop - clientHeight < 20
+      )
+    }
+
+    container.addEventListener('scroll', handleScroll, { passive: true })
+    handleScroll()
+
+    return () => container.removeEventListener('scroll', handleScroll)
+  }, [scrollContainerRef])
+
+  const navigateAndScroll = (navigate: () => void) => {
+    navigate()
+    requestAnimationFrame(() => {
+      scrollContainerRef?.current?.scrollTo({ top: 0, behavior: 'smooth' })
+      scrollContainerRef?.current
+        ?.closest('main')
+        ?.scrollTo({ top: 0, behavior: 'smooth' })
+    })
+  }
+
   if (totalPages <= 1) return null
 
+  const buttonClass =
+    'p-1.5 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed'
+
   return (
-    <div className="mt-8 flex items-center justify-center gap-4">
+    <div
+      className={`fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center px-3 py-1.5 rounded-full whitespace-nowrap transition-all duration-500 ease-in-out ${
+        isAtBottom
+          ? 'bg-transparent shadow-none backdrop-blur-none gap-6'
+          : 'bg-bg backdrop-blur-md shadow-md gap-3'
+      }`}
+      aria-label="Pagination"
+    >
       <button
         type="button"
-        onClick={onPrevPage}
+        onClick={() => navigateAndScroll(onFirstPage)}
         disabled={currentPage === 1}
-        className="p-2 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
+        className={buttonClass}
+        aria-label="First page"
+      >
+        <ChevronFirst className="w-4 h-4" />
+      </button>
+      <button
+        type="button"
+        onClick={() => navigateAndScroll(onPrevPage)}
+        disabled={currentPage === 1}
+        className={buttonClass}
         aria-label="Previous page"
       >
-        <ChevronLeft className="w-5 h-5" />
+        <ChevronLeft className="w-4 h-4" />
       </button>
 
-      <div className="flex items-center gap-2">
-        <span className="text-sm text-text-secondary" aria-live="polite">
-          Page {currentPage} of {totalPages}
-        </span>
-        <span className="text-text-secondary/30">|</span>
-        <label
-          className={`flex items-center px-2 py-1 transition-colors cursor-pointer ${
-            jumpToPage.isFocused || jumpToPage.value
-              ? 'text-primary'
-              : 'text-text-secondary hover:text-text'
-          }`}
-        >
-          <span>custom:&nbsp;</span>
+      <span className="text-sm text-text-secondary px-2" aria-live="polite">
+        {jumpToPage.isFocused ? (
           <input
             ref={jumpToPageInputRef}
             type="text"
@@ -65,24 +114,44 @@ export function LibraryPagination({
             value={jumpToPage.value}
             onChange={(event) => onJumpInputChange(event.target.value)}
             onKeyDown={onJumpInputKeyDown}
-            onFocus={onJumpInputFocus}
             onBlur={onJumpInputBlur}
-            placeholder=""
+            autoFocus
             aria-label="Jump to page number"
-            className="bg-transparent border-b focus:outline-none text-center border-current"
-            style={{ width: `${Math.max(2, jumpToPage.value.length || 1)}ch` }}
+            className="bg-transparent border-b border-primary text-primary focus:outline-none text-center text-sm"
+            style={{
+              width: `${Math.max(String(currentPage).length, jumpToPage.value.length || 1)}ch`,
+            }}
           />
-        </label>
-      </div>
+        ) : (
+          <button
+            type="button"
+            onClick={onJumpInputFocus}
+            className="border-b border-current hover:text-primary hover:border-primary transition-colors cursor-text"
+          >
+            {currentPage}
+          </button>
+        )}
+        {' / '}
+        {totalPages}
+      </span>
 
       <button
         type="button"
-        onClick={onNextPage}
+        onClick={() => navigateAndScroll(onNextPage)}
         disabled={currentPage >= totalPages}
-        className="p-2 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
+        className={buttonClass}
         aria-label="Next page"
       >
-        <ChevronRight className="w-5 h-5" />
+        <ChevronRight className="w-4 h-4" />
+      </button>
+      <button
+        type="button"
+        onClick={() => navigateAndScroll(onLastPage)}
+        disabled={currentPage >= totalPages}
+        className={buttonClass}
+        aria-label="Last page"
+      >
+        <ChevronLast className="w-4 h-4" />
       </button>
     </div>
   )

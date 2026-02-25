@@ -9,7 +9,7 @@ export function NotificationsMailButton() {
     <Link
       to="/notifications"
       aria-label="Open notifications"
-      className="fixed top-4 right-4 z-50 flex h-11 w-11 items-center justify-center rounded-full bg-bg-secondary/80 text-text shadow-md backdrop-blur-md transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      className="fixed top-2 right-2 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-bg-secondary/80 text-text shadow-md backdrop-blur-md transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
     >
       <Mail size={20} />
       {unseenCount > 0 ? (

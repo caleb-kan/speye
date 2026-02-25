@@ -10,6 +10,12 @@ import {
 } from '../../constants/ui'
 import '@testing-library/jest-dom'
 
+// Mock useIsMobile to always return false (simulate desktop) so
+// WindowSizeWarningModal logic is exercised as before.
+vi.mock('../../hooks/useIsMobile', () => ({
+  useIsMobile: () => false,
+}))
+
 // Mock window.innerWidth and window.innerHeight
 const mockWindowSize = (width: number, height: number) => {
   Object.defineProperty(window, 'innerWidth', {

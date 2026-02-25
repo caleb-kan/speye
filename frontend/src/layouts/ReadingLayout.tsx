@@ -37,6 +37,7 @@ export function ReadingLayout() {
     setComplexityMax,
     setTextWidthPercent,
     setVisibleLines,
+    setPhraseSize,
   } = useReadingPreferences()
 
   const [inputBlocking, setInputBlocking] = useState(false)
@@ -111,6 +112,8 @@ export function ReadingLayout() {
         onComplexityMaxChange={setComplexityMax}
         visibleLines={preferences.visibleLines}
         onVisibleLinesChange={setVisibleLines}
+        phraseSize={preferences.phraseSize}
+        onPhraseSizeChange={setPhraseSize}
         onInputBlockingChange={setInputBlocking}
         fixedText={fixedText}
         currentTextComplexity={currentTextComplexity}
@@ -118,7 +121,7 @@ export function ReadingLayout() {
         readingPosition={readingPosition}
       />
 
-      <div className="flex-1 flex flex-col items-center px-8">
+      <div className="flex-1 flex flex-col items-center px-4 sm:px-8">
         {/* Nested page content */}
         <Outlet
           context={

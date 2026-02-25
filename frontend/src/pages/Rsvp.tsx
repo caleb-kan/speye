@@ -37,8 +37,15 @@ export function Rsvp() {
     setPhraseSize,
   } = useReadingPreferences()
 
-  const { wpm, fiction, complexityMin, complexityMax, visibleLines } =
-    preferences
+  const {
+    wpm,
+    mode,
+    fiction,
+    complexityMin,
+    complexityMax,
+    visibleLines,
+    phraseSize,
+  } = preferences
 
   const clearLibraryText = useClearLocationState('/rsvp')
 
@@ -85,7 +92,7 @@ export function Rsvp() {
   const optionsBarProps = {
     wpm,
     onWpmChange: setWpm,
-    mode: preferences.mode,
+    mode: mode,
     onModeChange: setMode,
     onModeNavigate: handleModeNavigate,
     fiction,
@@ -96,7 +103,7 @@ export function Rsvp() {
     onComplexityMaxChange: setComplexityMax,
     visibleLines,
     onVisibleLinesChange: setVisibleLines,
-    phraseSize: preferences.phraseSize,
+    phraseSize,
     onPhraseSizeChange: setPhraseSize,
     onInputBlockingChange: setInputBlocking,
     currentTextComplexity: currentText?.complexity ?? null,
@@ -126,7 +133,7 @@ export function Rsvp() {
         currentText={currentText}
         modeTimestamp={modeTimestamp}
         wpm={wpm}
-        phraseSize={preferences.phraseSize}
+        phraseSize={phraseSize}
         visibleLines={visibleLines}
         readingPosition={readingPosition}
         onPositionChange={setReadingPosition}

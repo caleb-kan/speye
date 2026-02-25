@@ -114,7 +114,7 @@ export function QuizModal({
         </div>
       ) : (
         <>
-          <div className="mb-8">
+          <div className="mb-4 sm-mb-8">
             <QuizHeader current={currentIndex} total={questions.length} />
           </div>
 
@@ -122,7 +122,7 @@ export function QuizModal({
           <div key={currentIndex} className="flex flex-col">
             {/* Question Text */}
             <div className="mb-10 animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out">
-              <h3 className="text-3xl font-medium leading-tight text-text tracking-tight">
+              <h3 className="text-xl sm-text-3xl font-medium leading-tight text-text tracking-tight">
                 {currentQuestion.question}
               </h3>
             </div>

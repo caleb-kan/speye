@@ -1,5 +1,3 @@
-import { Link } from 'react-router-dom'
-
 export function AboutSection() {
   return (
     <section className="mb-5">
@@ -30,11 +28,6 @@ export function AboutSection() {
               Rapid Serial Visual Presentation — displays a few words at a time
             </span>
           </div>
-        </div>
-        <div className="text-xs text-text-secondary mt-3 pt-3 border-t border-bg-tertiary">
-          <Link to="/license" className="text-primary hover:underline">
-            License
-          </Link>
         </div>
       </div>
     </section>

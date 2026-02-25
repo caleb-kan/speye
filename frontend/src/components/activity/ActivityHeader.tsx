@@ -2,9 +2,9 @@ import { Calendar } from 'lucide-react'
 
 export function ActivityHeader() {
   return (
-    <div className="flex items-end justify-between">
+    <div className="flex items-end justify-between mb-4">
       <div>
-        <h1 className="text-3xl font-semibold tracking-tight text-text">
+        <h1 className="text-2xl font-semibold tracking-tight text-text">
           Activity
         </h1>
         <p className="text-text-secondary mt-1">

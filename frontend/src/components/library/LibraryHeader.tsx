@@ -1,5 +1,6 @@
 import { Plus } from 'lucide-react'
 import type { LibraryTab } from './LibraryTabs'
+import { useIsMobile } from '../../hooks/useIsMobile'
 
 export type LibraryHeaderProps = {
   activeTab: LibraryTab
@@ -12,8 +13,10 @@ export function LibraryHeader({
   showUpload,
   onUpload,
 }: LibraryHeaderProps) {
+  const isMobile = useIsMobile()
+
   return (
-    <div className="flex items-center justify-between mb-6">
+    <div className="flex items-center justify-between mb-2">
       <div>
         <h1 className="text-2xl font-semibold text-text">Library</h1>
         <p className="text-text-secondary mt-1">
@@ -29,7 +32,7 @@ export function LibraryHeader({
           className="flex items-center gap-2 px-4 py-2 bg-primary text-bg rounded-lg hover:opacity-90 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-bg"
         >
           <Plus className="w-5 h-5" />
-          Upload Text
+          {!isMobile && <span>Upload Text</span>}
         </button>
       )}
     </div>

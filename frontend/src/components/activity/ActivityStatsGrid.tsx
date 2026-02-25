@@ -8,7 +8,7 @@ export type ActivityStatsGridProps = {
 
 export function ActivityStatsGrid({ stats }: ActivityStatsGridProps) {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
       <StatWidget
         label="Avg Speed"
         value={stats.avgWpm}

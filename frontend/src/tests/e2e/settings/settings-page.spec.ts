@@ -2,12 +2,13 @@ import { test, expect } from '@playwright/test'
 import { mockAuthSession } from '../utils/utils'
 
 test.describe('Settings Page', () => {
-  test('displays settings heading', async ({ page }) => {
-    await mockAuthSession(page)
-    await page.goto('/settings')
+  // settings <h1> is removed so it is not visible
+  // test('displays settings heading', async ({ page }) => {
+  //   await mockAuthSession(page)
+  //   await page.goto('/settings')
 
-    await expect(page.getByText(/settings/i).first()).toBeVisible()
-  })
+  //   await expect(page.getByText(/settings/i).first()).toBeVisible()
+  // })
 
   test('shows profile section with username when authenticated', async ({
     page,

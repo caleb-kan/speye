@@ -26,6 +26,8 @@ type UseRsvpReaderReturn = {
   progress: number
   togglePlayPause: () => void
   restart: () => void
+  jumpBack: () => void
+  jumpForward: () => void
   hasText: boolean
   phrases: string[]
 }
@@ -58,30 +60,28 @@ export function useRsvpReader({
     [phraseWordCounts]
   )
 
-  const initialPhraseIndex = useMemo(
+  const [currentWordIndex, setCurrentWordIndex] = useState(
+    totalWords > 0 ? Math.min(initialWordIndex, totalWords - 1) : 0
+  )
+  const [isPlaying, setIsPlaying] = useState(false)
+  const intervalRef = useRef<number | null>(null)
+
+  // Derive phrase index from word index — automatically correct when
+  // phraseSize changes because cumulativeWordCounts recalculates while
+  // currentWordIndex (the true reading position) stays the same.
+  const currentPhraseIndex = useMemo(
     () =>
       hasText
         ? findPhraseIndexForWord(
             cumulativeWordCounts,
-            initialWordIndex,
+            currentWordIndex,
             totalPhrases
           )
         : 0,
-    [hasText, cumulativeWordCounts, initialWordIndex, totalPhrases]
+    [hasText, cumulativeWordCounts, currentWordIndex, totalPhrases]
   )
 
-  const [currentPhraseIndex, setCurrentPhraseIndex] =
-    useState(initialPhraseIndex)
-  const [isPlaying, setIsPlaying] = useState(false)
-  const [isComplete, setIsComplete] = useState(
-    hasText && initialPhraseIndex >= totalPhrases - 1
-  )
-  const intervalRef = useRef<number | null>(null)
-
-  const currentWordIndex = Math.min(
-    cumulativeWordCounts[currentPhraseIndex] ?? 0,
-    totalWords - 1
-  )
+  const isComplete = hasText && currentPhraseIndex >= totalPhrases - 1
   const progress = calculateProgressPercentage(currentWordIndex, totalWords)
 
   const currentPhraseWordCount = phraseWordCounts[currentPhraseIndex] ?? 1
@@ -96,8 +96,7 @@ export function useRsvpReader({
 
   const play = useCallback(() => {
     if (currentPhraseIndex >= totalPhrases - 1) {
-      setCurrentPhraseIndex(0)
-      setIsComplete(false)
+      setCurrentWordIndex(0)
     }
     setIsPlaying(true)
   }, [currentPhraseIndex, totalPhrases])
@@ -116,27 +115,60 @@ export function useRsvpReader({
 
   const restart = useCallback(() => {
     clearTimer()
-    setCurrentPhraseIndex(0)
+    setCurrentWordIndex(0)
     setIsPlaying(false)
-    setIsComplete(false)
   }, [clearTimer])
+
+  const jumpBack = useCallback(() => {
+    setIsPlaying(false)
+    setCurrentWordIndex((prev) => {
+      const phraseIdx = findPhraseIndexForWord(
+        cumulativeWordCounts,
+        prev,
+        totalPhrases
+      )
+      if (phraseIdx <= 0) return 0
+      return cumulativeWordCounts[phraseIdx - 1]
+    })
+  }, [cumulativeWordCounts, totalPhrases])
+
+  const jumpForward = useCallback(() => {
+    setIsPlaying(false)
+    setCurrentWordIndex((prev) => {
+      const phraseIdx = findPhraseIndexForWord(
+        cumulativeWordCounts,
+        prev,
+        totalPhrases
+      )
+      if (phraseIdx >= totalPhrases - 1) return prev
+      return cumulativeWordCounts[phraseIdx + 1]
+    })
+  }, [cumulativeWordCounts, totalPhrases])
 
   useEffect(() => {
     if (isPlaying && currentPhraseIndex < totalPhrases) {
       intervalRef.current = window.setTimeout(() => {
-        setCurrentPhraseIndex((prev) => {
-          if (prev >= totalPhrases - 1) {
-            setIsPlaying(false)
-            setIsComplete(true)
-            return prev
-          }
-          return prev + 1
-        })
+        if (currentPhraseIndex >= totalPhrases - 1) {
+          setIsPlaying(false)
+          return
+        }
+        // Advance to the start of the next phrase
+        const nextWordIndex = cumulativeWordCounts[currentPhraseIndex + 1]
+        if (nextWordIndex !== undefined) {
+          setCurrentWordIndex(nextWordIndex)
+        }
       }, msPerPhrase)
     }
 
     return clearTimer
-  }, [isPlaying, msPerPhrase, totalPhrases, clearTimer, currentPhraseIndex])
+  }, [
+    isPlaying,
+    msPerPhrase,
+    totalPhrases,
+    clearTimer,
+    currentPhraseIndex,
+    cumulativeWordCounts,
+  ])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -162,6 +194,8 @@ export function useRsvpReader({
     progress,
     togglePlayPause,
     restart,
+    jumpBack,
+    jumpForward,
     hasText,
     phrases,
   }

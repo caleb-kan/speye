@@ -6,6 +6,7 @@ import { useEscapeKey } from './useEscapeKey'
 export type UseCustomWpmParams = {
   wpm: number
   onWpmChange: (wpm: number) => void
+  presets?: number[]
 }
 
 export type UseCustomWpmResult = {
@@ -29,14 +30,14 @@ const isValueInvalid = (value: string): boolean => {
 export const useCustomWpm = (
   params: UseCustomWpmParams
 ): UseCustomWpmResult => {
-  const { wpm, onWpmChange } = params
+  const { wpm, onWpmChange, presets = WPM_PRESETS } = params
   const [customWpm, setCustomWpm] = useState('')
   const [showCustomInput, setShowCustomInput] = useState(false)
   const [isWpmInvalid, setIsWpmInvalid] = useState(false)
 
   const isCustomActive = useMemo(() => {
-    return showCustomInput || !WPM_PRESETS.includes(wpm)
-  }, [showCustomInput, wpm])
+    return showCustomInput || !presets.includes(wpm)
+  }, [showCustomInput, wpm, presets])
 
   const resetCustomInput = useCallback((): void => {
     setShowCustomInput(false)

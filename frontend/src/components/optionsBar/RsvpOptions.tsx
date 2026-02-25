@@ -1,5 +1,5 @@
 import type { ChangeEvent, KeyboardEvent, RefObject } from 'react'
-import { WPM_PRESETS, MIN_WPM, MAX_WPM } from '../../constants/wpm'
+import { RSVP_WPM_PRESETS, MIN_WPM, MAX_WPM } from '../../constants/wpm'
 import type { SliderElement } from '../../hooks/useOptionsBarSliders'
 
 export type RsvpOptionsProps = {
@@ -44,7 +44,7 @@ export function RsvpOptions({
       <div className="w-px h-6 bg-text-secondary opacity-30" />
       <div className="flex items-center gap-2">
         <span className="text-text-secondary mr-1">wpm:</span>
-        {WPM_PRESETS.map((preset) => (
+        {RSVP_WPM_PRESETS.map((preset) => (
           <button
             key={preset}
             onClick={() => {
@@ -77,7 +77,7 @@ export function RsvpOptions({
               ? isWpmInvalid
                 ? `Value must be between ${MIN_WPM} and ${MAX_WPM}`
                 : undefined
-              : !WPM_PRESETS.includes(wpm)
+              : !RSVP_WPM_PRESETS.includes(wpm)
                 ? `Click to change custom WPM (currently ${wpm})`
                 : 'Click to set a custom WPM'
           }
@@ -102,7 +102,7 @@ export function RsvpOptions({
             />
           ) : (
             <span className="border-b border-current inline-block min-w-[2ch]">
-              {!WPM_PRESETS.includes(wpm) ? wpm : '\u00A0'}
+              {!RSVP_WPM_PRESETS.includes(wpm) ? wpm : '\u00A0'}
             </span>
           )}
         </button>

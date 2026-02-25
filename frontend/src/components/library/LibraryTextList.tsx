@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import type { TextPreview } from '../../types/database'
 import { UNTITLED_TEXT_FALLBACK } from '../../constants/admin'
+import { useIsMobile } from '../../hooks/useIsMobile'
 import { TEXT_PREVIEW_LENGTH } from '../../constants/library'
 
 export type LibraryTextListProps = {
@@ -38,6 +39,7 @@ export function LibraryTextList({
   onDeleteText,
   isAdmin = false,
 }: LibraryTextListProps) {
+  const isMobile = useIsMobile()
   return (
     <div className="space-y-4">
       {texts.map((text) => (
@@ -45,9 +47,9 @@ export function LibraryTextList({
           key={text.id}
           className="p-4 bg-bg-secondary rounded-lg border border-text-secondary/20"
         >
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
                 <BookOpen className="w-4 h-4 text-primary" />
                 <h3 className="font-medium text-text truncate">
                   {text.title || UNTITLED_TEXT_FALLBACK}
@@ -65,7 +67,7 @@ export function LibraryTextList({
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
                 {text.fiction !== null && (
                   <span className="text-xs px-2 py-0.5 bg-primary/10 text-primary rounded">
                     {text.fiction ? 'Fiction' : 'Non-Fiction'}
@@ -112,7 +114,7 @@ export function LibraryTextList({
                 Uploaded {new Date(text.uploaded_at).toLocaleDateString()}
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               {text.processing_status === 'completed' && (
                 <>
                   <button
@@ -124,7 +126,7 @@ export function LibraryTextList({
                   >
                     <Play className="w-4 h-4" />
                   </button>
-                  {text.has_summary && (
+                  {!isMobile && text.has_summary && (
                     <button
                       type="button"
                       onClick={() => onReadSummary(text)}

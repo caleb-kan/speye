@@ -2,6 +2,7 @@ import type { ChangeEvent, FormEvent } from 'react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from './useAuth'
+import { getDefaultReadingRoute } from '../utils/routes'
 import { REDIRECT_DELAY_LOGIN, REDIRECT_DELAY_SIGNUP } from '../constants/auth'
 import { buildRedirectUrl } from '../utils/authRedirect'
 import {
@@ -49,7 +50,7 @@ export const useLoginForm = (): UseLoginFormResult => {
 
   useEffect(() => {
     if (user) {
-      navigate('/home', { replace: true })
+      navigate(getDefaultReadingRoute(), { replace: true })
     }
   }, [user, navigate])
 
@@ -149,7 +150,7 @@ export const useLoginForm = (): UseLoginFormResult => {
             if (data.session) {
               clearTimeoutRef()
               timeoutRef.current = setTimeout(
-                () => navigate('/home', { replace: true }),
+                () => navigate(getDefaultReadingRoute(), { replace: true }),
                 REDIRECT_DELAY_SIGNUP
               )
             }
@@ -163,7 +164,7 @@ export const useLoginForm = (): UseLoginFormResult => {
             setMessage('Login successful!')
             clearTimeoutRef()
             timeoutRef.current = setTimeout(
-              () => navigate('/home', { replace: true }),
+              () => navigate(getDefaultReadingRoute(), { replace: true }),
               REDIRECT_DELAY_LOGIN
             )
           }

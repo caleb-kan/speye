@@ -22,6 +22,11 @@ export function NavItem({
   const isInAdaptiveMode = location.pathname === '/adaptive'
 
   const handleClick = (e: React.MouseEvent) => {
+    if (isActive) {
+      e.preventDefault()
+      return
+    }
+
     // Log activity before navigating
     onBeforeNavigate?.(to)
 

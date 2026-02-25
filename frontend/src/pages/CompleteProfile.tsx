@@ -2,6 +2,7 @@ import type { FormEvent } from 'react'
 import { useCallback, useEffect, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { getDefaultReadingRoute } from '../utils/routes'
 import { getErrorMessage } from '../utils/getErrorMessage'
 import { getUsername } from '../utils/getUsername'
 import {
@@ -24,7 +25,7 @@ export function CompleteProfile() {
 
   useEffect(() => {
     if (existingUsername) {
-      navigate('/home', { replace: true })
+      navigate(getDefaultReadingRoute(), { replace: true })
     }
   }, [existingUsername, navigate])
 
@@ -52,7 +53,7 @@ export function CompleteProfile() {
         }
 
         await updateUsername(normalized)
-        navigate('/home', { replace: true })
+        navigate(getDefaultReadingRoute(), { replace: true })
       } catch (err) {
         setError(getErrorMessage(err))
       } finally {
@@ -66,7 +67,7 @@ export function CompleteProfile() {
   if (!user) return <Navigate to="/login" replace />
 
   return (
-    <div className="flex-1 flex items-center justify-center px-8">
+    <div className="flex-1 flex items-center justify-center px-4 sm:px-8">
       <div className="w-full max-w-sm bg-bg-secondary rounded-xl shadow-lg px-6 py-6">
         <h1 className="text-xl font-bold text-text text-center">
           Complete your profile

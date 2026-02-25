@@ -2,6 +2,8 @@ import { useEffect, useRef } from 'react'
 import { RsvpDisplay } from './RsvpDisplay'
 import { ReadingControls } from '../ReadingControls'
 import { useRsvpReader } from '../../hooks/useRsvpReader'
+import { useIsMobile } from '../../hooks/useIsMobile'
+import { useArrowNavigation } from '../../hooks/useArrowNavigation'
 
 type RsvpReaderProps = {
   title: string | null
@@ -36,6 +38,7 @@ export function RsvpReader({
   onStartQuiz,
   isSummary,
 }: RsvpReaderProps) {
+  const isMobile = useIsMobile()
   const {
     currentWordIndex,
     isPlaying,
@@ -47,7 +50,15 @@ export function RsvpReader({
     hasText,
     phrases,
     currentPhraseIndex,
+    jumpBack,
+    jumpForward,
   } = useRsvpReader({ text, wpm, phraseSize, disabled, initialWordIndex })
+
+  useArrowNavigation({
+    enabled: hasText && !disabled,
+    onBack: jumpBack,
+    onForward: jumpForward,
+  })
 
   const onPositionChangeRef = useRef(onPositionChange)
   useEffect(() => {
@@ -79,7 +90,9 @@ export function RsvpReader({
   }
 
   return (
-    <div className="flex-1 flex items-center justify-center min-h-0 my-4">
+    <div
+      className={`flex-1 min-h-0 ${isMobile ? 'flex flex-col my-1' : 'flex items-center justify-center my-4'}`}
+    >
       <RsvpDisplay
         title={title}
         source={source}

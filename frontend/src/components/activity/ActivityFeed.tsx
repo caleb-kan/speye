@@ -10,11 +10,7 @@ export type ActivityFeedProps = {
 
 export function ActivityFeed({ sessions, groupedSessions }: ActivityFeedProps) {
   return (
-    <div className="space-y-12 relative pb-10">
-      {sessions && sessions.length > 0 && (
-        <div className="absolute left-[88px] top-4 bottom-0 w-px bg-gradient-to-b from-white/10 via-white/5 to-transparent hidden md:block" />
-      )}
-
+    <div className="space-y-12 pb-10">
       {!sessions || sessions.length === 0 ? (
         <div className="text-center py-20 bg-white/5 rounded-3xl border border-white/5 border-dashed">
           <ActivityIcon className="w-12 h-12 text-text-secondary mx-auto mb-4 opacity-50" />
@@ -29,28 +25,29 @@ export function ActivityFeed({ sessions, groupedSessions }: ActivityFeedProps) {
             return (
               <div
                 key={dateLabel}
-                className="group/timeline relative flex flex-col md:flex-row gap-6 md:gap-10 animate-in fade-in slide-in-from-bottom-8 fill-mode-backwards"
+                className="group/timeline relative flex flex-col md:flex-row gap-2 md:gap-0 animate-in fade-in slide-in-from-bottom-8 fill-mode-backwards"
                 style={{ animationDelay: `${400 + groupIndex * 100}ms` }}
               >
                 {/* Sticky Date Marker (Left Column) */}
-                <div className="md:w-24 shrink-0 flex flex-col md:items-end">
+                <div className="md:w-24 md:mr-4 shrink-0 flex flex-col md:items-end">
                   <div className="sticky top-8 flex flex-col md:items-end">
                     <div
                       className="
-                      px-3 py-1.5 rounded-lg 
-                      bg-bg-secondary/50 backdrop-blur-md border border-white/5 
+                      px-3 py-1.5 rounded-lg
+                      bg-bg-secondary/50 backdrop-blur-md border border-white/5
                       text-sm font-bold text-text-secondary uppercase tracking-wider
                       shadow-sm mb-1
                     "
                     >
                       {dateLabel}
                     </div>
-
-                    {/* Connector dot */}
-                    <div className="hidden md:flex items-center justify-center absolute -right-[25px] top-3">
-                      <div className="w-3 h-3 rounded-full bg-bg border-2 border-white/10 group-hover/timeline:border-primary/50 group-hover/timeline:bg-primary/20 transition-colors duration-300"></div>
-                    </div>
                   </div>
+                </div>
+
+                {/* Timeline Spine (Middle Column) */}
+                <div className="hidden md:flex flex-col items-center w-3 mr-6">
+                  <div className="w-3 h-3 rounded-full bg-bg border-2 border-white/10 group-hover/timeline:border-primary/50 group-hover/timeline:bg-primary/20 transition-colors duration-300 shrink-0 mt-2" />
+                  <div className="flex-1 w-px bg-gradient-to-b from-white/10 via-white/5 to-transparent" />
                 </div>
 
                 {/* Sessions List (Right Column) */}

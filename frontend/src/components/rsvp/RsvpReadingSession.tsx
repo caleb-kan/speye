@@ -51,7 +51,7 @@ export function RsvpReadingSession({
   })
 
   return (
-    <div className="relative flex-1 flex flex-col w-full h-full overflow-hidden">
+    <div className="relative flex-1 flex flex-col w-full min-h-0 overflow-hidden">
       <RsvpReader
         key={`${currentText.id}-${modeTimestamp ?? ''}`}
         title={currentText.title}

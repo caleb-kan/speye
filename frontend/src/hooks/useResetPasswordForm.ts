@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { updatePassword } from '../services/authService'
 import { getErrorMessage } from '../utils/getErrorMessage'
+import { getDefaultReadingRoute } from '../utils/routes'
 import { REDIRECT_DELAY_LOGIN } from '../constants/auth'
 
 export type UseResetPasswordFormResult = {
@@ -92,7 +93,7 @@ export const useResetPasswordForm = (): UseResetPasswordFormResult => {
         setMessage('Password updated successfully! Redirecting to home...')
         clearTimeoutRef()
         timeoutRef.current = setTimeout(
-          () => navigate('/home', { replace: true }),
+          () => navigate(getDefaultReadingRoute(), { replace: true }),
           REDIRECT_DELAY_LOGIN
         )
       } catch (err: unknown) {

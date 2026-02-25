@@ -12,8 +12,10 @@ export type UseLibraryPaginationResult<T> = {
   paginatedItems: T[]
   jumpToPage: JumpToPageState
   jumpToPageInputRef: RefObject<HTMLInputElement | null>
+  handleFirstPage: () => void
   handlePreviousPage: () => void
   handleNextPage: () => void
+  handleLastPage: () => void
   handleJumpInputKeyDown: (event: KeyboardEvent<HTMLInputElement>) => void
   handleJumpInputChange: (value: string) => void
   handleJumpInputFocus: () => void
@@ -44,12 +46,20 @@ export const useLibraryPagination = <T>(
     setCurrentPage(1)
   }, [])
 
+  const handleFirstPage = useCallback(() => {
+    setCurrentPage(1)
+  }, [])
+
   const handlePreviousPage = useCallback(() => {
     setCurrentPage((prev) => Math.max(1, prev - 1))
   }, [])
 
   const handleNextPage = useCallback(() => {
     setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+  }, [totalPages])
+
+  const handleLastPage = useCallback(() => {
+    setCurrentPage(totalPages)
   }, [totalPages])
 
   const handleJumpToPage = useCallback(() => {
@@ -104,8 +114,10 @@ export const useLibraryPagination = <T>(
     paginatedItems,
     jumpToPage,
     jumpToPageInputRef,
+    handleFirstPage,
     handlePreviousPage,
     handleNextPage,
+    handleLastPage,
     handleJumpInputKeyDown,
     handleJumpInputChange,
     handleJumpInputFocus,

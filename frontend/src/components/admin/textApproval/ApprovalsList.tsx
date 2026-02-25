@@ -38,7 +38,7 @@ const FILTER_TABS: FilterTabConfig[] = [
     activeClass: 'bg-error/20 text-error border border-error/20 shadow-sm',
     badgeActiveClass: 'bg-error/20 text-error',
     emptyIcon: CheckCircle2,
-    emptyIconClass: 'text-green-400/60',
+    emptyIconClass: 'text-success/60',
     emptyTitle: 'No flagged texts',
     emptyDescription: 'All pending texts passed automated checks.',
   },
@@ -57,8 +57,8 @@ const FILTER_TABS: FilterTabConfig[] = [
 ]
 
 const INACTIVE_TAB_CLASS =
-  'text-text-secondary hover:text-text hover:bg-white/5 border border-transparent'
-const INACTIVE_BADGE_CLASS = 'bg-white/5 text-text-secondary'
+  'text-text-secondary hover:text-text hover:bg-text-secondary/10 border border-transparent'
+const INACTIVE_BADGE_CLASS = 'bg-text-secondary/10 text-text-secondary'
 
 export function ApprovalsList(props: ApprovalsListProps) {
   const { approvals, ...itemProps } = props
@@ -83,23 +83,23 @@ export function ApprovalsList(props: ApprovalsListProps) {
   const activeConfig = FILTER_TABS.find((t) => t.key === activeTab)!
 
   return (
-    <div className="bg-bg-secondary/30 border border-white/5 rounded-2xl overflow-hidden flex flex-col h-full">
+    <div className="bg-bg-secondary/30 border border-text-secondary/10 rounded-2xl overflow-hidden flex flex-col h-full">
       {/* Widget Header */}
-      <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
+      <div className="px-6 py-4 border-b border-text-secondary/10 flex items-center justify-between bg-text/[0.02]">
         <div className="flex items-center gap-3">
-          <div className="p-1.5 bg-blue-500/10 rounded text-blue-400">
+          <div className="p-1.5 bg-primary/10 rounded text-primary">
             <Layers size={16} />
           </div>
           <h2 className="font-semibold text-text">Pending Reviews</h2>
         </div>
-        <span className="text-xs font-mono text-text-secondary bg-white/5 px-2 py-1 rounded-full">
+        <span className="text-xs font-mono text-text-secondary bg-text-secondary/10 px-2 py-1 rounded-full">
           {approvals.length} Pending
         </span>
       </div>
 
       {/* Filter Tabs */}
       <div className="px-4 pt-3 pb-1 shrink-0">
-        <div className="flex gap-1.5 p-1 bg-black/20 rounded-xl border border-white/5">
+        <div className="flex gap-1.5 p-1 bg-bg/30 rounded-xl border border-text-secondary/10">
           {FILTER_TABS.map((tab) => {
             const isActive = activeTab === tab.key
             return (
@@ -126,7 +126,7 @@ export function ApprovalsList(props: ApprovalsListProps) {
       </div>
 
       {/* Scrollable List Area */}
-      <div className="flex-1 overflow-y-auto p-4 pb-10 space-y-3 custom-scrollbar">
+      <div className="flex-1 overflow-y-auto p-4 pb-10 space-y-3">
         {displayedApprovals.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-text-secondary">
             <activeConfig.emptyIcon

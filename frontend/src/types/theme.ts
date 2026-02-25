@@ -5,6 +5,7 @@ export type ThemeColors = {
   textSecondary: string
   primary: string
   error: string
+  warning: string
   success: string
 }
 

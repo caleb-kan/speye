@@ -2,6 +2,12 @@ import type { Mode } from '../types/reading'
 
 export const DEFAULT_MODE: Mode = 'standard'
 
+export const MODES = Object.keys({
+  standard: true,
+  adaptive: true,
+  rsvp: true,
+} satisfies Record<Mode, true>) as Mode[]
+
 export const MODE_COLORS: Record<
   Mode,
   { base: string; shadow: string; text: string }

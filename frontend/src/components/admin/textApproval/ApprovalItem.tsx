@@ -50,7 +50,7 @@ export function ApprovalItem({
   )
 
   return (
-    <div className="group flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border border-transparent hover:bg-white/5 transition-all gap-4">
+    <div className="group flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border border-transparent hover:bg-text-secondary/10 transition-all gap-4">
       {/* Left: Info */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-3 mb-1">
@@ -62,11 +62,11 @@ export function ApprovalItem({
 
         <div className="text-xs text-text-secondary mb-1.5 flex items-center gap-2">
           <span>{formatDate(text.uploaded_at)}</span>
-          <span className="w-1 h-1 rounded-full bg-white/20"></span>
+          <span className="w-1 h-1 rounded-full bg-text-secondary/20"></span>
           {text.owner_username && (
             <>
               <span>{text.owner_username}</span>
-              <span className="w-1 h-1 rounded-full bg-white/20"></span>
+              <span className="w-1 h-1 rounded-full bg-text-secondary/20"></span>
             </>
           )}
           <span className="uppercase tracking-wide text-[10px]">
@@ -101,7 +101,7 @@ export function ApprovalItem({
         {text.quiz && (
           <button
             onClick={() => onViewQuiz(text)}
-            className="p-2 text-text-secondary hover:text-purple-400 hover:bg-purple-500/10 rounded-lg transition-colors"
+            className="p-2 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
             title="View quiz"
           >
             <FileQuestion size={16} />
@@ -112,7 +112,7 @@ export function ApprovalItem({
           reviewStatus.canReject ||
           reviewStatus.canDelete ||
           reviewStatus.canRegenerate) && (
-          <div className="w-px h-4 bg-white/10 mx-1"></div>
+          <div className="w-px h-4 bg-text-secondary/20 mx-1"></div>
         )}
 
         {reviewStatus.canApprove && (
@@ -152,7 +152,7 @@ export function ApprovalItem({
           <button
             onClick={() => onRegenerate(text.id)}
             disabled={isProcessing}
-            className="p-2 text-text-secondary hover:text-yellow-400 hover:bg-yellow-500/10 rounded-lg transition-colors"
+            className="p-2 text-text-secondary hover:text-warning hover:bg-warning/10 rounded-lg transition-colors"
             title="Regenerate"
           >
             <RefreshCw size={16} />

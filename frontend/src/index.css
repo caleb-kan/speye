@@ -8,6 +8,7 @@
   --color-text-secondary: #8d99ae;
   --color-primary: #e94560;
   --color-error: #ff6b6b;
+  --color-warning: #eab308;
   --color-success: #4ecdc4;
 
   /* Adaptive mode timing - single source of truth for JS and CSS */
@@ -21,6 +22,7 @@
   --color-text-secondary: var(--color-text-secondary);
   --color-primary: var(--color-primary);
   --color-error: var(--color-error);
+  --color-warning: var(--color-warning);
   --color-success: var(--color-success);
 }
 
@@ -116,7 +118,7 @@ body {
 }
 .noUi-horizontal .noUi-handle,
 .noUi-vertical .noUi-handle {
-  background: var(--color-secondary);
+  background: var(--color-bg-secondary);
 }
 .noUi-target.noUi-horizontal .noUi-tooltip {
   padding-bottom: 0;

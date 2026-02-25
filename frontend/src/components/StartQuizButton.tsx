@@ -89,8 +89,8 @@ export function StartQuizButton({
               className={`
                 absolute -top-3 -right-3 z-30
                 w-8 h-8 rounded-full
-                bg-bg-secondary border border-white/10
-                text-text-secondary hover:text-white
+                bg-bg-secondary border border-text-secondary/20
+                text-text-secondary hover:text-text
                 flex items-center justify-center
                 shadow-lg
                 transform transition-all duration-200

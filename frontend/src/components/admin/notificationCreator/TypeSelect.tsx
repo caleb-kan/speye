@@ -21,7 +21,7 @@ export function TypeSelect({ value, onChange }: TypeSelectProps) {
             className={`px-2 py-1.5 rounded-md text-[10px] font-medium border transition-all ${
               value === type.value
                 ? 'bg-primary/20 border-primary/30 text-primary'
-                : 'bg-white/5 border-transparent text-text-secondary hover:bg-white/10'
+                : 'bg-text-secondary/10 border-transparent text-text-secondary hover:bg-text-secondary/20'
             }`}
           >
             {type.label}

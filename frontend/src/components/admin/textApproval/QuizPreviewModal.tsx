@@ -44,7 +44,7 @@ export function QuizPreviewModal({
       aria-labelledby="quiz-preview-title"
     >
       <div className="bg-bg rounded-lg max-w-3xl w-full max-h-[80vh] overflow-auto">
-        <div className="sticky top-0 bg-bg border-b border-border p-4 flex items-center justify-between">
+        <div className="sticky top-0 bg-bg border-b border-text-secondary/20 p-4 flex items-center justify-between">
           <h2
             id="quiz-preview-title"
             className="text-xl font-semibold text-text"

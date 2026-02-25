@@ -21,9 +21,9 @@ export const notificationTypeConfig: Record<
   alert: {
     icon: AlertTriangle,
     label: 'Alert',
-    classes: 'border-yellow-400/60 bg-bg-secondary text-text',
-    bar: 'bg-yellow-400',
-    badge: 'bg-yellow-400/15 text-yellow-300',
+    classes: 'border-warning/60 bg-bg-secondary text-text',
+    bar: 'bg-warning',
+    badge: 'bg-warning/15 text-warning',
   },
   error: {
     icon: XCircle,

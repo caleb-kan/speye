@@ -87,7 +87,7 @@ export function Admin() {
 
   if (!isAdmin) {
     return (
-      <div className="p-6 h-full overflow-auto">
+      <div className="p-6">
         <AccessDenied />
       </div>
     )
@@ -107,7 +107,7 @@ export function Admin() {
   const rejectionRate = stats ? stats.rejectionRate : '-'
 
   return (
-    <div className="p-4 sm:p-6 h-full overflow-y-auto bg-bg">
+    <div className="p-4 sm:p-6 bg-bg">
       <div className="max-w-7xl mx-auto space-y-4">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 py-2">
@@ -145,7 +145,7 @@ export function Admin() {
               {
                 label: 'Private',
                 value: displayStats.privateTexts,
-                color: 'bg-purple-500/50',
+                color: 'bg-text-secondary/50',
               },
             ]}
           />
@@ -173,7 +173,7 @@ export function Admin() {
           {/* Approval Queue (Left Column) */}
           <div className="lg:col-span-3 h-[500px] lg:h-[60vh] flex flex-col">
             {approvals.length === 0 ? (
-              <div className="bg-bg-secondary/30 border border-white/5 rounded-2xl p-8 flex flex-col items-center justify-center text-center flex-1 h-full">
+              <div className="bg-bg-secondary/30 border border-text-secondary/10 rounded-2xl p-8 flex flex-col items-center justify-center text-center flex-1 h-full">
                 <CheckCircle2 className="w-12 h-12 text-success/50 mb-3" />
                 <h2 className="text-lg font-semibold text-text mb-1">
                   All caught up!

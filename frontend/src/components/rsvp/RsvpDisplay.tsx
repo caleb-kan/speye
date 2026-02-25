@@ -32,7 +32,7 @@ export function RsvpDisplay({
       className={`relative overflow-hidden flex flex-col ${
         isMobile
           ? 'flex-1 w-full min-h-0'
-          : 'h-full shrink-0 rounded-3xl border border-border bg-bg-secondary shadow-2xl'
+          : 'h-full shrink-0 rounded-3xl border border-text-secondary/20 bg-bg-secondary shadow-2xl'
       }`}
       style={isMobile ? undefined : { aspectRatio: '3 / 5' }}
     >

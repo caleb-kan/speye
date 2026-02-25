@@ -12,7 +12,7 @@ export function ActivityFeed({ sessions, groupedSessions }: ActivityFeedProps) {
   return (
     <div className="space-y-12 pb-10">
       {!sessions || sessions.length === 0 ? (
-        <div className="text-center py-20 bg-white/5 rounded-3xl border border-white/5 border-dashed">
+        <div className="text-center py-20 bg-text-secondary/10 rounded-3xl border border-text-secondary/10 border-dashed">
           <ActivityIcon className="w-12 h-12 text-text-secondary mx-auto mb-4 opacity-50" />
           <p className="text-text font-medium">No activity yet</p>
           <p className="text-text-secondary text-sm mt-1">
@@ -34,7 +34,7 @@ export function ActivityFeed({ sessions, groupedSessions }: ActivityFeedProps) {
                     <div
                       className="
                       px-3 py-1.5 rounded-lg
-                      bg-bg-secondary/50 backdrop-blur-md border border-white/5
+                      bg-bg-secondary/50 backdrop-blur-md border border-text-secondary/10
                       text-sm font-bold text-text-secondary uppercase tracking-wider
                       shadow-sm mb-1
                     "
@@ -46,8 +46,8 @@ export function ActivityFeed({ sessions, groupedSessions }: ActivityFeedProps) {
 
                 {/* Timeline Spine (Middle Column) */}
                 <div className="hidden md:flex flex-col items-center w-3 mr-6">
-                  <div className="w-3 h-3 rounded-full bg-bg border-2 border-white/10 group-hover/timeline:border-primary/50 group-hover/timeline:bg-primary/20 transition-colors duration-300 shrink-0 mt-2" />
-                  <div className="flex-1 w-px bg-gradient-to-b from-white/10 via-white/5 to-transparent" />
+                  <div className="w-3 h-3 rounded-full bg-bg border-2 border-text-secondary/20 group-hover/timeline:border-primary/50 group-hover/timeline:bg-primary/20 transition-colors duration-300 shrink-0 mt-2" />
+                  <div className="flex-1 w-px bg-gradient-to-b from-text-secondary/20 via-text-secondary/10 to-transparent" />
                 </div>
 
                 {/* Sessions List (Right Column) */}

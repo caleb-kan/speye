@@ -70,7 +70,7 @@ describe('getReviewStatus', () => {
 
     expect(result.status).toBe<AdminReviewStatus>('processing_failed')
     expect(result.label).toBe('Processing Failed')
-    expect(result.badgeClass).toBe(ADMIN_BADGE_CLASSES.orange)
+    expect(result.badgeClass).toBe(ADMIN_BADGE_CLASSES.warning)
     expect(result.isFailure).toBe(true)
     expect(result.canApprove).toBe(false)
     expect(result.canReject).toBe(true)

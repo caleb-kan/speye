@@ -45,7 +45,7 @@ export function Activity() {
   }
 
   return (
-    <div className="flex flex-1 flex-col items-center w-full px-4 sm:px-6 py-6 custom-scrollbar">
+    <div className="flex flex-1 flex-col items-center w-full px-4 sm:px-6 py-6">
       <div className="w-full max-w-5xl space-y-10">
         <ActivityHeader />
         <ActivityStatsGrid stats={stats} />

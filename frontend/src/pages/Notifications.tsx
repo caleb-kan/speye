@@ -44,7 +44,7 @@ export function Notifications() {
   }
 
   return (
-    <div className="mx-auto mt-6 flex w-full max-w-4xl flex-col gap-2 px-4 sm:px-8 min-h-0">
+    <div className="mx-auto w-full max-w-4xl px-4 sm:px-8 pt-6 pb-6">
       <div>
         <h1 className="text-2xl font-semibold text-text">Notifications</h1>
         <p className="text-text-secondary mt-1">
@@ -52,50 +52,46 @@ export function Notifications() {
         </p>
       </div>
 
-      <div className="flex flex-col items-start justify-between flex-1 min-h-0">
-        <div className="flex items-center justify-between">
-          <NotificationsTabs
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-            unreadCount={unreadNotifications.length}
-            readCount={readNotifications.length}
-          />
-          {activeTab === 'unread' ? (
-            <Button
-              variant="secondary"
-              onClick={markAllAsSeen}
-              disabled={unreadNotifications.length === 0}
-              className="text-xs"
-            >
-              Mark all as read
-            </Button>
-          ) : null}
-        </div>
-
-        {loading && !displayedNotifications.length ? (
-          <div className="rounded-xl border border-text-secondary/30 bg-bg-secondary p-4 text-text-secondary">
-            Loading notifications...
-          </div>
+      <div className="flex w-full items-center justify-between mt-4">
+        <NotificationsTabs
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          unreadCount={unreadNotifications.length}
+          readCount={readNotifications.length}
+        />
+        {activeTab === 'unread' ? (
+          <Button
+            variant="secondary"
+            onClick={markAllAsSeen}
+            disabled={unreadNotifications.length === 0}
+            className="text-xs"
+          >
+            Mark all as read
+          </Button>
         ) : null}
-
-        {!displayedNotifications.length && !loading ? (
-          <div className="rounded-xl border border-dashed border-text-secondary/40 bg-bg-secondary/40 mt-6 p-6 text-text-secondary">
-            {activeTab === 'unread'
-              ? 'No unread notifications.'
-              : 'No read notifications.'}
-          </div>
-        ) : (
-          <div className="flex flex-col gap-3 overflow-y-auto overflow-x-hidden overscroll-contain pt-6 pb-6">
-            {displayedNotifications.map((notification) => (
-              <NotificationRow
-                key={notification.id}
-                notification={notification}
-                onOpen={() => markAsSeen(notification.id)}
-              />
-            ))}
-          </div>
-        )}
       </div>
+
+      {loading && !displayedNotifications.length ? (
+        <div className="rounded-xl border border-text-secondary/30 bg-bg-secondary p-4 text-text-secondary mt-4">
+          Loading notifications...
+        </div>
+      ) : !displayedNotifications.length ? (
+        <div className="rounded-xl border border-dashed border-text-secondary/40 bg-bg-secondary/40 mt-6 p-6 text-text-secondary">
+          {activeTab === 'unread'
+            ? 'No unread notifications.'
+            : 'No read notifications.'}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-3 pt-4 pb-6">
+          {displayedNotifications.map((notification) => (
+            <NotificationRow
+              key={notification.id}
+              notification={notification}
+              onOpen={() => markAsSeen(notification.id)}
+            />
+          ))}
+        </div>
+      )}
     </div>
   )
 }

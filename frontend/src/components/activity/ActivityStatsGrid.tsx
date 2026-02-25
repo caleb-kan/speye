@@ -38,8 +38,8 @@ export function ActivityStatsGrid({ stats }: ActivityStatsGridProps) {
         delay={300}
         subValue={
           <div className="flex items-center gap-1.5 opacity-100 hover:opacity-80 transition-opacity">
-            <Trophy className="w-5 h-5 text-yellow-400 fill-yellow-400/20" />
-            <span className="text-lg font-bold text-yellow-400">
+            <Trophy className="w-5 h-5 text-warning fill-warning/20" />
+            <span className="text-lg font-bold text-warning">
               {stats.bestStreak}
             </span>
           </div>

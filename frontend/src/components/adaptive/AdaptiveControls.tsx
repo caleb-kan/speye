@@ -97,7 +97,7 @@ export function AdaptiveControls({
             disabled={disabled || !showMiniQuiz}
             className="
               h-10 w-10 flex items-center justify-center rounded-xl 
-              text-primary hover:text-white hover:bg-primary/20 
+              text-primary hover:text-text hover:bg-primary/20
               transition-colors
               disabled:opacity-50 disabled:cursor-not-allowed
             "

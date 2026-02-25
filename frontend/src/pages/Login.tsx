@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useLoginForm } from '../hooks/useLoginForm'
+import { useDefaultReadingRoute } from '../hooks/useDefaultReadingRoute'
 import { LoginFooter } from '../components/login/LoginFooter'
 import { LoginForm } from '../components/login/LoginForm'
 import { LoginHeader } from '../components/login/LoginHeader'
@@ -7,6 +8,7 @@ import { LoginGoogleButton } from '../components/login/LoginGoogleButton'
 
 export function Login() {
   const navigate = useNavigate()
+  const defaultRoute = useDefaultReadingRoute()
   const {
     email,
     password,
@@ -25,7 +27,7 @@ export function Login() {
   } = useLoginForm()
 
   return (
-    <div className="flex-1 flex items-center justify-center px-8">
+    <div className="flex-1 flex items-center justify-center px-4 sm:px-8">
       <div className="w-full max-w-xs bg-bg-secondary rounded-xl shadow-lg px-6 py-6">
         <LoginHeader isSignUp={isSignUp} />
 
@@ -59,7 +61,7 @@ export function Login() {
         <LoginFooter
           isSignUp={isSignUp}
           onToggleMode={toggleMode}
-          onContinueWithoutAccount={() => navigate('/home')}
+          onContinueWithoutAccount={() => navigate(defaultRoute)}
         />
       </div>
     </div>

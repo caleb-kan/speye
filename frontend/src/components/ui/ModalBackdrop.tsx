@@ -15,7 +15,7 @@ export function ModalBackdrop({
   return (
     <>
       <div
-        className="flex w-full h-full"
+        className="flex flex-1 w-full min-h-0"
         style={{
           filter: isBlurred ? `blur(${MODAL_BACKDROP_BLUR}px)` : undefined,
           pointerEvents: isBlurred ? 'none' : 'auto',

@@ -6,6 +6,8 @@ import type { Text } from '../types/database'
 import { useAuth } from '../hooks/useAuth'
 import { useOptionsBarSliders } from '../hooks/useOptionsBarSliders'
 import { useCustomWpm } from '../hooks/useCustomWpm'
+import { useIsMobile } from '../hooks/useIsMobile'
+import { ROUTES } from '../utils/routes'
 import { buildModeNavigationState } from '../utils/optionsBarNavigation'
 import { ModeSelector } from './optionsBar/ModeSelector'
 import { GenreSelector } from './optionsBar/GenreSelector'
@@ -31,8 +33,8 @@ type OptionsBarProps = {
   onComplexityMaxChange: (max: number) => void
   visibleLines: number
   onVisibleLinesChange: (lines: number) => void
-  phraseSize?: number
-  onPhraseSizeChange?: (size: number) => void
+  phraseSize: number
+  onPhraseSizeChange: (size: number) => void
   onInputBlockingChange?: (isBlocking: boolean) => void
   fixedText?: FixedTextInfo
   currentTextComplexity?: number | null
@@ -69,6 +71,7 @@ export function OptionsBar({
   const navigate = useNavigate()
   const location = useLocation()
   const { user } = useAuth()
+  const isMobile = useIsMobile()
 
   // Get library text and summary flag from location state
   const locationState = location.state as LocationState | null
@@ -107,15 +110,34 @@ export function OptionsBar({
   return (
     <div className="z-40 bg-bg">
       <div className="flex flex-wrap items-center justify-center gap-6 py-4 text-sm">
-        <ModeSelector
-          mode={mode}
-          user={user}
-          onStandardClick={() => {
-            if (mode !== 'standard') {
-              onModeNavigate?.('standard')
-              onModeChange('standard')
-              if (mode === 'adaptive' || mode === 'rsvp') {
-                navigate('/home', {
+        {!isMobile && (
+          <>
+            <ModeSelector
+              mode={mode}
+              user={user}
+              onStandardClick={() => {
+                if (mode !== 'standard') {
+                  onModeNavigate?.('standard')
+                  onModeChange('standard')
+                  if (mode === 'adaptive' || mode === 'rsvp') {
+                    navigate(ROUTES.HOME, {
+                      state: buildModeNavigationState({
+                        includeTimestamp: true,
+                        readingPosition,
+                        libraryText,
+                        currentText,
+                        isSummary,
+                      }),
+                      replace: true,
+                    })
+                  }
+                }
+              }}
+              onRsvpClick={() => {
+                if (mode === 'rsvp') return
+                onModeNavigate?.('rsvp')
+                onModeChange('rsvp')
+                navigate(ROUTES.RSVP, {
                   state: buildModeNavigationState({
                     includeTimestamp: true,
                     readingPosition,
@@ -123,44 +145,29 @@ export function OptionsBar({
                     currentText,
                     isSummary,
                   }),
-                  replace: true,
                 })
-              }
-            }
-          }}
-          onRsvpClick={() => {
-            if (mode === 'rsvp') return
-            onModeNavigate?.('rsvp')
-            onModeChange('rsvp')
-            navigate('/rsvp', {
-              state: buildModeNavigationState({
-                includeTimestamp: true,
-                readingPosition,
-                libraryText,
-                currentText,
-                isSummary,
-              }),
-            })
-          }}
-          onAdaptiveClick={() => {
-            if (mode !== 'adaptive' && user) {
-              onModeNavigate?.('adaptive')
-              onModeChange('adaptive')
-              navigate('/adaptive', {
-                state: buildModeNavigationState({
-                  includeTimestamp: false,
-                  readingPosition,
-                  libraryText,
-                  currentText,
-                  isSummary,
-                }),
-              })
-            }
-          }}
-        />
+              }}
+              onAdaptiveClick={() => {
+                if (mode !== 'adaptive' && user) {
+                  onModeNavigate?.('adaptive')
+                  onModeChange('adaptive')
+                  navigate(ROUTES.ADAPTIVE, {
+                    state: buildModeNavigationState({
+                      includeTimestamp: false,
+                      readingPosition,
+                      libraryText,
+                      currentText,
+                      isSummary,
+                    }),
+                  })
+                }
+              }}
+            />
 
-        {/* Divider */}
-        <div className="w-px h-6 bg-text-secondary opacity-30" />
+            {/* Divider */}
+            <div className="w-px h-6 bg-text-secondary opacity-30" />
+          </>
+        )}
 
         <GenreSelector
           fiction={fiction}

@@ -19,7 +19,7 @@ export function IconTabs<T extends string>({
   onTabChange,
 }: IconTabsProps<T>) {
   return (
-    <div className="flex gap-2 mb-6 border-b border-text-secondary/20">
+    <div className="flex gap-2 mb-0 border-b border-text-secondary/20">
       {tabs.map((tab) => {
         const Icon = tab.icon
         const isActive = activeTab === tab.id
@@ -28,7 +28,7 @@ export function IconTabs<T extends string>({
             key={tab.id}
             type="button"
             onClick={() => onTabChange(tab.id)}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors border-b-2 -mb-px ${
+            className={`flex items-center gap-2 px-3 py-3 text-sm font-medium transition-colors border-b-2 -mb-px ${
               isActive
                 ? 'text-primary border-primary'
                 : 'text-text-secondary border-transparent hover:text-text hover:border-text-secondary/50'

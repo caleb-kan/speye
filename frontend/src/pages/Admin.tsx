@@ -107,7 +107,7 @@ export function Admin() {
   const rejectionRate = stats ? stats.rejectionRate : '-'
 
   return (
-    <div className="p-6 h-full overflow-y-auto bg-bg">
+    <div className="p-4 sm:p-6 h-full overflow-y-auto bg-bg">
       <div className="max-w-7xl mx-auto space-y-4">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 py-2">

@@ -7,6 +7,7 @@ import {
   createPreviewFromText,
   createTextFromPreview,
 } from '../utils/libraryTextPreview'
+import { getDefaultReadingRoute } from '../utils/routes'
 import {
   deleteLibraryText,
   fetchTextContent,
@@ -273,7 +274,7 @@ export const useLibraryTextActions = (
       try {
         const { content, summary } = await fetchTextContent(textPreview.id)
         const fullText = createTextFromPreview(textPreview, content, summary)
-        navigate('/home', { state: { libraryText: fullText } })
+        navigate(getDefaultReadingRoute(), { state: { libraryText: fullText } })
       } catch (err) {
         setDeleteError(getErrorMessage(err, 'Failed to load text content'))
       }
@@ -319,7 +320,7 @@ export const useLibraryTextActions = (
           return
         }
         const fullText = createTextFromPreview(textPreview, summary, summary)
-        navigate('/home', {
+        navigate(getDefaultReadingRoute(), {
           state: { libraryText: fullText, isSummary: true },
         })
       } catch (err) {

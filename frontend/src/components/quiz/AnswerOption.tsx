@@ -1,4 +1,5 @@
 import { memo } from 'react'
+import { useIsMobile } from '../../hooks/useIsMobile'
 
 type AnswerOptionProps = {
   text: string
@@ -11,12 +12,14 @@ export const AnswerOption = memo(function AnswerOption({
   selected,
   onSelect,
 }: AnswerOptionProps) {
+  const isMobile = useIsMobile()
+
   return (
     <button
       onClick={onSelect}
       className={`
         group relative w-full text-left
-        px-8 py-2
+        px-4 sm:px-8 py-2
         rounded-xl
         transition-all duration-200 ease-out
 
@@ -31,7 +34,7 @@ export const AnswerOption = memo(function AnswerOption({
         <span className="block text-lg leading-relaxed">{text}</span>
 
         {/* Indicator dot for selected state */}
-        {selected && (
+        {!isMobile && selected && (
           <div className="w-2 h-2 rounded-full bg-bg/60 animate-in fade-in zoom-in" />
         )}
       </div>

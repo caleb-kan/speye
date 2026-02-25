@@ -34,9 +34,9 @@ export function Notifications() {
 
   if (!user) {
     return (
-      <div className="mx-auto mt-16 max-w-3xl px-6">
-        <h1 className="text-2xl font-semibold">Notifications</h1>
-        <p className="mt-4 text-text-secondary">
+      <div className="mx-auto mt-6 max-w-4xl px-4 sm:px-8">
+        <h1 className="text-2xl font-semibold text-text">Notifications</h1>
+        <p className="text-text-secondary mt-1">
           Please log in to view your notifications.
         </p>
       </div>
@@ -44,16 +44,16 @@ export function Notifications() {
   }
 
   return (
-    <div className="mx-auto mt-16 flex w-full max-w-4xl flex-col gap-6 px-6 pb-16">
+    <div className="mx-auto mt-6 flex w-full max-w-4xl flex-col gap-2 px-4 sm:px-8 min-h-0">
       <div>
-        <h1 className="text-2xl font-semibold">Notifications</h1>
-        <p className="mt-2 text-sm text-text-secondary">
+        <h1 className="text-2xl font-semibold text-text">Notifications</h1>
+        <p className="text-text-secondary mt-1">
           Stay up to date with your latest alerts and updates.
         </p>
       </div>
 
-      <div>
-        <div className="mb-2 flex items-center justify-between">
+      <div className="flex flex-col items-start justify-between flex-1 min-h-0">
+        <div className="flex items-center justify-between">
           <NotificationsTabs
             activeTab={activeTab}
             onTabChange={setActiveTab}
@@ -65,7 +65,7 @@ export function Notifications() {
               variant="secondary"
               onClick={markAllAsSeen}
               disabled={unreadNotifications.length === 0}
-              className="text-sm"
+              className="text-xs"
             >
               Mark all as read
             </Button>
@@ -79,13 +79,13 @@ export function Notifications() {
         ) : null}
 
         {!displayedNotifications.length && !loading ? (
-          <div className="rounded-xl border border-dashed border-text-secondary/40 bg-bg-secondary/40 p-6 text-text-secondary">
+          <div className="rounded-xl border border-dashed border-text-secondary/40 bg-bg-secondary/40 mt-6 p-6 text-text-secondary">
             {activeTab === 'unread'
               ? 'No unread notifications.'
               : 'No read notifications.'}
           </div>
         ) : (
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3 overflow-y-auto overflow-x-hidden overscroll-contain pt-6 pb-6">
             {displayedNotifications.map((notification) => (
               <NotificationRow
                 key={notification.id}

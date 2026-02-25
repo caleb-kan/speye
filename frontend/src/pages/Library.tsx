@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { LibraryTab } from '../components/library/LibraryTabs'
 import { useAuth } from '../hooks/useAuth'
@@ -28,6 +28,7 @@ export function Library() {
   const { user } = useAuth()
   const isAdmin = useIsAdmin()
   const navigate = useNavigate()
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
   const [activeTab, setActiveTab] = useState<LibraryTab>('private')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
@@ -69,8 +70,10 @@ export function Library() {
     paginatedItems: paginatedTexts,
     jumpToPage,
     jumpToPageInputRef,
+    handleFirstPage,
     handlePreviousPage,
     handleNextPage,
+    handleLastPage,
     handleJumpInputKeyDown,
     handleJumpInputChange,
     handleJumpInputFocus,
@@ -142,8 +145,8 @@ export function Library() {
     (activeTab === 'public' && publicTexts === null)
 
   return (
-    <div className="flex flex-1 flex-col items-center w-full px-8 py-6 overflow-y-auto">
-      <div className="w-full max-w-4xl">
+    <div className="flex flex-1 flex-col items-center w-full px-4 sm:px-8 pt-6 min-h-0">
+      <div className="w-full max-w-4xl flex flex-col flex-1 min-h-0">
         <LibraryHeader
           activeTab={activeTab}
           showUpload={Boolean(user && activeTab === 'private')}
@@ -163,42 +166,47 @@ export function Library() {
           errorMessage={fetchError || deleteError}
         />
 
-        {!isInitialLoad && (
-          <LibraryFilters
-            searchQuery={searchQuery}
-            onSearchChange={handleSearchChange}
-            onResetSearch={handleResetSearch}
-            showFilters={showFilters}
-            onToggleFilters={() => setShowFilters((prev) => !prev)}
-            sortBy={sortBy}
-            sortDirection={sortDirection}
-            onSortChange={handleSortChange}
-            onToggleSortDirection={toggleSortDirection}
-            filters={filters}
-            onGenreChange={handleGenreChange}
-            onClearFilters={handleClearFilters}
-            hasActiveFilters={hasActiveFilters}
-            resultsCount={sortedAndFilteredTexts.length}
-            sliderRef={complexitySliderRef}
-          />
-        )}
+        <div
+          ref={scrollContainerRef}
+          className="flex-1 min-h-0 pb-18 overflow-y-auto overflow-x-hidden overscroll-contain"
+        >
+          {!isInitialLoad && (
+            <LibraryFilters
+              searchQuery={searchQuery}
+              onSearchChange={handleSearchChange}
+              onResetSearch={handleResetSearch}
+              showFilters={showFilters}
+              onToggleFilters={() => setShowFilters((prev) => !prev)}
+              sortBy={sortBy}
+              sortDirection={sortDirection}
+              onSortChange={handleSortChange}
+              onToggleSortDirection={toggleSortDirection}
+              filters={filters}
+              onGenreChange={handleGenreChange}
+              onClearFilters={handleClearFilters}
+              hasActiveFilters={hasActiveFilters}
+              resultsCount={sortedAndFilteredTexts.length}
+              sliderRef={complexitySliderRef}
+            />
+          )}
 
-        <LibraryContent
-          activeTab={activeTab}
-          user={user}
-          loading={loading}
-          isInitialLoad={isInitialLoad}
-          hasActiveFilters={hasActiveFilters}
-          paginatedTexts={paginatedTexts}
-          bestScores={bestScores}
-          retryingTextIds={retryingTextIds}
-          onReadText={handleReadText}
-          onReadSummary={handleReadSummary}
-          onRetryProcessing={handleRetryProcessing}
-          onEditText={handleEditClick}
-          onDeleteText={handleDeleteClick}
-          isAdmin={isAdmin}
-        />
+          <LibraryContent
+            activeTab={activeTab}
+            user={user}
+            loading={loading}
+            isInitialLoad={isInitialLoad}
+            hasActiveFilters={hasActiveFilters}
+            paginatedTexts={paginatedTexts}
+            bestScores={bestScores}
+            retryingTextIds={retryingTextIds}
+            onReadText={handleReadText}
+            onReadSummary={handleReadSummary}
+            onRetryProcessing={handleRetryProcessing}
+            onEditText={handleEditClick}
+            onDeleteText={handleDeleteClick}
+            isAdmin={isAdmin}
+          />
+        </div>
       </div>
 
       <LibraryPagination
@@ -206,12 +214,15 @@ export function Library() {
         totalPages={totalPages}
         jumpToPage={jumpToPage}
         jumpToPageInputRef={jumpToPageInputRef}
+        onFirstPage={handleFirstPage}
         onPrevPage={handlePreviousPage}
         onNextPage={handleNextPage}
+        onLastPage={handleLastPage}
         onJumpInputKeyDown={handleJumpInputKeyDown}
         onJumpInputChange={handleJumpInputChange}
         onJumpInputFocus={handleJumpInputFocus}
         onJumpInputBlur={handleJumpInputBlur}
+        scrollContainerRef={scrollContainerRef}
       />
 
       <UploadTextModal

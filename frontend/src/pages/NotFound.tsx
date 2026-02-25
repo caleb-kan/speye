@@ -1,8 +1,11 @@
 import { Link } from 'react-router-dom'
+import { useDefaultReadingRoute } from '../hooks/useDefaultReadingRoute'
 
 export function NotFound() {
+  const defaultRoute = useDefaultReadingRoute()
+
   return (
-    <div className="flex-1 flex items-center justify-center p-8">
+    <div className="flex-1 flex items-center justify-center p-4 sm:p-8">
       <div className="text-center">
         <h1 className="text-4xl font-bold text-primary mb-2">404</h1>
         <p className="text-base text-text mb-1">Page not found</p>
@@ -10,7 +13,7 @@ export function NotFound() {
           The page you're looking for doesn't exist.
         </p>
         <Link
-          to="/home"
+          to={defaultRoute}
           className="inline-block px-4 py-2 bg-primary text-bg rounded-lg hover:opacity-90 transition-colors font-medium text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-bg"
         >
           Go home

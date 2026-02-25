@@ -30,7 +30,7 @@ body {
     monospace;
   background-color: var(--color-bg);
   color: var(--color-text);
-  min-height: 100vh;
+  min-height: 100dvh;
   transition:
     background-color 0.15s ease,
     color 0.15s ease;

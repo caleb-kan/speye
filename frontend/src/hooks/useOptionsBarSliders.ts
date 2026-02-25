@@ -1,4 +1,4 @@
-import type { RefObject } from 'react'
+import type { MutableRefObject, RefObject } from 'react'
 import { useEffect, useRef } from 'react'
 import noUiSlider, { type API } from 'nouislider'
 import { MAX_COMPLEXITY, MIN_COMPLEXITY } from '../constants/complexity'
@@ -10,6 +10,47 @@ export type SliderElement = HTMLDivElement & {
   noUiSlider?: API
 }
 
+/** Creates or updates a single-value noUiSlider on the given ref. */
+function syncSingleValueSlider(
+  ref: RefObject<SliderElement | null>,
+  value: number,
+  range: { min: number; max: number },
+  showTooltips: boolean,
+  onChangeRef: MutableRefObject<(value: number) => void>
+): (() => void) | undefined {
+  if (!ref.current) return
+
+  const existing = ref.current.noUiSlider
+  if (existing) {
+    existing.set([value])
+    return
+  }
+
+  if (ref.current.hasChildNodes()) return
+
+  noUiSlider.create(ref.current, {
+    start: [value],
+    connect: [true, false],
+    range,
+    tooltips: showTooltips,
+    step: 1,
+    format: {
+      to: (v) => Math.round(v).toString(),
+      from: (v) => Number(v),
+    },
+  })
+
+  const newSlider = ref.current.noUiSlider
+
+  newSlider?.on('set', (values: (string | number)[]) => {
+    onChangeRef.current(parseInt(String(values[0]), 10))
+  })
+
+  return () => {
+    newSlider?.destroy()
+  }
+}
+
 export type UseOptionsBarSlidersParams = {
   fixedText?: FixedTextInfo
   complexityMin: number
@@ -18,8 +59,9 @@ export type UseOptionsBarSlidersParams = {
   onComplexityMaxChange: (max: number) => void
   visibleLines: number
   onVisibleLinesChange: (lines: number) => void
-  phraseSize?: number
-  onPhraseSizeChange?: (size: number) => void
+  phraseSize: number
+  onPhraseSizeChange: (size: number) => void
+  showTooltips?: boolean
 }
 
 export type UseOptionsBarSlidersResult = {
@@ -41,6 +83,7 @@ export const useOptionsBarSliders = (
     onVisibleLinesChange,
     phraseSize,
     onPhraseSizeChange,
+    showTooltips = true,
   } = params
 
   const complexitySliderRef = useRef<SliderElement>(null)
@@ -65,11 +108,17 @@ export const useOptionsBarSliders = (
 
   useEffect(() => {
     if (fixedText) return
-    if (
-      !complexitySliderRef.current ||
-      complexitySliderRef.current.hasChildNodes()
-    )
+    if (!complexitySliderRef.current) return
+
+    const slider = complexitySliderRef.current.noUiSlider
+
+    if (slider) {
+      // Slider already exists, update its values
+      slider.set([complexityMin, complexityMax])
       return
+    }
+
+    if (complexitySliderRef.current.hasChildNodes()) return
 
     noUiSlider.create(complexitySliderRef.current, {
       start: [complexityMin, complexityMax],
@@ -79,7 +128,7 @@ export const useOptionsBarSliders = (
         min: MIN_COMPLEXITY,
         max: MAX_COMPLEXITY,
       },
-      tooltips: true,
+      tooltips: showTooltips,
       step: 1,
       format: {
         to: (value) => {
@@ -93,9 +142,9 @@ export const useOptionsBarSliders = (
       },
     })
 
-    const slider = complexitySliderRef.current.noUiSlider
+    const newSlider = complexitySliderRef.current.noUiSlider
 
-    slider?.on('set', (values: (string | number)[]) => {
+    newSlider?.on('set', (values: (string | number)[]) => {
       const val0 = parseInt(String(values[0]), 10)
       const val1 = parseInt(String(values[1]), 10)
       const minVal = Math.min(val0, val1)
@@ -105,80 +154,33 @@ export const useOptionsBarSliders = (
     })
 
     return () => {
-      slider?.destroy()
+      newSlider?.destroy()
     }
-  }, [complexityMax, complexityMin, fixedText])
+  }, [complexityMax, complexityMin, fixedText, showTooltips])
 
-  useEffect(() => {
-    if (
-      !visibleLinesSliderRef.current ||
-      visibleLinesSliderRef.current.hasChildNodes()
-    ) {
-      return
-    }
+  useEffect(
+    () =>
+      syncSingleValueSlider(
+        visibleLinesSliderRef,
+        visibleLines,
+        { min: MIN_VISIBLE_LINES, max: MAX_VISIBLE_LINES },
+        showTooltips,
+        onVisibleLinesChangeRef
+      ),
+    [visibleLines, showTooltips]
+  )
 
-    noUiSlider.create(visibleLinesSliderRef.current, {
-      start: [visibleLines],
-      connect: [true, false],
-      range: {
-        min: MIN_VISIBLE_LINES,
-        max: MAX_VISIBLE_LINES,
-      },
-      tooltips: true,
-      step: 1,
-      format: {
-        to: (value) => Math.round(value).toString(),
-        from: (value) => Number(value),
-      },
-    })
-
-    const slider = visibleLinesSliderRef.current.noUiSlider
-
-    slider?.on('set', (values: (string | number)[]) => {
-      const val = parseInt(String(values[0]), 10)
-      onVisibleLinesChangeRef.current(val)
-    })
-
-    return () => {
-      slider?.destroy()
-    }
-  }, [visibleLines])
-
-  useEffect(() => {
-    if (phraseSize === undefined) return
-    if (
-      !phraseSizeSliderRef.current ||
-      phraseSizeSliderRef.current.hasChildNodes()
-    ) {
-      return
-    }
-
-    noUiSlider.create(phraseSizeSliderRef.current, {
-      start: [phraseSize],
-      connect: [true, false],
-      range: {
-        min: MIN_PHRASE_SIZE,
-        max: MAX_PHRASE_SIZE,
-      },
-      tooltips: true,
-      step: 1,
-      format: {
-        to: (value) => Math.round(value).toString(),
-        from: (value) => Number(value),
-      },
-    })
-
-    const slider = phraseSizeSliderRef.current.noUiSlider
-
-    slider?.on('set', (values: (string | number)[]) => {
-      const val = parseInt(String(values[0]), 10)
-      onPhraseSizeChangeRef.current?.(val)
-    })
-
-    return () => {
-      slider?.destroy()
-    }
-  }, [phraseSize])
+  useEffect(
+    () =>
+      syncSingleValueSlider(
+        phraseSizeSliderRef,
+        phraseSize,
+        { min: MIN_PHRASE_SIZE, max: MAX_PHRASE_SIZE },
+        showTooltips,
+        onPhraseSizeChangeRef
+      ),
+    [phraseSize, showTooltips]
+  )
 
   return { complexitySliderRef, visibleLinesSliderRef, phraseSizeSliderRef }
 }

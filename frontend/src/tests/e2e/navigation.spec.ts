@@ -14,7 +14,7 @@ test.describe('Primary navigation', () => {
     await expect(page.getByRole('heading', { name: 'Activity' })).toBeVisible()
 
     await page.getByRole('link', { name: 'Settings' }).click()
-    await expect(page.getByRole('heading', { name: 'settings' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'about' })).toBeVisible()
 
     await page.getByRole('link', { name: 'Log in' }).click()
     await expect(

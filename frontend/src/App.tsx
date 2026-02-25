@@ -1,4 +1,13 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+} from 'react-router-dom'
+import { useDefaultReadingRoute } from './hooks/useDefaultReadingRoute'
+import { useIsMobile } from './hooks/useIsMobile'
+import { ROUTES } from './utils/routes'
 import { ThemeProvider } from './context/ThemeProvider'
 import { AuthProvider } from './context/AuthProvider'
 import { ReadingPreferencesProvider } from './context/ReadingPreferencesProvider'
@@ -28,6 +37,23 @@ import { WindowSizeProvider } from './components/WindowSizeProvider'
 import { NotificationsProvider } from './context/NotificationsProvider'
 import { RequireUsername } from './components/auth/RequireUsername'
 
+function DefaultRedirect() {
+  const defaultRoute = useDefaultReadingRoute()
+  return <Navigate to={defaultRoute} replace />
+}
+
+/** Redirects mobile users from /home (and /adaptive) to /rsvp, preserving location state. */
+function MobileReadingGuard({ children }: { children: React.ReactElement }) {
+  const isMobile = useIsMobile()
+  const location = useLocation()
+
+  if (isMobile) {
+    return <Navigate to={ROUTES.RSVP} state={location.state} replace />
+  }
+
+  return children
+}
+
 function App() {
   const runtimeBase = getRuntimeBase()
   return (
@@ -39,7 +65,7 @@ function App() {
               <BrowserRouter basename={runtimeBase}>
                 <Routes>
                   <Route path="/" element={<RootLayout />}>
-                    <Route index element={<Navigate to="/home" replace />} />
+                    <Route index element={<DefaultRedirect />} />
 
                     <Route element={<RequireUsername />}>
                       {/* Pages with OptionsBar */}
@@ -50,7 +76,14 @@ function App() {
                           </WindowSizeProvider>
                         }
                       >
-                        <Route path="home" element={<Home />} />
+                        <Route
+                          path="home"
+                          element={
+                            <MobileReadingGuard>
+                              <Home />
+                            </MobileReadingGuard>
+                          }
+                        />
                       </Route>
 
                       {/* Adaptive reading mode */}
@@ -61,7 +94,14 @@ function App() {
                           </WindowSizeProvider>
                         }
                       >
-                        <Route path="adaptive" element={<Adaptive />} />
+                        <Route
+                          path="adaptive"
+                          element={
+                            <MobileReadingGuard>
+                              <Adaptive />
+                            </MobileReadingGuard>
+                          }
+                        />
                       </Route>
 
                       {/* RSVP reading mode */}
@@ -95,7 +135,6 @@ function App() {
                     <Route path="reset-password" element={<ResetPassword />} />
                     <Route path="privacy" element={<Privacy />} />
                     <Route path="terms" element={<Terms />} />
-                    <Route path="notifications" element={<Notifications />} />
                     <Route path="license" element={<License />} />
 
                     <Route path="*" element={<NotFound />} />

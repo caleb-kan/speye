@@ -4,10 +4,13 @@ import { Footer } from '../components/Footer'
 import { NotificationToaster } from '../components/notifications/NotificationToaster'
 import { NotificationsMailButton } from '../components/notifications/NotificationsMailButton'
 import { Outlet } from 'react-router-dom'
+import { useIsMobile } from '../hooks/useIsMobile'
 
 export function RootLayout() {
+  const isMobile = useIsMobile()
+
   return (
-    <div className="flex h-screen overflow-hidden bg-bg text-text">
+    <div className="flex h-dvh overflow-hidden bg-bg text-text">
       {/* Fixed overlays */}
       <Navbar />
       <Header />
@@ -17,7 +20,11 @@ export function RootLayout() {
       {/* Right content shell */}
       <div className="flex-1 flex flex-col">
         {/* Page content */}
-        <main className="relative flex-1 flex flex-col min-h-0 overflow-auto pt-12">
+        <main
+          className={`relative flex-1 flex flex-col min-h-0 overflow-y-auto overflow-x-hidden ${
+            isMobile ? 'pt-11' : 'pt-12'
+          }`}
+        >
           <Outlet />
         </main>
 

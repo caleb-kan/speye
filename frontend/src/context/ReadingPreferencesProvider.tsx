@@ -14,18 +14,21 @@ import { DEFAULT_VISIBLE_LINES } from '../constants/visibleLines'
 import { DEFAULT_PHRASE_SIZE } from '../constants/rsvp'
 import { STORAGE_KEYS } from '../constants/storage'
 import { DEFAULT_MODE } from '../constants/modes'
+import { isMobileDevice } from '../utils/isMobileDevice'
 
 function loadPreferences(): ReadingPreferences {
+  const mobile = isMobileDevice()
   try {
     const stored = localStorage.getItem(STORAGE_KEYS.READING_PREFERENCES)
     if (stored) {
       const parsed = JSON.parse(stored)
       return {
         wpm: parsed.wpm ?? DEFAULT_WPM,
-        mode:
-          parsed.mode === 'standard' ||
-          parsed.mode === 'adaptive' ||
-          parsed.mode === 'rsvp'
+        mode: mobile
+          ? 'rsvp'
+          : parsed.mode === 'standard' ||
+              parsed.mode === 'adaptive' ||
+              parsed.mode === 'rsvp'
             ? parsed.mode
             : DEFAULT_MODE,
         scrolling: parsed.scrolling ?? 'dynamic',
@@ -38,12 +41,12 @@ function loadPreferences(): ReadingPreferences {
         phraseSize: parsed.phraseSize ?? DEFAULT_PHRASE_SIZE,
       }
     }
-  } catch {
-    // Ignore parse errors, use defaults
+  } catch (e) {
+    console.warn('Failed to load reading preferences:', e)
   }
   return {
     wpm: DEFAULT_WPM,
-    mode: DEFAULT_MODE,
+    mode: mobile ? 'rsvp' : DEFAULT_MODE,
     scrolling: 'dynamic',
     blurEnabled: false,
     fiction: false,
@@ -61,8 +64,8 @@ function savePreferences(prefs: ReadingPreferences): void {
       STORAGE_KEYS.READING_PREFERENCES,
       JSON.stringify(prefs)
     )
-  } catch {
-    // Ignore storage errors (e.g., quota exceeded)
+  } catch (e) {
+    console.warn('Failed to save reading preferences:', e)
   }
 }
 

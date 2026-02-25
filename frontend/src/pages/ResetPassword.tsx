@@ -21,7 +21,7 @@ export function ResetPassword() {
   }
 
   return (
-    <div className="flex-1 flex items-center justify-center px-8">
+    <div className="flex-1 flex items-center justify-center px-4 sm:px-8">
       <div className="w-full max-w-xs bg-bg-secondary rounded-xl shadow-lg px-6 py-6">
         <LoginHeader
           isSignUp={false}

@@ -25,7 +25,7 @@ export async function getQuiz(textId: string): Promise<QuestionSet> {
 
   const quiz = data.quiz as Quiz
 
-  if (!Array.isArray(quiz.questionSets) || quiz.questionSets.length !== 5) {
+  if (!Array.isArray(quiz.questionSets) || quiz.questionSets.length < 1) {
     throw new Error('Invalid quiz format')
   }
 

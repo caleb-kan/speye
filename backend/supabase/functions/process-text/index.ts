@@ -181,7 +181,7 @@ TITLE REQUIREMENTS (only if generating title):
 ---
 
 QUIZ REQUIREMENTS:
-1. Generate exactly 5 question sets, each with exactly 5 multiple-choice questions (25 total)
+1. Generate up to 5 question sets, each with 5 to 7 multiple-choice questions. Decide the number of sets and questions per set based on the text's length, complexity, and number of key concepts. Shorter/simpler texts may need fewer sets.
 2. Each set should more or less cover the whole text
 3. Questions must be answerable solely from the text provided
 4. Cover different sections of the text, not just the beginning
@@ -271,9 +271,12 @@ interface ProcessTextResponse {
   summary: string | null
 }
 
-// Must match lib/quizConstants.ts
-const NUM_QUESTION_SETS = 5
-const NUM_QUESTIONS = 5
+// Duplicated from lib/quizConstants.ts because Deno edge functions cannot
+// import from lib/. Keep values in sync.
+const MIN_QUESTION_SETS = 1
+const MAX_QUESTION_SETS = 5
+const MIN_QUESTIONS = 5
+const MAX_QUESTIONS = 7
 const NUM_OPTIONS_PER_QUESTION = 4
 
 function isErrorResponse(data: unknown): data is ErrorResponse {
@@ -313,7 +316,11 @@ function isValidResponse(data: unknown): data is ProcessTextResponse {
     return false
 
   if (!Array.isArray(response.questionSets)) return false
-  if (response.questionSets.length !== NUM_QUESTION_SETS) return false
+  if (
+    response.questionSets.length < MIN_QUESTION_SETS ||
+    response.questionSets.length > MAX_QUESTION_SETS
+  )
+    return false
 
   if (typeof response.fiction !== 'boolean') return false
 
@@ -329,7 +336,8 @@ function isValidResponse(data: unknown): data is ProcessTextResponse {
     (set: QuestionSet) =>
       set &&
       Array.isArray(set.questions) &&
-      set.questions.length === NUM_QUESTIONS &&
+      set.questions.length >= MIN_QUESTIONS &&
+      set.questions.length <= MAX_QUESTIONS &&
       set.questions.every(isValidQuestion)
   )
 }

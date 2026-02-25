@@ -3,7 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { QuizEditor } from '../../../components/library/QuizEditor'
 import type { Quiz } from '../../../types/database'
-import { NUM_QUESTION_SETS, NUM_QUESTIONS } from '../../../constants/quiz'
+import { MAX_QUESTION_SETS, MIN_QUESTIONS } from '../../../constants/quiz'
 
 const makeQuestion = (text: string) => ({
   question: text,
@@ -12,13 +12,13 @@ const makeQuestion = (text: string) => ({
 })
 
 const makeSet = (prefix: string) => ({
-  questions: Array.from({ length: NUM_QUESTIONS }, (_, i) =>
+  questions: Array.from({ length: MIN_QUESTIONS }, (_, i) =>
     makeQuestion(`Q${i + 1} ${prefix}`)
   ),
 })
 
 const makeQuiz = (): Quiz => ({
-  questionSets: Array.from({ length: NUM_QUESTION_SETS }, (_, i) =>
+  questionSets: Array.from({ length: MAX_QUESTION_SETS }, (_, i) =>
     makeSet(`Set${i + 1}`)
   ),
 })
@@ -216,7 +216,7 @@ describe('QuizEditor', () => {
   it('resets editor state when quiz prop changes', () => {
     const quiz1 = makeQuiz()
     const quiz2: Quiz = {
-      questionSets: Array.from({ length: NUM_QUESTION_SETS }, (_, i) =>
+      questionSets: Array.from({ length: MAX_QUESTION_SETS }, (_, i) =>
         makeSet(`New${i + 1}`)
       ),
     }

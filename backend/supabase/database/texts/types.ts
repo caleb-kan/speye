@@ -8,14 +8,14 @@ export interface QuizQuestion {
 }
 
 /**
- * Question set structure (5 questions per set)
+ * Question set structure (see lib/quizConstants.ts for count constraints)
  */
 export interface QuestionSet {
   questions: QuizQuestion[]
 }
 
 /**
- * Quiz structure (5 sets of 5 questions = 25 questions total)
+ * Quiz structure (1-5 question sets, see lib/quizConstants.ts for constraints)
  */
 export interface Quiz {
   questionSets: QuestionSet[]

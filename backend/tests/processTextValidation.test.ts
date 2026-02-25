@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import {
-  NUM_QUESTION_SETS,
-  NUM_QUESTIONS,
+  MIN_QUESTION_SETS,
+  MAX_QUESTION_SETS,
+  MIN_QUESTIONS,
+  MAX_QUESTIONS,
   NUM_OPTIONS_PER_QUESTION,
 } from '../../lib/quizConstants'
 
@@ -73,7 +75,11 @@ function isValidResponse(data: unknown): data is ProcessTextResponse {
     return false
 
   if (!Array.isArray(response.questionSets)) return false
-  if (response.questionSets.length !== NUM_QUESTION_SETS) return false
+  if (
+    response.questionSets.length < MIN_QUESTION_SETS ||
+    response.questionSets.length > MAX_QUESTION_SETS
+  )
+    return false
 
   if (typeof response.fiction !== 'boolean') return false
 
@@ -86,7 +92,8 @@ function isValidResponse(data: unknown): data is ProcessTextResponse {
     (set: QuestionSet) =>
       set &&
       Array.isArray(set.questions) &&
-      set.questions.length === NUM_QUESTIONS &&
+      set.questions.length >= MIN_QUESTIONS &&
+      set.questions.length <= MAX_QUESTIONS &&
       set.questions.every(isValidQuestion)
   )
 }
@@ -106,7 +113,7 @@ function makeSet(questionsOverride?: QuizQuestion[]): QuestionSet {
   return {
     questions:
       questionsOverride ??
-      Array.from({ length: NUM_QUESTIONS }, () => makeQuestion()),
+      Array.from({ length: MIN_QUESTIONS }, () => makeQuestion()),
   }
 }
 
@@ -116,7 +123,7 @@ function makeValidSuccessResponse(
   return {
     status: 'success',
     title: 'Test Title',
-    questionSets: Array.from({ length: NUM_QUESTION_SETS }, () => makeSet()),
+    questionSets: Array.from({ length: MAX_QUESTION_SETS }, () => makeSet()),
     fiction: false,
     summary: 'This is a valid summary for a non-fiction text.',
     ...overrides,
@@ -127,8 +134,10 @@ function makeValidSuccessResponse(
 
 describe('quiz constants', () => {
   it('match expected values (update edge function if these change)', () => {
-    expect(NUM_QUESTION_SETS).toBe(5)
-    expect(NUM_QUESTIONS).toBe(5)
+    expect(MIN_QUESTION_SETS).toBe(1)
+    expect(MAX_QUESTION_SETS).toBe(5)
+    expect(MIN_QUESTIONS).toBe(5)
+    expect(MAX_QUESTIONS).toBe(7)
     expect(NUM_OPTIONS_PER_QUESTION).toBe(4)
   })
 })
@@ -347,23 +356,45 @@ describe('isValidResponse', () => {
     ).toBe(false)
   })
 
-  it('rejects when questionSets has wrong count (4)', () => {
+  it('accepts when questionSets has count within range (1)', () => {
     const response = makeValidSuccessResponse()
-    response.questionSets = response.questionSets.slice(0, 4)
+    response.questionSets = response.questionSets.slice(0, 1)
+    expect(isValidResponse(response)).toBe(true)
+  })
+
+  it('rejects when questionSets is empty (0)', () => {
+    const response = makeValidSuccessResponse()
+    response.questionSets = []
     expect(isValidResponse(response)).toBe(false)
   })
 
-  it('rejects when questionSets has wrong count (6)', () => {
+  it('rejects when questionSets exceeds max (6)', () => {
     const response = makeValidSuccessResponse()
     response.questionSets.push(makeSet())
     expect(isValidResponse(response)).toBe(false)
   })
 
-  it('rejects when a question set has wrong question count', () => {
+  it('rejects when a question set has too few questions', () => {
     const response = makeValidSuccessResponse()
     response.questionSets[0] = {
       questions: [makeQuestion(), makeQuestion()],
     }
+    expect(isValidResponse(response)).toBe(false)
+  })
+
+  it('accepts when a question set has max questions', () => {
+    const response = makeValidSuccessResponse()
+    response.questionSets[0] = makeSet(
+      Array.from({ length: MAX_QUESTIONS }, () => makeQuestion())
+    )
+    expect(isValidResponse(response)).toBe(true)
+  })
+
+  it('rejects when a question set exceeds max questions', () => {
+    const response = makeValidSuccessResponse()
+    response.questionSets[0] = makeSet(
+      Array.from({ length: MAX_QUESTIONS + 1 }, () => makeQuestion())
+    )
     expect(isValidResponse(response)).toBe(false)
   })
 

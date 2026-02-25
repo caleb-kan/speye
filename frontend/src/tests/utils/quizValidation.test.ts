@@ -2,8 +2,10 @@ import { describe, it, expect } from 'vitest'
 import { validateQuiz, hasQuizChanged } from '../../utils/quizValidation'
 import type { Quiz } from '../../types/database'
 import {
-  NUM_QUESTION_SETS,
-  NUM_QUESTIONS,
+  MIN_QUESTION_SETS,
+  MAX_QUESTION_SETS,
+  MIN_QUESTIONS,
+  MAX_QUESTIONS,
   NUM_OPTIONS_PER_QUESTION,
 } from '../../constants/quiz'
 
@@ -20,14 +22,13 @@ const makeQuestion = (
   ...overrides,
 })
 
-const makeSet = (questionsOverride?: ReturnType<typeof makeQuestion>[]) => ({
-  questions:
-    questionsOverride ??
-    Array.from({ length: NUM_QUESTIONS }, () => makeQuestion()),
-})
-
-const makeValidQuiz = (): Quiz => ({
-  questionSets: Array.from({ length: NUM_QUESTION_SETS }, () => makeSet()),
+const makeValidQuiz = (
+  numSets = MAX_QUESTION_SETS,
+  numQuestions = MIN_QUESTIONS
+): Quiz => ({
+  questionSets: Array.from({ length: numSets }, () => ({
+    questions: Array.from({ length: numQuestions }, () => makeQuestion()),
+  })),
 })
 
 /** Creates a valid quiz with one question overridden in a specific set */
@@ -48,19 +49,50 @@ describe('validateQuiz', () => {
       expect(validateQuiz(makeValidQuiz())).toEqual([])
     })
 
-    it('rejects quiz with wrong number of sets', () => {
-      const quiz: Quiz = { questionSets: [makeSet()] }
-      const errors = validateQuiz(quiz)
-      expect(errors).toEqual([
-        `Quiz must have exactly ${NUM_QUESTION_SETS} question sets`,
-      ])
+    it('accepts a quiz with 1 set (minimum)', () => {
+      expect(validateQuiz(makeValidQuiz(MIN_QUESTION_SETS))).toEqual([])
+    })
+
+    it('accepts a quiz with max sets', () => {
+      expect(validateQuiz(makeValidQuiz(MAX_QUESTION_SETS))).toEqual([])
+    })
+
+    it('accepts sets with different valid question counts', () => {
+      const quiz: Quiz = {
+        questionSets: [
+          {
+            questions: Array.from({ length: MIN_QUESTIONS }, () =>
+              makeQuestion()
+            ),
+          },
+          {
+            questions: Array.from({ length: MAX_QUESTIONS }, () =>
+              makeQuestion()
+            ),
+          },
+          {
+            questions: Array.from({ length: MIN_QUESTIONS + 1 }, () =>
+              makeQuestion()
+            ),
+          },
+        ],
+      }
+      expect(validateQuiz(quiz)).toEqual([])
     })
 
     it('rejects empty quiz (no sets)', () => {
       const quiz: Quiz = { questionSets: [] }
       const errors = validateQuiz(quiz)
       expect(errors).toEqual([
-        `Quiz must have exactly ${NUM_QUESTION_SETS} question sets`,
+        `Quiz must have between ${MIN_QUESTION_SETS} and ${MAX_QUESTION_SETS} question sets`,
+      ])
+    })
+
+    it('rejects quiz with too many sets', () => {
+      const quiz = makeValidQuiz(MAX_QUESTION_SETS + 1)
+      const errors = validateQuiz(quiz)
+      expect(errors).toEqual([
+        `Quiz must have between ${MIN_QUESTION_SETS} and ${MAX_QUESTION_SETS} question sets`,
       ])
     })
 
@@ -101,12 +133,43 @@ describe('validateQuiz', () => {
       )
     })
 
-    it('rejects set with wrong number of questions', () => {
-      const quiz = makeValidQuiz()
-      quiz.questionSets[2] = { questions: [makeQuestion()] }
+    it('accepts set with minimum questions', () => {
+      expect(validateQuiz(makeValidQuiz(1, MIN_QUESTIONS))).toEqual([])
+    })
+
+    it('accepts set with maximum questions', () => {
+      expect(validateQuiz(makeValidQuiz(1, MAX_QUESTIONS))).toEqual([])
+    })
+
+    it('rejects set with too few questions', () => {
+      const quiz: Quiz = {
+        questionSets: [
+          {
+            questions: Array.from({ length: MIN_QUESTIONS - 1 }, () =>
+              makeQuestion()
+            ),
+          },
+        ],
+      }
       const errors = validateQuiz(quiz)
       expect(errors).toEqual([
-        `Set 3: must have exactly ${NUM_QUESTIONS} questions`,
+        `Set 1: must have between ${MIN_QUESTIONS} and ${MAX_QUESTIONS} questions`,
+      ])
+    })
+
+    it('rejects set with too many questions', () => {
+      const quiz: Quiz = {
+        questionSets: [
+          {
+            questions: Array.from({ length: MAX_QUESTIONS + 1 }, () =>
+              makeQuestion()
+            ),
+          },
+        ],
+      }
+      const errors = validateQuiz(quiz)
+      expect(errors).toEqual([
+        `Set 1: must have between ${MIN_QUESTIONS} and ${MAX_QUESTIONS} questions`,
       ])
     })
 

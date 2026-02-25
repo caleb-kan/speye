@@ -3,9 +3,9 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { QuizSetEditor } from '../../../components/library/QuizSetEditor'
 import type { QuestionSet } from '../../../types/database'
-import { NUM_QUESTIONS } from '../../../constants/quiz'
+import { MIN_QUESTIONS } from '../../../constants/quiz'
 
-const makeSet = (questionCount = NUM_QUESTIONS): QuestionSet => ({
+const makeSet = (questionCount = MIN_QUESTIONS): QuestionSet => ({
   questions: Array.from({ length: questionCount }, (_, i) => ({
     question: `Question ${i + 1}`,
     options: ['A', 'B', 'C', 'D'],

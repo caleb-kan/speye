@@ -1,8 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import type { Quiz } from '../supabase/database/texts/types'
 import {
-  NUM_QUESTION_SETS,
-  NUM_QUESTIONS,
+  MIN_QUESTION_SETS,
+  MAX_QUESTION_SETS,
+  MIN_QUESTIONS,
+  MAX_QUESTIONS,
   NUM_OPTIONS_PER_QUESTION,
 } from '../../lib/quizConstants'
 
@@ -46,11 +48,11 @@ const makeQuestion = (
 const makeSet = (questionsOverride?: ReturnType<typeof makeQuestion>[]) => ({
   questions:
     questionsOverride ??
-    Array.from({ length: NUM_QUESTIONS }, () => makeQuestion()),
+    Array.from({ length: MIN_QUESTIONS }, () => makeQuestion()),
 })
 
 const makeValidQuiz = (): Quiz => ({
-  questionSets: Array.from({ length: NUM_QUESTION_SETS }, () => makeSet()),
+  questionSets: Array.from({ length: MAX_QUESTION_SETS }, () => makeSet()),
 })
 
 describe('assertValidQuiz', () => {
@@ -70,10 +72,21 @@ describe('assertValidQuiz', () => {
     )
   })
 
-  it('rejects quiz with wrong number of sets', () => {
-    const quiz: Quiz = { questionSets: [makeSet()] }
+  it('rejects quiz with no sets', () => {
+    const quiz: Quiz = { questionSets: [] }
     expect(() => assertValidQuiz(quiz)).toThrow(
-      `Quiz must have exactly ${NUM_QUESTION_SETS} question sets`
+      `Quiz must have between ${MIN_QUESTION_SETS} and ${MAX_QUESTION_SETS} question sets`
+    )
+  })
+
+  it('rejects quiz with too many sets', () => {
+    const quiz: Quiz = {
+      questionSets: Array.from({ length: MAX_QUESTION_SETS + 1 }, () =>
+        makeSet()
+      ),
+    }
+    expect(() => assertValidQuiz(quiz)).toThrow(
+      `Quiz must have between ${MIN_QUESTION_SETS} and ${MAX_QUESTION_SETS} question sets`
     )
   })
 
@@ -87,11 +100,23 @@ describe('assertValidQuiz', () => {
     )
   })
 
-  it('rejects set with wrong number of questions', () => {
+  it('rejects set with too few questions', () => {
     const quiz = makeValidQuiz()
     quiz.questionSets[0] = { questions: [makeQuestion()] }
     expect(() => assertValidQuiz(quiz)).toThrow(
-      `Each set must have exactly ${NUM_QUESTIONS} questions`
+      `Each set must have between ${MIN_QUESTIONS} and ${MAX_QUESTIONS} questions`
+    )
+  })
+
+  it('rejects set with too many questions', () => {
+    const quiz = makeValidQuiz()
+    quiz.questionSets[0] = {
+      questions: Array.from({ length: MAX_QUESTIONS + 1 }, () =>
+        makeQuestion()
+      ),
+    }
+    expect(() => assertValidQuiz(quiz)).toThrow(
+      `Each set must have between ${MIN_QUESTIONS} and ${MAX_QUESTIONS} questions`
     )
   })
 
@@ -191,7 +216,7 @@ describe('updateTextQuiz', () => {
   it('throws on invalid quiz before reaching database', async () => {
     const quiz: Quiz = { questionSets: [] }
     await expect(updateTextQuiz('text-1', quiz)).rejects.toThrow(
-      `Quiz must have exactly ${NUM_QUESTION_SETS} question sets`
+      `Quiz must have between ${MIN_QUESTION_SETS} and ${MAX_QUESTION_SETS} question sets`
     )
     expect(_mocks.mockFrom).not.toHaveBeenCalled()
   })

@@ -143,9 +143,9 @@ describe('getQuiz', () => {
     await expect(getQuiz('test-id')).rejects.toThrow('Invalid quiz format')
   })
 
-  it('should throw error when questionSets does not have 5 sets', async () => {
+  it('should throw error when questionSets is empty', async () => {
     createMockChain({
-      data: { quiz: { questionSets: mockQuestionSets.slice(0, 3) } },
+      data: { quiz: { questionSets: [] } },
       error: null,
     })
 

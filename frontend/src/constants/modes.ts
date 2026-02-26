@@ -34,3 +34,10 @@ export const MODE_LABELS: Record<Mode, string> = {
   adaptive: 'Adaptive',
   rsvp: 'RSVP',
 }
+
+export const MODE_DESCRIPTIONS: Record<Mode, string> = {
+  standard: 'Read at your own pace with a customisable speed.',
+  adaptive:
+    'Uses eye tracking to adapt the text display to your reading speed in real time.',
+  rsvp: 'Rapid Serial Visual Presentation — just like TikTok :)',
+}

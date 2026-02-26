@@ -219,9 +219,11 @@ describe('Notifications Page', () => {
     mockState.loading = true
     mockState.notifications = []
 
-    render(<Notifications />)
+    const { container } = render(<Notifications />)
 
-    expect(screen.getByText('Loading notifications...')).toBeInTheDocument()
+    // Check that skeleton loader elements are present
+    const pulseElements = container.querySelectorAll('.animate-pulse')
+    expect(pulseElements.length).toBeGreaterThan(0)
   })
 
   it('should call markAsSeen when a notification is clicked', async () => {

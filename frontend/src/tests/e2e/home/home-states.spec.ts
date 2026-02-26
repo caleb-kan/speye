@@ -26,7 +26,8 @@ test.describe('Home Page States', () => {
     })
     await page.goto('/home')
 
-    await expect(page.getByText(/loading/i)).toBeVisible()
+    // Check for skeleton loaders (elements with animate-pulse class)
+    await expect(page.locator('[class*="animate-pulse"]').first()).toBeVisible()
   })
 
   test('shows error with retry button on failure', async ({ page }) => {

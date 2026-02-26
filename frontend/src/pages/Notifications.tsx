@@ -6,6 +6,7 @@ import {
   NotificationsTabs,
   type NotificationTab,
 } from '../components/notifications/NotificationsTabs'
+import { NotificationsSkeleton } from '../components/notifications/NotificationsSkeleton'
 import { Button } from '../components/ui/Button'
 import type { Notification } from '../types/database'
 
@@ -72,9 +73,7 @@ export function Notifications() {
       </div>
 
       {loading && !displayedNotifications.length ? (
-        <div className="rounded-xl border border-text-secondary/30 bg-bg-secondary p-4 text-text-secondary mt-4">
-          Loading notifications...
-        </div>
+        <NotificationsSkeleton />
       ) : !displayedNotifications.length ? (
         <div className="rounded-xl border border-dashed border-text-secondary/40 bg-bg-secondary/40 mt-6 p-6 text-text-secondary">
           {activeTab === 'unread'

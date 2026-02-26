@@ -258,7 +258,9 @@ describe('Login Page', () => {
       await user.type(screen.getByLabelText(/password/i), 'password123')
       await user.click(screen.getByRole('button', { name: /^sign in$/i }))
 
-      expect(screen.getByRole('button', { name: /loading/i })).toBeDisabled()
+      // Check that button is disabled and shows loading text
+      const submitButton = screen.getByRole('button', { name: /signing in/i })
+      expect(submitButton).toBeDisabled()
 
       await act(async () => {
         resolvePromise!({

@@ -12,7 +12,7 @@ import { useAuthRedirect } from '../hooks/useAuthRedirect'
 import { useNewTextWithReset } from '../hooks/useNewTextWithReset'
 import { useClearLocationState } from '../hooks/useClearLocationState'
 import { AdaptiveAuthLoading } from '../components/adaptive/AdaptiveAuthLoading'
-import { AdaptiveTextLoading } from '../components/adaptive/AdaptiveTextLoading'
+import { AdaptiveTextLoadingSkeleton } from '../components/adaptive/AdaptiveTextLoadingSkeleton'
 import { AdaptiveErrorState } from '../components/adaptive/AdaptiveErrorState'
 import { AdaptiveReaderLayout } from '../components/adaptive/AdaptiveReaderLayout'
 
@@ -153,7 +153,7 @@ export function Adaptive() {
 
   // Show loading state while fetching texts
   if (loading) {
-    return <AdaptiveTextLoading optionsBarProps={optionsBarProps} />
+    return <AdaptiveTextLoadingSkeleton optionsBarProps={optionsBarProps} />
   }
 
   // Show error state

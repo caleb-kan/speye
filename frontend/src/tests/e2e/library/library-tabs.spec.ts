@@ -60,7 +60,8 @@ test.describe('Library Tabs', () => {
     })
     await page.goto('/library')
 
-    await expect(page.getByText(/loading/i)).toBeVisible()
+    // Check for skeleton loaders (elements with animate-pulse class)
+    await expect(page.locator('[class*="animate-pulse"]').first()).toBeVisible()
   })
 
   test('shows empty state when no texts', async ({ page }) => {

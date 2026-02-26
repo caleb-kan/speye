@@ -11,6 +11,7 @@ import { AccessDenied } from '../components/admin/textApproval/AccessDenied'
 import { AdminGraphCard } from '../components/admin/AdminGraphCard'
 import { AdminStatsCard } from '../components/admin/AdminStatsCard'
 import { AdminActionPanel } from '../components/admin/AdminActionPanel'
+import { AdminSkeleton } from '../components/admin/AdminSkeleton'
 import { SUCCESS_MESSAGE_DURATION_MS } from '../constants/ui'
 import type { AdminReviewText } from '../services/adminService'
 import { FileText, XCircle, CheckCircle2 } from 'lucide-react'
@@ -76,13 +77,7 @@ export function Admin() {
   }, [setQuizPreviewText])
 
   if (authLoading || statsLoading || approvalsLoading) {
-    return (
-      <div className="p-6 h-full flex items-center justify-center">
-        <p className="text-text-secondary animate-pulse">
-          Loading dashboard...
-        </p>
-      </div>
-    )
+    return <AdminSkeleton />
   }
 
   if (!isAdmin) {

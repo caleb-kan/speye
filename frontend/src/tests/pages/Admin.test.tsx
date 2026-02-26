@@ -110,14 +110,18 @@ describe('Admin', () => {
 
   it('should show loading state when auth is loading', () => {
     mockState.authLoading = true
-    render(<Admin />)
-    expect(screen.getByText('Loading dashboard...')).toBeInTheDocument()
+    const { container } = render(<Admin />)
+    // Check that skeleton loader elements are present
+    const pulseElements = container.querySelectorAll('.animate-pulse')
+    expect(pulseElements.length).toBeGreaterThan(0)
   })
 
   it('should show loading state when approvals are loading', () => {
     mockState.loading = true
-    render(<Admin />)
-    expect(screen.getByText('Loading dashboard...')).toBeInTheDocument()
+    const { container } = render(<Admin />)
+    // Check that skeleton loader elements are present
+    const pulseElements = container.querySelectorAll('.animate-pulse')
+    expect(pulseElements.length).toBeGreaterThan(0)
   })
 
   it('should show access denied for non-admins', () => {

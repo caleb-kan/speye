@@ -1,4 +1,5 @@
 import type { ChangeEvent, FormEvent } from 'react'
+import { Loader2 } from 'lucide-react'
 import { ForgotPasswordButton } from './ForgotPasswordButton'
 import { USERNAME_MIN_LENGTH, USERNAME_MAX_LENGTH } from '../../utils/username'
 
@@ -130,9 +131,10 @@ export function LoginForm({
       <button
         type="submit"
         disabled={loading}
-        className="w-full mt-4 py-2.5 text-sm text-bg font-semibold bg-primary rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-bg-secondary disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+        className="w-full mt-4 py-2.5 text-sm text-bg font-semibold bg-primary rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-bg-secondary disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
       >
-        {loading ? 'Loading...' : isSignUp ? 'Create Account' : 'Sign In'}
+        {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+        {loading ? 'Signing in...' : isSignUp ? 'Create Account' : 'Sign In'}
       </button>
     </form>
   )

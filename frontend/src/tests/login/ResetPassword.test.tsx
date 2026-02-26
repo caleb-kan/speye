@@ -263,7 +263,9 @@ describe('ResetPassword Page', () => {
       )
       await user.click(screen.getByRole('button', { name: /reset password/i }))
 
-      expect(screen.getByRole('button', { name: /loading/i })).toBeDisabled()
+      // Check that button is disabled and shows loading text
+      const submitButton = screen.getByRole('button', { name: /resetting/i })
+      expect(submitButton).toBeDisabled()
 
       resolvePromise!({
         data: { user: null },

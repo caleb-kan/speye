@@ -2,6 +2,7 @@ import type { User } from '@supabase/supabase-js'
 import type { TextPreview } from '../../types/database'
 import type { LibraryTab } from './LibraryTabs'
 import { LibraryTextList } from './LibraryTextList'
+import { ListSkeleton } from '../ui/SkeletonLoader'
 
 export type LibraryContentProps = {
   activeTab: LibraryTab
@@ -50,11 +51,7 @@ export function LibraryContent({
   }
 
   if (loading && isInitialLoad) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-text-secondary">Loading texts...</p>
-      </div>
-    )
+    return <ListSkeleton count={4} />
   }
 
   if (paginatedTexts.length > 0) {

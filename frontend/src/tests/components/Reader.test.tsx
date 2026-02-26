@@ -62,9 +62,11 @@ describe('Reader', () => {
         refetch: vi.fn(),
       })
 
-      renderWithReadingLayout()
+      const { container } = renderWithReadingLayout()
 
-      expect(screen.getByText('Loading texts...')).toBeInTheDocument()
+      // Check that skeleton loader elements are present
+      const pulseElements = container.querySelectorAll('.animate-pulse')
+      expect(pulseElements.length).toBeGreaterThan(0)
     })
   })
 

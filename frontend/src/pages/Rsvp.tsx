@@ -7,7 +7,7 @@ import { useReadingPositionSync } from '../hooks/useReadingPositionSync'
 import { useRsvpActivitySession } from '../hooks/useRsvpActivitySession'
 import { useNewTextWithReset } from '../hooks/useNewTextWithReset'
 import { useClearLocationState } from '../hooks/useClearLocationState'
-import { RsvpTextLoading } from '../components/rsvp/RsvpTextLoading'
+import { RsvpTextLoadingSkeleton } from '../components/rsvp/RsvpTextLoadingSkeleton'
 import { RsvpErrorState } from '../components/rsvp/RsvpErrorState'
 import { RsvpReaderLayout } from '../components/rsvp/RsvpReaderLayout'
 import type { LocationState, FixedTextInfo } from '../types'
@@ -113,7 +113,7 @@ export function Rsvp() {
   }
 
   if (loading) {
-    return <RsvpTextLoading optionsBarProps={optionsBarProps} />
+    return <RsvpTextLoadingSkeleton optionsBarProps={optionsBarProps} />
   }
 
   if (error || !currentText) {

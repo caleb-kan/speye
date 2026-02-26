@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { Text } from '../types/database'
 import { getLastReadingPosition } from '../services/readingHistory'
+import { splitTextToWords } from '../utils/textParsing'
 
 export function useRestoreReadingProgress(
   currentText: Text | null,
@@ -32,7 +33,10 @@ export function useRestoreReadingProgress(
       const lastIndex = await getLastReadingPosition(newTextId)
 
       if (isMounted) {
-        if (lastIndex !== null && lastIndex > 0) {
+        const totalWords = currentText
+          ? splitTextToWords(currentText.content).length
+          : 0
+        if (lastIndex !== null && lastIndex > 0 && lastIndex < totalWords - 1) {
           setReadingPosition(lastIndex)
         }
 

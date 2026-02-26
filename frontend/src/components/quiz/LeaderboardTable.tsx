@@ -98,7 +98,7 @@ export function LeaderboardTable({
         </div>
       </div>
 
-      <div className="mt-3 space-y-2 max-h-72 overflow-auto pr-1">
+      <div className="mt-3 space-y-2">
         {isLoading ? (
           <div className="text-sm text-text-secondary">Loading...</div>
         ) : loadError ? (

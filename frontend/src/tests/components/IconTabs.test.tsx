@@ -28,9 +28,9 @@ describe('IconTabs', () => {
       />
     )
 
-    expect(screen.getByText('Tab 1')).toBeInTheDocument()
-    expect(screen.getByText('Tab 2')).toBeInTheDocument()
-    expect(screen.getByText('Tab 3')).toBeInTheDocument()
+    expect(screen.getByTestId('tab-tab1')).toBeInTheDocument()
+    expect(screen.getByTestId('tab-tab2')).toBeInTheDocument()
+    expect(screen.getByTestId('tab-tab3')).toBeInTheDocument()
 
     const icons = container.querySelectorAll('svg')
     expect(icons.length).toBe(3)
@@ -45,8 +45,8 @@ describe('IconTabs', () => {
       />
     )
 
-    expect(screen.getByText('5')).toBeInTheDocument()
-    expect(screen.getByText('3')).toBeInTheDocument()
+    expect(screen.getByTestId('tab-badge-tab1')).toBeInTheDocument()
+    expect(screen.getByTestId('tab-badge-tab2')).toBeInTheDocument()
   })
 
   it('should not render badge when count is 0', () => {
@@ -59,8 +59,8 @@ describe('IconTabs', () => {
       <IconTabs tabs={tabsWithZeroBadge} activeTab="a" onTabChange={vi.fn()} />
     )
 
-    const tab = screen.getByRole('button', { name: /Tab A/ })
-    expect(tab.textContent).toBe('Tab A')
+    const tab = screen.getByTestId('tab-a')
+    expect(tab.textContent).toContain('Tab A')
   })
 
   it('should not render badge when badge is undefined', () => {
@@ -72,8 +72,8 @@ describe('IconTabs', () => {
       />
     )
 
-    const tab = screen.getByRole('button', { name: /Tab 3/ })
-    expect(tab.textContent).toBe('Tab 3')
+    const tab = screen.getByTestId('tab-tab3')
+    expect(tab.textContent).toContain('Tab 3')
   })
 
   it('should apply active styles to the active tab', () => {
@@ -85,7 +85,7 @@ describe('IconTabs', () => {
       />
     )
 
-    const activeTab = screen.getByRole('button', { name: /Tab 1/ })
+    const activeTab = screen.getByTestId('tab-tab1')
     expect(activeTab).toHaveClass('text-primary')
     expect(activeTab).toHaveClass('border-primary')
   })
@@ -99,7 +99,7 @@ describe('IconTabs', () => {
       />
     )
 
-    const inactiveTab = screen.getByRole('button', { name: /Tab 2/ })
+    const inactiveTab = screen.getByTestId('tab-tab2')
     expect(inactiveTab).toHaveClass('text-text-secondary')
   })
 
@@ -113,7 +113,7 @@ describe('IconTabs', () => {
       />
     )
 
-    await user.click(screen.getByText('Tab 2'))
+    await user.click(screen.getByTestId('tab-tab2'))
 
     expect(mockOnTabChange).toHaveBeenCalledWith('tab2')
   })
@@ -127,7 +127,7 @@ describe('IconTabs', () => {
       />
     )
 
-    const activeBadge = screen.getByText('5')
+    const activeBadge = screen.getByTestId('tab-badge-tab1')
     expect(activeBadge).toHaveClass('bg-primary/10')
     expect(activeBadge).toHaveClass('text-primary')
 
@@ -139,7 +139,7 @@ describe('IconTabs', () => {
       />
     )
 
-    const inactiveBadge = screen.getByText('5')
+    const inactiveBadge = screen.getByTestId('tab-badge-tab1')
     expect(inactiveBadge).toHaveClass('bg-bg-secondary')
     expect(inactiveBadge).toHaveClass('text-text-secondary')
   })

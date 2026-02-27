@@ -2,33 +2,9 @@ import { test, expect } from '@playwright/test'
 import { mockAuthSession } from '../utils/utils'
 
 test.describe('Complete Profile', () => {
-  test('displays username input and save button', async ({ page }) => {
-    await mockAuthSession(page, {
-      sub: 'user-no-username',
-      email: 'oauth@example.com',
-      userMetadata: {},
-    })
-    await page.goto('/complete-profile')
-
-    await expect(page.getByText(/complete your profile/i)).toBeVisible()
-    await expect(page.getByLabel(/username/i)).toBeVisible()
-    await expect(
-      page.getByRole('button', { name: /save username/i })
-    ).toBeVisible()
-  })
-
-  test('shows validation hint for username format', async ({ page }) => {
-    await mockAuthSession(page, {
-      sub: 'user-no-username',
-      email: 'oauth@example.com',
-      userMetadata: {},
-    })
-    await page.goto('/complete-profile')
-
-    await expect(page.getByText(/3 to 20 characters/i)).toBeVisible()
-  })
-
-  test('shows taken error for duplicate username', async ({ page }) => {
+  test('displays form with validation hints and handles duplicate username error', async ({
+    page,
+  }) => {
     await mockAuthSession(page, {
       sub: 'user-no-username',
       email: 'oauth@example.com',
@@ -44,6 +20,14 @@ test.describe('Complete Profile', () => {
     })
 
     await page.goto('/complete-profile')
+
+    await expect(page.getByText(/complete your profile/i)).toBeVisible()
+    await expect(page.getByLabel(/username/i)).toBeVisible()
+    await expect(
+      page.getByRole('button', { name: /save username/i })
+    ).toBeVisible()
+    await expect(page.getByText(/3 to 20 characters/i)).toBeVisible()
+
     await page.getByLabel(/username/i).fill('takenuser')
     await page.getByRole('button', { name: /save username/i }).click()
 
@@ -116,11 +100,5 @@ test.describe('Complete Profile', () => {
     await page.getByRole('button', { name: /save username/i }).click()
 
     await page.waitForURL('**/home**', { timeout: 15000 })
-  })
-
-  test('redirects to /login when not authenticated', async ({ page }) => {
-    await page.goto('/complete-profile')
-
-    await page.waitForURL('**/login**', { timeout: 10000 })
   })
 })

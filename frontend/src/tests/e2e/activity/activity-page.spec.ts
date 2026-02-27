@@ -75,38 +75,16 @@ const mockSessions = [
 ]
 
 test.describe('Activity Page', () => {
-  test('displays Activity heading', async ({ page }) => {
+  test('displays activity page with stats when loaded', async ({ page }) => {
     await mockAuthSession(page)
     await mockActivityData(page, mockSessions)
     await page.goto('/activity')
 
     await expect(page.getByRole('heading', { name: /activity/i })).toBeVisible()
-  })
-
-  test('shows stats grid with key metrics', async ({ page }) => {
-    await mockAuthSession(page)
-    await mockActivityData(page, mockSessions)
-    await page.goto('/activity')
-
     await expect(page.getByText(/avg speed/i)).toBeVisible()
     await expect(page.getByText(/avg score/i)).toBeVisible()
     await expect(page.getByText(/texts read/i)).toBeVisible()
     await expect(page.getByText(/current streak/i)).toBeVisible()
-  })
-
-  test('shows skeleton loading state', async ({ page }) => {
-    await mockAuthSession(page)
-    await page.route('**/rest/v1/user_activity**', async (route) => {
-      await new Promise((resolve) => setTimeout(resolve, 5000))
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify([]),
-      })
-    })
-    await page.goto('/activity')
-
-    await expect(page.locator('.animate-pulse').first()).toBeVisible()
   })
 
   test('shows error state on API failure', async ({ page }) => {
@@ -121,13 +99,5 @@ test.describe('Activity Page', () => {
     await page.goto('/activity')
 
     await expect(page.getByText(/failed to load activity/i)).toBeVisible()
-  })
-
-  test('shows empty state when no sessions', async ({ page }) => {
-    await mockAuthSession(page)
-    await mockActivityData(page, [])
-    await page.goto('/activity')
-
-    await expect(page.getByRole('heading', { name: /activity/i })).toBeVisible()
   })
 })

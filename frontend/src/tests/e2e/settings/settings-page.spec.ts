@@ -2,15 +2,7 @@ import { test, expect } from '@playwright/test'
 import { mockAuthSession } from '../utils/utils'
 
 test.describe('Settings Page', () => {
-  // settings <h1> is removed so it is not visible
-  // test('displays settings heading', async ({ page }) => {
-  //   await mockAuthSession(page)
-  //   await page.goto('/settings')
-
-  //   await expect(page.getByText(/settings/i).first()).toBeVisible()
-  // })
-
-  test('shows profile section with username when authenticated', async ({
+  test('displays all settings sections when authenticated', async ({
     page,
   }) => {
     await mockAuthSession(page)
@@ -18,34 +10,10 @@ test.describe('Settings Page', () => {
 
     await expect(page.getByText(/profile/i).first()).toBeVisible()
     await expect(page.getByText(/@testuser/i)).toBeVisible()
-  })
-
-  test('shows theme selector', async ({ page }) => {
-    await mockAuthSession(page)
-    await page.goto('/settings')
-
     await expect(page.getByText(/theme/i).first()).toBeVisible()
     await expect(page.getByRole('radiogroup')).toBeVisible()
-  })
-
-  test('shows keyboard shortcuts section', async ({ page }) => {
-    await mockAuthSession(page)
-    await page.goto('/settings')
-
     await expect(page.getByText(/shortcuts/i)).toBeVisible()
-  })
-
-  test('shows about section', async ({ page }) => {
-    await mockAuthSession(page)
-    await page.goto('/settings')
-
     await expect(page.getByText(/about/i).first()).toBeVisible()
-  })
-
-  test('shows sign out button when authenticated', async ({ page }) => {
-    await mockAuthSession(page)
-    await page.goto('/settings')
-
     await expect(page.getByRole('button', { name: /log out/i })).toBeVisible()
   })
 

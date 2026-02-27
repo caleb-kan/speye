@@ -48,13 +48,6 @@ export function ModeSelector({
                 ? 'text-text-secondary opacity-50 cursor-not-allowed'
                 : 'text-text-secondary hover:text-text'
           }`}
-          title={
-            mode === 'adaptive'
-              ? 'Currently in adaptive mode'
-              : !user
-                ? 'Requires sign in'
-                : 'Adaptive reading mode with eye tracking'
-          }
           aria-label={
             mode === 'adaptive'
               ? 'Adaptive mode (active)'

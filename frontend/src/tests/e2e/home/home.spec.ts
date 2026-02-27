@@ -1,12 +1,12 @@
 import { test, expect } from '@playwright/test'
 import { mockAuthSession, mockRandomText } from '../utils/utils'
 
-test.describe('Home Reading Page', () => {
+test.describe('Home Page', () => {
   test.beforeEach(async ({ page }) => {
     await mockAuthSession(page)
   })
 
-  test('displays text title and content when loaded', async ({ page }) => {
+  test('displays text content with controls and progress', async ({ page }) => {
     await mockRandomText(page, {
       title: 'My Test Title',
       content: 'This is the body of the reading passage for testing.',
@@ -17,25 +17,42 @@ test.describe('Home Reading Page', () => {
     await expect(
       page.getByText('This is the body of the reading passage for testing.')
     ).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Play' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Restart' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'New text' })).toBeVisible()
+    await expect(page.getByText(/\d+\s*\/\s*\d+\s*words/i)).toBeVisible()
   })
 
-  test('shows Play button and reading controls', async ({ page }) => {
-    await mockRandomText(page)
+  test('shows loading state while fetching', async ({ page }) => {
+    await page.route('**/rest/v1/rpc/get_random_text**', async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 2000))
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([
+          {
+            id: 'text-1',
+            title: 'Delayed Text',
+            content: 'Content here.',
+            fiction: false,
+            complexity: 4,
+            processing_status: 'completed',
+          },
+        ]),
+      })
+    })
     await page.goto('/home')
 
-    await expect(page.getByRole('button', { name: 'Play' })).toBeVisible()
-    await expect(page.getByRole('button', { name: 'New text' })).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Restart' })).toBeVisible()
+    // Check for skeleton loaders (elements with animate-pulse class)
+    await expect(page.locator('[class*="animate-pulse"]').first()).toBeVisible()
   })
 
-  test('shows error state with retry on API failure', async ({ page }) => {
+  test('shows error with retry button on failure', async ({ page }) => {
     await page.route('**/rest/v1/rpc/get_random_text**', async (route) => {
       await route.fulfill({
         status: 500,
         contentType: 'application/json',
-        body: JSON.stringify({
-          error: 'Internal server error',
-        }),
+        body: JSON.stringify({ error: 'Server error' }),
       })
     })
     await page.goto('/home')

@@ -45,16 +45,13 @@ describe('Header', () => {
     it('renders the logo text', () => {
       renderHeader()
 
-      expect(screen.getByText('sp(eye)')).toBeInTheDocument()
+      expect(screen.getByTestId('header-logo')).toHaveTextContent('sp(eye)')
     })
 
     it('logo links to home page', () => {
       renderHeader()
 
-      expect(screen.getByRole('link', { name: 'sp(eye)' })).toHaveAttribute(
-        'href',
-        '/home'
-      )
+      expect(screen.getByTestId('header-logo')).toHaveAttribute('href', '/home')
     })
   })
 
@@ -79,7 +76,7 @@ describe('Header', () => {
     it('logo has focus-visible ring styling', () => {
       renderHeader()
 
-      const logo = screen.getByRole('link', { name: 'sp(eye)' })
+      const logo = screen.getByTestId('header-logo')
       expect(logo).toHaveClass('focus-visible:ring-2')
     })
   })
@@ -96,16 +93,13 @@ describe('Header', () => {
     it('logo links to /home for standard mode', () => {
       mockMode = 'standard'
       renderHeader()
-      expect(screen.getByRole('link', { name: 'sp(eye)' })).toHaveAttribute(
-        'href',
-        '/home'
-      )
+      expect(screen.getByTestId('header-logo')).toHaveAttribute('href', '/home')
     })
 
     it('logo links to /adaptive for adaptive mode', () => {
       mockMode = 'adaptive'
       renderHeader()
-      expect(screen.getByRole('link', { name: 'sp(eye)' })).toHaveAttribute(
+      expect(screen.getByTestId('header-logo')).toHaveAttribute(
         'href',
         '/adaptive'
       )
@@ -114,10 +108,7 @@ describe('Header', () => {
     it('logo links to /rsvp for rsvp mode', () => {
       mockMode = 'rsvp'
       renderHeader()
-      expect(screen.getByRole('link', { name: 'sp(eye)' })).toHaveAttribute(
-        'href',
-        '/rsvp'
-      )
+      expect(screen.getByTestId('header-logo')).toHaveAttribute('href', '/rsvp')
     })
   })
 
@@ -126,7 +117,7 @@ describe('Header', () => {
       mockMode = 'standard'
       renderHeaderWithRoute('/home')
 
-      const link = screen.getByRole('link', { name: 'sp(eye)' })
+      const link = screen.getByTestId('header-logo')
       const clickEvent = new MouseEvent('click', {
         bubbles: true,
         cancelable: true,
@@ -141,7 +132,7 @@ describe('Header', () => {
       mockMode = 'standard'
       renderHeaderWithRoute('/library')
 
-      const link = screen.getByRole('link', { name: 'sp(eye)' })
+      const link = screen.getByTestId('header-logo')
       // When on /library with standard mode, target is /home — should not prevent
       expect(link).toHaveAttribute('href', '/home')
     })

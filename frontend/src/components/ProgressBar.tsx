@@ -38,23 +38,31 @@ export const ProgressBar = memo(function ProgressBar({
         aria-label={`Reading progress: ${Math.round(progress)}%`}
         className="bg-bg-secondary rounded-full overflow-hidden"
         style={{ height: `${height}px` }}
+        data-testid="progress-bar"
       >
         <div
           className="h-full bg-primary transition-all duration-100"
           style={{ width: `${progress}%` }}
+          data-testid="progress-bar-fill"
         />
       </div>
       {showWordCount &&
       currentWord !== undefined &&
       totalWords !== undefined ? (
-        <div className="flex justify-between mt-2 text-xs text-text-secondary">
-          <span>
+        <div
+          className="flex justify-between mt-2 text-xs text-text-secondary"
+          data-testid="progress-word-count"
+        >
+          <span data-testid="progress-word-count-text">
             {currentWord} / {totalWords} words
           </span>
-          <span>{Math.round(progress)}%</span>
+          <span data-testid="progress-percentage">{Math.round(progress)}%</span>
         </div>
       ) : (
-        <p className="text-xs text-text-secondary mt-1 text-center">
+        <p
+          className="text-xs text-text-secondary mt-1 text-center"
+          data-testid="progress-complete-text"
+        >
           {Math.round(progress)}% complete
         </p>
       )}

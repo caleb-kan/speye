@@ -20,32 +20,32 @@ describe('DefaultAvatar', () => {
         username="testuser"
       />
     )
-    const img = screen.getByAltText(/Avatar for testuser/)
+    const img = screen.getByTestId('avatar-image')
     expect(img).toBeInTheDocument()
     expect(img).toHaveAttribute('src', 'https://example.com/avatar.jpg')
   })
 
   it('shows initial letter from username', () => {
     render(<DefaultAvatar username="john" />)
-    const avatar = screen.getByRole('img')
+    const avatar = screen.getByTestId('avatar-fallback')
     expect(avatar).toHaveTextContent('J')
   })
 
   it('shows question mark when no username provided', () => {
     render(<DefaultAvatar />)
-    const avatar = screen.getByRole('img')
+    const avatar = screen.getByTestId('avatar-fallback')
     expect(avatar).toHaveTextContent('?')
   })
 
   it('has correct aria-label with username', () => {
     render(<DefaultAvatar username="jane" />)
-    const avatar = screen.getByRole('img')
+    const avatar = screen.getByTestId('avatar-fallback')
     expect(avatar).toHaveAccessibleName(/Avatar for jane/)
   })
 
   it('has correct aria-label without username', () => {
     render(<DefaultAvatar />)
-    const avatar = screen.getByRole('img')
+    const avatar = screen.getByTestId('avatar-fallback')
     expect(avatar).toHaveAccessibleName('Default avatar')
   })
 
@@ -57,7 +57,7 @@ describe('DefaultAvatar', () => {
       />
     )
 
-    const img = screen.getByAltText(/Avatar for testuser/)
+    const img = screen.getByTestId('avatar-image')
     // Simulate image load error wrapped in act() for state updates
     await act(async () => {
       img.dispatchEvent(new Event('error'))
@@ -70,41 +70,41 @@ describe('DefaultAvatar', () => {
       />
     )
 
-    expect(screen.queryByAltText(/Avatar for testuser/)).not.toBeInTheDocument()
-    expect(screen.getByRole('img')).toHaveTextContent('T')
+    expect(screen.queryByTestId('avatar-image')).not.toBeInTheDocument()
+    expect(screen.getByTestId('avatar-fallback')).toHaveTextContent('T')
   })
 
   it('applies sm size class', () => {
     render(<DefaultAvatar size="sm" username="testuser" />)
-    const avatar = screen.getByRole('img')
+    const avatar = screen.getByTestId('avatar-fallback')
     expect(avatar.className).toContain('text-sm')
   })
 
   it('applies md size class', () => {
     render(<DefaultAvatar size="md" username="testuser" />)
-    const avatar = screen.getByRole('img')
+    const avatar = screen.getByTestId('avatar-fallback')
     expect(avatar.className).toContain('text-base')
   })
 
   it('applies lg size class', () => {
     render(<DefaultAvatar size="lg" username="testuser" />)
-    const avatar = screen.getByRole('img')
+    const avatar = screen.getByTestId('avatar-fallback')
     expect(avatar.className).toContain('text-3xl')
   })
 
   it('defaults to md size', () => {
     render(<DefaultAvatar username="testuser" />)
-    const avatar = screen.getByRole('img')
+    const avatar = screen.getByTestId('avatar-fallback')
     expect(avatar.className).toContain('text-base')
   })
 
   it('generates consistent color from username', () => {
     const { rerender } = render(<DefaultAvatar username="testuser" />)
-    const avatar1 = screen.getByRole('img')
+    const avatar1 = screen.getByTestId('avatar-fallback')
     const style1 = avatar1.getAttribute('style')
 
     rerender(<DefaultAvatar username="testuser" />)
-    const avatar2 = screen.getByRole('img')
+    const avatar2 = screen.getByTestId('avatar-fallback')
     const style2 = avatar2.getAttribute('style')
 
     // Same username should produce same color
@@ -113,11 +113,11 @@ describe('DefaultAvatar', () => {
 
   it('generates different colors from different usernames', () => {
     const { rerender } = render(<DefaultAvatar username="user1" />)
-    const avatar1 = screen.getByRole('img')
+    const avatar1 = screen.getByTestId('avatar-fallback')
     const style1 = avatar1.getAttribute('style')
 
     rerender(<DefaultAvatar username="user2" />)
-    const avatar2 = screen.getByRole('img')
+    const avatar2 = screen.getByTestId('avatar-fallback')
     const style2 = avatar2.getAttribute('style')
 
     // Different usernames likely produce different colors
@@ -126,20 +126,20 @@ describe('DefaultAvatar', () => {
 
   it('has rounded-full class', () => {
     render(<DefaultAvatar username="testuser" />)
-    const avatar = screen.getByRole('img')
+    const avatar = screen.getByTestId('avatar-fallback')
     expect(avatar.className).toContain('rounded-full')
   })
 
   it('has w-full h-full classes for filling parent', () => {
     render(<DefaultAvatar username="testuser" />)
-    const avatar = screen.getByRole('img')
+    const avatar = screen.getByTestId('avatar-fallback')
     expect(avatar.className).toContain('w-full')
     expect(avatar.className).toContain('h-full')
   })
 
   it('sets referrerPolicy for image', () => {
     render(<DefaultAvatar avatarUrl="https://example.com/avatar.jpg" />)
-    const img = screen.getByAltText('User avatar')
+    const img = screen.getByTestId('avatar-image')
     expect(img).toHaveAttribute('referrerPolicy', 'no-referrer')
   })
 })

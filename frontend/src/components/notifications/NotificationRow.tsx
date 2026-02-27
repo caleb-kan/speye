@@ -33,6 +33,7 @@ export function NotificationRow({
         focus-visible:outline-none focus-visible:border-2 focus-visible:border-primary
         ${config.classes} ${notification.seen ? 'opacity-80' : ''}
       `}
+      data-testid={`notification-row-${notification.id}`}
     >
       <div className="flex items-start gap-3">
         <Icon className="mt-0.5" size={18} />
@@ -40,11 +41,17 @@ export function NotificationRow({
           <div className="flex flex-wrap items-center gap-2">
             <span
               className={`rounded-full px-2 py-0.5 text-xs ${config.badge}`}
+              data-testid={`notification-badge-${notification.id}`}
             >
               {config.label}
             </span>
             {!notification.seen ? (
-              <span className="text-xs text-primary">New</span>
+              <span
+                className="text-xs text-primary"
+                data-testid={`notification-new-badge-${notification.id}`}
+              >
+                New
+              </span>
             ) : null}
           </div>
           <p className="mt-2 text-sm font-medium text-text">

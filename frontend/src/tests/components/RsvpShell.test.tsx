@@ -90,8 +90,9 @@ describe('RsvpShell', () => {
           <div>content</div>
         </RsvpShell>
       )
-      expect(screen.queryByText('options')).not.toBeInTheDocument()
-      expect(screen.queryByText('hide options')).not.toBeInTheDocument()
+      expect(
+        screen.queryByTestId('rsvp-options-toggle')
+      ).not.toBeInTheDocument()
     })
 
     it('renders children', () => {
@@ -126,7 +127,10 @@ describe('RsvpShell', () => {
           <div>content</div>
         </RsvpShell>
       )
-      expect(screen.getByText('options')).toBeInTheDocument()
+      expect(screen.getByTestId('rsvp-options-toggle')).toBeInTheDocument()
+      expect(screen.getByTestId('rsvp-options-toggle')).toHaveTextContent(
+        'options'
+      )
     })
 
     it('shows "hide options" text when expanded', async () => {
@@ -137,8 +141,10 @@ describe('RsvpShell', () => {
         </RsvpShell>
       )
 
-      await user.click(screen.getByText('options'))
-      expect(screen.getByText('hide options')).toBeInTheDocument()
+      await user.click(screen.getByTestId('rsvp-options-toggle'))
+      expect(screen.getByTestId('rsvp-options-toggle')).toHaveTextContent(
+        'hide options'
+      )
     })
 
     it('persists toggle state to localStorage', async () => {
@@ -149,13 +155,13 @@ describe('RsvpShell', () => {
         </RsvpShell>
       )
 
-      await user.click(screen.getByText('options'))
+      await user.click(screen.getByTestId('rsvp-options-toggle'))
       expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
         STORAGE_KEYS.RSVP_OPTIONS_OPEN,
         'true'
       )
 
-      await user.click(screen.getByText('hide options'))
+      await user.click(screen.getByTestId('rsvp-options-toggle'))
       expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
         STORAGE_KEYS.RSVP_OPTIONS_OPEN,
         'false'
@@ -163,26 +169,26 @@ describe('RsvpShell', () => {
     })
 
     it('collapsed state has max-h-0 and opacity-0 classes', () => {
-      const { container } = render(
+      render(
         <RsvpShell optionsBarProps={stubOptionsBarProps}>
           <div>content</div>
         </RsvpShell>
       )
-      const wrapper = container.querySelector('.overflow-x-auto') as HTMLElement
+      const wrapper = screen.getByTestId('rsvp-options-wrapper')
       expect(wrapper).toHaveClass('max-h-0')
       expect(wrapper).toHaveClass('opacity-0')
     })
 
     it('expanded state has max-h-67 and opacity-100 classes', async () => {
       const user = userEvent.setup()
-      const { container } = render(
+      render(
         <RsvpShell optionsBarProps={stubOptionsBarProps}>
           <div>content</div>
         </RsvpShell>
       )
 
-      await user.click(screen.getByText('options'))
-      const wrapper = container.querySelector('.overflow-x-auto') as HTMLElement
+      await user.click(screen.getByTestId('rsvp-options-toggle'))
+      const wrapper = screen.getByTestId('rsvp-options-wrapper')
       expect(wrapper).toHaveClass('max-h-67')
       expect(wrapper).toHaveClass('opacity-100')
     })
@@ -194,7 +200,9 @@ describe('RsvpShell', () => {
           <div>content</div>
         </RsvpShell>
       )
-      expect(screen.getByText('hide options')).toBeInTheDocument()
+      expect(screen.getByTestId('rsvp-options-toggle')).toHaveTextContent(
+        'hide options'
+      )
     })
 
     it('renders children', () => {

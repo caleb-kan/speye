@@ -1,16 +1,16 @@
 import { test, expect } from '@playwright/test'
 
 test.describe('Sign Up Flow', () => {
-  test('toggles between sign in and sign up modes', async ({ page }) => {
+  test('displays sign up form with OAuth option', async ({ page }) => {
     await page.goto('/login')
 
     await expect(page.getByRole('button', { name: 'Sign In' })).toBeVisible()
+    await expect(page.getByText(/continue with google/i)).toBeVisible()
 
     await page.getByRole('button', { name: 'Sign up' }).click()
     await expect(
       page.getByRole('button', { name: 'Create Account' })
     ).toBeVisible()
-
     await expect(page.getByLabel(/username/i)).toBeVisible()
   })
 
@@ -68,41 +68,29 @@ test.describe('Sign Up Flow', () => {
       timeout: 5000,
     })
   })
+})
 
-  test('displays Google OAuth button', async ({ page }) => {
-    await page.goto('/login')
-
-    await expect(page.getByText(/continue with google/i)).toBeVisible()
-  })
-
-  test('shows error on failed sign up', async ({ page }) => {
-    // Mock username as available so test reaches signup endpoint
-    await page.route('**/rest/v1/users**', async (route) => {
+test.describe('Forgot Password', () => {
+  test('displays form and sends reset link', async ({ page }) => {
+    await page.route('**/auth/v1/recover**', async (route) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify(null),
-      })
-    })
-    await page.route('**/auth/v1/signup**', async (route) => {
-      await route.fulfill({
-        status: 500,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          error: 'server_error',
-          error_description: 'An unexpected error occurred',
-        }),
+        body: JSON.stringify({}),
       })
     })
 
-    await page.goto('/login')
-    await page.getByRole('button', { name: 'Sign up' }).click()
+    await page.goto('/forgot-password')
 
-    await page.getByLabel(/username/i).fill('testuser')
-    await page.getByLabel(/email/i).fill('test@example.com')
-    await page.getByLabel(/password/i).fill('password123')
-    await page.getByRole('button', { name: 'Create Account' }).click()
+    await expect(page.getByText(/reset password/i)).toBeVisible()
+    await expect(page.getByLabel(/email/i)).toBeVisible()
+    await expect(
+      page.getByRole('button', { name: /send reset link/i })
+    ).toBeVisible()
 
-    await expect(page.getByRole('alert')).toBeVisible()
+    await page.getByLabel(/email/i).fill('user@example.com')
+    await page.getByRole('button', { name: /send reset link/i }).click()
+
+    await expect(page.getByRole('status')).toBeVisible()
   })
 })

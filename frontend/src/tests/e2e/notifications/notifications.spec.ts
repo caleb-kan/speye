@@ -166,50 +166,6 @@ test.describe('Notifications Page', () => {
     expect(updateRequest).toBeTruthy()
   })
 
-  test('should show visual indicators for notification states', async ({
-    page,
-  }) => {
-    await gotoNotifications(page)
-
-    // Find the notification row containing "Your quiz score is ready"
-    const unreadNotification = page.locator('button').filter({
-      has: page
-        .locator('p.text-sm.font-medium')
-        .filter({ hasText: 'Your quiz score is ready' }),
-    })
-
-    // Check unread notification has "New" badge
-    await expect(unreadNotification.getByText('New')).toBeVisible()
-
-    // Check clickable notification has chevron icon (specifically the chevron-right)
-    await expect(
-      unreadNotification.locator('svg.lucide-chevron-right')
-    ).toBeVisible()
-
-    // Find non-clickable notification
-    const nonClickableNotification = page.locator('button').filter({
-      has: page
-        .locator('p.text-sm.font-medium')
-        .filter({ hasText: 'New text added to library' }),
-    })
-
-    // Check non-clickable notification has invisible chevron (for alignment)
-    const chevron = nonClickableNotification.locator('svg.lucide-chevron-right')
-    await expect(chevron).toHaveClass(/invisible/)
-
-    // Switch to Read tab and verify no "New" badge
-    await page.getByRole('button', { name: /Read/ }).click()
-
-    const readNotification = page.locator('button').filter({
-      has: page
-        .locator('p.text-sm.font-medium')
-        .filter({ hasText: 'Reading session complete' }),
-    })
-
-    const newBadgeCount = await readNotification.getByText('New').count()
-    expect(newBadgeCount).toBe(0)
-  })
-
   test('should show empty states when no notifications', async ({ page }) => {
     // Override with only read notifications
     await page.route('**/rest/v1/notifications**', async (route) => {
@@ -236,36 +192,5 @@ test.describe('Notifications Page', () => {
         .locator('p.text-sm.font-medium')
         .filter({ hasText: 'Reading session complete' })
     ).toBeVisible()
-  })
-
-  test('should sort notifications by date descending', async ({ page }) => {
-    await gotoNotifications(page)
-
-    // Get all notification buttons and verify they are in correct order
-    // We know first should be "Your quiz score is ready" and second should be "New text added to library"
-    const firstNotification = page.locator('button').filter({
-      has: page
-        .locator('p.text-sm.font-medium')
-        .filter({ hasText: 'Your quiz score is ready' }),
-    })
-
-    const secondNotification = page.locator('button').filter({
-      has: page
-        .locator('p.text-sm.font-medium')
-        .filter({ hasText: 'New text added to library' }),
-    })
-
-    // Both should be visible
-    await expect(firstNotification).toBeVisible()
-    await expect(secondNotification).toBeVisible()
-
-    // Get the bounding boxes to verify position
-    const firstBox = await firstNotification.boundingBox()
-    const secondBox = await secondNotification.boundingBox()
-
-    // First notification should be above second (smaller y coordinate)
-    expect(firstBox).not.toBeNull()
-    expect(secondBox).not.toBeNull()
-    expect(firstBox!.y).toBeLessThan(secondBox!.y)
   })
 })

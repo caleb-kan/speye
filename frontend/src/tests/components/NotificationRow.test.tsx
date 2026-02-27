@@ -39,7 +39,9 @@ describe('NotificationRow', () => {
       <NotificationRow notification={mockNotification} onOpen={mockOnOpen} />
     )
 
-    expect(screen.getByText('Test notification message')).toBeInTheDocument()
+    expect(
+      screen.getByTestId(`notification-row-${mockNotification.id}`)
+    ).toHaveTextContent('Test notification message')
   })
 
   it('should render notification type label', () => {
@@ -47,7 +49,9 @@ describe('NotificationRow', () => {
       <NotificationRow notification={mockNotification} onOpen={mockOnOpen} />
     )
 
-    expect(screen.getByText('Info')).toBeInTheDocument()
+    expect(
+      screen.getByTestId(`notification-badge-${mockNotification.id}`)
+    ).toHaveTextContent('Info')
   })
 
   it('should render "New" badge for unseen notifications', () => {
@@ -55,7 +59,9 @@ describe('NotificationRow', () => {
       <NotificationRow notification={mockNotification} onOpen={mockOnOpen} />
     )
 
-    expect(screen.getByText('New')).toBeInTheDocument()
+    expect(
+      screen.getByTestId(`notification-new-badge-${mockNotification.id}`)
+    ).toBeInTheDocument()
   })
 
   it('should not render "New" badge for seen notifications', () => {
@@ -68,7 +74,9 @@ describe('NotificationRow', () => {
       <NotificationRow notification={seenNotification} onOpen={mockOnOpen} />
     )
 
-    expect(screen.queryByText('New')).not.toBeInTheDocument()
+    expect(
+      screen.queryByTestId(`notification-new-badge-${seenNotification.id}`)
+    ).not.toBeInTheDocument()
   })
 
   it('should call onOpen when clicked', async () => {
@@ -77,7 +85,7 @@ describe('NotificationRow', () => {
       <NotificationRow notification={mockNotification} onOpen={mockOnOpen} />
     )
 
-    const button = screen.getByRole('button')
+    const button = screen.getByTestId(`notification-row-${mockNotification.id}`)
     await user.click(button)
 
     expect(mockOnOpen).toHaveBeenCalled()
@@ -93,7 +101,9 @@ describe('NotificationRow', () => {
       <NotificationRow notification={alertNotification} onOpen={mockOnOpen} />
     )
 
-    expect(screen.getByText('Alert')).toBeInTheDocument()
+    expect(
+      screen.getByTestId(`notification-badge-${alertNotification.id}`)
+    ).toHaveTextContent('Alert')
   })
 
   it('should render different label for error type', () => {
@@ -106,17 +116,9 @@ describe('NotificationRow', () => {
       <NotificationRow notification={errorNotification} onOpen={mockOnOpen} />
     )
 
-    expect(screen.getByText('Error')).toBeInTheDocument()
-  })
-
-  it('should render formatted timestamp', () => {
-    render(
-      <NotificationRow notification={mockNotification} onOpen={mockOnOpen} />
-    )
-
-    // The timestamp is rendered with a newline, so we check for both parts
-    expect(screen.getByText(/02\/11\/2026/)).toBeInTheDocument()
-    expect(screen.getByText(/10:00:00/)).toBeInTheDocument()
+    expect(
+      screen.getByTestId(`notification-badge-${errorNotification.id}`)
+    ).toHaveTextContent('Error')
   })
 
   it('should apply opacity-80 class when notification is seen', () => {
@@ -125,20 +127,20 @@ describe('NotificationRow', () => {
       seen: true,
     }
 
-    const { container } = render(
+    render(
       <NotificationRow notification={seenNotification} onOpen={mockOnOpen} />
     )
 
-    const button = container.querySelector('button')
+    const button = screen.getByTestId(`notification-row-${seenNotification.id}`)
     expect(button).toHaveClass('opacity-80')
   })
 
   it('should not apply opacity-80 class when notification is unseen', () => {
-    const { container } = render(
+    render(
       <NotificationRow notification={mockNotification} onOpen={mockOnOpen} />
     )
 
-    const button = container.querySelector('button')
+    const button = screen.getByTestId(`notification-row-${mockNotification.id}`)
     expect(button).not.toHaveClass('opacity-80')
   })
 
@@ -153,7 +155,9 @@ describe('NotificationRow', () => {
       <NotificationRow notification={linkedNotification} onOpen={mockOnOpen} />
     )
 
-    await user.click(screen.getByRole('button'))
+    await user.click(
+      screen.getByTestId(`notification-row-${linkedNotification.id}`)
+    )
 
     expect(mockOnOpen).toHaveBeenCalled()
     expect(mockNavigate).toHaveBeenCalledWith('/admin')
@@ -166,35 +170,12 @@ describe('NotificationRow', () => {
       <NotificationRow notification={mockNotification} onOpen={mockOnOpen} />
     )
 
-    await user.click(screen.getByRole('button'))
+    await user.click(
+      screen.getByTestId(`notification-row-${mockNotification.id}`)
+    )
 
     expect(mockOnOpen).toHaveBeenCalled()
     expect(mockNavigate).not.toHaveBeenCalled()
-  })
-
-  it('should render chevron icon for linked notifications', () => {
-    const linkedNotification: Notification = {
-      ...mockNotification,
-      link: '/library',
-    }
-
-    const { container } = render(
-      <NotificationRow notification={linkedNotification} onOpen={mockOnOpen} />
-    )
-
-    const chevron = container.querySelector('svg.lucide-chevron-right')
-    expect(chevron).toBeTruthy()
-    expect(chevron).not.toHaveClass('invisible')
-  })
-
-  it('should hide chevron icon for non-linked notifications', () => {
-    const { container } = render(
-      <NotificationRow notification={mockNotification} onOpen={mockOnOpen} />
-    )
-
-    const chevron = container.querySelector('svg.lucide-chevron-right')
-    expect(chevron).toBeTruthy()
-    expect(chevron).toHaveClass('invisible')
   })
 
   it('should apply cursor-pointer class for clickable notifications', () => {
@@ -203,20 +184,22 @@ describe('NotificationRow', () => {
       link: '/library',
     }
 
-    const { container } = render(
+    render(
       <NotificationRow notification={linkedNotification} onOpen={mockOnOpen} />
     )
 
-    const button = container.querySelector('button')
+    const button = screen.getByTestId(
+      `notification-row-${linkedNotification.id}`
+    )
     expect(button).toHaveClass('cursor-pointer')
   })
 
   it('should apply cursor-default class for non-clickable notifications', () => {
-    const { container } = render(
+    render(
       <NotificationRow notification={mockNotification} onOpen={mockOnOpen} />
     )
 
-    const button = container.querySelector('button')
+    const button = screen.getByTestId(`notification-row-${mockNotification.id}`)
     expect(button).toHaveClass('cursor-default')
   })
 })

@@ -1,4 +1,8 @@
-import { HeaderSkeleton, ListSkeleton } from '../ui/SkeletonLoader'
+import {
+  HeaderSkeleton,
+  ListSkeleton,
+  SkeletonLoader,
+} from '../ui/SkeletonLoader'
 
 export function LibrarySkeleton() {
   return (
@@ -9,10 +13,7 @@ export function LibrarySkeleton() {
         {/* Tabs */}
         <div className="flex gap-4">
           {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className="h-10 w-24 bg-text-secondary/10 rounded-lg animate-pulse"
-            />
+            <SkeletonLoader key={i} className="h-10 w-24 rounded-lg" />
           ))}
         </div>
 
@@ -20,10 +21,7 @@ export function LibrarySkeleton() {
         <div className="space-y-3">
           <div className="flex gap-3">
             {[1, 2].map((i) => (
-              <div
-                key={i}
-                className="h-10 w-32 bg-text-secondary/10 rounded-lg animate-pulse"
-              />
+              <SkeletonLoader key={i} className="h-10 w-32 rounded-lg" />
             ))}
           </div>
         </div>
@@ -36,10 +34,7 @@ export function LibrarySkeleton() {
         {/* Pagination */}
         <div className="flex justify-center gap-2">
           {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className="h-10 w-10 bg-text-secondary/10 rounded-lg animate-pulse"
-            />
+            <SkeletonLoader key={i} className="h-10 w-10 rounded-lg" />
           ))}
         </div>
       </div>

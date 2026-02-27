@@ -31,7 +31,9 @@ export function CardGridSkeleton({
   }
 
   return (
-    <div className={`grid ${gridCols[columns as keyof typeof gridCols]} gap-4`}>
+    <div
+      className={`grid ${gridCols[columns as keyof typeof gridCols] ?? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4'} gap-4`}
+    >
       {Array.from({ length: count }).map((_, i) => (
         <SkeletonLoader key={i} className={`${height} rounded-2xl`} />
       ))}

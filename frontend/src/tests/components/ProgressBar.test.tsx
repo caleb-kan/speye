@@ -19,36 +19,38 @@ describe('ProgressBar', () => {
 
   it('displays progress percentage', () => {
     render(<ProgressBar {...defaultProps} progress={75} />)
-    expect(screen.getByText('75% complete')).toBeInTheDocument()
+    expect(screen.getByTestId('progress-complete-text')).toHaveTextContent(
+      '75% complete'
+    )
   })
 
   it('renders progress bar element with correct role', () => {
     render(<ProgressBar {...defaultProps} />)
-    const progressBar = screen.getByRole('progressbar')
+    const progressBar = screen.getByTestId('progress-bar')
     expect(progressBar).toBeInTheDocument()
   })
 
   it('sets aria-valuenow to progress percentage', () => {
     render(<ProgressBar {...defaultProps} progress={65} />)
-    const progressBar = screen.getByRole('progressbar')
+    const progressBar = screen.getByTestId('progress-bar')
     expect(progressBar).toHaveAttribute('aria-valuenow', '65')
   })
 
   it('sets aria-valuemin to 0', () => {
     render(<ProgressBar {...defaultProps} />)
-    const progressBar = screen.getByRole('progressbar')
+    const progressBar = screen.getByTestId('progress-bar')
     expect(progressBar).toHaveAttribute('aria-valuemin', '0')
   })
 
   it('sets aria-valuemax to 100', () => {
     render(<ProgressBar {...defaultProps} />)
-    const progressBar = screen.getByRole('progressbar')
+    const progressBar = screen.getByTestId('progress-bar')
     expect(progressBar).toHaveAttribute('aria-valuemax', '100')
   })
 
   it('has descriptive aria-label', () => {
     render(<ProgressBar {...defaultProps} progress={50} />)
-    const progressBar = screen.getByRole('progressbar')
+    const progressBar = screen.getByTestId('progress-bar')
     expect(progressBar).toHaveAttribute('aria-label', 'Reading progress: 50%')
   })
 
@@ -61,7 +63,9 @@ describe('ProgressBar', () => {
         totalWords={100}
       />
     )
-    expect(screen.getByText('50 / 100 words')).toBeInTheDocument()
+    expect(screen.getByTestId('progress-word-count-text')).toHaveTextContent(
+      '50 / 100 words'
+    )
   })
 
   it('does not display word count when showWordCount is false', () => {
@@ -86,33 +90,39 @@ describe('ProgressBar', () => {
         totalWords={100}
       />
     )
-    expect(screen.getByText('75%')).toBeInTheDocument()
+    expect(screen.getByTestId('progress-percentage')).toHaveTextContent('75%')
   })
 
   it('handles 0% progress', () => {
     render(<ProgressBar {...defaultProps} progress={0} />)
-    expect(screen.getByText('0% complete')).toBeInTheDocument()
+    expect(screen.getByTestId('progress-complete-text')).toHaveTextContent(
+      '0% complete'
+    )
   })
 
   it('handles 100% progress', () => {
     render(<ProgressBar {...defaultProps} progress={100} />)
-    expect(screen.getByText('100% complete')).toBeInTheDocument()
+    expect(screen.getByTestId('progress-complete-text')).toHaveTextContent(
+      '100% complete'
+    )
   })
 
   it('rounds progress percentage for display', () => {
     render(<ProgressBar {...defaultProps} progress={33.333} />)
-    expect(screen.getByText('33% complete')).toBeInTheDocument()
+    expect(screen.getByTestId('progress-complete-text')).toHaveTextContent(
+      '33% complete'
+    )
   })
 
   it('applies custom height', () => {
     render(<ProgressBar {...defaultProps} height={8} />)
-    const progressBar = screen.getByRole('progressbar')
+    const progressBar = screen.getByTestId('progress-bar')
     expect(progressBar).toHaveStyle('height: 8px')
   })
 
   it('defaults to 4px height', () => {
     render(<ProgressBar {...defaultProps} />)
-    const progressBar = screen.getByRole('progressbar')
+    const progressBar = screen.getByTestId('progress-bar')
     expect(progressBar).toHaveStyle('height: 4px')
   })
 
@@ -124,22 +134,20 @@ describe('ProgressBar', () => {
   })
 
   it('renders progress fill correctly', () => {
-    const { container } = render(
-      <ProgressBar {...defaultProps} progress={60} />
-    )
-    const fill = container.querySelector('[style*="width: 60%"]')
-    expect(fill).toBeInTheDocument()
+    render(<ProgressBar {...defaultProps} progress={60} />)
+    const fill = screen.getByTestId('progress-bar-fill')
+    expect(fill).toHaveStyle('width: 60%')
   })
 
   it('has rounded styling', () => {
     render(<ProgressBar {...defaultProps} />)
-    const progressBar = screen.getByRole('progressbar')
+    const progressBar = screen.getByTestId('progress-bar')
     expect(progressBar.className).toContain('rounded-full')
   })
 
   it('has overflow hidden for clean edges', () => {
     render(<ProgressBar {...defaultProps} />)
-    const progressBar = screen.getByRole('progressbar')
+    const progressBar = screen.getByTestId('progress-bar')
     expect(progressBar.className).toContain('overflow-hidden')
   })
 

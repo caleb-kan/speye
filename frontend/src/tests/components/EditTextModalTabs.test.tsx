@@ -88,20 +88,20 @@ describe('EditTextModal tabs', () => {
 
   it('shows tabs when text has a quiz', () => {
     renderWithAuth(<EditTextModal {...defaultProps} />)
-    expect(screen.getByRole('tab', { name: 'Text' })).toBeInTheDocument()
-    expect(screen.getByRole('tab', { name: 'Quiz' })).toBeInTheDocument()
+    expect(screen.getByTestId('edit-modal-text-tab')).toBeInTheDocument()
+    expect(screen.getByTestId('edit-modal-quiz-tab')).toBeInTheDocument()
   })
 
   it('does not show tabs when text has no quiz', () => {
     renderWithAuth(<EditTextModal {...defaultProps} text={textWithoutQuiz} />)
-    expect(screen.queryByRole('tab', { name: 'Text' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('tab', { name: 'Quiz' })).not.toBeInTheDocument()
+    expect(screen.queryByTestId('edit-modal-text-tab')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('edit-modal-quiz-tab')).not.toBeInTheDocument()
   })
 
   it('does not show tabs when onQuizSubmit is not provided', () => {
     renderWithAuth(<EditTextModal {...defaultProps} onQuizSubmit={undefined} />)
-    expect(screen.queryByRole('tab', { name: 'Text' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('tab', { name: 'Quiz' })).not.toBeInTheDocument()
+    expect(screen.queryByTestId('edit-modal-text-tab')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('edit-modal-quiz-tab')).not.toBeInTheDocument()
   })
 
   it('starts on the Text tab by default', () => {
@@ -111,7 +111,7 @@ describe('EditTextModal tabs', () => {
 
   it('switches to Quiz tab when clicked', () => {
     renderWithAuth(<EditTextModal {...defaultProps} />)
-    fireEvent.click(screen.getByRole('tab', { name: 'Quiz' }))
+    fireEvent.click(screen.getByTestId('edit-modal-quiz-tab'))
     expect(
       screen.getByRole('button', { name: 'Save Quiz' })
     ).toBeInTheDocument()
@@ -119,14 +119,14 @@ describe('EditTextModal tabs', () => {
 
   it('switches back to Text tab', () => {
     renderWithAuth(<EditTextModal {...defaultProps} />)
-    fireEvent.click(screen.getByRole('tab', { name: 'Quiz' }))
-    fireEvent.click(screen.getByRole('tab', { name: 'Text' }))
+    fireEvent.click(screen.getByTestId('edit-modal-quiz-tab'))
+    fireEvent.click(screen.getByTestId('edit-modal-text-tab'))
     expect(screen.getByLabelText('Text Content')).toBeInTheDocument()
   })
 
   it('shows quiz questions in the Quiz tab', () => {
     renderWithAuth(<EditTextModal {...defaultProps} />)
-    fireEvent.click(screen.getByRole('tab', { name: 'Quiz' }))
+    fireEvent.click(screen.getByTestId('edit-modal-quiz-tab'))
     expect(screen.getByDisplayValue('Set1 Q1')).toBeInTheDocument()
   })
 
@@ -136,7 +136,7 @@ describe('EditTextModal tabs', () => {
       <EditTextModal {...defaultProps} onQuizSubmit={onQuizSubmit} />
     )
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Quiz' }))
+    fireEvent.click(screen.getByTestId('edit-modal-quiz-tab'))
     fireEvent.change(screen.getByDisplayValue('Set1 Q1'), {
       target: { value: 'Modified question' },
     })
@@ -171,7 +171,7 @@ describe('EditTextModal tabs', () => {
       />
     )
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Quiz' }))
+    fireEvent.click(screen.getByTestId('edit-modal-quiz-tab'))
     fireEvent.change(screen.getByDisplayValue('Set1 Q1'), {
       target: { value: 'Modified' },
     })
@@ -185,12 +185,12 @@ describe('EditTextModal tabs', () => {
   it('shows unsaved warning when closing with quiz changes', () => {
     renderWithAuth(<EditTextModal {...defaultProps} />)
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Quiz' }))
+    fireEvent.click(screen.getByTestId('edit-modal-quiz-tab'))
     fireEvent.change(screen.getByDisplayValue('Set1 Q1'), {
       target: { value: 'Modified' },
     })
 
-    fireEvent.click(screen.getByLabelText('Close modal'))
+    fireEvent.click(screen.getByTestId('edit-modal-close-button'))
 
     expect(screen.getByText('Discard Changes?')).toBeInTheDocument()
   })
@@ -202,7 +202,7 @@ describe('EditTextModal tabs', () => {
       target: { value: 'Modified content' },
     })
 
-    fireEvent.click(screen.getByLabelText('Close modal'))
+    fireEvent.click(screen.getByTestId('edit-modal-close-button'))
 
     expect(screen.getByText('Discard Changes?')).toBeInTheDocument()
   })
@@ -214,7 +214,7 @@ describe('EditTextModal tabs', () => {
     fireEvent.change(screen.getByLabelText('Text Content'), {
       target: { value: 'Modified content' },
     })
-    fireEvent.click(screen.getByLabelText('Close modal'))
+    fireEvent.click(screen.getByTestId('edit-modal-close-button'))
     fireEvent.click(screen.getByRole('button', { name: 'Discard' }))
 
     expect(onClose).toHaveBeenCalled()
@@ -227,7 +227,7 @@ describe('EditTextModal tabs', () => {
     fireEvent.change(screen.getByLabelText('Text Content'), {
       target: { value: 'Modified content' },
     })
-    fireEvent.click(screen.getByLabelText('Close modal'))
+    fireEvent.click(screen.getByTestId('edit-modal-close-button'))
     fireEvent.click(screen.getByRole('button', { name: 'Keep Editing' }))
 
     expect(onClose).not.toHaveBeenCalled()
@@ -237,7 +237,7 @@ describe('EditTextModal tabs', () => {
   it('resets to Text tab when modal reopens', () => {
     const { rerender } = renderWithAuth(<EditTextModal {...defaultProps} />)
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Quiz' }))
+    fireEvent.click(screen.getByTestId('edit-modal-quiz-tab'))
     expect(
       screen.getByRole('button', { name: 'Save Quiz' })
     ).toBeInTheDocument()
@@ -327,7 +327,7 @@ describe('EditTextModal tabs', () => {
       />
     )
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Quiz' }))
+    fireEvent.click(screen.getByTestId('edit-modal-quiz-tab'))
     fireEvent.change(screen.getByDisplayValue('Set1 Q1'), {
       target: { value: 'Modified' },
     })
@@ -345,7 +345,7 @@ describe('EditTextModal tabs', () => {
     fireEvent.change(screen.getByLabelText('Text Content'), {
       target: { value: 'Modified content' },
     })
-    fireEvent.click(screen.getByRole('tab', { name: 'Quiz' }))
+    fireEvent.click(screen.getByTestId('edit-modal-quiz-tab'))
 
     expect(screen.getByRole('button', { name: 'Save Quiz' })).toBeDisabled()
     expect(

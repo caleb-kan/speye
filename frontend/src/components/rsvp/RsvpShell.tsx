@@ -50,6 +50,7 @@ export function RsvpShell({
             type="button"
             onClick={toggleOptions}
             className="w-full flex items-center justify-center gap-1.5 py-2 text-xs text-text-secondary"
+            data-testid="rsvp-options-toggle"
           >
             {optionsOpen ? (
               <>
@@ -68,6 +69,7 @@ export function RsvpShell({
               optionsOpen ? 'max-h-67 opacity-100' : 'max-h-0 opacity-0'
               // 67 is just a large enough max height to show all options without cutting off, while still allowing the transition to work
             }`}
+            data-testid="rsvp-options-wrapper"
           >
             <MobileRsvpOptionsBar {...optionsBarProps} />
           </div>

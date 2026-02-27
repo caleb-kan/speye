@@ -54,6 +54,7 @@ export function DefaultAvatar({
         className="w-full h-full rounded-full object-cover"
         onError={() => setFailedUrl(avatarUrl)}
         referrerPolicy="no-referrer"
+        data-testid="avatar-image"
       />
     )
   }
@@ -64,6 +65,7 @@ export function DefaultAvatar({
       aria-label={username ? `Avatar for ${username}` : 'Default avatar'}
       className={`w-full h-full flex items-center justify-center text-white font-bold rounded-full ${textSizeClasses[size]}`}
       style={{ backgroundColor: bgColor }}
+      data-testid="avatar-fallback"
     >
       {initial}
     </div>

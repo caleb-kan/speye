@@ -14,8 +14,8 @@ describe('Footer', () => {
   })
 
   it('renders without crashing', () => {
-    const { container } = renderWithRouter(<Footer />)
-    expect(container).toBeInTheDocument()
+    renderWithRouter(<Footer />)
+    expect(screen.getByTestId('footer')).toBeInTheDocument()
   })
 
   it('displays copyright text', () => {
@@ -30,47 +30,54 @@ describe('Footer', () => {
 
   it('renders Terms of Service link', () => {
     renderWithRouter(<Footer />)
-    const termsLink = screen.getByRole('link', { name: 'Terms of Service' })
+    const termsLink = screen.getByTestId('footer-terms-link')
     expect(termsLink).toBeInTheDocument()
     expect(termsLink).toHaveAttribute('href', '/terms')
   })
 
   it('renders Privacy Policy link', () => {
     renderWithRouter(<Footer />)
-    const privacyLink = screen.getByRole('link', { name: 'Privacy Policy' })
+    const privacyLink = screen.getByTestId('footer-privacy-link')
     expect(privacyLink).toBeInTheDocument()
     expect(privacyLink).toHaveAttribute('href', '/privacy')
   })
 
+  it('renders License link', () => {
+    renderWithRouter(<Footer />)
+    const licenseLink = screen.getByTestId('footer-license-link')
+    expect(licenseLink).toBeInTheDocument()
+    expect(licenseLink).toHaveAttribute('href', '/license')
+  })
+
   it('has footer element', () => {
-    const { container } = renderWithRouter(<Footer />)
-    const footer = container.querySelector('footer')
+    renderWithRouter(<Footer />)
+    const footer = screen.getByTestId('footer')
     expect(footer).toBeInTheDocument()
   })
 
   it('has fixed positioning at bottom-left', () => {
-    const { container } = renderWithRouter(<Footer />)
-    const footer = container.querySelector('footer')
+    renderWithRouter(<Footer />)
+    const footer = screen.getByTestId('footer')
     expect(footer?.className).toContain('fixed')
     expect(footer?.className).toContain('bottom-2')
     expect(footer?.className).toContain('left-2')
   })
 
   it('has text-secondary color', () => {
-    const { container } = renderWithRouter(<Footer />)
-    const footer = container.querySelector('footer')
+    renderWithRouter(<Footer />)
+    const footer = screen.getByTestId('footer')
     expect(footer?.className).toContain('text-text-secondary')
   })
 
   it('has small text size', () => {
-    const { container } = renderWithRouter(<Footer />)
-    const footer = container.querySelector('footer')
+    renderWithRouter(<Footer />)
+    const footer = screen.getByTestId('footer')
     expect(footer?.className).toContain('text-xs')
   })
 
   it('has high z-index for visibility', () => {
-    const { container } = renderWithRouter(<Footer />)
-    const footer = container.querySelector('footer')
+    renderWithRouter(<Footer />)
+    const footer = screen.getByTestId('footer')
     expect(footer?.className).toContain('z-40')
   })
 
@@ -82,13 +89,13 @@ describe('Footer', () => {
 
   it('links have hover underline effect', () => {
     renderWithRouter(<Footer />)
-    const termsLink = screen.getByRole('link', { name: 'Terms of Service' })
+    const termsLink = screen.getByTestId('footer-terms-link')
     expect(termsLink.className).toContain('hover:underline')
   })
 
   it('links have correct text size', () => {
     renderWithRouter(<Footer />)
-    const termsLink = screen.getByRole('link', { name: 'Terms of Service' })
+    const termsLink = screen.getByTestId('footer-terms-link')
     expect(termsLink.className).toContain('text-xs')
   })
 })

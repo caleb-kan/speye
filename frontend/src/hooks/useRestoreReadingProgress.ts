@@ -50,7 +50,7 @@ export function useRestoreReadingProgress(
     return () => {
       isMounted = false
     }
-  }, [newTextId, restoringId, setReadingPosition])
+  }, [currentText, newTextId, restoringId, setReadingPosition])
 
   return isRestoring
 }

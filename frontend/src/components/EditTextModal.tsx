@@ -131,6 +131,7 @@ export function EditTextModal({
             onClick={handleCloseClick}
             className="text-text-secondary hover:text-text p-1 rounded-lg hover:bg-bg transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
             aria-label="Close modal"
+            data-testid="edit-modal-close-button"
           >
             <X className="w-6 h-6" />
           </button>
@@ -158,6 +159,7 @@ export function EditTextModal({
               tabIndex={activeTab === 'text' ? 0 : -1}
               onClick={() => setActiveTab('text')}
               className={tabClass(activeTab === 'text')}
+              data-testid="edit-modal-text-tab"
             >
               Text
             </button>
@@ -170,6 +172,7 @@ export function EditTextModal({
               tabIndex={activeTab === 'quiz' ? 0 : -1}
               onClick={() => setActiveTab('quiz')}
               className={tabClass(activeTab === 'quiz')}
+              data-testid="edit-modal-quiz-tab"
             >
               Quiz
             </button>

@@ -19,7 +19,10 @@ export function IconTabs<T extends string>({
   onTabChange,
 }: IconTabsProps<T>) {
   return (
-    <div className="flex gap-2 mb-0 border-b border-text-secondary/20">
+    <div
+      className="flex gap-2 mb-0 border-b border-text-secondary/20"
+      data-testid="icon-tabs"
+    >
       {tabs.map((tab) => {
         const Icon = tab.icon
         const isActive = activeTab === tab.id
@@ -33,6 +36,7 @@ export function IconTabs<T extends string>({
                 ? 'text-primary border-primary'
                 : 'text-text-secondary border-transparent hover:text-text hover:border-text-secondary/50'
             }`}
+            data-testid={`tab-${tab.id}`}
           >
             <Icon className="w-4 h-4" />
             {tab.label}
@@ -43,6 +47,7 @@ export function IconTabs<T extends string>({
                     ? 'bg-primary/10 text-primary'
                     : 'bg-bg-secondary text-text-secondary'
                 }`}
+                data-testid={`tab-badge-${tab.id}`}
               >
                 {tab.badge}
               </span>

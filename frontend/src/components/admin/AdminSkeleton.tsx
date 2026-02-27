@@ -2,6 +2,7 @@ import {
   CardGridSkeleton,
   HeaderSkeleton,
   ListSkeleton,
+  SkeletonLoader,
 } from '../ui/SkeletonLoader'
 
 export function AdminSkeleton() {
@@ -17,13 +18,13 @@ export function AdminSkeleton() {
 
         {/* Graph Section */}
         <div className="space-y-4">
-          <div className="h-6 w-40 bg-text-secondary/10 rounded-lg animate-pulse" />
-          <div className="h-64 w-full bg-text-secondary/10 rounded-2xl animate-pulse" />
+          <SkeletonLoader className="h-6 w-40 rounded-lg" />
+          <SkeletonLoader className="h-64 w-full rounded-2xl" />
         </div>
 
         {/* Pending Reviews Section */}
         <div className="space-y-4">
-          <div className="h-6 w-40 bg-text-secondary/10 rounded-lg animate-pulse" />
+          <SkeletonLoader className="h-6 w-40 rounded-lg" />
           <ListSkeleton count={3} />
         </div>
       </div>

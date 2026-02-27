@@ -94,6 +94,7 @@ export function Navbar() {
         }
       `}
       aria-label="Main navigation"
+      data-testid="navbar"
     >
       <NavItem
         to={MODE_ROUTES[preferences.mode]}
@@ -145,6 +146,7 @@ export function Navbar() {
         <div
           className="w-8 h-8 rounded-full bg-text-secondary/20 animate-pulse"
           aria-label="Loading authentication status"
+          data-testid="auth-loading-placeholder"
         />
       ) : user ? (
         <Link
@@ -160,6 +162,7 @@ export function Navbar() {
             focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary
             ${isSettingsActive ? 'ring-2 ring-primary' : 'hover:ring-2 hover:ring-text-secondary/50'}
           `}
+          data-testid="navbar-profile-link"
         >
           <DefaultAvatar
             username={getUsername(user)}
@@ -180,6 +183,7 @@ export function Navbar() {
             focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary
             ${isLoginActive ? 'text-primary' : 'text-text-secondary hover:text-text'}
           `}
+          data-testid="navbar-login-link"
         >
           <User size={22} />
         </Link>

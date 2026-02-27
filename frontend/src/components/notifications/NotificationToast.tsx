@@ -35,19 +35,27 @@ export const NotificationToast = memo(function NotificationToast({
       `}
       role="status"
       aria-live="polite"
+      data-testid={`notification-toast-${notification.id}`}
     >
       <button
         type="button"
         onClick={() => navigate(notification.link ?? '/notifications')}
         className="flex w-full items-start gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         aria-label={notification.link ? 'Go to details' : 'Open notifications'}
+        data-testid={`notification-toast-button-${notification.id}`}
       >
         <Icon className="mt-0.5" size={18} />
         <div className="flex-1 text-left">
-          <div className="text-xs uppercase tracking-wide text-text-secondary">
+          <div
+            className="text-xs uppercase tracking-wide text-text-secondary"
+            data-testid={`notification-toast-label-${notification.id}`}
+          >
             {config.label}
           </div>
-          <div className="text-sm font-medium text-text">
+          <div
+            className="text-sm font-medium text-text"
+            data-testid={`notification-toast-message-${notification.id}`}
+          >
             {notification.message}
           </div>
         </div>
@@ -57,6 +65,7 @@ export const NotificationToast = memo(function NotificationToast({
         onClick={onClose}
         className="absolute right-2 top-2 rounded-full p-1 text-text-secondary opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         aria-label="Dismiss notification"
+        data-testid={`notification-toast-dismiss-${notification.id}`}
       >
         <X size={14} />
       </button>

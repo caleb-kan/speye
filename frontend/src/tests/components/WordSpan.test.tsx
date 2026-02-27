@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { render } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { WordSpan } from '../../components/WordSpan'
 
@@ -18,8 +18,8 @@ describe('WordSpan', () => {
   })
 
   it('renders the word', () => {
-    const { container } = render(<WordSpan {...defaultProps} />)
-    const span = container.querySelector('span')
+    render(<WordSpan {...defaultProps} />)
+    const span = screen.getByTestId('word-span')
     expect(span).toHaveTextContent('Hello')
   })
 
@@ -36,37 +36,35 @@ describe('WordSpan', () => {
   })
 
   it('applies transition style', () => {
-    const { container } = render(<WordSpan {...defaultProps} />)
-    const span = container.querySelector('span')
+    render(<WordSpan {...defaultProps} />)
+    const span = screen.getByTestId('word-span')
     expect(span).toHaveStyle('transition: color 200ms ease')
   })
 
   it('highlights current word with different color', () => {
-    const { container } = render(
-      <WordSpan {...defaultProps} currentWordIndex={0} globalIndex={0} />
-    )
-    const span = container.querySelector('span')
+    render(<WordSpan {...defaultProps} currentWordIndex={0} globalIndex={0} />)
+    const span = screen.getByTestId('word-span')
     expect(span?.getAttribute('style')).toContain('color')
   })
 
   it('changes styling when distance changes', () => {
-    const { rerender, container: container1 } = render(
+    const { rerender } = render(
       <WordSpan {...defaultProps} currentWordIndex={5} globalIndex={5} />
     )
 
-    const span1 = container1.querySelector('span')?.getAttribute('style')
+    const span1 = screen.getByTestId('word-span').getAttribute('style')
 
     rerender(
       <WordSpan {...defaultProps} currentWordIndex={5} globalIndex={0} />
     )
 
-    const span2 = document.querySelector('span')?.getAttribute('style')
+    const span2 = screen.getByTestId('word-span').getAttribute('style')
 
     expect(span1).not.toEqual(span2)
   })
 
   it('applies blur effect when blurEnabled is true and distance is far', () => {
-    const { container } = render(
+    render(
       <WordSpan
         {...defaultProps}
         blurEnabled={true}
@@ -74,14 +72,14 @@ describe('WordSpan', () => {
         globalIndex={8}
       />
     )
-    const span = container.querySelector('span')
+    const span = screen.getByTestId('word-span')
     const style = span?.getAttribute('style')
     // At distance 8, blur should be applied if blurEnabled
     expect(style).toContain('filter: blur')
   })
 
   it('does not apply blur when blurEnabled is false', () => {
-    const { container } = render(
+    render(
       <WordSpan
         {...defaultProps}
         blurEnabled={false}
@@ -89,14 +87,14 @@ describe('WordSpan', () => {
         globalIndex={-5}
       />
     )
-    const span = container.querySelector('span')
+    const span = screen.getByTestId('word-span')
     const style = span?.getAttribute('style')
     expect(style).not.toContain('filter: blur')
   })
 
   it('adds space after word', () => {
-    const { container } = render(<WordSpan {...defaultProps} word="test" />)
-    const span = container.querySelector('span')
+    render(<WordSpan {...defaultProps} word="test" />)
+    const span = screen.getByTestId('word-span')
     expect(span?.textContent).toContain('test ')
   })
 
@@ -110,36 +108,34 @@ describe('WordSpan', () => {
   })
 
   it('handles words with special characters', () => {
-    const { container } = render(<WordSpan {...defaultProps} word="don't" />)
-    const span = container.querySelector('span')
+    render(<WordSpan {...defaultProps} word="don't" />)
+    const span = screen.getByTestId('word-span')
     expect(span?.textContent).toContain("don't")
   })
 
   it('handles words with punctuation', () => {
-    const { container } = render(<WordSpan {...defaultProps} word="Hello," />)
-    const span = container.querySelector('span')
+    render(<WordSpan {...defaultProps} word="Hello," />)
+    const span = screen.getByTestId('word-span')
     expect(span?.textContent).toContain('Hello,')
   })
 
   it('updates when globalIndex changes', () => {
-    const { rerender, container } = render(
+    const { rerender } = render(
       <WordSpan {...defaultProps} globalIndex={0} currentWordIndex={0} />
     )
-    let span = container.querySelector('span')
+    let span = screen.getByTestId('word-span')
     expect(span?.textContent).toContain('Hello')
 
     rerender(
       <WordSpan {...defaultProps} globalIndex={5} currentWordIndex={0} />
     )
-    span = container.querySelector('span')
+    span = screen.getByTestId('word-span')
     expect(span?.textContent).toContain('Hello')
   })
 
   it('has proper opacity styling', () => {
-    const { container } = render(
-      <WordSpan {...defaultProps} globalIndex={10} currentWordIndex={0} />
-    )
-    const span = container.querySelector('span')
+    render(<WordSpan {...defaultProps} globalIndex={10} currentWordIndex={0} />)
+    const span = screen.getByTestId('word-span')
     expect(span?.getAttribute('style')).toContain('opacity')
   })
 })

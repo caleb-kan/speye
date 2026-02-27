@@ -40,6 +40,7 @@ export const WordSpan = memo(function WordSpan({
   return (
     <span
       ref={setRef}
+      data-testid="word-span"
       style={{
         color: style.color,
         opacity: style.opacity,

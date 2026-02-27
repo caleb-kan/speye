@@ -32,7 +32,7 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>
     )
 
-    expect(screen.getByText('Something went wrong')).toBeInTheDocument()
+    expect(screen.getByTestId('error-boundary-heading')).toBeInTheDocument()
   })
 
   it('displays error message from caught error', () => {
@@ -46,7 +46,9 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>
     )
 
-    expect(screen.getByText('Custom error message')).toBeInTheDocument()
+    expect(screen.getByTestId('error-boundary-message')).toHaveTextContent(
+      'Custom error message'
+    )
   })
 
   it('displays default message when error has no message', () => {
@@ -60,7 +62,9 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>
     )
 
-    expect(screen.getByText('An unexpected error occurred')).toBeInTheDocument()
+    expect(screen.getByTestId('error-boundary-message')).toHaveTextContent(
+      'An unexpected error occurred'
+    )
   })
 
   it('renders reload button', () => {
@@ -74,7 +78,7 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>
     )
 
-    const reloadBtn = screen.getByRole('button', { name: 'Reload page' })
+    const reloadBtn = screen.getByTestId('error-boundary-reload-button')
     expect(reloadBtn).toBeInTheDocument()
   })
 
@@ -89,7 +93,10 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>
     )
 
-    expect(screen.getByRole('alert')).toBeInTheDocument()
+    expect(screen.getByTestId('error-boundary-alert')).toHaveAttribute(
+      'role',
+      'alert'
+    )
   })
 
   it('displays error heading', () => {
@@ -103,7 +110,7 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>
     )
 
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
+    expect(screen.getByTestId('error-boundary-heading')).toHaveTextContent(
       'Something went wrong'
     )
   })
@@ -119,7 +126,7 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>
     )
 
-    const alert = screen.getByRole('alert')
+    const alert = screen.getByTestId('error-boundary-alert')
     expect(alert.className).toContain('min-h-screen')
   })
 
@@ -140,8 +147,12 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>
     )
 
-    expect(screen.getByText('Something went wrong')).toBeInTheDocument()
-    expect(screen.getByText('Error 1')).toBeInTheDocument()
+    expect(screen.getByTestId('error-boundary-heading')).toHaveTextContent(
+      'Something went wrong'
+    )
+    expect(screen.getByTestId('error-boundary-message')).toHaveTextContent(
+      'Error 1'
+    )
   })
 
   it('has reload button with correct functionality setup', () => {
@@ -155,7 +166,7 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>
     )
 
-    const reloadBtn = screen.getByRole('button', { name: 'Reload page' })
+    const reloadBtn = screen.getByTestId('error-boundary-reload-button')
     expect(reloadBtn).toHaveClass('bg-primary')
   })
 })

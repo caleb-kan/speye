@@ -40,11 +40,15 @@ export function ConfirmDialog({
       aria-modal="true"
       aria-labelledby="confirm-dialog-title"
       aria-describedby="confirm-dialog-message"
+      data-testid="confirm-dialog"
     >
       <div className="bg-bg-secondary rounded-lg shadow-xl w-full max-w-md mx-4 p-6">
         <div className="flex items-start gap-4">
           {isDestructive && (
-            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-error/10 flex items-center justify-center">
+            <div
+              className="flex-shrink-0 w-10 h-10 rounded-full bg-error/10 flex items-center justify-center"
+              data-testid="confirm-dialog-error-icon"
+            >
               <AlertTriangle className="w-5 h-5 text-error" />
             </div>
           )}
@@ -69,6 +73,7 @@ export function ConfirmDialog({
             type="button"
             onClick={onCancel}
             className="px-4 py-2 text-text-secondary hover:text-text hover:bg-bg rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-bg-secondary"
+            data-testid="confirm-dialog-cancel-button"
           >
             {cancelLabel}
           </button>
@@ -80,6 +85,7 @@ export function ConfirmDialog({
                 ? 'bg-error text-bg hover:bg-error/90 focus:ring-error'
                 : 'bg-primary text-bg hover:opacity-90 focus:ring-primary'
             }`}
+            data-testid="confirm-dialog-confirm-button"
           >
             {confirmLabel}
           </button>

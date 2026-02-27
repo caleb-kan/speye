@@ -21,6 +21,7 @@ export function Header() {
           if (isAlreadyOnTarget) e.preventDefault()
         }}
         className="text-2xl font-bold text-primary hover:opacity-80 transition-opacity tracking-tight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg rounded"
+        data-testid="header-logo"
       >
         sp(eye)
       </Link>

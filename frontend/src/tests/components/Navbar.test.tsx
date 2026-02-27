@@ -74,12 +74,12 @@ describe('Navbar', () => {
 
     it('shows login link when user is not logged in', () => {
       renderNavbar()
-      expect(screen.getByRole('link', { name: 'Log in' })).toBeInTheDocument()
+      expect(screen.getByTestId('navbar-login-link')).toBeInTheDocument()
     })
 
     it('login link navigates to /login', () => {
       renderNavbar()
-      expect(screen.getByRole('link', { name: 'Log in' })).toHaveAttribute(
+      expect(screen.getByTestId('navbar-login-link')).toHaveAttribute(
         'href',
         '/login'
       )
@@ -98,22 +98,18 @@ describe('Navbar', () => {
 
     it('shows loading placeholder while auth is loading', () => {
       renderNavbar()
-      expect(
-        screen.getByLabelText('Loading authentication status')
-      ).toBeInTheDocument()
+      expect(screen.getByTestId('auth-loading-placeholder')).toBeInTheDocument()
     })
 
     it('does not show login link while loading', () => {
       renderNavbar()
-      expect(
-        screen.queryByRole('link', { name: 'Log in' })
-      ).not.toBeInTheDocument()
+      expect(screen.queryByTestId('navbar-login-link')).not.toBeInTheDocument()
     })
 
     it('does not show profile link while loading', () => {
       renderNavbar()
       expect(
-        screen.queryByRole('link', { name: 'Profile settings' })
+        screen.queryByTestId('navbar-profile-link')
       ).not.toBeInTheDocument()
     })
   })
@@ -136,23 +132,20 @@ describe('Navbar', () => {
 
     it('shows profile link when user is logged in', () => {
       renderNavbar()
-      expect(
-        screen.getByRole('link', { name: 'Profile settings' })
-      ).toBeInTheDocument()
+      expect(screen.getByTestId('navbar-profile-link')).toBeInTheDocument()
     })
 
     it('profile link navigates to /settings', () => {
       renderNavbar()
-      expect(
-        screen.getByRole('link', { name: 'Profile settings' })
-      ).toHaveAttribute('href', '/settings')
+      expect(screen.getByTestId('navbar-profile-link')).toHaveAttribute(
+        'href',
+        '/settings'
+      )
     })
 
     it('does not show login link when logged in', () => {
       renderNavbar()
-      expect(
-        screen.queryByRole('link', { name: 'Log in' })
-      ).not.toBeInTheDocument()
+      expect(screen.queryByTestId('navbar-login-link')).not.toBeInTheDocument()
     })
 
     it('shows default avatar with user initial', () => {

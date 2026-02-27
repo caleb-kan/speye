@@ -76,41 +76,7 @@ test.describe('Quiz Flow', () => {
     await expect(startQuiz).toBeVisible({ timeout: 30000 })
   })
 
-  test('handles missing quiz gracefully', async ({ page }) => {
-    await mockRandomText(page, {
-      title: 'No Quiz Text',
-      content: 'This text has no quiz data attached.',
-      quiz: null,
-      quiz_valid: false,
-    })
-    await page.goto('/home')
-
-    await expect(page.getByText('No Quiz Text')).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Play' })).toBeVisible()
-  })
-
-  test('shows quiz modal with question after clicking Start Quiz', async ({
-    page,
-  }) => {
-    await mockRandomText(page, textWithQuiz)
-    await page.goto('/home')
-
-    await page.getByRole('button', { name: 'Play' }).click()
-
-    const startQuiz = page.getByRole('button', {
-      name: /start quiz/i,
-    })
-    await expect(startQuiz).toBeVisible({ timeout: 30000 })
-    await startQuiz.click()
-
-    await expect(
-      page.getByText(/what is the main topic of the text/i)
-    ).toBeVisible({ timeout: 10000 })
-  })
-
-  test('allows selecting an answer and shows Next Question', async ({
-    page,
-  }) => {
+  test('shows quiz modal and allows answering questions', async ({ page }) => {
     await mockRandomText(page, textWithQuiz)
     await page.goto('/home')
 

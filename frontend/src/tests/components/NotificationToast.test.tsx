@@ -34,13 +34,21 @@ describe('NotificationToast', () => {
   it('should render notification message', () => {
     render(<NotificationToast toast={mockToast} onClose={mockOnClose} />)
 
-    expect(screen.getByText('Test notification')).toBeInTheDocument()
+    expect(
+      screen.getByTestId(
+        `notification-toast-message-${mockToast.notification.id}`
+      )
+    ).toHaveTextContent('Test notification')
   })
 
   it('should render correct label for info type', () => {
     render(<NotificationToast toast={mockToast} onClose={mockOnClose} />)
 
-    expect(screen.getByText('Info')).toBeInTheDocument()
+    expect(
+      screen.getByTestId(
+        `notification-toast-label-${mockToast.notification.id}`
+      )
+    ).toHaveTextContent('Info')
   })
 
   it('should render correct label for alert type', () => {
@@ -51,7 +59,11 @@ describe('NotificationToast', () => {
 
     render(<NotificationToast toast={alertToast} onClose={mockOnClose} />)
 
-    expect(screen.getByText('Alert')).toBeInTheDocument()
+    expect(
+      screen.getByTestId(
+        `notification-toast-label-${alertToast.notification.id}`
+      )
+    ).toHaveTextContent('Alert')
   })
 
   it('should render correct label for error type', () => {
@@ -62,14 +74,20 @@ describe('NotificationToast', () => {
 
     render(<NotificationToast toast={errorToast} onClose={mockOnClose} />)
 
-    expect(screen.getByText('Error')).toBeInTheDocument()
+    expect(
+      screen.getByTestId(
+        `notification-toast-label-${errorToast.notification.id}`
+      )
+    ).toHaveTextContent('Error')
   })
 
   it('should call onClose when dismiss button is clicked', async () => {
     const user = userEvent.setup()
     render(<NotificationToast toast={mockToast} onClose={mockOnClose} />)
 
-    const dismissButton = screen.getByLabelText('Dismiss notification')
+    const dismissButton = screen.getByTestId(
+      `notification-toast-dismiss-${mockToast.notification.id}`
+    )
     await user.click(dismissButton)
 
     expect(mockOnClose).toHaveBeenCalled()
@@ -81,27 +99,31 @@ describe('NotificationToast', () => {
       isExiting: true,
     }
 
-    const { container } = render(
-      <NotificationToast toast={exitingToast} onClose={mockOnClose} />
-    )
+    render(<NotificationToast toast={exitingToast} onClose={mockOnClose} />)
 
-    const toastDiv = container.firstChild
+    const toastDiv = screen.getByTestId(
+      `notification-toast-${exitingToast.notification.id}`
+    )
     expect(toastDiv).toHaveClass('animate-toast-out')
   })
 
   it('should apply enter animation when isExiting is false', () => {
-    const { container } = render(
-      <NotificationToast toast={mockToast} onClose={mockOnClose} />
-    )
+    render(<NotificationToast toast={mockToast} onClose={mockOnClose} />)
 
-    const toastDiv = container.firstChild
+    const toastDiv = screen.getByTestId(
+      `notification-toast-${mockToast.notification.id}`
+    )
     expect(toastDiv).toHaveClass('animate-toast-in')
   })
 
   it('should render dismiss button with correct aria-label', () => {
     render(<NotificationToast toast={mockToast} onClose={mockOnClose} />)
 
-    expect(screen.getByLabelText('Dismiss notification')).toBeInTheDocument()
+    expect(
+      screen.getByTestId(
+        `notification-toast-dismiss-${mockToast.notification.id}`
+      )
+    ).toHaveAttribute('aria-label', 'Dismiss notification')
   })
 
   it('should navigate to link when notification has a link', async () => {
@@ -113,7 +135,11 @@ describe('NotificationToast', () => {
 
     render(<NotificationToast toast={linkedToast} onClose={mockOnClose} />)
 
-    await user.click(screen.getByLabelText('Go to details'))
+    await user.click(
+      screen.getByTestId(
+        `notification-toast-button-${linkedToast.notification.id}`
+      )
+    )
 
     expect(mockNavigate).toHaveBeenCalledWith('/admin')
   })
@@ -123,7 +149,11 @@ describe('NotificationToast', () => {
 
     render(<NotificationToast toast={mockToast} onClose={mockOnClose} />)
 
-    await user.click(screen.getByLabelText('Open notifications'))
+    await user.click(
+      screen.getByTestId(
+        `notification-toast-button-${mockToast.notification.id}`
+      )
+    )
 
     expect(mockNavigate).toHaveBeenCalledWith('/notifications')
   })

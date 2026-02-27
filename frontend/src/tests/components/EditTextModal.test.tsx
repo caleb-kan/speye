@@ -66,14 +66,14 @@ describe('EditTextModal', () => {
     const { container } = renderWithAuth(
       <EditTextModal {...defaultProps} isOpen={false} text={mockText} />
     )
-    expect(container.querySelector('form')).not.toBeInTheDocument()
+    expect(container.querySelector('[role="dialog"]')).not.toBeInTheDocument()
   })
 
   it('does not render when text is null', () => {
     const { container } = renderWithAuth(
       <EditTextModal {...defaultProps} isOpen={true} text={null} />
     )
-    expect(container.querySelector('form')).not.toBeInTheDocument()
+    expect(container.querySelector('[role="dialog"]')).not.toBeInTheDocument()
   })
 
   it('renders when isOpen is true and text is provided', () => {
@@ -116,7 +116,7 @@ describe('EditTextModal', () => {
     const { container } = renderWithAuth(
       <EditTextModal {...defaultProps} isOpen={true} text={null} />
     )
-    expect(container.querySelector('form')).not.toBeInTheDocument()
+    expect(container.querySelector('[role="dialog"]')).not.toBeInTheDocument()
   })
 
   it('updates when text prop changes', () => {

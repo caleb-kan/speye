@@ -15,6 +15,8 @@ type UseRsvpReaderOptions = {
   phraseSize: number
   disabled?: boolean
   initialWordIndex?: number
+  forcePause?: boolean
+  onPlay?: () => void
 }
 
 type UseRsvpReaderReturn = {
@@ -38,6 +40,8 @@ export function useRsvpReader({
   phraseSize,
   disabled = false,
   initialWordIndex = 0,
+  forcePause = false,
+  onPlay,
 }: UseRsvpReaderOptions): UseRsvpReaderReturn {
   const words = useMemo(() => splitTextToWords(text), [text])
   const hasText = words.length > 0
@@ -65,6 +69,23 @@ export function useRsvpReader({
   )
   const [isPlaying, setIsPlaying] = useState(false)
   const intervalRef = useRef<number | null>(null)
+
+  // adjust state when a prop changes during render
+  const [prevForcePause, setPrevForcePause] = useState(forcePause)
+  if (forcePause !== prevForcePause) {
+    setPrevForcePause(forcePause)
+    if (forcePause) {
+      setIsPlaying(false)
+    }
+  }
+
+  // initialWordIndexRef captures the position at mount so that restart() and
+  // play()-at-end return to the starting point.  Text/mode changes are handled
+  // by the component key (currentText.id + modeTimestamp), which remounts the
+  // hook with a fresh initialWordIndex — no effect-driven reset is needed and
+  // adding one would pause the reader on every phrase advance (because
+  // readingPosition, which is passed as initialWordIndex, updates continuously).
+  const initialWordIndexRef = useRef(initialWordIndex)
 
   // Derive phrase index from word index — automatically correct when
   // phraseSize changes because cumulativeWordCounts recalculates while
@@ -95,11 +116,12 @@ export function useRsvpReader({
   }, [])
 
   const play = useCallback(() => {
+    onPlay?.()
     if (currentPhraseIndex >= totalPhrases - 1) {
-      setCurrentWordIndex(0)
+      setCurrentWordIndex(initialWordIndexRef.current)
     }
     setIsPlaying(true)
-  }, [currentPhraseIndex, totalPhrases])
+  }, [currentPhraseIndex, totalPhrases, onPlay])
 
   const pause = useCallback(() => {
     setIsPlaying(false)
@@ -115,7 +137,7 @@ export function useRsvpReader({
 
   const restart = useCallback(() => {
     clearTimer()
-    setCurrentWordIndex(0)
+    setCurrentWordIndex(initialWordIndexRef.current)
     setIsPlaying(false)
   }, [clearTimer])
 

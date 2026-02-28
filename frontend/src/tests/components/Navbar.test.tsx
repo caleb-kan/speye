@@ -13,6 +13,16 @@ vi.mock('../../hooks/useReadingPreferences', () => ({
     updatePreferences: vi.fn(),
   }),
 }))
+vi.mock('../../hooks/useNetworkStatus', () => ({
+  useNetworkStatus: () => ({
+    isOnline: true,
+    forceOffline: false,
+    setForceOffline: vi.fn(),
+    pendingOperations: 0,
+    isSyncing: false,
+    syncNow: vi.fn(),
+  }),
+}))
 
 const mockUseAuth = vi.mocked(useAuthModule.useAuth)
 

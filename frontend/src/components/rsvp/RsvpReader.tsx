@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { RsvpDisplay } from './RsvpDisplay'
 import { ReadingControls } from '../ReadingControls'
 import { useRsvpReader } from '../../hooks/useRsvpReader'
@@ -20,6 +20,8 @@ type RsvpReaderProps = {
   showMiniQuiz?: boolean
   onStartQuiz?: () => void
   isSummary?: boolean
+  forcePause?: boolean
+  onPlayingChange?: (isPlaying: boolean) => void
 }
 
 export function RsvpReader({
@@ -37,8 +39,21 @@ export function RsvpReader({
   showMiniQuiz,
   onStartQuiz,
   isSummary,
+  forcePause,
+  onPlayingChange,
 }: RsvpReaderProps) {
   const isMobile = useIsMobile()
+
+  const onPlayingChangeRef = useRef(onPlayingChange)
+
+  // Called synchronously from play() — closes options so forcePause
+  // becomes false in the same React batch as setIsPlaying(true).
+  const handlePlay = useCallback(() => {
+    if (forcePause) {
+      onPlayingChangeRef.current?.(true)
+    }
+  }, [forcePause])
+
   const {
     currentWordIndex,
     isPlaying,
@@ -52,13 +67,34 @@ export function RsvpReader({
     currentPhraseIndex,
     jumpBack,
     jumpForward,
-  } = useRsvpReader({ text, wpm, phraseSize, disabled, initialWordIndex })
+  } = useRsvpReader({
+    text,
+    wpm,
+    phraseSize,
+    disabled,
+    initialWordIndex,
+    forcePause,
+    onPlay: handlePlay,
+  })
 
   useArrowNavigation({
     enabled: hasText && !disabled,
     onBack: jumpBack,
     onForward: jumpForward,
   })
+
+  useEffect(() => {
+    onPlayingChangeRef.current = onPlayingChange
+  }, [onPlayingChange])
+
+  const mountedRef = useRef(false)
+  useEffect(() => {
+    if (!mountedRef.current) {
+      mountedRef.current = true
+      return
+    }
+    onPlayingChangeRef.current?.(isPlaying)
+  }, [isPlaying])
 
   const onPositionChangeRef = useRef(onPositionChange)
   useEffect(() => {

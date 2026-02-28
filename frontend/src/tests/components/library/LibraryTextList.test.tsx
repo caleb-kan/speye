@@ -6,6 +6,17 @@ import { TEXT_PREVIEW_LENGTH } from '../../../constants/library'
 import { UNTITLED_TEXT_FALLBACK } from '../../../constants/admin'
 import type { TextPreview } from '../../../types/database'
 
+vi.mock('../../../hooks/useNetworkStatus', () => ({
+  useNetworkStatus: () => ({
+    isOnline: true,
+    forceOffline: false,
+    setForceOffline: vi.fn(),
+    pendingOperations: 0,
+    isSyncing: false,
+    syncNow: vi.fn(),
+  }),
+}))
+
 const createMockTextPreview = (
   overrides: Partial<TextPreview> = {}
 ): TextPreview => ({

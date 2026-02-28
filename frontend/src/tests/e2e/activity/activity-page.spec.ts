@@ -89,12 +89,66 @@ test.describe('Activity Page', () => {
 
   test('shows error state on API failure', async ({ page }) => {
     await mockAuthSession(page)
+
+    // Clear offline cache to ensure error state is shown consistently
+    await page.addInitScript(async () => {
+      try {
+        await new Promise<void>((resolve) => {
+          const storeNames = [
+            'texts',
+            'library',
+            'activity',
+            'metadata',
+            'notifications',
+          ]
+          const openReq = indexedDB.open('speye-offline')
+          openReq.onsuccess = (event) => {
+            const db = (event.target as IDBOpenDBRequest).result
+            const toClear = storeNames.filter((s) =>
+              db.objectStoreNames.contains(s)
+            )
+            if (toClear.length === 0) {
+              db.close()
+              resolve()
+              return
+            }
+            const tx = db.transaction(toClear, 'readwrite')
+            toClear.forEach((s) => tx.objectStore(s).clear())
+            tx.oncomplete = () => {
+              db.close()
+              resolve()
+            }
+            tx.onerror = () => {
+              db.close()
+              resolve()
+            }
+            tx.onabort = () => {
+              db.close()
+              resolve()
+            }
+          }
+          openReq.onerror = () => resolve()
+          openReq.onblocked = () => resolve()
+        })
+      } catch {
+        // Ignore errors - continue with test
+      }
+    })
+
     await page.route('**/rest/v1/user_activity**', async (route) => {
-      await route.fulfill({
-        status: 500,
-        contentType: 'application/json',
-        body: JSON.stringify({ error: 'Server error' }),
-      })
+      if (route.request().method() === 'GET') {
+        await route.fulfill({
+          status: 500,
+          contentType: 'application/json',
+          body: JSON.stringify({ error: 'Server error' }),
+        })
+      } else {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({}),
+        })
+      }
     })
     await page.goto('/activity')
 

@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import type { Mode, Scrolling, FixedTextInfo } from '../../types'
+import type { FixedTextInfo } from '../../types'
 import type { Text } from '../../types/database'
 import { useSliderDisplayValues } from '../../hooks/useSliderDisplayValues'
 import { useCustomWpm } from '../../hooks/useCustomWpm'
@@ -9,13 +9,6 @@ import { MAX_COMPLEXITY } from '../../constants/complexity'
 type MobileRsvpOptionsBarProps = {
   wpm: number
   onWpmChange: (wpm: number) => void
-  mode: Mode
-  onModeChange: (mode: Mode) => void
-  onModeNavigate?: (mode: Mode) => void
-  scrolling?: Scrolling
-  onScrollingChange?: (scrolling: Scrolling) => void
-  blurEnabled?: boolean
-  onBlurChange?: (enabled: boolean) => void
   fiction: boolean
   onFictionChange: (fiction: boolean) => void
   complexityMin: number
@@ -29,7 +22,6 @@ type MobileRsvpOptionsBarProps = {
   onInputBlockingChange?: (isBlocking: boolean) => void
   fixedText?: FixedTextInfo
   currentText?: Text | null
-  readingPosition?: number
 }
 
 function OptionRow({
@@ -115,7 +107,7 @@ export function MobileRsvpOptionsBar({
           <>
             <button
               onClick={() => onFictionChange(false)}
-              className={`px-2 py-1 rounded text-xs transition-colors ${
+              className={`px-2 py-2 -my-1 rounded text-xs transition-colors ${
                 !fiction
                   ? 'text-primary font-medium bg-primary/10'
                   : 'text-text-secondary'
@@ -165,7 +157,7 @@ export function MobileRsvpOptionsBar({
               className="flex items-center gap-2"
               style={{ width: 'calc(50vw - 12px)' }}
             >
-              <div ref={complexitySliderRef} className="flex-1" />
+              <div ref={complexitySliderRef} className="flex-1 my-1" />
               <span className="text-xs text-text-secondary font-medium whitespace-nowrap px-2 py-0.5 bg-text-secondary/10 rounded">
                 {displayComplexityMin}–
                 {displayComplexityMax >= MAX_COMPLEXITY
@@ -183,7 +175,7 @@ export function MobileRsvpOptionsBar({
           className="flex items-center gap-2"
           style={{ width: 'calc(50vw - 12px)' }}
         >
-          <div ref={phraseSizeSliderRef} className="flex-1" />
+          <div ref={phraseSizeSliderRef} className="flex-1 my-1" />
           <span className="text-xs text-text-secondary font-medium whitespace-nowrap px-2 py-0.5 bg-text-secondary/10 rounded">
             {displayPhraseSize}
           </span>
@@ -192,7 +184,7 @@ export function MobileRsvpOptionsBar({
 
       {/* WPM */}
       <OptionRow label="wpm">
-        <div className="flex items-center gap-1 flex-wrap justify-end -my-2">
+        <div className="flex items-center gap-1 flex-wrap justify-end -my-1">
           {RSVP_WPM_PRESETS.map((preset) => (
             <button
               key={preset}
@@ -200,7 +192,7 @@ export function MobileRsvpOptionsBar({
                 onWpmChange(preset)
                 resetCustomInput()
               }}
-              className={`px-1.5 py-1 rounded text-xs transition-colors ${
+              className={`px-1.5 py-2 rounded text-xs transition-colors ${
                 wpm === preset
                   ? 'text-primary font-medium bg-primary/10'
                   : 'text-text-secondary hover:text-text'
@@ -263,7 +255,7 @@ export function MobileRsvpOptionsBar({
           className="flex items-center gap-2"
           style={{ width: 'calc(50vw - 12px)' }}
         >
-          <div ref={visibleLinesSliderRef} className="flex-1" />
+          <div ref={visibleLinesSliderRef} className="flex-1 my-1" />
           <span className="text-xs text-text-secondary font-medium whitespace-nowrap px-2 py-0.5 bg-text-secondary/10 rounded">
             {displayVisibleLines}
           </span>

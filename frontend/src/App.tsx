@@ -12,6 +12,7 @@ import { ThemeProvider } from './context/ThemeProvider'
 import { AuthProvider } from './context/AuthProvider'
 import { ReadingPreferencesProvider } from './context/ReadingPreferencesProvider'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { NetworkStatusProvider } from './context/NetworkStatusProvider'
 import { getRuntimeBase } from './utils/getRuntimeBase'
 import { Home } from './pages/Home'
 import { Settings } from './pages/Settings'
@@ -60,89 +61,97 @@ function App() {
     <ErrorBoundary>
       <ThemeProvider>
         <AuthProvider>
-          <NotificationsProvider>
-            <ReadingPreferencesProvider>
-              <BrowserRouter basename={runtimeBase}>
-                <Routes>
-                  <Route path="/" element={<RootLayout />}>
-                    <Route index element={<DefaultRedirect />} />
+          <NetworkStatusProvider>
+            <NotificationsProvider>
+              <ReadingPreferencesProvider>
+                <BrowserRouter basename={runtimeBase}>
+                  <Routes>
+                    <Route path="/" element={<RootLayout />}>
+                      <Route index element={<DefaultRedirect />} />
 
-                    <Route element={<RequireUsername />}>
-                      {/* Pages with OptionsBar */}
-                      <Route
-                        element={
-                          <WindowSizeProvider>
-                            <ReadingLayout />
-                          </WindowSizeProvider>
-                        }
-                      >
+                      <Route element={<RequireUsername />}>
+                        {/* Pages with OptionsBar */}
                         <Route
-                          path="home"
                           element={
-                            <MobileReadingGuard>
-                              <Home />
-                            </MobileReadingGuard>
+                            <WindowSizeProvider>
+                              <ReadingLayout />
+                            </WindowSizeProvider>
                           }
+                        >
+                          <Route
+                            path="home"
+                            element={
+                              <MobileReadingGuard>
+                                <Home />
+                              </MobileReadingGuard>
+                            }
+                          />
+                        </Route>
+
+                        {/* Adaptive reading mode */}
+                        <Route
+                          element={
+                            <WindowSizeProvider>
+                              <AdaptiveLayout />
+                            </WindowSizeProvider>
+                          }
+                        >
+                          <Route
+                            path="adaptive"
+                            element={
+                              <MobileReadingGuard>
+                                <Adaptive />
+                              </MobileReadingGuard>
+                            }
+                          />
+                        </Route>
+
+                        {/* RSVP reading mode */}
+                        <Route
+                          element={
+                            <WindowSizeProvider>
+                              <RsvpLayout />
+                            </WindowSizeProvider>
+                          }
+                        >
+                          <Route path="rsvp" element={<Rsvp />} />
+                        </Route>
+
+                        {/* Pages without OptionsBar */}
+                        <Route path="library" element={<Library />} />
+                        <Route path="activity" element={<Activity />} />
+                        <Route path="admin" element={<Admin />} />
+                        <Route path="settings" element={<Settings />} />
+                        <Route
+                          path="notifications"
+                          element={<Notifications />}
                         />
                       </Route>
 
-                      {/* Adaptive reading mode */}
                       <Route
-                        element={
-                          <WindowSizeProvider>
-                            <AdaptiveLayout />
-                          </WindowSizeProvider>
-                        }
-                      >
-                        <Route
-                          path="adaptive"
-                          element={
-                            <MobileReadingGuard>
-                              <Adaptive />
-                            </MobileReadingGuard>
-                          }
-                        />
-                      </Route>
-
-                      {/* RSVP reading mode */}
+                        path="complete-profile"
+                        element={<CompleteProfile />}
+                      />
+                      <Route path="login" element={<Login />} />
                       <Route
-                        element={
-                          <WindowSizeProvider>
-                            <RsvpLayout />
-                          </WindowSizeProvider>
-                        }
-                      >
-                        <Route path="rsvp" element={<Rsvp />} />
-                      </Route>
+                        path="forgot-password"
+                        element={<ForgotPassword />}
+                      />
+                      <Route
+                        path="reset-password"
+                        element={<ResetPassword />}
+                      />
+                      <Route path="privacy" element={<Privacy />} />
+                      <Route path="terms" element={<Terms />} />
+                      <Route path="license" element={<License />} />
 
-                      {/* Pages without OptionsBar */}
-                      <Route path="library" element={<Library />} />
-                      <Route path="activity" element={<Activity />} />
-                      <Route path="admin" element={<Admin />} />
-                      <Route path="settings" element={<Settings />} />
-                      <Route path="notifications" element={<Notifications />} />
+                      <Route path="*" element={<NotFound />} />
                     </Route>
-
-                    <Route
-                      path="complete-profile"
-                      element={<CompleteProfile />}
-                    />
-                    <Route path="login" element={<Login />} />
-                    <Route
-                      path="forgot-password"
-                      element={<ForgotPassword />}
-                    />
-                    <Route path="reset-password" element={<ResetPassword />} />
-                    <Route path="privacy" element={<Privacy />} />
-                    <Route path="terms" element={<Terms />} />
-                    <Route path="license" element={<License />} />
-
-                    <Route path="*" element={<NotFound />} />
-                  </Route>
-                </Routes>
-              </BrowserRouter>
-            </ReadingPreferencesProvider>
-          </NotificationsProvider>
+                  </Routes>
+                </BrowserRouter>
+              </ReadingPreferencesProvider>
+            </NotificationsProvider>
+          </NetworkStatusProvider>
         </AuthProvider>
       </ThemeProvider>
     </ErrorBoundary>

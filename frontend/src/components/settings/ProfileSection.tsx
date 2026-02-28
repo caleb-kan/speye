@@ -4,6 +4,7 @@ import { Edit2 } from 'lucide-react'
 import { DefaultAvatar } from '../DefaultAvatar'
 import { ChangeUsernameSection } from './ChangeUsernameSection'
 import { getUsername } from '../../utils/getUsername'
+import { useNetworkStatus } from '../../hooks/useNetworkStatus'
 
 export type ProfileSectionProps = {
   user: User
@@ -12,6 +13,7 @@ export type ProfileSectionProps = {
 
 export function ProfileSection({ user, avatarUrl }: ProfileSectionProps) {
   const username = getUsername(user)
+  const { isOnline } = useNetworkStatus()
   const [isEditingUsername, setIsEditingUsername] = useState(false)
 
   const handleUsernameChange = () => {
@@ -36,9 +38,10 @@ export function ProfileSection({ user, avatarUrl }: ProfileSectionProps) {
               <button
                 type="button"
                 onClick={() => setIsEditingUsername(true)}
-                className="p-1 rounded hover:bg-bg/50 transition-colors"
+                disabled={!isOnline}
+                className="p-1 rounded hover:bg-bg/50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 aria-label="Edit username"
-                title="Edit username"
+                title={isOnline ? 'Edit username' : 'Requires internet'}
               >
                 <Edit2 size={14} className="text-text-secondary" />
               </button>

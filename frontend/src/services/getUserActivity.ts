@@ -5,6 +5,11 @@ import {
 import { getErrorMessage } from '../utils/getErrorMessage'
 import type { Mode } from '../types/reading'
 import { DEFAULT_MODE } from '../constants/modes'
+import { getCachedActivity, setCachedActivity } from './offlineCache'
+import { pwaLogger } from '../utils/pwaLogger'
+import { isOffline } from './networkStatus'
+
+const TAG = 'getUserActivity'
 
 export type { ActivitySession }
 
@@ -158,10 +163,24 @@ export async function getUserActivity(
     throw new Error('User ID is required')
   }
 
+  if (isOffline()) {
+    pwaLogger.debug(TAG, 'Offline — returning cached activity', { userId })
+    return (await getCachedActivity(userId)) ?? []
+  }
+
   try {
     const rawData = await getUserActivityDb(userId)
-    return collapseSessions(rawData)
+    const collapsed = collapseSessions(rawData)
+    void setCachedActivity(userId, collapsed)
+    return collapsed
   } catch (err) {
+    pwaLogger.warn(
+      TAG,
+      'Network fetch failed for activity, falling back to cache',
+      err
+    )
+    const cached = await getCachedActivity(userId)
+    if (cached) return cached
     throw new Error(getErrorMessage(err, 'Failed to load activity'))
   }
 }

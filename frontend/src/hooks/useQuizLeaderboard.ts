@@ -12,6 +12,7 @@ import {
   LEADERBOARD_TOP_COUNT,
 } from '../constants/quiz'
 import { computeOverallScore } from '../../../lib/scoring'
+import { useNetworkStatus } from './useNetworkStatus'
 
 type UseQuizLeaderboardParams = {
   textId: string
@@ -41,6 +42,7 @@ export function useQuizLeaderboard({
 }: UseQuizLeaderboardParams): UseQuizLeaderboardResult {
   const { user } = useAuth()
   const userId = user?.id
+  const { isOnline } = useNetworkStatus()
 
   const [topEntries, setTopEntries] = useState<LeaderboardEntry[]>([])
   const [currentUserEntry, setCurrentUserEntry] =
@@ -49,7 +51,7 @@ export function useQuizLeaderboard({
   const [loadError, setLoadError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!isPublic || isSaving) return
+    if (!isPublic || isSaving || !isOnline) return
 
     let isActive = true
     setIsLoading(true)
@@ -110,7 +112,7 @@ export function useQuizLeaderboard({
       isActive = false
       clearTimeout(timer)
     }
-  }, [textId, isPublic, userId, isSaving, savedWpm, score, user])
+  }, [textId, isPublic, userId, isSaving, savedWpm, score, user, isOnline])
 
   return {
     topEntries,

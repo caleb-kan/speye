@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { NavItem } from './NavItem'
 import {
   Home,
@@ -15,22 +15,24 @@ import { DefaultAvatar } from '../DefaultAvatar'
 import { getAvatarUrl } from '../../utils/getAvatarUrl'
 import { getUsername } from '../../utils/getUsername'
 import { DEFAULT_MODE } from '../../constants/modes'
-import { getRuntimeBase } from '../../utils/getRuntimeBase'
 import { logUserActivity } from '../../services/logUserActivity'
 import {
   clearReadingActivitySession,
   loadReadingActivitySession,
 } from '../../utils/readingActivityStorage'
 import { useReadingPreferences } from '../../hooks/useReadingPreferences'
+import { useNetworkStatus } from '../../hooks/useNetworkStatus'
 import { ROUTES, MODE_ROUTES } from '../../utils/routes'
 
 export function Navbar() {
   const location = useLocation()
+  const navigate = useNavigate()
   const { user, loading } = useAuth()
   const { preferences } = useReadingPreferences()
   const isMobile = useIsMobile()
 
   const isAdmin = useIsAdmin()
+  const { isOnline } = useNetworkStatus()
 
   const isLoginActive = location.pathname === ROUTES.LOGIN
   const isSettingsActive = location.pathname === ROUTES.SETTINGS
@@ -69,14 +71,14 @@ export function Navbar() {
   }
 
   // Handles navigation for auth links that don't use NavItem.
-  // Logs activity, then forces a full page reload when leaving
+  // Logs activity, then handles navigation when leaving
   // adaptive mode to ensure WebGazer is properly cleaned up.
   const handleAuthLinkClick = (e: React.MouseEvent, targetPath: string) => {
     handleBeforeNavigate(targetPath)
     if (isInAdaptiveMode) {
       e.preventDefault()
-      const basePath = getRuntimeBase()
-      window.location.href = `${basePath}${targetPath.slice(1)}`
+      // Use React Router navigate to stay within PWA
+      navigate(targetPath, { replace: true })
     }
   }
 
@@ -131,8 +133,8 @@ export function Navbar() {
         }
       />
 
-      {/* Admin-only navigation */}
-      {user && isAdmin && (
+      {/* Admin-only navigation (hidden offline — entirely server-dependent) */}
+      {user && isAdmin && isOnline && (
         <NavItem
           to={ROUTES.ADMIN}
           icon={<Shield size={22} />}

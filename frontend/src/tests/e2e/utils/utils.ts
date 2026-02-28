@@ -82,7 +82,7 @@ export const defaultMockText = {
   owner_id: null,
   quiz: null,
   fiction: false,
-  complexity: 4,
+  complexity: 10,
   source: null,
   processing_status: 'completed' as const,
   quiz_valid: null,
@@ -117,6 +117,20 @@ export async function mockAuthTokenSuccess(
   const now = new Date().toISOString()
   const jwt = createMockJWT('user-1', email)
 
+  // Same navigator.onLine override as mockAuthSession — needed so the home
+  // page (navigated to after login) doesn't enter offline-cache mode in CI.
+  await page.addInitScript(() => {
+    try {
+      Object.defineProperty(navigator, 'onLine', {
+        get: () => true,
+        configurable: true,
+      })
+    } catch {
+      // ignore
+    }
+    localStorage.removeItem('speye-force-offline')
+  })
+
   await page.route('**/auth/v1/token**', async (route) => {
     await route.fulfill({
       status: 200,
@@ -138,6 +152,16 @@ export async function mockAuthTokenSuccess(
           updated_at: now,
         },
       }),
+    })
+  })
+
+  // Catch-all for REST requests so the home page (navigated to after login)
+  // doesn't hang on unmocked Supabase endpoints in CI.
+  await page.route('**/rest/v1/**', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify([]),
     })
   })
 }
@@ -179,8 +203,31 @@ export async function mockAuthSession(
   }
 
   // Seed localStorage so the Supabase client recovers the session on load
+  // and clear offline cache so stale IndexedDB data doesn't interfere with mocked routes
   await page.addInitScript(
-    ({ token, key, user }: { token: string; key: string; user: object }) => {
+    async ({
+      token,
+      key,
+      user,
+    }: {
+      token: string
+      key: string
+      user: object
+    }) => {
+      // Synchronous overrides FIRST — addInitScript async functions do NOT
+      // block page script execution, so navigator.onLine and localStorage must
+      // be set up before any await or the app may start with onLine=false and
+      // bypass mocked network routes (going straight to the offline cache).
+      try {
+        Object.defineProperty(navigator, 'onLine', {
+          get: () => true,
+          configurable: true,
+        })
+      } catch {
+        // Property may not be configurable in all environments — safe to ignore
+      }
+      localStorage.removeItem('speye-force-offline')
+
       const session = {
         access_token: token,
         token_type: 'bearer',
@@ -191,6 +238,53 @@ export async function mockAuthSession(
       }
 
       localStorage.setItem(key, JSON.stringify(session))
+
+      // Async IDB cleanup after the sync setup above. The page scripts will
+      // already see the correct navigator.onLine and session values by the
+      // time they run, regardless of how long this deletion takes.
+      // Use open+clear instead of deleteDatabase: in WebKit, deleteDatabase
+      // fires onblocked when connections from a previous test (same browser
+      // context) are still alive, and a subsequent open() queues behind the
+      // pending deletion, creating a deadlock that hangs IDB operations.
+      await new Promise<void>((resolve) => {
+        const storeNames = [
+          'texts',
+          'library',
+          'activity',
+          'metadata',
+          'notifications',
+        ]
+        const openReq = indexedDB.open('speye-offline')
+        openReq.onsuccess = (event) => {
+          const db = (event.target as IDBOpenDBRequest).result
+          const toClear = storeNames.filter((s) =>
+            db.objectStoreNames.contains(s)
+          )
+          if (toClear.length === 0) {
+            db.close()
+            resolve()
+            return
+          }
+          const tx = db.transaction(toClear, 'readwrite')
+          toClear.forEach((s) => tx.objectStore(s).clear())
+          tx.oncomplete = () => {
+            db.close()
+            resolve()
+          }
+          tx.onerror = () => {
+            db.close()
+            resolve()
+          }
+          tx.onabort = () => {
+            db.close()
+            resolve()
+          }
+        }
+        openReq.onerror = () => resolve()
+        openReq.onblocked = () => resolve()
+      }).catch(() => {
+        // Ignore errors — the test can continue without a clean slate
+      })
     },
     { token: jwt, key: storageKey, user: mockUser }
   )
@@ -218,6 +312,17 @@ export async function mockAuthSession(
       body: JSON.stringify(mockUser),
     })
   })
+
+  // Catch-all for any other Supabase REST requests (e.g. user_activity,
+  // texts table queries from prefetch) so they resolve instantly instead of
+  // hanging on a connection to a non-running Supabase server.
+  await page.route('**/rest/v1/**', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify([]),
+    })
+  })
 }
 
 export async function mockAuthTokenError(
@@ -234,4 +339,37 @@ export async function mockAuthTokenError(
       }),
     })
   })
+}
+
+/**
+ * Simulates going offline or online in a cross-browser-reliable way.
+ *
+ * `page.context().setOffline()` alone is not sufficient because:
+ *  1. It fires the 'offline' DOM event at the browser level, which may arrive
+ *     before React's useEffect has registered its window event listener
+ *     (race condition — non-deterministic test failures).
+ *  2. In WebKit, navigator.onLine may not be updated by setOffline() when the
+ *     property has been overridden via Object.defineProperty in an init script.
+ *
+ * This helper blocks/unblocks the network AND then uses page.evaluate() to:
+ *  - Update navigator.onLine synchronously in the page context.
+ *  - Re-dispatch the 'offline'/'online' event so any already-registered
+ *    listeners (React's NetworkStatusProvider) receive it reliably.
+ */
+export async function setPageOffline(
+  page: Page,
+  offline: boolean
+): Promise<void> {
+  await page.context().setOffline(offline)
+  await page.evaluate((isOffline: boolean) => {
+    try {
+      Object.defineProperty(navigator, 'onLine', {
+        get: () => !isOffline,
+        configurable: true,
+      })
+    } catch {
+      // ignore if not configurable
+    }
+    window.dispatchEvent(new Event(isOffline ? 'offline' : 'online'))
+  }, offline)
 }

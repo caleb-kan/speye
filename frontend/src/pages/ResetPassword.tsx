@@ -2,6 +2,8 @@ import { useResetPasswordForm } from '../hooks/useResetPasswordForm'
 import { ResetPasswordForm } from '../components/login/ResetPasswordForm'
 import { LoginHeader } from '../components/login/LoginHeader'
 import { BackToLoginLink } from '../components/login/BackToLoginLink'
+import { useNetworkStatus } from '../hooks/useNetworkStatus'
+import { CloudOff } from 'lucide-react'
 
 export function ResetPassword() {
   const {
@@ -15,6 +17,7 @@ export function ResetPassword() {
     handleConfirmPasswordChange,
     handleSubmit,
   } = useResetPasswordForm()
+  const { isOnline } = useNetworkStatus()
 
   if (!isValidToken) {
     return null
@@ -29,12 +32,19 @@ export function ResetPassword() {
           subtitle="Enter your new password"
         />
 
+        {!isOnline && (
+          <div className="flex items-center gap-2 p-3 mb-4 rounded-lg bg-text-secondary/10 text-text-secondary text-xs">
+            <CloudOff size={14} className="shrink-0" />
+            <span>Password reset requires an internet connection</span>
+          </div>
+        )}
+
         <ResetPasswordForm
           password={password}
           confirmPassword={confirmPassword}
           error={error}
           message={message}
-          loading={loading}
+          loading={loading || !isOnline}
           onPasswordChange={handlePasswordChange}
           onConfirmPasswordChange={handleConfirmPasswordChange}
           onSubmit={handleSubmit}

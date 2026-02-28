@@ -5,9 +5,12 @@ import { LoginFooter } from '../components/login/LoginFooter'
 import { LoginForm } from '../components/login/LoginForm'
 import { LoginHeader } from '../components/login/LoginHeader'
 import { LoginGoogleButton } from '../components/login/LoginGoogleButton'
+import { useNetworkStatus } from '../hooks/useNetworkStatus'
+import { CloudOff } from 'lucide-react'
 
 export function Login() {
   const navigate = useNavigate()
+  const { isOnline } = useNetworkStatus()
   const defaultRoute = useDefaultReadingRoute()
   const {
     email,
@@ -31,8 +34,15 @@ export function Login() {
       <div className="w-full max-w-xs bg-bg-secondary rounded-xl shadow-lg px-6 py-6">
         <LoginHeader isSignUp={isSignUp} />
 
+        {!isOnline && (
+          <div className="flex items-center gap-2 p-3 mb-4 rounded-lg bg-text-secondary/10 text-text-secondary text-xs">
+            <CloudOff size={14} className="shrink-0" />
+            <span>Sign in requires an internet connection</span>
+          </div>
+        )}
+
         <LoginGoogleButton
-          loading={loading}
+          loading={loading || !isOnline}
           onGoogleSignIn={handleGoogleSignIn}
         />
 
@@ -50,7 +60,7 @@ export function Login() {
           error={error}
           usernameError={usernameError}
           message={message}
-          loading={loading}
+          loading={loading || !isOnline}
           isSignUp={isSignUp}
           onEmailChange={handleEmailChange}
           onPasswordChange={handlePasswordChange}

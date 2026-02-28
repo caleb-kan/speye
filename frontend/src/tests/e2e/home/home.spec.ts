@@ -61,12 +61,22 @@ test.describe('Home Page', () => {
   })
 
   test('shows empty state when no texts available', async ({ page }) => {
-    await page.route('**/rest/v1/rpc/get_random_text**', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify([]),
-      })
+    // Unroute the mockAuthSession catch-all so this specific route is reached
+    await page.unroute('**/rest/v1/**')
+    await page.route('**/rest/v1/**', async (route) => {
+      if (route.request().url().includes('/rpc/get_random_text')) {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify([]),
+        })
+      } else {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify([]),
+        })
+      }
     })
     await page.goto('/home')
 

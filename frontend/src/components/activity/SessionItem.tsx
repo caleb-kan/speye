@@ -65,7 +65,7 @@ export function SessionItem({ session, index }: Props) {
           <div className="flex items-center gap-2 mb-1">
             {textExists ? (
               <>
-                <h4 className="font-medium text-text truncate min-w-0 group-hover:text-primary transition-colors">
+                <h4 className="font-medium text-text truncate group-hover:text-primary transition-colors">
                   {session.text!.title}
                 </h4>
                 {session.text!.fiction !== undefined && (

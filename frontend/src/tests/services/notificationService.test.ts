@@ -6,6 +6,23 @@ vi.mock('../../../../lib/supabase', () => ({
   },
 }))
 
+vi.mock('../../services/networkStatus', () => ({
+  isOffline: vi.fn(() => false),
+}))
+
+vi.mock('../../services/offlineCache', () => ({
+  getCachedNotifications: vi.fn(() => Promise.resolve(null)),
+  setCachedNotifications: vi.fn(() => Promise.resolve()),
+}))
+
+vi.mock('../../services/operationQueue', () => ({
+  enqueueOperation: vi.fn(() => Promise.resolve()),
+}))
+
+vi.mock('../../utils/pwaLogger', () => ({
+  pwaLogger: { debug: vi.fn(), warn: vi.fn(), info: vi.fn() },
+}))
+
 import {
   getNotifications,
   markNotificationSeen,

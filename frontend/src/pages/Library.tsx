@@ -23,10 +23,12 @@ import { AlertMessages } from '../components/ui/AlertMessages'
 import { LibraryContent } from '../components/library/LibraryContent'
 import { SUCCESS_MESSAGE_DURATION_MS } from '../constants/ui'
 import { TEXTS_PER_PAGE } from '../constants/library'
+import { useNetworkStatus } from '../hooks/useNetworkStatus'
 
 export function Library() {
   const { user } = useAuth()
   const isAdmin = useIsAdmin()
+  const { isOnline } = useNetworkStatus()
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<LibraryTab>('private')
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -148,7 +150,7 @@ export function Library() {
       <div className="w-full max-w-4xl">
         <LibraryHeader
           activeTab={activeTab}
-          showUpload={Boolean(user && activeTab === 'private')}
+          showUpload={Boolean(user && activeTab === 'private' && isOnline)}
           onUpload={() => setIsModalOpen(true)}
         />
 

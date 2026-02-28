@@ -23,6 +23,24 @@ vi.mock(
   })
 )
 
+vi.mock('../../services/networkStatus', () => ({
+  isOffline: vi.fn(() => false),
+}))
+
+vi.mock('../../services/offlineCache', () => ({
+  getCachedLastPosition: vi.fn().mockResolvedValue(null),
+  setCachedLastPosition: vi.fn().mockResolvedValue(undefined),
+}))
+
+vi.mock('../../utils/pwaLogger', () => ({
+  pwaLogger: {
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  },
+}))
+
 const mockSupabase = vi.mocked(supabaseModule.supabase)
 const mockGetLastReadingPositionDb = vi.mocked(getLastReadingPositionDb)
 
@@ -91,9 +109,8 @@ describe('getLastReadingPosition', () => {
   })
 
   it('returns null and logs error when getSession throws', async () => {
-    mockSupabase.auth.getSession.mockRejectedValue(new Error('Network error'))
-
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    mockSupabase.auth.getSession.mockRejectedValue(new Error('Network error'))
 
     const result = await getLastReadingPosition('text-123')
 
@@ -102,26 +119,24 @@ describe('getLastReadingPosition', () => {
       'Failed to restore reading position:',
       expect.any(Error)
     )
-
     consoleSpy.mockRestore()
   })
 
-  it('returns null and logs error when backend function throws', async () => {
+  it('returns null when backend function throws (falls back to cache)', async () => {
     mockSupabase.auth.getSession.mockResolvedValue(
       mockSessionResponse(mockSession)
     )
     mockGetLastReadingPositionDb.mockRejectedValue(new Error('Database error'))
 
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { pwaLogger } = await import('../../utils/pwaLogger')
 
     const result = await getLastReadingPosition('text-123')
 
     expect(result).toBeNull()
-    expect(consoleSpy).toHaveBeenCalledWith(
-      'Failed to restore reading position:',
+    expect(pwaLogger.warn).toHaveBeenCalledWith(
+      'readingHistory',
+      'Network fetch failed for reading position, falling back to cache',
       expect.any(Error)
     )
-
-    consoleSpy.mockRestore()
   })
 })

@@ -5,6 +5,17 @@ import { Admin } from '../../pages/Admin'
 import { createMockAdminText } from '../helpers/adminMockFactory'
 import type { AdminReviewText } from '../../services/adminService'
 
+vi.mock('../../hooks/useNetworkStatus', () => ({
+  useNetworkStatus: () => ({
+    isOnline: true,
+    forceOffline: false,
+    setForceOffline: vi.fn(),
+    pendingOperations: 0,
+    isSyncing: false,
+    syncNow: vi.fn(),
+  }),
+}))
+
 type AdminPageMockState = {
   authLoading: boolean
   isAdmin: boolean

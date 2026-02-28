@@ -18,6 +18,14 @@ vi.mock('../../../../lib/supabase', () => ({
   },
 }))
 
+vi.mock('../../services/offlineCache', () => ({
+  clearAllCaches: vi.fn().mockResolvedValue(undefined),
+}))
+
+vi.mock('../../services/operationQueue', () => ({
+  clearQueue: vi.fn().mockResolvedValue(undefined),
+}))
+
 const mockSupabase = vi.mocked(supabaseModule.supabase)
 
 describe('AuthProvider', () => {

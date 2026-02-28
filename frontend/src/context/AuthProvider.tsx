@@ -2,6 +2,8 @@ import { useEffect, useState, useMemo } from 'react'
 import { AuthContext } from './authContext'
 import { supabase } from '../../../lib/supabase'
 import type { Session } from '@supabase/supabase-js'
+import { clearAllCaches } from '../services/offlineCache'
+import { clearQueue } from '../services/operationQueue'
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
@@ -33,6 +35,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const signOut = async () => {
+    await clearQueue()
+    await clearAllCaches()
     await supabase.auth.signOut({ scope: 'global' })
     // State is automatically updated via onAuthStateChange listener
   }

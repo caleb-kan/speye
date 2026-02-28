@@ -53,6 +53,17 @@ vi.mock('../../services/leaderboardService', () => ({
   updateLeaderboardCache: vi.fn().mockResolvedValue(undefined),
 }))
 
+vi.mock('../../hooks/useNetworkStatus', () => ({
+  useNetworkStatus: () => ({
+    isOnline: true,
+    forceOffline: false,
+    setForceOffline: vi.fn(),
+    pendingOperations: 0,
+    isSyncing: false,
+    syncNow: vi.fn(),
+  }),
+}))
+
 describe('QuizModal', () => {
   beforeEach(() => {
     const modalRoot = document.createElement('div')

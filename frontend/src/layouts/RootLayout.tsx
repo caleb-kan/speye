@@ -3,6 +3,7 @@ import { Header } from '../components/Header'
 import { Footer } from '../components/Footer'
 import { NotificationToaster } from '../components/notifications/NotificationToaster'
 import { NotificationsMailButton } from '../components/notifications/NotificationsMailButton'
+import { OfflineIndicator } from '../components/ui/OfflineIndicator'
 import { Outlet } from 'react-router-dom'
 import { useIsMobile } from '../hooks/useIsMobile'
 
@@ -16,9 +17,10 @@ export function RootLayout() {
       <Header />
       <NotificationsMailButton />
       <NotificationToaster />
+      <OfflineIndicator />
 
       {/* Right content shell */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 min-w-0 flex flex-col">
         {/* Page content */}
         <main
           className={`relative flex-1 flex flex-col min-h-0 overflow-y-auto overflow-x-hidden ${

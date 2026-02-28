@@ -1,4 +1,9 @@
-import { type ComponentProps, type ReactNode, useState } from 'react'
+import {
+  type ComponentProps,
+  type ReactNode,
+  useState,
+  useCallback,
+} from 'react'
 import { SlidersHorizontal, ChevronDown } from 'lucide-react'
 import { OptionsBar } from '../OptionsBar'
 import { MobileRsvpOptionsBar } from '../optionsBar/MobileRsvpOptionsBar'
@@ -11,15 +16,22 @@ export type RsvpShellProps = {
   optionsBarProps: RsvpOptionsBarProps
   children: ReactNode
   contentClassName?: string
+  optionsOpen?: boolean
+  onOptionsOpenChange?: (open: boolean) => void
 }
 
 export function RsvpShell({
   optionsBarProps,
   children,
   contentClassName,
+  optionsOpen: controlledOpen,
+  onOptionsOpenChange,
 }: RsvpShellProps) {
   const isMobile = useIsMobile()
-  const [optionsOpen, setOptionsOpen] = useState(() => {
+  const isControlled = controlledOpen !== undefined
+
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(() => {
+    if (isControlled) return false
     try {
       return localStorage.getItem(STORAGE_KEYS.RSVP_OPTIONS_OPEN) === 'true'
     } catch (e) {
@@ -28,17 +40,24 @@ export function RsvpShell({
     }
   })
 
-  const toggleOptions = () => {
-    setOptionsOpen((prev) => {
-      const next = !prev
-      try {
-        localStorage.setItem(STORAGE_KEYS.RSVP_OPTIONS_OPEN, String(next))
-      } catch (e) {
-        console.warn('Failed to persist RSVP options state:', e)
+  const optionsOpen = isControlled ? controlledOpen : uncontrolledOpen
+
+  const setOptionsOpen = useCallback(
+    (next: boolean) => {
+      if (!isControlled) {
+        setUncontrolledOpen(next)
+        try {
+          localStorage.setItem(STORAGE_KEYS.RSVP_OPTIONS_OPEN, String(next))
+        } catch (e) {
+          console.warn('Failed to persist RSVP options state:', e)
+        }
       }
-      return next
-    })
-  }
+      onOptionsOpenChange?.(next)
+    },
+    [isControlled, onOptionsOpenChange]
+  )
+
+  const toggleOptions = () => setOptionsOpen(!optionsOpen)
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
@@ -65,7 +84,7 @@ export function RsvpShell({
             )}
           </button>
           <div
-            className={`overflow-x-auto transition-all duration-300 ${
+            className={`overflow-x-auto transition-all duration-300 pb-[calc(2rem+env(safe-area-inset-bottom,0px))] ${
               optionsOpen ? 'max-h-67 opacity-100' : 'max-h-0 opacity-0'
               // 67 is just a large enough max height to show all options without cutting off, while still allowing the transition to work
             }`}

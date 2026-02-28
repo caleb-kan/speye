@@ -51,7 +51,7 @@ export function ActivityFeed({ sessions, groupedSessions }: ActivityFeedProps) {
                 </div>
 
                 {/* Sessions List (Right Column) */}
-                <div className="flex-1 min-w-0 space-y-3">
+                <div className="flex-1 min-w-0 space-y-3 sm:space-y-2">
                   {groupSessions.map((session, index) => (
                     <SessionItem
                       key={session.id}

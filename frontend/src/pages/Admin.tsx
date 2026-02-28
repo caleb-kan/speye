@@ -3,6 +3,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useAdminApprovals } from '../hooks/useAdminApprovals'
 import { useAdminStats } from '../hooks/useAdminStats'
 import { useAutoClearMessage } from '../hooks/useAutoClearMessage'
+import { useNetworkStatus } from '../hooks/useNetworkStatus'
 import { ApprovalsList } from '../components/admin/textApproval/ApprovalsList'
 import { AlertMessages } from '../components/ui/AlertMessages'
 import { TextPreviewModal } from '../components/admin/textApproval/TextPreviewModal'
@@ -14,10 +15,11 @@ import { AdminActionPanel } from '../components/admin/AdminActionPanel'
 import { AdminSkeleton } from '../components/admin/AdminSkeleton'
 import { SUCCESS_MESSAGE_DURATION_MS } from '../constants/ui'
 import type { AdminReviewText } from '../services/adminService'
-import { FileText, XCircle, CheckCircle2 } from 'lucide-react'
+import { FileText, XCircle, CheckCircle2, CloudOff } from 'lucide-react'
 
 export function Admin() {
   const { loading: authLoading } = useAuth()
+  const { isOnline } = useNetworkStatus()
   const [initialShowReject, setInitialShowReject] = useState(false)
 
   const {
@@ -84,6 +86,21 @@ export function Admin() {
     return (
       <div className="p-6">
         <AccessDenied />
+      </div>
+    )
+  }
+
+  if (!isOnline) {
+    return (
+      <div className="p-6 h-full flex flex-col items-center justify-center text-center gap-3">
+        <CloudOff className="w-12 h-12 text-text-secondary/50" />
+        <h2 className="text-lg font-semibold text-text">
+          Admin panel unavailable offline
+        </h2>
+        <p className="text-text-secondary text-sm max-w-md">
+          Content moderation requires an internet connection. Please reconnect
+          to manage texts and view statistics.
+        </p>
       </div>
     )
   }

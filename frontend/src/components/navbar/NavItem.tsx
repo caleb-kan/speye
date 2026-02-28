@@ -1,6 +1,5 @@
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import type { ReactNode } from 'react'
-import { getRuntimeBase } from '../../utils/getRuntimeBase'
 
 type NavItemProps = {
   to: string
@@ -18,6 +17,7 @@ export function NavItem({
   onBeforeNavigate,
 }: NavItemProps) {
   const location = useLocation()
+  const navigate = useNavigate()
   const isActive = location.pathname === to
   const isInAdaptiveMode = location.pathname === '/adaptive'
 
@@ -30,14 +30,11 @@ export function NavItem({
     // Log activity before navigating
     onBeforeNavigate?.(to)
 
-    // When navigating away from adaptive mode, use window.location
-    // to force a full page reload. This ensures WebGazer is properly
-    // cleaned up and React re-renders the new page correctly.
+    // When navigating away from adaptive mode, use React Router navigate
+    // to stay within PWA context instead of window.location
     if (isInAdaptiveMode && to !== '/adaptive') {
       e.preventDefault()
-      // Build the full URL with base path
-      const basePath = getRuntimeBase()
-      window.location.href = `${basePath}${to.slice(1)}`
+      navigate(to, { replace: true })
     }
   }
 

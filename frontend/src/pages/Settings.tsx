@@ -1,4 +1,5 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { useEffect } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useTheme } from '../hooks/useTheme'
 import { useAuth } from '../hooks/useAuth'
 import { getAvatarUrl } from '../utils/getAvatarUrl'
@@ -8,6 +9,7 @@ import { ShortcutsSection } from '../components/settings/ShortcutsSection'
 import { AboutSection } from '../components/settings/AboutSection'
 import { AccountSection } from '../components/settings/AccountSection'
 import { LoginPromptSection } from '../components/settings/LoginPromptSection'
+import { OfflineCacheSection } from '../components/settings/OfflineCacheSection'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { useDefaultReadingRoute } from '../hooks/useDefaultReadingRoute'
 
@@ -15,6 +17,14 @@ export function Settings() {
   const { theme, setTheme, themes } = useTheme()
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
+  const { hash } = useLocation()
+
+  // Scroll to hash fragment (e.g. #offline-cache) after mount
+  useEffect(() => {
+    if (!hash) return
+    const el = document.getElementById(hash.slice(1))
+    if (el) el.scrollIntoView({ behavior: 'smooth' })
+  }, [hash])
 
   const isMobile = useIsMobile()
   const defaultRoute = useDefaultReadingRoute()
@@ -36,8 +46,12 @@ export function Settings() {
         )}
 
         <ThemeSection theme={theme} themes={themes} onThemeChange={setTheme} />
-        {!isMobile && <ShortcutsSection />}
+
         <AboutSection />
+
+        {!isMobile && <ShortcutsSection />}
+
+        {user && <OfflineCacheSection />}
 
         {user ? (
           <AccountSection onSignOut={handleSignOut} />

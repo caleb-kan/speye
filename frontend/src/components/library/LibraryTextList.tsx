@@ -12,6 +12,7 @@ import {
 import type { TextPreview } from '../../types/database'
 import { UNTITLED_TEXT_FALLBACK } from '../../constants/admin'
 import { useIsMobile } from '../../hooks/useIsMobile'
+import { useNetworkStatus } from '../../hooks/useNetworkStatus'
 import { TEXT_PREVIEW_LENGTH } from '../../constants/library'
 
 export type LibraryTextListProps = {
@@ -40,6 +41,7 @@ export function LibraryTextList({
   isAdmin = false,
 }: LibraryTextListProps) {
   const isMobile = useIsMobile()
+  const { isOnline } = useNetworkStatus()
   return (
     <div className="space-y-4">
       {texts.map((text) => (
@@ -55,7 +57,7 @@ export function LibraryTextList({
                   {text.title || UNTITLED_TEXT_FALLBACK}
                 </h3>
                 {text.processing_status === 'pending' && (
-                  <span className="flex items-center gap-1 text-xs px-2 py-0.5 bg-warning/10 text-warning rounded">
+                  <span className="flex items-center gap-1 text-xs px-2 py-0.5 bg-error/10 text-error rounded">
                     <Loader2 className="w-3 h-3 animate-spin" />
                     Processing
                   </span>
@@ -80,7 +82,7 @@ export function LibraryTextList({
                 )}
                 {text.quiz_valid === false && (
                   <span
-                    className="flex items-center gap-1 text-xs text-warning"
+                    className="flex items-center gap-1 text-xs text-error"
                     title="Quiz may have quality issues"
                   >
                     <AlertTriangle className="w-3 h-3" />
@@ -90,7 +92,7 @@ export function LibraryTextList({
                 {text.quiz_valid === null &&
                   text.quiz !== null &&
                   text.processing_status === 'completed' && (
-                    <span className="flex items-center gap-1 text-xs px-2 py-0.5 bg-warning/10 text-warning rounded">
+                    <span className="flex items-center gap-1 text-xs px-2 py-0.5 bg-error/10 text-error rounded">
                       <Loader2 className="w-3 h-3 animate-spin" />
                       Validating
                     </span>
@@ -150,10 +152,10 @@ export function LibraryTextList({
                   <button
                     type="button"
                     onClick={() => onRetryProcessing(text.id)}
-                    disabled={retryingTextIds.has(text.id)}
-                    className="p-2 text-text-secondary hover:text-warning hover:bg-warning/10 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-warning disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={!isOnline || retryingTextIds.has(text.id)}
+                    className="p-2 text-text-secondary hover:text-error hover:bg-error/10 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-error disabled:opacity-50 disabled:cursor-not-allowed"
                     aria-label="Retry processing"
-                    title="Regenerate quiz"
+                    title={isOnline ? 'Regenerate quiz' : 'Unavailable offline'}
                   >
                     <RefreshCw
                       className={`w-4 h-4 ${retryingTextIds.has(text.id) ? 'animate-spin' : ''}`}
@@ -166,9 +168,12 @@ export function LibraryTextList({
                     <button
                       type="button"
                       onClick={() => onEditText(text)}
-                      className="p-2 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
+                      disabled={!isOnline}
+                      className="p-2 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
                       aria-label="Edit text"
-                      title="Edit text or quiz"
+                      title={
+                        isOnline ? 'Edit text or quiz' : 'Unavailable offline'
+                      }
                     >
                       <Pencil className="w-4 h-4" />
                     </button>
@@ -176,9 +181,10 @@ export function LibraryTextList({
                   <button
                     type="button"
                     onClick={() => onDeleteText(text.id)}
-                    className="p-2 text-text-secondary hover:text-error hover:bg-error/10 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-error"
+                    disabled={!isOnline}
+                    className="p-2 text-text-secondary hover:text-error hover:bg-error/10 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-error disabled:opacity-50 disabled:cursor-not-allowed"
                     aria-label="Delete text"
-                    title="Delete text"
+                    title={isOnline ? 'Delete text' : 'Unavailable offline'}
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>

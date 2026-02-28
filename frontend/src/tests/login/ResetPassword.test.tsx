@@ -15,6 +15,17 @@ vi.mock('../../../../lib/supabase', () => ({
   },
 }))
 
+vi.mock('../../hooks/useNetworkStatus', () => ({
+  useNetworkStatus: () => ({
+    isOnline: true,
+    forceOffline: false,
+    setForceOffline: vi.fn(),
+    pendingOperations: 0,
+    isSyncing: false,
+    syncNow: vi.fn(),
+  }),
+}))
+
 const mockNavigate = vi.fn()
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom')

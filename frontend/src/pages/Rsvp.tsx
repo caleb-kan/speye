@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useLocation } from 'react-router-dom'
+import { STORAGE_KEYS } from '../constants/storage'
 import { RsvpReadingSession } from '../components/rsvp/RsvpReadingSession'
 import { useReadingPreferences } from '../hooks/useReadingPreferences'
 import { useTextNavigation } from '../hooks/useTextNavigation'
@@ -25,6 +26,31 @@ export function Rsvp() {
     number | null
   >(null)
   const [inputBlocking, setInputBlocking] = useState(false)
+  const [optionsOpen, setOptionsOpen] = useState(() => {
+    try {
+      return localStorage.getItem(STORAGE_KEYS.RSVP_OPTIONS_OPEN) === 'true'
+    } catch {
+      return false
+    }
+  })
+
+  const setOptionsOpenPersisted = useCallback((open: boolean) => {
+    setOptionsOpen(open)
+    try {
+      localStorage.setItem(STORAGE_KEYS.RSVP_OPTIONS_OPEN, String(open))
+    } catch {
+      // localStorage may be unavailable
+    }
+  }, [])
+
+  const handlePlayingChange = useCallback(
+    (playing: boolean) => {
+      if (playing) {
+        setOptionsOpenPersisted(false)
+      }
+    },
+    [setOptionsOpenPersisted]
+  )
 
   const {
     preferences,
@@ -127,7 +153,11 @@ export function Rsvp() {
   }
 
   return (
-    <RsvpReaderLayout optionsBarProps={optionsBarProps}>
+    <RsvpReaderLayout
+      optionsBarProps={optionsBarProps}
+      optionsOpen={optionsOpen}
+      onOptionsOpenChange={setOptionsOpenPersisted}
+    >
       <RsvpReadingSession
         key={currentText.id}
         currentText={currentText}
@@ -140,6 +170,8 @@ export function Rsvp() {
         inputBlocking={inputBlocking}
         onNewText={handleNewTextWithReset}
         isSummary={isSummary}
+        forcePause={optionsOpen}
+        onPlayingChange={handlePlayingChange}
       />
     </RsvpReaderLayout>
   )

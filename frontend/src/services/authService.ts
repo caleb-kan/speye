@@ -63,3 +63,10 @@ export async function updateUsername(username: string): Promise<UserResponse> {
   if (result.error) throw result.error
   return result
 }
+
+export async function getCurrentUser() {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  return user
+}

@@ -6,6 +6,18 @@ vi.mock('../../../../lib/supabase', () => ({
   },
 }))
 
+vi.mock('../../services/networkStatus', () => ({
+  isOffline: vi.fn(() => false),
+}))
+
+vi.mock('../../services/offlineCache', () => ({
+  getCachedQuiz: vi.fn(() => Promise.resolve(null)),
+}))
+
+vi.mock('../../utils/pwaLogger', () => ({
+  pwaLogger: { debug: vi.fn(), warn: vi.fn(), info: vi.fn() },
+}))
+
 import { getQuiz } from '../../services/getQuiz'
 import { supabase } from '../../../../lib/supabase'
 

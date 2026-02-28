@@ -33,6 +33,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       root.style.setProperty('--color-error', theme.colors.error)
       root.style.setProperty('--color-warning', theme.colors.warning)
       root.style.setProperty('--color-success', theme.colors.success)
+      document
+        .querySelector('meta[name="theme-color"]')
+        ?.setAttribute('content', theme.colors.bg)
       setLoading(false)
     }
     applyTheme()

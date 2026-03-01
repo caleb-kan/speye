@@ -16,6 +16,7 @@ type RsvpReadingSessionProps = {
   inputBlocking: boolean
   onNewText: () => void
   isSummary?: boolean
+  hideNewText?: boolean
   forcePause?: boolean
   onPlayingChange?: (isPlaying: boolean) => void
 }
@@ -31,6 +32,7 @@ export function RsvpReadingSession({
   inputBlocking,
   onNewText,
   isSummary,
+  hideNewText,
   forcePause,
   onPlayingChange,
 }: RsvpReadingSessionProps) {
@@ -72,6 +74,7 @@ export function RsvpReadingSession({
         showMiniQuiz={quizDismissed}
         onStartQuiz={() => setTriggerQuiz(true)}
         isSummary={isSummary}
+        hideNewText={hideNewText}
         forcePause={forcePause}
         onPlayingChange={onPlayingChange}
       />

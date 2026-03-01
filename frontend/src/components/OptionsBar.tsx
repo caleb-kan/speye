@@ -40,6 +40,7 @@ type OptionsBarProps = {
   currentTextComplexity?: number | null
   currentText?: Text | null
   readingPosition?: number
+  preventModeNavigation?: boolean
 }
 
 export function OptionsBar({
@@ -67,6 +68,7 @@ export function OptionsBar({
   currentTextComplexity,
   currentText,
   readingPosition = 0,
+  preventModeNavigation = false,
 }: OptionsBarProps) {
   const navigate = useNavigate()
   const location = useLocation()
@@ -89,6 +91,7 @@ export function OptionsBar({
       onVisibleLinesChange,
       phraseSize,
       onPhraseSizeChange,
+      mode,
     })
 
   const {
@@ -119,7 +122,10 @@ export function OptionsBar({
                 if (mode !== 'standard') {
                   onModeNavigate?.('standard')
                   onModeChange('standard')
-                  if (mode === 'adaptive' || mode === 'rsvp') {
+                  if (
+                    !preventModeNavigation &&
+                    (mode === 'adaptive' || mode === 'rsvp')
+                  ) {
                     navigate(ROUTES.HOME, {
                       state: buildModeNavigationState({
                         includeTimestamp: true,
@@ -137,29 +143,33 @@ export function OptionsBar({
                 if (mode === 'rsvp') return
                 onModeNavigate?.('rsvp')
                 onModeChange('rsvp')
-                navigate(ROUTES.RSVP, {
-                  state: buildModeNavigationState({
-                    includeTimestamp: true,
-                    readingPosition,
-                    libraryText,
-                    currentText,
-                    isSummary,
-                  }),
-                })
-              }}
-              onAdaptiveClick={() => {
-                if (mode !== 'adaptive' && user) {
-                  onModeNavigate?.('adaptive')
-                  onModeChange('adaptive')
-                  navigate(ROUTES.ADAPTIVE, {
+                if (!preventModeNavigation) {
+                  navigate(ROUTES.RSVP, {
                     state: buildModeNavigationState({
-                      includeTimestamp: false,
+                      includeTimestamp: true,
                       readingPosition,
                       libraryText,
                       currentText,
                       isSummary,
                     }),
                   })
+                }
+              }}
+              onAdaptiveClick={() => {
+                if (mode !== 'adaptive' && user) {
+                  onModeNavigate?.('adaptive')
+                  onModeChange('adaptive')
+                  if (!preventModeNavigation) {
+                    navigate(ROUTES.ADAPTIVE, {
+                      state: buildModeNavigationState({
+                        includeTimestamp: false,
+                        readingPosition,
+                        libraryText,
+                        currentText,
+                        isSummary,
+                      }),
+                    })
+                  }
                 }
               }}
             />

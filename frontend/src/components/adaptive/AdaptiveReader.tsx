@@ -43,6 +43,8 @@ type AdaptiveReaderProps = {
   onCalculatedWpmChange?: (wpm: number) => void
   /** Whether the reader is showing a summary */
   isSummary?: boolean
+  /** Hide the new text button */
+  hideNewText?: boolean
 }
 
 /** Single-line adaptive reader with horizontal gaze tracking and velocity-aware return sweep detection. */
@@ -58,6 +60,7 @@ export function AdaptiveReader({
   onStartQuiz,
   onCalculatedWpmChange,
   isSummary,
+  hideNewText = false,
 }: AdaptiveReaderProps) {
   const [containerLeft, setContainerLeft] = useState(0)
   const [containerWidth, setContainerWidth] = useState(DEFAULT_CONTAINER_WIDTH)
@@ -273,8 +276,17 @@ export function AdaptiveReader({
       onGoForward: goForward,
       currentPage: currentChunk,
       totalPages: totalChunks,
+      hideNewText,
     }),
-    [restart, onNewText, goBack, goForward, currentChunk, totalChunks]
+    [
+      restart,
+      onNewText,
+      goBack,
+      goForward,
+      currentChunk,
+      totalChunks,
+      hideNewText,
+    ]
   )
 
   // Render calibration overlay

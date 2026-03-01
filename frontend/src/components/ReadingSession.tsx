@@ -11,6 +11,7 @@ type ReadingSessionProps = {
   context: ReadingContext
   onNewText: () => void
   isSummary?: boolean
+  hideNewText?: boolean
 }
 
 export function ReadingSession({
@@ -19,6 +20,7 @@ export function ReadingSession({
   context,
   onNewText,
   isSummary,
+  hideNewText,
 }: ReadingSessionProps) {
   const [readingComplete, setReadingComplete] = useState(false)
   const [triggerQuiz, setTriggerQuiz] = useState(false)
@@ -50,6 +52,7 @@ export function ReadingSession({
         showMiniQuiz={quizDismissed}
         onStartQuiz={() => setTriggerQuiz(true)}
         isSummary={isSummary}
+        hideNewText={hideNewText}
       />
 
       <StartQuizButton

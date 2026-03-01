@@ -26,6 +26,7 @@ type ReaderProps = {
   showMiniQuiz?: boolean
   onStartQuiz?: () => void
   isSummary?: boolean
+  hideNewText?: boolean
 }
 
 export function Reader({
@@ -46,6 +47,7 @@ export function Reader({
   showMiniQuiz,
   onStartQuiz,
   isSummary,
+  hideNewText = false,
 }: ReaderProps) {
   const {
     currentWordIndex,
@@ -143,6 +145,7 @@ export function Reader({
           disabled={disabled}
           showMiniQuiz={showMiniQuiz}
           onStartQuiz={onStartQuiz}
+          hideNewText={hideNewText}
         />
       </div>
     </div>

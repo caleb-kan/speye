@@ -20,6 +20,7 @@ type RsvpReaderProps = {
   showMiniQuiz?: boolean
   onStartQuiz?: () => void
   isSummary?: boolean
+  hideNewText?: boolean
   forcePause?: boolean
   onPlayingChange?: (isPlaying: boolean) => void
 }
@@ -39,6 +40,7 @@ export function RsvpReader({
   showMiniQuiz,
   onStartQuiz,
   isSummary,
+  hideNewText = false,
   forcePause,
   onPlayingChange,
 }: RsvpReaderProps) {
@@ -148,6 +150,7 @@ export function RsvpReader({
           disabled={disabled}
           showMiniQuiz={showMiniQuiz}
           onStartQuiz={onStartQuiz}
+          hideNewText={hideNewText}
         />
       </RsvpDisplay>
     </div>

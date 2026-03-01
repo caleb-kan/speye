@@ -1,0 +1,35 @@
+import type { PvpGame } from '../../types/database'
+
+export function makeGame(overrides: Partial<PvpGame> = {}): PvpGame {
+  return {
+    id: 'game-1',
+    player1_id: 'user-1',
+    player2_id: 'user-2',
+    text_id: 'text-1',
+    quiz_set_index: 0,
+    status: 'active',
+    winner_id: null,
+    player1_ready: true,
+    player2_ready: true,
+    player1_wpm: null,
+    player1_quiz_score: null,
+    player1_overall_score: null,
+    player1_finished_at: null,
+    player2_wpm: null,
+    player2_quiz_score: null,
+    player2_overall_score: null,
+    player2_finished_at: null,
+    player1_progress: 0,
+    player2_progress: 0,
+    player1_elo_before: null,
+    player2_elo_before: null,
+    player1_elo_change: null,
+    player2_elo_change: null,
+    forfeit_by: null,
+    created_at: '2025-01-01T12:00:00Z',
+    reading_started_at: null,
+    finished_at: null,
+    expires_at: '2025-01-01T13:00:00Z',
+    ...overrides,
+  }
+}

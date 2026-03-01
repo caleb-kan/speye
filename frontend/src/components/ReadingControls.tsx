@@ -15,6 +15,7 @@ type ReadingControlsProps = {
   currentWord: number
   totalWords: number
   disabled?: boolean
+  hideNewText?: boolean
 }
 
 export const ReadingControls = memo(function ReadingControls({
@@ -28,6 +29,7 @@ export const ReadingControls = memo(function ReadingControls({
   currentWord,
   totalWords,
   disabled = false,
+  hideNewText = false,
 }: ReadingControlsProps) {
   const isMobile = useIsMobile()
 
@@ -58,8 +60,8 @@ export const ReadingControls = memo(function ReadingControls({
             disabled={disabled}
             className={
               (isMobile && isPlaying ? 'w-44 ' : 'w-14 ') +
-              `h-14 flex items-center justify-center rounded-full transition-all 
-              focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-bg 
+              `h-14 flex items-center justify-center rounded-full transition-all
+              focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-bg
               ${
                 disabled
                   ? 'bg-text-secondary opacity-50 cursor-not-allowed text-bg'
@@ -80,6 +82,7 @@ export const ReadingControls = memo(function ReadingControls({
             onClick={onNewText}
             icon={<RefreshCw size={20} />}
             aria-label="New text"
+            className={hideNewText ? 'invisible' : ''}
           />
         </div>
 

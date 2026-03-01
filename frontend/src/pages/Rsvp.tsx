@@ -170,6 +170,7 @@ export function Rsvp() {
         inputBlocking={inputBlocking}
         onNewText={handleNewTextWithReset}
         isSummary={isSummary}
+        hideNewText={!!libraryText || isSummary}
         forcePause={optionsOpen}
         onPlayingChange={handlePlayingChange}
       />

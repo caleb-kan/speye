@@ -6,6 +6,7 @@ export const ROUTES = {
   HOME: '/home',
   ADAPTIVE: '/adaptive',
   RSVP: '/rsvp',
+  PVP: '/pvp',
   LIBRARY: '/library',
   ACTIVITY: '/activity',
   ADMIN: '/admin',

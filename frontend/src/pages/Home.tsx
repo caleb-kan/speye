@@ -62,6 +62,7 @@ export function Home() {
         onNewText={handleNewTextWithReset}
         onRefetch={refetch}
         isSummary={isSummary}
+        hideNewText={!!libraryText || isSummary}
       />
     </div>
   )

@@ -179,6 +179,7 @@ export function Adaptive() {
         onCalculatedWpmChange={setAdaptiveSessionWpm}
         adaptiveSessionWpm={adaptiveSessionWpm}
         isSummary={isSummary}
+        hideNewText={!!libraryText || isSummary}
       />
     </AdaptiveReaderLayout>
   )

@@ -5,15 +5,18 @@ interface DbQueryInfo {
   timestamp?: string
 }
 
-/*
-    Logs database query information. Only in development.
-*/
+/** Logs database query information. Debug logs are dev-only; errors are always logged. */
 export function logDbQuery(info: DbQueryInfo) {
-  if (import.meta.env.MODE === 'development') {
-    // add timestamp
-    const timestamp = new Date().toISOString()
-    info = { ...info, timestamp }
+  if (info.errors) {
+    console.error('[DB ERROR]', {
+      ...info,
+      timestamp: new Date().toISOString(),
+    })
+    return
+  }
 
-    console.debug('[DB LOG]', info)
+  if (import.meta.env.MODE === 'development') {
+    const timestamp = new Date().toISOString()
+    console.debug('[DB LOG]', { ...info, timestamp })
   }
 }

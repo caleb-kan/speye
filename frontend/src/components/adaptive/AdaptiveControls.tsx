@@ -36,6 +36,8 @@ type AdaptiveControlsProps = {
   showMiniQuiz?: boolean
   /** Called when mini quiz button is clicked */
   onStartQuiz?: () => void
+  /** Hide the new text button */
+  hideNewText?: boolean
 }
 
 /**
@@ -63,6 +65,7 @@ export function AdaptiveControls({
   trackingStatus,
   showMiniQuiz,
   onStartQuiz,
+  hideNewText = false,
 }: AdaptiveControlsProps) {
   const canGoBack = currentPage > 0
   const canGoForward = currentPage < totalPages - 1
@@ -83,6 +86,7 @@ export function AdaptiveControls({
           disabled={disabled}
           icon={<RefreshCw className="w-5 h-5" />}
           aria-label="New text"
+          className={hideNewText ? 'invisible' : ''}
         />
 
         {/* Mini Quiz Button - Animates width/opacity */}

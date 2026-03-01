@@ -7,6 +7,7 @@ import {
   Settings,
   User,
   Shield,
+  Swords,
 } from 'lucide-react'
 import { useIsAdmin } from '../../hooks/useIsAdmin'
 import { useAuth } from '../../hooks/useAuth'
@@ -111,12 +112,22 @@ export function Navbar() {
         label="Library"
         onBeforeNavigate={handleBeforeNavigate}
       />
-      <NavItem
-        to={ROUTES.ACTIVITY}
-        icon={<ListChecks size={22} />}
-        label="Activity"
-        onBeforeNavigate={handleBeforeNavigate}
-      />
+      {user && (
+        <NavItem
+          to={ROUTES.ACTIVITY}
+          icon={<ListChecks size={22} />}
+          label="Activity"
+          onBeforeNavigate={handleBeforeNavigate}
+        />
+      )}
+      {user && (
+        <NavItem
+          to={ROUTES.PVP}
+          icon={<Swords size={22} />}
+          label="Ranked"
+          onBeforeNavigate={handleBeforeNavigate}
+        />
+      )}
       <NavItem
         to={ROUTES.SETTINGS}
         icon={<Settings size={22} />}

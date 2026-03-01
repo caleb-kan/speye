@@ -57,6 +57,20 @@ export type AdminDecision = 'approved' | 'rejected' | 'pending'
 export type FailureStage = 'process_text' | 'validate_quiz'
 
 /**
+ * Subset of text data used for PvP games.
+ * Quiz is non-null because PvP texts are pre-validated.
+ */
+export type PvpTextData = {
+  id: string
+  title: string | null
+  content: string
+  source: string | null
+  fiction: boolean | null
+  complexity: number | null
+  quiz: Quiz
+}
+
+/**
  * Full text record as stored in the database.
  */
 export interface TextRecord {

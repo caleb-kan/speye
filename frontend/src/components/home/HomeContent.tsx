@@ -13,6 +13,7 @@ export type HomeContentProps = {
   onNewText: () => void
   onRefetch: () => void
   isSummary?: boolean
+  hideNewText?: boolean
 }
 
 export function HomeContent({
@@ -24,6 +25,7 @@ export function HomeContent({
   onNewText,
   onRefetch,
   isSummary,
+  hideNewText,
 }: HomeContentProps) {
   if (loading) {
     return <HomeSkeleton />
@@ -59,6 +61,7 @@ export function HomeContent({
         context={context}
         onNewText={onNewText}
         isSummary={isSummary}
+        hideNewText={hideNewText}
       />
     )
   }

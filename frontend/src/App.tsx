@@ -30,6 +30,8 @@ import { Privacy } from './pages/Privacy'
 import { Terms } from './pages/Terms'
 import { Notifications } from './pages/Notifications'
 import { License } from './pages/License'
+import { Pvp } from './pages/Pvp'
+import { PvpGame } from './pages/PvpGame'
 import { RootLayout } from './layouts/RootLayout'
 import { ReadingLayout } from './layouts/ReadingLayout'
 import { AdaptiveLayout } from './layouts/AdaptiveLayout'
@@ -126,6 +128,8 @@ function App() {
                           path="notifications"
                           element={<Notifications />}
                         />
+                        <Route path="pvp" element={<Pvp />} />
+                        <Route path="pvp/:gameId" element={<PvpGame />} />
                       </Route>
 
                       <Route

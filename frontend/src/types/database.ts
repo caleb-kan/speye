@@ -9,6 +9,20 @@ export type {
   FailureStage,
 } from '../../../backend/supabase/database/texts/types'
 
+export type {
+  PvpGame,
+  PvpGameStatus,
+  PvpRating,
+  PvpLeaderboardEntry,
+  PvpLeaderboardEntryWithRank,
+  PvpMatchHistoryEntry,
+  MatchmakeResult,
+} from '../../../backend/supabase/database/pvp/types'
+export { PVP_GAME_STATUSES } from '../../../backend/supabase/database/pvp/types'
+
+export type { PvpTextData } from '../../../backend/supabase/database/texts/types'
+export type { UsernameRecord } from '../../../backend/supabase/database/users/getUsersUsernames'
+
 import type {
   Quiz,
   ProcessingStatus,

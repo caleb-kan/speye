@@ -62,6 +62,8 @@ export type UseOptionsBarSlidersParams = {
   phraseSize: number
   onPhraseSizeChange: (size: number) => void
   showTooltips?: boolean
+  /** Forces slider re-initialization when the mode changes (e.g. PvP in-place mode switching). */
+  mode?: string
 }
 
 export type UseOptionsBarSlidersResult = {
@@ -84,6 +86,7 @@ export const useOptionsBarSliders = (
     phraseSize,
     onPhraseSizeChange,
     showTooltips = true,
+    mode,
   } = params
 
   const complexitySliderRef = useRef<SliderElement>(null)
@@ -156,7 +159,7 @@ export const useOptionsBarSliders = (
     return () => {
       newSlider?.destroy()
     }
-  }, [complexityMax, complexityMin, fixedText, showTooltips])
+  }, [complexityMax, complexityMin, fixedText, showTooltips, mode])
 
   useEffect(
     () =>
@@ -167,7 +170,7 @@ export const useOptionsBarSliders = (
         showTooltips,
         onVisibleLinesChangeRef
       ),
-    [visibleLines, showTooltips]
+    [visibleLines, showTooltips, mode]
   )
 
   useEffect(
@@ -179,7 +182,7 @@ export const useOptionsBarSliders = (
         showTooltips,
         onPhraseSizeChangeRef
       ),
-    [phraseSize, showTooltips]
+    [phraseSize, showTooltips, mode]
   )
 
   return { complexitySliderRef, visibleLinesSliderRef, phraseSizeSliderRef }

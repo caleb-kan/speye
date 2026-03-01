@@ -1,0 +1,144 @@
+import { useEffect, useRef, useState } from 'react'
+import { getPvpGame } from '../services/pvpService'
+import {
+  PVP_ELO_ANIMATION_DURATION_MS,
+  PVP_ELO_ANIMATION_FRAME_MS,
+  PVP_ELO_REFETCH_DELAY_MS,
+  PVP_ELO_MAX_REFETCH_ATTEMPTS,
+} from '../constants/pvp'
+import type { RankTier } from '../constants/pvp'
+import { getRankFromElo, getPlayerPrefix, getPlayerData } from '../utils/pvp'
+import type { PvpGame } from '../types/database'
+
+type EloAnimationResult = {
+  displayElo: number | null
+  eloChange: number | null
+  eloAfter: number | null
+  eloReady: boolean
+  eloFetchFailed: boolean
+  rankPromoted: boolean
+  newRankTier: RankTier | null
+  newRankColor: string | null
+  game: PvpGame
+}
+
+export function useEloAnimation(
+  initialGame: PvpGame,
+  userId: string,
+  isWin: boolean
+): EloAnimationResult {
+  const [game, setGame] = useState(initialGame)
+
+  const { myPrefix } = getPlayerPrefix(userId, game.player1_id)
+  const myData = getPlayerData(game, myPrefix)
+
+  const eloChange = myData.elo_change
+  const eloBefore = myData.elo_before
+  const eloReady = eloBefore != null && eloChange != null
+  const eloAfter = eloReady ? eloBefore + eloChange : null
+
+  // Sync with parent prop updates only when the parent supplies elo data
+  // that the local state is missing. Avoids overwriting a successful refetch
+  // with an older parent reference that lacks elo fields.
+  useEffect(() => {
+    const propData = getPlayerData(initialGame, myPrefix)
+    const propHasElo =
+      propData.elo_before != null && propData.elo_change != null
+    if (propHasElo && !eloReady) {
+      // Derived: syncing local game state with parent prop when parent has elo data we lack
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setGame(initialGame)
+    }
+  }, [initialGame, myPrefix, eloReady])
+
+  // Re-fetch game if Elo data isn't populated yet (race with RPC completion)
+  const refetchCountRef = useRef(0)
+  const [eloFetchFailed, setEloFetchFailed] = useState(false)
+  const [retryTrigger, setRetryTrigger] = useState(0)
+  // Reset refetch state when navigating to a new game so stale retry
+  // counts from a previous game don't block fetching elo for the new one.
+  useEffect(() => {
+    refetchCountRef.current = 0
+    // Derived: resetting retry state machine for new game ID
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setEloFetchFailed(false)
+    setRetryTrigger(0)
+  }, [initialGame.id])
+
+  useEffect(() => {
+    if (eloReady) return
+    if (refetchCountRef.current >= PVP_ELO_MAX_REFETCH_ATTEMPTS) {
+      // Derived: state machine transition when max retry attempts exhausted
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setEloFetchFailed(true)
+      return
+    }
+
+    function retryOrFail() {
+      if (refetchCountRef.current >= PVP_ELO_MAX_REFETCH_ATTEMPTS) {
+        setEloFetchFailed(true)
+      } else {
+        setRetryTrigger((t) => t + 1)
+      }
+    }
+
+    let cancelled = false
+    const timeout = setTimeout(async () => {
+      refetchCountRef.current++
+      try {
+        const updated = await getPvpGame(initialGame.id)
+        if (cancelled) return
+        if (updated) setGame(updated)
+        else retryOrFail()
+      } catch (err) {
+        if (cancelled) return
+        console.error('Elo refetch failed:', err)
+        retryOrFail()
+      }
+    }, PVP_ELO_REFETCH_DELAY_MS)
+
+    return () => {
+      cancelled = true
+      clearTimeout(timeout)
+    }
+  }, [eloReady, initialGame.id, retryTrigger])
+
+  const [displayElo, setDisplayElo] = useState(eloReady ? eloBefore : null)
+  useEffect(() => {
+    if (eloBefore == null || eloAfter == null) return
+    // Derived: initializes animation start value from computed elo data
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setDisplayElo(eloBefore)
+
+    const diff = eloAfter - eloBefore
+    if (diff === 0) return
+
+    const startTime = Date.now()
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - startTime
+      const progress = Math.min(1, elapsed / PVP_ELO_ANIMATION_DURATION_MS)
+      const eased = 1 - Math.pow(1 - progress, 3) // cubic ease-out
+      setDisplayElo(Math.round(eloBefore + diff * eased))
+      if (progress >= 1) clearInterval(interval)
+    }, PVP_ELO_ANIMATION_FRAME_MS)
+
+    return () => clearInterval(interval)
+  }, [eloBefore, eloAfter])
+
+  const oldRank = eloReady ? getRankFromElo(eloBefore) : null
+  const newRank = eloReady && eloAfter != null ? getRankFromElo(eloAfter) : null
+  const rankPromoted =
+    isWin && oldRank != null && newRank != null && oldRank.tier !== newRank.tier
+
+  return {
+    displayElo,
+    eloChange,
+    eloAfter,
+    eloReady,
+    eloFetchFailed,
+    rankPromoted,
+    newRankTier: rankPromoted && newRank ? newRank.tier : null,
+    newRankColor: rankPromoted && newRank ? newRank.color : null,
+    game,
+  }
+}

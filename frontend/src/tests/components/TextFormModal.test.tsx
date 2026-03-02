@@ -443,401 +443,254 @@ describe('TextFormModal', () => {
     })
   })
 
-  describe('admin functionality', () => {
-    describe('visibility dropdown in upload mode', () => {
-      it('should not show visibility dropdown when isAdmin is false', () => {
-        render(
-          <TextFormModal
-            isOpen={true}
-            mode="upload"
-            onClose={mockOnClose}
-            onSubmit={mockOnSubmit}
-            isAdmin={false}
-          />
-        )
+  describe('Make Public button', () => {
+    const mockOnMakePublicCopy = vi.fn()
 
-        expect(screen.queryByLabelText('Visibility')).not.toBeInTheDocument()
-      })
+    it('should not show Make Public button when canMakePublicCopy is false', () => {
+      render(
+        <TextFormModal
+          isOpen={true}
+          mode="edit"
+          onClose={mockOnClose}
+          onSubmit={mockOnSubmit}
+          canMakePublicCopy={false}
+          onMakePublicCopy={mockOnMakePublicCopy}
+        />
+      )
 
-      it('should show visibility dropdown when isAdmin is true', () => {
-        render(
-          <TextFormModal
-            isOpen={true}
-            mode="upload"
-            onClose={mockOnClose}
-            onSubmit={mockOnSubmit}
-            isAdmin={true}
-          />
-        )
-
-        expect(screen.getByLabelText('Visibility')).toBeInTheDocument()
-        expect(
-          screen.getByRole('option', { name: 'Private (Only You)' })
-        ).toBeInTheDocument()
-        expect(
-          screen.getByRole('option', { name: 'Public (All Users)' })
-        ).toBeInTheDocument()
-      })
-
-      it('should default to private visibility', () => {
-        render(
-          <TextFormModal
-            isOpen={true}
-            mode="upload"
-            onClose={mockOnClose}
-            onSubmit={mockOnSubmit}
-            isAdmin={true}
-          />
-        )
-
-        const visibilitySelect = screen.getByLabelText('Visibility')
-        expect(visibilitySelect).toHaveValue('private')
-      })
-
-      it('should allow changing visibility to public', () => {
-        render(
-          <TextFormModal
-            isOpen={true}
-            mode="upload"
-            onClose={mockOnClose}
-            onSubmit={mockOnSubmit}
-            isAdmin={true}
-          />
-        )
-
-        const visibilitySelect = screen.getByLabelText('Visibility')
-        fireEvent.change(visibilitySelect, { target: { value: 'public' } })
-
-        expect(visibilitySelect).toHaveValue('public')
-      })
-
-      it('should submit with isPublic true when public is selected', async () => {
-        mockOnSubmit.mockResolvedValueOnce(undefined)
-
-        render(
-          <TextFormModal
-            isOpen={true}
-            mode="upload"
-            onClose={mockOnClose}
-            onSubmit={mockOnSubmit}
-            isAdmin={true}
-          />
-        )
-
-        const visibilitySelect = screen.getByLabelText('Visibility')
-        fireEvent.change(visibilitySelect, { target: { value: 'public' } })
-
-        const textarea = screen.getByLabelText('Text Content')
-        fireEvent.change(textarea, {
-          target: { value: 'Public text content' },
-        })
-
-        const submitButton = screen.getByRole('button', {
-          name: 'Upload Text',
-        })
-        fireEvent.click(submitButton)
-
-        await waitFor(() => {
-          expect(mockOnSubmit).toHaveBeenCalledWith({
-            title: null,
-            content: 'Public text content',
-            fiction: null,
-            isPublic: true,
-          })
-        })
-      })
-
-      it('should disable visibility dropdown while submitting', async () => {
-        mockOnSubmit.mockImplementation(
-          () => new Promise((resolve) => setTimeout(resolve, 100))
-        )
-
-        render(
-          <TextFormModal
-            isOpen={true}
-            mode="upload"
-            onClose={mockOnClose}
-            onSubmit={mockOnSubmit}
-            isAdmin={true}
-          />
-        )
-
-        const textarea = screen.getByLabelText('Text Content')
-        fireEvent.change(textarea, { target: { value: 'Some text' } })
-
-        const submitButton = screen.getByRole('button', {
-          name: 'Upload Text',
-        })
-        fireEvent.click(submitButton)
-
-        const visibilitySelect = screen.getByLabelText('Visibility')
-        expect(visibilitySelect).toBeDisabled()
-      })
-
-      it('should not show visibility dropdown in edit mode', () => {
-        render(
-          <TextFormModal
-            isOpen={true}
-            mode="edit"
-            onClose={mockOnClose}
-            onSubmit={mockOnSubmit}
-            isAdmin={true}
-          />
-        )
-
-        expect(screen.queryByLabelText('Visibility')).not.toBeInTheDocument()
-      })
+      expect(
+        screen.queryByRole('button', { name: /Make Public/i })
+      ).not.toBeInTheDocument()
     })
 
-    describe('Make Public button', () => {
-      const mockOnMakePublicCopy = vi.fn()
+    it('should show Make Public button when canMakePublicCopy is true', () => {
+      render(
+        <TextFormModal
+          isOpen={true}
+          mode="edit"
+          onClose={mockOnClose}
+          onSubmit={mockOnSubmit}
+          canMakePublicCopy={true}
+          onMakePublicCopy={mockOnMakePublicCopy}
+        />
+      )
 
-      it('should not show Make Public button when canMakePublicCopy is false', () => {
-        render(
-          <TextFormModal
-            isOpen={true}
-            mode="edit"
-            onClose={mockOnClose}
-            onSubmit={mockOnSubmit}
-            canMakePublicCopy={false}
-            onMakePublicCopy={mockOnMakePublicCopy}
-          />
-        )
+      expect(
+        screen.getByRole('button', { name: 'Make Public' })
+      ).toBeInTheDocument()
+    })
 
-        expect(
-          screen.queryByRole('button', { name: /Make Public/i })
-        ).not.toBeInTheDocument()
+    it('should disable Make Public button when content is empty', () => {
+      render(
+        <TextFormModal
+          isOpen={true}
+          mode="edit"
+          onClose={mockOnClose}
+          onSubmit={mockOnSubmit}
+          canMakePublicCopy={true}
+          onMakePublicCopy={mockOnMakePublicCopy}
+        />
+      )
+
+      const makePublicButton = screen.getByRole('button', {
+        name: 'Make Public',
       })
+      expect(makePublicButton).toBeDisabled()
+    })
 
-      it('should show Make Public button when canMakePublicCopy is true', () => {
-        render(
-          <TextFormModal
-            isOpen={true}
-            mode="edit"
-            onClose={mockOnClose}
-            onSubmit={mockOnSubmit}
-            canMakePublicCopy={true}
-            onMakePublicCopy={mockOnMakePublicCopy}
-          />
-        )
+    it('should enable Make Public button when content is entered', () => {
+      render(
+        <TextFormModal
+          isOpen={true}
+          mode="edit"
+          onClose={mockOnClose}
+          onSubmit={mockOnSubmit}
+          canMakePublicCopy={true}
+          onMakePublicCopy={mockOnMakePublicCopy}
+        />
+      )
 
-        expect(
-          screen.getByRole('button', { name: 'Make Public' })
-        ).toBeInTheDocument()
+      const textarea = screen.getByLabelText('Text Content')
+      fireEvent.change(textarea, { target: { value: 'Some content' } })
+
+      const makePublicButton = screen.getByRole('button', {
+        name: 'Make Public',
       })
+      expect(makePublicButton).not.toBeDisabled()
+    })
 
-      it('should disable Make Public button when content is empty', () => {
-        render(
-          <TextFormModal
-            isOpen={true}
-            mode="edit"
-            onClose={mockOnClose}
-            onSubmit={mockOnSubmit}
-            canMakePublicCopy={true}
-            onMakePublicCopy={mockOnMakePublicCopy}
-          />
-        )
+    it('should call onMakePublicCopy when Make Public button is clicked', async () => {
+      mockOnMakePublicCopy.mockResolvedValueOnce(undefined)
 
-        const makePublicButton = screen.getByRole('button', {
-          name: 'Make Public',
-        })
-        expect(makePublicButton).toBeDisabled()
-      })
-
-      it('should enable Make Public button when content is entered', () => {
-        render(
-          <TextFormModal
-            isOpen={true}
-            mode="edit"
-            onClose={mockOnClose}
-            onSubmit={mockOnSubmit}
-            canMakePublicCopy={true}
-            onMakePublicCopy={mockOnMakePublicCopy}
-          />
-        )
-
-        const textarea = screen.getByLabelText('Text Content')
-        fireEvent.change(textarea, { target: { value: 'Some content' } })
-
-        const makePublicButton = screen.getByRole('button', {
-          name: 'Make Public',
-        })
-        expect(makePublicButton).not.toBeDisabled()
-      })
-
-      it('should call onMakePublicCopy when Make Public button is clicked', async () => {
-        mockOnMakePublicCopy.mockResolvedValueOnce(undefined)
-
-        render(
-          <TextFormModal
-            isOpen={true}
-            mode="edit"
-            initialData={{
-              title: 'Test Title',
-              content: 'Test content',
-              fiction: true,
-            }}
-            onClose={mockOnClose}
-            onSubmit={mockOnSubmit}
-            canMakePublicCopy={true}
-            onMakePublicCopy={mockOnMakePublicCopy}
-          />
-        )
-
-        const makePublicButton = screen.getByRole('button', {
-          name: 'Make Public',
-        })
-        fireEvent.click(makePublicButton)
-
-        await waitFor(() => {
-          expect(mockOnMakePublicCopy).toHaveBeenCalledWith({
+      render(
+        <TextFormModal
+          isOpen={true}
+          mode="edit"
+          initialData={{
             title: 'Test Title',
             content: 'Test content',
             fiction: true,
-            isPublic: true,
-          })
+          }}
+          onClose={mockOnClose}
+          onSubmit={mockOnSubmit}
+          canMakePublicCopy={true}
+          onMakePublicCopy={mockOnMakePublicCopy}
+        />
+      )
+
+      const makePublicButton = screen.getByRole('button', {
+        name: 'Make Public',
+      })
+      fireEvent.click(makePublicButton)
+
+      await waitFor(() => {
+        expect(mockOnMakePublicCopy).toHaveBeenCalledWith({
+          title: 'Test Title',
+          content: 'Test content',
+          fiction: true,
+          isPublic: true,
         })
       })
+    })
 
-      it('should show Creating Public Copy... when making public', async () => {
-        mockOnMakePublicCopy.mockImplementation(
-          () => new Promise((resolve) => setTimeout(resolve, 100))
-        )
+    it('should show Creating Public Copy... when making public', async () => {
+      mockOnMakePublicCopy.mockImplementation(
+        () => new Promise((resolve) => setTimeout(resolve, 100))
+      )
 
-        render(
-          <TextFormModal
-            isOpen={true}
-            mode="edit"
-            initialData={{
-              title: 'Test',
-              content: 'Test content',
-              fiction: true,
-            }}
-            onClose={mockOnClose}
-            onSubmit={mockOnSubmit}
-            canMakePublicCopy={true}
-            onMakePublicCopy={mockOnMakePublicCopy}
-          />
-        )
-
-        const makePublicButton = screen.getByRole('button', {
-          name: 'Make Public',
-        })
-        fireEvent.click(makePublicButton)
-
-        expect(
-          screen.getByRole('button', { name: 'Creating Public Copy...' })
-        ).toBeInTheDocument()
-      })
-
-      it('should disable other buttons while making public copy', async () => {
-        mockOnMakePublicCopy.mockImplementation(
-          () => new Promise((resolve) => setTimeout(resolve, 100))
-        )
-
-        render(
-          <TextFormModal
-            isOpen={true}
-            mode="edit"
-            initialData={{
-              title: 'Test',
-              content: 'Test content',
-              fiction: true,
-            }}
-            onClose={mockOnClose}
-            onSubmit={mockOnSubmit}
-            canMakePublicCopy={true}
-            onMakePublicCopy={mockOnMakePublicCopy}
-          />
-        )
-
-        const makePublicButton = screen.getByRole('button', {
-          name: 'Make Public',
-        })
-        fireEvent.click(makePublicButton)
-
-        const cancelButton = screen.getByRole('button', { name: 'Cancel' })
-        const saveButton = screen.getByRole('button', {
-          name: /Save Changes/i,
-        })
-
-        expect(cancelButton).toBeDisabled()
-        expect(saveButton).toBeDisabled()
-      })
-
-      it('should call onMakePublicCopy with modified content', async () => {
-        mockOnMakePublicCopy.mockResolvedValueOnce(undefined)
-
-        render(
-          <TextFormModal
-            isOpen={true}
-            mode="edit"
-            initialData={{
-              title: 'Original Title',
-              content: 'Original content',
-              fiction: true,
-            }}
-            onClose={mockOnClose}
-            onSubmit={mockOnSubmit}
-            canMakePublicCopy={true}
-            onMakePublicCopy={mockOnMakePublicCopy}
-          />
-        )
-
-        const titleInput = screen.getByLabelText('Title')
-        fireEvent.change(titleInput, { target: { value: 'Modified Title' } })
-
-        const textarea = screen.getByLabelText('Text Content')
-        fireEvent.change(textarea, {
-          target: { value: 'Modified content' },
-        })
-
-        const makePublicButton = screen.getByRole('button', {
-          name: 'Make Public',
-        })
-        fireEvent.click(makePublicButton)
-
-        await waitFor(() => {
-          expect(mockOnMakePublicCopy).toHaveBeenCalledWith({
-            title: 'Modified Title',
-            content: 'Modified content',
+      render(
+        <TextFormModal
+          isOpen={true}
+          mode="edit"
+          initialData={{
+            title: 'Test',
+            content: 'Test content',
             fiction: true,
-            isPublic: true,
-          })
-        })
+          }}
+          onClose={mockOnClose}
+          onSubmit={mockOnSubmit}
+          canMakePublicCopy={true}
+          onMakePublicCopy={mockOnMakePublicCopy}
+        />
+      )
+
+      const makePublicButton = screen.getByRole('button', {
+        name: 'Make Public',
+      })
+      fireEvent.click(makePublicButton)
+
+      expect(
+        screen.getByRole('button', { name: 'Creating Public Copy...' })
+      ).toBeInTheDocument()
+    })
+
+    it('should disable other buttons while making public copy', async () => {
+      mockOnMakePublicCopy.mockImplementation(
+        () => new Promise((resolve) => setTimeout(resolve, 100))
+      )
+
+      render(
+        <TextFormModal
+          isOpen={true}
+          mode="edit"
+          initialData={{
+            title: 'Test',
+            content: 'Test content',
+            fiction: true,
+          }}
+          onClose={mockOnClose}
+          onSubmit={mockOnSubmit}
+          canMakePublicCopy={true}
+          onMakePublicCopy={mockOnMakePublicCopy}
+        />
+      )
+
+      const makePublicButton = screen.getByRole('button', {
+        name: 'Make Public',
+      })
+      fireEvent.click(makePublicButton)
+
+      const cancelButton = screen.getByRole('button', { name: 'Cancel' })
+      const saveButton = screen.getByRole('button', {
+        name: /Save Changes/i,
       })
 
-      it('should show error when onMakePublicCopy throws', async () => {
-        mockOnMakePublicCopy.mockRejectedValueOnce(
-          new Error('Failed to create public copy')
-        )
+      expect(cancelButton).toBeDisabled()
+      expect(saveButton).toBeDisabled()
+    })
 
-        render(
-          <TextFormModal
-            isOpen={true}
-            mode="edit"
-            initialData={{
-              title: 'Test',
-              content: 'Test content',
-              fiction: true,
-            }}
-            onClose={mockOnClose}
-            onSubmit={mockOnSubmit}
-            canMakePublicCopy={true}
-            onMakePublicCopy={mockOnMakePublicCopy}
-          />
-        )
+    it('should call onMakePublicCopy with modified content', async () => {
+      mockOnMakePublicCopy.mockResolvedValueOnce(undefined)
 
-        const makePublicButton = screen.getByRole('button', {
-          name: 'Make Public',
+      render(
+        <TextFormModal
+          isOpen={true}
+          mode="edit"
+          initialData={{
+            title: 'Original Title',
+            content: 'Original content',
+            fiction: true,
+          }}
+          onClose={mockOnClose}
+          onSubmit={mockOnSubmit}
+          canMakePublicCopy={true}
+          onMakePublicCopy={mockOnMakePublicCopy}
+        />
+      )
+
+      const titleInput = screen.getByLabelText('Title')
+      fireEvent.change(titleInput, { target: { value: 'Modified Title' } })
+
+      const textarea = screen.getByLabelText('Text Content')
+      fireEvent.change(textarea, {
+        target: { value: 'Modified content' },
+      })
+
+      const makePublicButton = screen.getByRole('button', {
+        name: 'Make Public',
+      })
+      fireEvent.click(makePublicButton)
+
+      await waitFor(() => {
+        expect(mockOnMakePublicCopy).toHaveBeenCalledWith({
+          title: 'Modified Title',
+          content: 'Modified content',
+          fiction: true,
+          isPublic: true,
         })
-        fireEvent.click(makePublicButton)
+      })
+    })
 
-        await waitFor(() => {
-          expect(
-            screen.getByText('Failed to create public copy')
-          ).toBeInTheDocument()
-        })
+    it('should show error when onMakePublicCopy throws', async () => {
+      mockOnMakePublicCopy.mockRejectedValueOnce(
+        new Error('Failed to create public copy')
+      )
+
+      render(
+        <TextFormModal
+          isOpen={true}
+          mode="edit"
+          initialData={{
+            title: 'Test',
+            content: 'Test content',
+            fiction: true,
+          }}
+          onClose={mockOnClose}
+          onSubmit={mockOnSubmit}
+          canMakePublicCopy={true}
+          onMakePublicCopy={mockOnMakePublicCopy}
+        />
+      )
+
+      const makePublicButton = screen.getByRole('button', {
+        name: 'Make Public',
+      })
+      fireEvent.click(makePublicButton)
+
+      await waitFor(() => {
+        expect(
+          screen.getByText('Failed to create public copy')
+        ).toBeInTheDocument()
       })
     })
   })

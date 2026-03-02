@@ -90,9 +90,13 @@ export const useLibraryTextActions = (
         processing_status: 'pending',
       })
 
+      if (activeTab === 'public' && refetchPublicTexts) {
+        refetchPublicTexts()
+      }
+
       setSuccess('Text uploaded! Processing in background...')
     },
-    [setSuccess, userId]
+    [setSuccess, userId, activeTab, refetchPublicTexts]
   )
 
   const handleDeleteClick = useCallback((textId: string): void => {

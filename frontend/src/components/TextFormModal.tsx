@@ -17,7 +17,6 @@ interface TextFormModalProps {
   initialData?: TextInput
   onClose: () => void
   onSubmit: (data: TextInput) => Promise<void>
-  isAdmin?: boolean
   canMakePublicCopy?: boolean
   onMakePublicCopy?: (data: TextInput) => Promise<void>
   embedded?: boolean
@@ -47,7 +46,6 @@ export function TextFormModal({
   initialData,
   onClose,
   onSubmit,
-  isAdmin = false,
   canMakePublicCopy = false,
   onMakePublicCopy,
   embedded,
@@ -56,7 +54,6 @@ export function TextFormModal({
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [fiction, setFiction] = useState(true)
-  const [isPublic, setIsPublic] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isMakingPublicCopy, setIsMakingPublicCopy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -68,8 +65,7 @@ export function TextFormModal({
       ? content.trim() !== '' || title.trim() !== ''
       : content.trim() !== initialData?.content ||
         title.trim() !== (initialData?.title || '') ||
-        fiction !== initialData?.fiction ||
-        (isAdmin && isPublic !== (initialData?.isPublic ?? false))
+        fiction !== initialData?.fiction
 
   // Initialize/reset form when modal opens
   useEffect(() => {
@@ -78,12 +74,10 @@ export function TextFormModal({
         setTitle(initialData.title || '')
         setContent(initialData.content)
         setFiction(initialData.fiction ?? true)
-        setIsPublic(initialData.isPublic ?? false)
       } else {
         setTitle('')
         setContent('')
         setFiction(true)
-        setIsPublic(false)
       }
       setError(null)
       setShowUnsavedWarning(false)
@@ -124,7 +118,6 @@ export function TextFormModal({
         content: content.trim(),
         // For upload mode, let LLM auto-classify fiction; for edit mode, use user selection
         fiction: mode === 'upload' ? null : fiction,
-        ...(isAdmin && mode === 'upload' && { isPublic }),
       })
       onClose()
     } catch (err) {
@@ -267,26 +260,6 @@ export function TextFormModal({
         </div>
       )}
 
-      {isAdmin && mode === 'upload' && (
-        <div>
-          <label
-            htmlFor="upload-visibility-select"
-            className="block text-sm font-medium text-text mb-2 ml-1"
-          >
-            Visibility
-          </label>
-          <select
-            id="upload-visibility-select"
-            value={isPublic ? 'public' : 'private'}
-            onChange={(e) => setIsPublic(e.target.value === 'public')}
-            className="w-full p-3 bg-bg border border-text-secondary/20 rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-            disabled={isSubmitting}
-          >
-            <option value="private">Private (Only You)</option>
-            <option value="public">Public (All Users)</option>
-          </select>
-        </div>
-      )}
       {error && (
         <div className="p-3 bg-error/10 border border-error/20 rounded-lg text-error text-sm">
           {error}

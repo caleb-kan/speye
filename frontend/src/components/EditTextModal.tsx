@@ -192,7 +192,6 @@ export function EditTextModal({
             initialData={initialData}
             onClose={onClose}
             onSubmit={handleSubmit}
-            isAdmin={isAdmin}
             canMakePublicCopy={isAdmin && isPrivateText && !!onMakePublicCopy}
             onMakePublicCopy={
               onMakePublicCopy ? handleMakePublicCopy : undefined

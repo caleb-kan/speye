@@ -150,7 +150,9 @@ export function Library() {
       <div className="w-full max-w-4xl">
         <LibraryHeader
           activeTab={activeTab}
-          showUpload={Boolean(user && activeTab === 'private' && isOnline)}
+          showUpload={Boolean(
+            user && (activeTab === 'private' || isAdmin) && isOnline
+          )}
           onUpload={() => setIsModalOpen(true)}
         />
 
@@ -224,6 +226,7 @@ export function Library() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleUpload}
+        activeTab={activeTab}
       />
 
       <EditTextModal

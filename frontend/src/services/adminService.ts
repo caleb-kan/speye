@@ -6,9 +6,14 @@ import {
   regenerateQuiz as regenerateQuizDb,
   getAdminStats as getAdminStatsDb,
   getUserTrend as getUserTrendDb,
+  getAdminQuizStats as getAdminQuizStatsDb,
+  getAdminWpmDistribution as getAdminWpmDistributionDb,
   type AdminReviewText,
   type AdminStats,
   type UserTrendData,
+  type AdminQuizStats,
+  type QuizTrendPoint,
+  type WpmStats,
 } from '../../../backend/supabase/database/admin/adminService.ts'
 import { retryProcessing } from '../../../backend/supabase/database/texts/retryProcessing'
 import { pwaLogger } from '../utils/pwaLogger'
@@ -17,7 +22,14 @@ import { OFFLINE_WRITE_ERROR } from '../constants/offline'
 
 const TAG = 'adminService'
 
-export type { AdminReviewText, AdminStats, UserTrendData }
+export type {
+  AdminReviewText,
+  AdminStats,
+  UserTrendData,
+  AdminQuizStats,
+  QuizTrendPoint,
+  WpmStats,
+}
 
 export const fetchPendingApprovals = (): Promise<AdminReviewText[]> => {
   if (isOffline()) {
@@ -94,4 +106,20 @@ export async function getUserTrend(): Promise<UserTrendData[]> {
     throw new Error(OFFLINE_WRITE_ERROR)
   }
   return getUserTrendDb()
+}
+
+export async function getAdminQuizStats(): Promise<AdminQuizStats> {
+  if (isOffline()) {
+    pwaLogger.warn(TAG, 'Blocked getAdminQuizStats — offline')
+    throw new Error(OFFLINE_WRITE_ERROR)
+  }
+  return getAdminQuizStatsDb()
+}
+
+export async function getAdminWpmDistribution(): Promise<WpmStats> {
+  if (isOffline()) {
+    pwaLogger.warn(TAG, 'Blocked getAdminWpmDistribution — offline')
+    throw new Error(OFFLINE_WRITE_ERROR)
+  }
+  return getAdminWpmDistributionDb()
 }

@@ -52,7 +52,7 @@ describe('useEloAnimation', () => {
       player1_elo_change: 25,
     })
 
-    const { result } = renderHook(() => useEloAnimation(game, 'user-1', true))
+    const { result } = renderHook(() => useEloAnimation(game, 'user-1'))
 
     expect(result.current.eloReady).toBe(true)
     expect(result.current.eloChange).toBe(25)
@@ -62,7 +62,7 @@ describe('useEloAnimation', () => {
   it('returns eloReady false and starts refetch when Elo is null', () => {
     const game = makeGame()
 
-    const { result } = renderHook(() => useEloAnimation(game, 'user-1', true))
+    const { result } = renderHook(() => useEloAnimation(game, 'user-1'))
 
     expect(result.current.eloReady).toBe(false)
     expect(result.current.displayElo).toBeNull()
@@ -76,7 +76,7 @@ describe('useEloAnimation', () => {
     })
     mockGetPvpGame.mockResolvedValueOnce(updated)
 
-    const { result } = renderHook(() => useEloAnimation(game, 'user-1', true))
+    const { result } = renderHook(() => useEloAnimation(game, 'user-1'))
 
     expect(result.current.eloReady).toBe(false)
 
@@ -94,7 +94,7 @@ describe('useEloAnimation', () => {
     // Return null to trigger retry path (setRetryTrigger)
     mockGetPvpGame.mockResolvedValue(null)
 
-    const { result } = renderHook(() => useEloAnimation(game, 'user-1', true))
+    const { result } = renderHook(() => useEloAnimation(game, 'user-1'))
 
     // Each retry: 1000ms timeout + async resolution
     for (let i = 0; i < 5; i++) {
@@ -111,7 +111,7 @@ describe('useEloAnimation', () => {
     const game = makeGame()
     mockGetPvpGame.mockRejectedValue(new Error('Network error'))
 
-    const { result } = renderHook(() => useEloAnimation(game, 'user-1', true))
+    const { result } = renderHook(() => useEloAnimation(game, 'user-1'))
 
     for (let i = 0; i < 5; i++) {
       await act(async () => {
@@ -128,10 +128,29 @@ describe('useEloAnimation', () => {
       player2_elo_change: -15,
     })
 
-    const { result } = renderHook(() => useEloAnimation(game, 'user-2', false))
+    const { result } = renderHook(() => useEloAnimation(game, 'user-2'))
 
     expect(result.current.eloReady).toBe(true)
     expect(result.current.eloChange).toBe(-15)
+  })
+
+  it('returns eloBefore correctly', () => {
+    const game = makeGame({
+      player1_elo_before: 1050,
+      player1_elo_change: 25,
+    })
+
+    const { result } = renderHook(() => useEloAnimation(game, 'user-1'))
+
+    expect(result.current.eloBefore).toBe(1050)
+  })
+
+  it('returns eloBefore as null when elo is not ready', () => {
+    const game = makeGame()
+
+    const { result } = renderHook(() => useEloAnimation(game, 'user-1'))
+
+    expect(result.current.eloBefore).toBeNull()
   })
 
   it('starts displayElo at eloBefore when eloReady', () => {
@@ -140,7 +159,7 @@ describe('useEloAnimation', () => {
       player1_elo_change: 25,
     })
 
-    const { result } = renderHook(() => useEloAnimation(game, 'user-1', true))
+    const { result } = renderHook(() => useEloAnimation(game, 'user-1'))
 
     expect(result.current.displayElo).toBe(1000)
   })
@@ -151,7 +170,7 @@ describe('useEloAnimation', () => {
       player1_elo_change: 25,
     })
 
-    const { result } = renderHook(() => useEloAnimation(game, 'user-1', true))
+    const { result } = renderHook(() => useEloAnimation(game, 'user-1'))
 
     // After full animation duration (1500ms), displayElo should reach eloAfter
     act(() => {
@@ -167,36 +186,66 @@ describe('useEloAnimation', () => {
       player1_elo_change: 0,
     })
 
-    const { result } = renderHook(() => useEloAnimation(game, 'user-1', true))
+    const { result } = renderHook(() => useEloAnimation(game, 'user-1'))
 
     expect(result.current.displayElo).toBe(1000)
   })
 
-  it('detects rank promotion on win', () => {
-    // Bronze (1040) -> Silver (1065)
+  it('detects rank promotion when elo increases across tier', () => {
+    // Baby Snail (1090) -> Young Snail (1115)
     const game = makeGame({
-      player1_elo_before: 1040,
+      player1_elo_before: 1090,
       player1_elo_change: 25,
     })
 
-    const { result } = renderHook(() => useEloAnimation(game, 'user-1', true))
+    const { result } = renderHook(() => useEloAnimation(game, 'user-1'))
 
     expect(result.current.rankPromoted).toBe(true)
-    expect(result.current.newRankTier).toBe('Silver')
-    expect(result.current.newRankColor).toBe('#A8B4C0')
+    expect(result.current.rankDemoted).toBe(false)
+    expect(result.current.newRankTier).toBe('Young Snail')
+    expect(result.current.newRankColor).toBe('#CD7F32')
   })
 
-  it('does not show rank promotion on loss', () => {
+  it('detects rank demotion when elo decreases across tier', () => {
+    // Young Snail (1110) -> Baby Snail (1090)
     const game = makeGame({
-      player1_elo_before: 1040,
-      player1_elo_change: 25,
+      player1_elo_before: 1110,
+      player1_elo_change: -20,
     })
 
-    const { result } = renderHook(() => useEloAnimation(game, 'user-1', false))
+    const { result } = renderHook(() => useEloAnimation(game, 'user-1'))
+
+    expect(result.current.rankDemoted).toBe(true)
+    expect(result.current.rankPromoted).toBe(false)
+    expect(result.current.newRankTier).toBe('Baby Snail')
+    expect(result.current.newRankColor).toBe('#CD7F32')
+  })
+
+  it('does not show demotion when staying in same tier', () => {
+    // Young Snail (1150) -> Young Snail (1130)
+    const game = makeGame({
+      player1_elo_before: 1150,
+      player1_elo_change: -20,
+    })
+
+    const { result } = renderHook(() => useEloAnimation(game, 'user-1'))
+
+    expect(result.current.rankDemoted).toBe(false)
+    expect(result.current.rankPromoted).toBe(false)
+  })
+
+  it('does not show rank change on draw with no tier change', () => {
+    // Draw: elo stays same
+    const game = makeGame({
+      winner_id: null,
+      player1_elo_before: 1000,
+      player1_elo_change: 0,
+    })
+
+    const { result } = renderHook(() => useEloAnimation(game, 'user-1'))
 
     expect(result.current.rankPromoted).toBe(false)
-    expect(result.current.newRankTier).toBeNull()
-    expect(result.current.newRankColor).toBeNull()
+    expect(result.current.rankDemoted).toBe(false)
   })
 
   it('does not show rank promotion when staying in same tier', () => {
@@ -205,7 +254,7 @@ describe('useEloAnimation', () => {
       player1_elo_change: 20,
     })
 
-    const { result } = renderHook(() => useEloAnimation(game, 'user-1', true))
+    const { result } = renderHook(() => useEloAnimation(game, 'user-1'))
 
     expect(result.current.rankPromoted).toBe(false)
   })
@@ -216,7 +265,7 @@ describe('useEloAnimation', () => {
       player1_elo_change: 25,
     })
 
-    renderHook(() => useEloAnimation(game, 'user-1', true))
+    renderHook(() => useEloAnimation(game, 'user-1'))
 
     act(() => {
       vi.advanceTimersByTime(2000)
@@ -228,7 +277,7 @@ describe('useEloAnimation', () => {
   it('syncs with updated initialGame prop', () => {
     const game = makeGame()
     const { result, rerender } = renderHook(
-      ({ g }) => useEloAnimation(g, 'user-1', true),
+      ({ g }) => useEloAnimation(g, 'user-1'),
       { initialProps: { g: game } }
     )
 
@@ -248,7 +297,7 @@ describe('useEloAnimation', () => {
   it('returns eloAfter as null when elo is not ready', () => {
     const game = makeGame()
 
-    const { result } = renderHook(() => useEloAnimation(game, 'user-1', true))
+    const { result } = renderHook(() => useEloAnimation(game, 'user-1'))
 
     expect(result.current.eloReady).toBe(false)
     expect(result.current.eloAfter).toBeNull()
@@ -260,7 +309,7 @@ describe('useEloAnimation', () => {
       player1_elo_change: 25,
     })
 
-    const { result } = renderHook(() => useEloAnimation(game, 'user-1', true))
+    const { result } = renderHook(() => useEloAnimation(game, 'user-1'))
 
     expect(result.current.eloReady).toBe(true)
     expect(result.current.eloAfter).toBe(1025)
@@ -272,7 +321,7 @@ describe('useEloAnimation', () => {
       player1_elo_change: 25,
     })
 
-    const { result } = renderHook(() => useEloAnimation(game, 'user-1', true))
+    const { result } = renderHook(() => useEloAnimation(game, 'user-1'))
 
     expect(result.current.game.id).toBe('game-1')
   })

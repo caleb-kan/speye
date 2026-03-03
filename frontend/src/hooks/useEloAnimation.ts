@@ -11,12 +11,14 @@ import { getRankFromElo, getPlayerPrefix, getPlayerData } from '../utils/pvp'
 import type { PvpGame } from '../types/database'
 
 type EloAnimationResult = {
+  eloBefore: number | null
   displayElo: number | null
   eloChange: number | null
   eloAfter: number | null
   eloReady: boolean
   eloFetchFailed: boolean
   rankPromoted: boolean
+  rankDemoted: boolean
   newRankTier: RankTier | null
   newRankColor: string | null
   game: PvpGame
@@ -24,8 +26,7 @@ type EloAnimationResult = {
 
 export function useEloAnimation(
   initialGame: PvpGame,
-  userId: string,
-  isWin: boolean
+  userId: string
 ): EloAnimationResult {
   const [game, setGame] = useState(initialGame)
 
@@ -127,18 +128,24 @@ export function useEloAnimation(
 
   const oldRank = eloReady ? getRankFromElo(eloBefore) : null
   const newRank = eloReady && eloAfter != null ? getRankFromElo(eloAfter) : null
+  const rankChanged =
+    oldRank != null && newRank != null && oldRank.tier !== newRank.tier
   const rankPromoted =
-    isWin && oldRank != null && newRank != null && oldRank.tier !== newRank.tier
+    rankChanged && eloBefore != null && eloAfter != null && eloAfter > eloBefore
+  const rankDemoted =
+    rankChanged && eloBefore != null && eloAfter != null && eloAfter < eloBefore
 
   return {
+    eloBefore: eloBefore ?? null,
     displayElo,
     eloChange,
     eloAfter,
     eloReady,
     eloFetchFailed,
     rankPromoted,
-    newRankTier: rankPromoted && newRank ? newRank.tier : null,
-    newRankColor: rankPromoted && newRank ? newRank.color : null,
+    rankDemoted,
+    newRankTier: rankChanged && newRank ? newRank.tier : null,
+    newRankColor: rankChanged && newRank ? newRank.color : null,
     game,
   }
 }

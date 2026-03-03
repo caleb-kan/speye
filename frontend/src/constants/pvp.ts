@@ -74,15 +74,61 @@ export const POLLABLE_PHASES: Set<PvpPhase> = new Set([
   'quiz',
 ])
 
-export const RANK_TIERS = [
-  { tier: 'Bronze', color: '#CD7F32', minElo: 0, maxElo: 1049 },
-  { tier: 'Silver', color: '#A8B4C0', minElo: 1050, maxElo: 1199 },
-  { tier: 'Gold', color: '#FFD700', minElo: 1200, maxElo: 1349 },
-  { tier: 'Platinum', color: '#00CED1', minElo: 1350, maxElo: 1499 },
-  { tier: 'Diamond', color: '#B388FF', minElo: 1500, maxElo: 1649 },
-  { tier: 'Master', color: '#FF1744', minElo: 1650, maxElo: null },
+const RANK_ANIMALS = [
+  { name: 'Snail', emoji: '\u{1F40C}', color: '#CD7F32' },
+  { name: 'Turtle', emoji: '\u{1F422}', color: '#A8B4C0' },
+  { name: 'Rabbit', emoji: '\u{1F407}', color: '#FFD700' },
+  { name: 'Sparrow', emoji: '\u{1F426}', color: '#00CED1' },
+  { name: 'Chimp', emoji: '\u{1F435}', color: '#B388FF' },
+  { name: 'Cheetah', emoji: '\u{1F406}', color: '#FF1744' },
 ] as const
 
-export type RankTier = (typeof RANK_TIERS)[number]['tier']
+const RANK_LEVELS = ['Baby', 'Young', 'Prime'] as const
+
+const ELO_TIER_START = 0
+const ELO_TIER_WIDTH = 100
+const ELO_FIRST_TIER_WIDTH = 1100
+
+export type RankLevel = (typeof RANK_LEVELS)[number]
+
+function buildRankTiers() {
+  const tiers: {
+    tier: string
+    level: RankLevel
+    emoji: string
+    color: string
+    minElo: number
+    maxElo: number | null
+  }[] = []
+
+  let elo = ELO_TIER_START
+  for (let a = 0; a < RANK_ANIMALS.length; a++) {
+    const animal = RANK_ANIMALS[a]
+    for (let l = 0; l < RANK_LEVELS.length; l++) {
+      const level = RANK_LEVELS[l]
+      const isFirst = a === 0 && l === 0
+      const isLast =
+        a === RANK_ANIMALS.length - 1 && l === RANK_LEVELS.length - 1
+      const width = isFirst ? ELO_FIRST_TIER_WIDTH : ELO_TIER_WIDTH
+
+      tiers.push({
+        tier: `${level} ${animal.name}`,
+        level,
+        emoji: animal.emoji,
+        color: animal.color,
+        minElo: elo,
+        maxElo: isLast ? null : elo + width - 1,
+      })
+
+      elo += width
+    }
+  }
+
+  return tiers
+}
+
+export const RANK_TIERS = buildRankTiers()
+
+export type RankTier = string
 
 export type RankInfo = (typeof RANK_TIERS)[number]

@@ -177,6 +177,66 @@ body {
   }
 }
 
+/* Rank badge breathing glow */
+@keyframes rank-breathe {
+  0%,
+  100% {
+    filter: var(--glow-min);
+  }
+  50% {
+    filter: var(--glow-max);
+  }
+}
+
+.rank-glow {
+  animation: rank-breathe 3s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rank-glow {
+    animation: none;
+    filter: var(--glow-min);
+  }
+}
+
+/* Rank evolution roll animations */
+@keyframes roll-out-up {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+}
+
+@keyframes roll-in-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.roll-out-up {
+  animation: roll-out-up 0.5s ease-in forwards;
+}
+
+.roll-in-up {
+  animation: roll-in-up 0.5s ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .roll-out-up,
+  .roll-in-up {
+    animation: none;
+  }
+}
+
 /* Dark theme scrollbar styling */
 * {
   scrollbar-width: thin;

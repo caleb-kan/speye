@@ -9,62 +9,82 @@ import {
 } from '../../utils/pvp'
 
 describe('getRankFromElo', () => {
-  it('returns Bronze for elo 0', () => {
-    expect(getRankFromElo(0).tier).toBe('Bronze')
+  it('returns Baby Snail for elo 0', () => {
+    expect(getRankFromElo(0).tier).toBe('Baby Snail')
   })
 
-  it('returns Bronze for negative elo', () => {
-    expect(getRankFromElo(-100).tier).toBe('Bronze')
+  it('returns Baby Snail for negative elo', () => {
+    expect(getRankFromElo(-100).tier).toBe('Baby Snail')
   })
 
-  it('returns Bronze at 1049', () => {
-    expect(getRankFromElo(1049).tier).toBe('Bronze')
+  it('returns Baby Snail at 1099', () => {
+    expect(getRankFromElo(1099).tier).toBe('Baby Snail')
   })
 
-  it('returns Silver at exactly 1050', () => {
-    expect(getRankFromElo(1050).tier).toBe('Silver')
+  it('returns Young Snail at exactly 1100', () => {
+    expect(getRankFromElo(1100).tier).toBe('Young Snail')
   })
 
-  it('returns Silver at 1199', () => {
-    expect(getRankFromElo(1199).tier).toBe('Silver')
+  it('returns Young Snail at 1199', () => {
+    expect(getRankFromElo(1199).tier).toBe('Young Snail')
   })
 
-  it('returns Gold at exactly 1200', () => {
-    expect(getRankFromElo(1200).tier).toBe('Gold')
+  it('returns Prime Snail at exactly 1200', () => {
+    expect(getRankFromElo(1200).tier).toBe('Prime Snail')
   })
 
-  it('returns Gold at 1349', () => {
-    expect(getRankFromElo(1349).tier).toBe('Gold')
+  it('returns Baby Turtle at exactly 1300', () => {
+    expect(getRankFromElo(1300).tier).toBe('Baby Turtle')
   })
 
-  it('returns Platinum at exactly 1350', () => {
-    expect(getRankFromElo(1350).tier).toBe('Platinum')
+  it('returns Baby Rabbit at exactly 1600', () => {
+    expect(getRankFromElo(1600).tier).toBe('Baby Rabbit')
   })
 
-  it('returns Platinum at 1499', () => {
-    expect(getRankFromElo(1499).tier).toBe('Platinum')
+  it('returns Baby Sparrow at exactly 1900', () => {
+    expect(getRankFromElo(1900).tier).toBe('Baby Sparrow')
   })
 
-  it('returns Diamond at exactly 1500', () => {
-    expect(getRankFromElo(1500).tier).toBe('Diamond')
+  it('returns Baby Chimp at exactly 2200', () => {
+    expect(getRankFromElo(2200).tier).toBe('Baby Chimp')
   })
 
-  it('returns Diamond at 1649', () => {
-    expect(getRankFromElo(1649).tier).toBe('Diamond')
+  it('returns Prime Cheetah at 2800', () => {
+    expect(getRankFromElo(2800).tier).toBe('Prime Cheetah')
   })
 
-  it('returns Master at exactly 1650', () => {
-    expect(getRankFromElo(1650).tier).toBe('Master')
+  it('returns Prime Cheetah for very high elo', () => {
+    expect(getRankFromElo(5000).tier).toBe('Prime Cheetah')
   })
 
-  it('returns Master for very high elo', () => {
-    expect(getRankFromElo(5000).tier).toBe('Master')
+  it('returns correct colors per animal', () => {
+    expect(getRankFromElo(500).color).toBe('#CD7F32') // Snail
+    expect(getRankFromElo(1300).color).toBe('#A8B4C0') // Turtle
+    expect(getRankFromElo(1600).color).toBe('#FFD700') // Rabbit
+    expect(getRankFromElo(1900).color).toBe('#00CED1') // Sparrow
+    expect(getRankFromElo(2200).color).toBe('#B388FF') // Chimp
+    expect(getRankFromElo(2500).color).toBe('#FF1744') // Cheetah
   })
 
-  it('returns correct colors', () => {
-    expect(getRankFromElo(500).color).toBe('#CD7F32')
-    expect(getRankFromElo(1100).color).toBe('#A8B4C0')
-    expect(getRankFromElo(1650).color).toBe('#FF1744')
+  it('returns emoji for each animal', () => {
+    expect(getRankFromElo(500).emoji).toBe('\u{1F40C}') // Snail
+    expect(getRankFromElo(1300).emoji).toBe('\u{1F422}') // Turtle
+    expect(getRankFromElo(1600).emoji).toBe('\u{1F407}') // Rabbit
+    expect(getRankFromElo(1900).emoji).toBe('\u{1F426}') // Sparrow
+    expect(getRankFromElo(2200).emoji).toBe('\u{1F435}') // Chimp
+    expect(getRankFromElo(2500).emoji).toBe('\u{1F406}') // Cheetah
+  })
+
+  it('returns correct level for each sub-tier', () => {
+    // Baby = first sub-tier of each animal
+    expect(getRankFromElo(500).level).toBe('Baby') // Baby Snail
+    expect(getRankFromElo(1300).level).toBe('Baby') // Baby Turtle
+    // Young = second sub-tier
+    expect(getRankFromElo(1100).level).toBe('Young') // Young Snail
+    expect(getRankFromElo(1400).level).toBe('Young') // Young Turtle
+    // Prime = third sub-tier
+    expect(getRankFromElo(1200).level).toBe('Prime') // Prime Snail
+    expect(getRankFromElo(1500).level).toBe('Prime') // Prime Turtle
   })
 
   it('rank tiers are contiguous with no gaps', () => {
@@ -87,25 +107,25 @@ describe('getRankFromElo', () => {
 describe('getProgressToNextTier', () => {
   it('returns 0 at the start of a tier', () => {
     expect(getProgressToNextTier(0)).toBe(0)
-    expect(getProgressToNextTier(1050)).toBe(0)
-    expect(getProgressToNextTier(1200)).toBe(0)
+    expect(getProgressToNextTier(1100)).toBe(0)
+    expect(getProgressToNextTier(1300)).toBe(0)
   })
 
-  it('returns 100 for Master tier', () => {
-    expect(getProgressToNextTier(1650)).toBe(100)
-    expect(getProgressToNextTier(3000)).toBe(100)
+  it('returns 100 for Prime Cheetah tier', () => {
+    expect(getProgressToNextTier(2700)).toBe(100)
+    expect(getProgressToNextTier(5000)).toBe(100)
   })
 
   it('returns mid-range progress correctly', () => {
-    // Silver: 1050-1199, range = 150
-    // 1100 - 1050 = 50/150 = 33%
-    expect(getProgressToNextTier(1100)).toBe(33)
+    // Young Snail: 1100-1199, range = 100
+    // 1150 - 1100 = 50/100 = 50%
+    expect(getProgressToNextTier(1150)).toBe(50)
   })
 
   it('returns close to 100 near tier boundary', () => {
-    // Bronze: 0-1049, range = 1050
-    // 1049 - 0 = 1049/1050 ~ 100%
-    expect(getProgressToNextTier(1049)).toBeGreaterThanOrEqual(99)
+    // Baby Snail: 0-1099, range = 1100
+    // 1099 - 0 = 1099/1100 ~ 100%
+    expect(getProgressToNextTier(1099)).toBeGreaterThanOrEqual(99)
   })
 
   it('never exceeds 100', () => {

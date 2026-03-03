@@ -1,7 +1,5 @@
-import { Shield } from 'lucide-react'
 import { getRankFromElo } from '../../../utils/pvp'
-
-const GLOW_PX = 8
+import type { RankLevel } from '../../../constants/pvp'
 
 type PvpRankBadgeProps = {
   elo: number | null
@@ -9,9 +7,30 @@ type PvpRankBadgeProps = {
 }
 
 const sizes = {
-  sm: { icon: 16, badge: 'w-6 h-6' },
-  md: { icon: 24, badge: 'w-10 h-10' },
-  lg: { icon: 40, badge: 'w-16 h-16' },
+  sm: { fontSize: 'text-lg', badge: 'w-8 h-8' },
+  md: { fontSize: 'text-3xl', badge: 'w-12 h-12' },
+  lg: { fontSize: 'text-5xl', badge: 'w-20 h-20' },
+}
+
+const GLOW_SPREAD = 14
+const GLOW_LAYERS = 2
+
+const GLOW_COLOR: Record<RankLevel, string | null> = {
+  Baby: null,
+  Young: '#C0C0C0',
+  Prime: '#FFD700',
+}
+
+function buildGlowFilter(color: string) {
+  const min = Array.from(
+    { length: GLOW_LAYERS },
+    (_, i) => `drop-shadow(0 0 ${GLOW_SPREAD * (i + 1) * 0.5}px ${color})`
+  ).join(' ')
+  const max = Array.from(
+    { length: GLOW_LAYERS },
+    (_, i) => `drop-shadow(0 0 ${GLOW_SPREAD * (i + 1) * 1.5}px ${color})`
+  ).join(' ')
+  return { '--glow-min': min, '--glow-max': max } as React.CSSProperties
 }
 
 export function PvpRankBadge({ elo, size = 'md' }: PvpRankBadgeProps) {
@@ -20,37 +39,33 @@ export function PvpRankBadge({ elo, size = 'md' }: PvpRankBadgeProps) {
   if (elo === null) {
     return (
       <div
-        className={`${s.badge} rounded-xl flex items-center justify-center`}
+        className={`${s.badge} rounded-full flex items-center justify-center opacity-30`}
         role="img"
         aria-label="Rank unknown"
       >
-        <Shield
-          size={s.icon}
-          className="text-text-secondary/30"
-          strokeWidth={1.5}
-        />
+        <span className={s.fontSize}>?</span>
       </div>
     )
   }
 
   const rank = getRankFromElo(elo)
+  const glowColor = GLOW_COLOR[rank.level]
+  const animate = glowColor && size !== 'sm'
 
   return (
     <div
-      className={`${s.badge} rounded-xl flex items-center justify-center relative`}
+      className={`${s.badge} rounded-full flex items-center justify-center relative ${animate ? 'rank-glow' : ''}`}
       role="img"
       aria-label={`${rank.tier} rank`}
-      style={{
-        filter: `drop-shadow(0 0 ${GLOW_PX}px ${rank.color})`,
-      }}
+      style={
+        animate
+          ? buildGlowFilter(glowColor)
+          : glowColor
+            ? { filter: `drop-shadow(0 0 8px ${glowColor})` }
+            : undefined
+      }
     >
-      <Shield
-        size={s.icon}
-        style={{ color: rank.color }}
-        fill={rank.color}
-        strokeWidth={1.5}
-        className="opacity-90"
-      />
+      <span className={s.fontSize}>{rank.emoji}</span>
     </div>
   )
 }

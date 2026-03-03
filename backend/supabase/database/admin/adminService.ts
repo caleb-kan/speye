@@ -70,6 +70,8 @@ export async function getPendingAdminReviews(): Promise<AdminReviewText[]> {
       admin_reviewed_at,
       rejection_reason,
       rejection_stage,
+      sectional,
+      section_content,
       users!texts_owner_id_fkey(username)
     `
     )
@@ -90,7 +92,10 @@ export async function getPendingAdminReviews(): Promise<AdminReviewText[]> {
     const { users, ...rest } = row as typeof row & {
       users: { username: string } | null
     }
-    return { ...rest, owner_username: users?.username ?? null }
+    return {
+      ...rest,
+      owner_username: users?.username ?? null,
+    }
   })
 }
 

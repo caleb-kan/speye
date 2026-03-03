@@ -5,19 +5,40 @@ import {
   MAX_QUESTION_SETS,
   MIN_QUESTIONS,
   MAX_QUESTIONS,
+  MIN_QUESTIONS_SECTIONAL,
+  MAX_QUESTIONS_SECTIONAL,
   NUM_OPTIONS_PER_QUESTION,
 } from '../../lib/quizConstants'
 
 vi.mock('../../lib/supabase', () => {
-  const mockSingle = vi.fn()
-  const mockSelect = vi.fn(() => ({ single: mockSingle }))
-  const mockEq = vi.fn(() => ({ select: mockSelect }))
-  const mockUpdate = vi.fn(() => ({ eq: mockEq }))
-  const mockFrom = vi.fn(() => ({ update: mockUpdate }))
+  // Update chain: from().update().eq().select().single()
+  const mockUpdateSingle = vi.fn()
+  const mockUpdateSelect = vi.fn(() => ({ single: mockUpdateSingle }))
+  const mockUpdateEq = vi.fn(() => ({ select: mockUpdateSelect }))
+  const mockUpdate = vi.fn(() => ({ eq: mockUpdateEq }))
+
+  // Select chain: from().select().eq().single()
+  const mockSelectSingle = vi.fn()
+  const mockSelectEq = vi.fn(() => ({ single: mockSelectSingle }))
+  const mockSelect = vi.fn(() => ({ eq: mockSelectEq }))
+
+  const mockFrom = vi.fn(() => ({
+    update: mockUpdate,
+    select: mockSelect,
+  }))
 
   return {
     supabase: { from: mockFrom },
-    _mocks: { mockFrom, mockUpdate, mockEq, mockSelect, mockSingle },
+    _mocks: {
+      mockFrom,
+      mockUpdate,
+      mockUpdateEq,
+      mockUpdateSelect,
+      mockUpdateSingle,
+      mockSelect,
+      mockSelectEq,
+      mockSelectSingle,
+    },
   }
 })
 
@@ -200,11 +221,42 @@ describe('assertValidQuiz', () => {
       'correctAnswer must be a valid option index'
     )
   })
+
+  it('skips set count validation for sectional quizzes', () => {
+    const quiz: Quiz = {
+      questionSets: Array.from({ length: 10 }, () =>
+        makeSet(
+          Array.from({ length: MIN_QUESTIONS_SECTIONAL }, () => makeQuestion())
+        )
+      ),
+    }
+    expect(() => assertValidQuiz(quiz, { sectional: true })).not.toThrow()
+  })
+
+  it('uses sectional question count bounds for sectional quizzes', () => {
+    const tooFew: Quiz = {
+      questionSets: [
+        makeSet(
+          Array.from({ length: MIN_QUESTIONS_SECTIONAL - 1 }, () =>
+            makeQuestion()
+          )
+        ),
+      ],
+    }
+    expect(() => assertValidQuiz(tooFew, { sectional: true })).toThrow(
+      `Each set must have between ${MIN_QUESTIONS_SECTIONAL} and ${MAX_QUESTIONS_SECTIONAL} questions`
+    )
+  })
 })
 
 describe('updateTextQuiz', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    // Default: select chain returns non-sectional text
+    _mocks.mockSelectSingle.mockResolvedValue({
+      data: { sectional: false },
+      error: null,
+    })
   })
 
   it('throws when textId is empty', async () => {
@@ -213,32 +265,69 @@ describe('updateTextQuiz', () => {
     )
   })
 
-  it('throws on invalid quiz before reaching database', async () => {
+  it('throws on invalid quiz before reaching update', async () => {
     const quiz: Quiz = { questionSets: [] }
     await expect(updateTextQuiz('text-1', quiz)).rejects.toThrow(
       `Quiz must have between ${MIN_QUESTION_SETS} and ${MAX_QUESTION_SETS} question sets`
     )
-    expect(_mocks.mockFrom).not.toHaveBeenCalled()
   })
 
   it('calls supabase with correct arguments for valid quiz', async () => {
     const quiz = makeValidQuiz()
     const mockResult = { id: 'text-1', quiz, quiz_valid: true }
-    _mocks.mockSingle.mockResolvedValue({ data: mockResult, error: null })
+    _mocks.mockUpdateSingle.mockResolvedValue({
+      data: mockResult,
+      error: null,
+    })
 
     const result = await updateTextQuiz('text-1', quiz)
 
     expect(_mocks.mockFrom).toHaveBeenCalledWith('texts')
     expect(_mocks.mockUpdate).toHaveBeenCalledWith({ quiz, quiz_valid: true })
-    expect(_mocks.mockEq).toHaveBeenCalledWith('id', 'text-1')
+    expect(_mocks.mockUpdateEq).toHaveBeenCalledWith('id', 'text-1')
     expect(result).toEqual(mockResult)
   })
 
   it('throws when supabase returns an error', async () => {
     const quiz = makeValidQuiz()
     const dbError = { message: 'Row not found' }
-    _mocks.mockSingle.mockResolvedValue({ data: null, error: dbError })
+    _mocks.mockUpdateSingle.mockResolvedValue({ data: null, error: dbError })
 
     await expect(updateTextQuiz('text-1', quiz)).rejects.toBe(dbError)
+  })
+
+  it('throws when sectional fetch fails', async () => {
+    const quiz = makeValidQuiz()
+    const fetchError = { message: 'Network error' }
+    _mocks.mockSelectSingle.mockResolvedValue({
+      data: null,
+      error: fetchError,
+    })
+
+    await expect(updateTextQuiz('text-1', quiz)).rejects.toBe(fetchError)
+  })
+
+  it('uses sectional validation for sectional texts', async () => {
+    _mocks.mockSelectSingle.mockResolvedValue({
+      data: { sectional: true },
+      error: null,
+    })
+
+    // 10 sets with 3 questions each - valid for sectional, invalid for non-sectional
+    const quiz: Quiz = {
+      questionSets: Array.from({ length: 10 }, () =>
+        makeSet(
+          Array.from({ length: MIN_QUESTIONS_SECTIONAL }, () => makeQuestion())
+        )
+      ),
+    }
+    const mockResult = { id: 'text-1', quiz, quiz_valid: true }
+    _mocks.mockUpdateSingle.mockResolvedValue({
+      data: mockResult,
+      error: null,
+    })
+
+    const result = await updateTextQuiz('text-1', quiz)
+    expect(result).toEqual(mockResult)
   })
 })

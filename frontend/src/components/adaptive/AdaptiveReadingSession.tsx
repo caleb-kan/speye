@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { AdaptiveReader } from './AdaptiveReader'
 import { StartQuizButton } from '../StartQuizButton'
-import type { Text } from '../../types'
+import type { Text } from '../../types/database'
 import {
   logUserActivity,
   logUserActivityOnUnload,
@@ -12,6 +12,7 @@ import {
   loadReadingActivitySession,
   upsertReadingActivitySession,
 } from '../../utils/readingActivityStorage'
+import { useSectionQuiz } from '../../hooks/useSectionQuiz'
 
 type AdaptiveReadingSessionProps = {
   currentText: Text
@@ -39,6 +40,8 @@ export function AdaptiveReadingSession({
   const [readingComplete, setReadingComplete] = useState(false)
   const [triggerQuiz, setTriggerQuiz] = useState(false)
   const [quizDismissed, setQuizDismissed] = useState(false)
+  const [triggerSectionQuiz, setTriggerSectionQuiz] = useState(false)
+
   const startTimeRef = useRef<string | null>(null)
   const hasLoggedCompleteRef = useRef(false)
   const hasLoggedLeaveRef = useRef(false)
@@ -56,6 +59,19 @@ export function AdaptiveReadingSession({
     hasLoggedCompleteRef.current = false
     hasLoggedLeaveRef.current = false
   }, [currentText.id])
+
+  const {
+    isSectional,
+    questionSets,
+    setCurrentSectionIndex,
+    handleSectionComplete,
+    handleSectionQuizFinish,
+    handleSectionQuizDismiss,
+    isSectionQuizActive,
+    sectionQuestionSet,
+    showSectionMiniQuiz,
+    completedSectionQuizzes,
+  } = useSectionQuiz(currentText)
 
   useEffect(() => {
     const existing = loadReadingActivitySession()
@@ -202,22 +218,51 @@ export function AdaptiveReadingSession({
         initialWordIndex={initialWordIndex}
         onPositionChange={handlePositionChange}
         onCalculatedWpmChange={onCalculatedWpmChange}
-        showMiniQuiz={quizDismissed}
-        onStartQuiz={() => setTriggerQuiz(true)}
+        showMiniQuiz={isSectional ? showSectionMiniQuiz : quizDismissed}
+        onStartQuiz={
+          isSectional
+            ? () => setTriggerSectionQuiz(true)
+            : () => setTriggerQuiz(true)
+        }
         isSummary={isSummary}
+        sectional={currentText.sectional}
+        section_content={currentText.section_content}
+        onSectionComplete={isSectional ? handleSectionComplete : undefined}
+        onSectionIndexChange={isSectional ? setCurrentSectionIndex : undefined}
+        quizzedSections={isSectional ? completedSectionQuizzes : undefined}
+        totalSectionQuizCount={isSectional ? questionSets.length : undefined}
         hideNewText={hideNewText}
       />
 
-      <StartQuizButton
-        textId={currentText.id}
-        ownerId={currentText.owner_id}
-        readingComplete={readingComplete}
-        dismissed={quizDismissed}
-        onDismiss={() => setQuizDismissed(true)}
-        forceOpen={triggerQuiz}
-        onOpenStateChange={setTriggerQuiz}
-        className="items-center justify-end pb-64"
-      />
+      {/* Section quiz overlay (sectional texts only) */}
+      {isSectional && (
+        <StartQuizButton
+          textId={currentText.id}
+          ownerId={currentText.owner_id}
+          readingComplete={isSectionQuizActive}
+          dismissed={!isSectionQuizActive}
+          onDismiss={handleSectionQuizDismiss}
+          questionSet={sectionQuestionSet}
+          onFinish={handleSectionQuizFinish}
+          forceOpen={triggerSectionQuiz}
+          onOpenStateChange={setTriggerSectionQuiz}
+          className="items-center justify-center pb-42"
+        />
+      )}
+
+      {/* Full text quiz overlay (non-sectional texts only) */}
+      {!isSectional && (
+        <StartQuizButton
+          textId={currentText.id}
+          ownerId={currentText.owner_id}
+          readingComplete={readingComplete}
+          dismissed={quizDismissed}
+          onDismiss={() => setQuizDismissed(true)}
+          forceOpen={triggerQuiz}
+          onOpenStateChange={setTriggerQuiz}
+          className="items-center justify-end pb-64"
+        />
+      )}
     </div>
   )
 }

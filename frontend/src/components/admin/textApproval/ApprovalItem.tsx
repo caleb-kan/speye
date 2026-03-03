@@ -69,6 +69,11 @@ export function ApprovalItem({
               <span className="w-1 h-1 rounded-full bg-text-secondary/20"></span>
             </>
           )}
+          {text.sectional && (
+            <span className="text-xs px-2 py-0.5 bg-primary/10 text-primary rounded">
+              Sectional
+            </span>
+          )}
           <span className="uppercase tracking-wide text-[10px]">
             {text.processing_status}
           </span>

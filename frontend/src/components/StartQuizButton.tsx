@@ -12,6 +12,10 @@ interface StartQuizButtonProps {
   dismissed: boolean
   forceOpen?: boolean
   onOpenStateChange?: (isOpen: boolean) => void
+  /* Pre-loaded question set — skips DB fetch when provided */
+  questionSet?: QuestionSet | null
+  /** Called with (correct, total) instead of saving to DB — used for section quizzes */
+  onFinish?: (correct: number, total: number) => void
   /* Optional class override for positioning the button wrapper */
   className?: string
 }
@@ -24,6 +28,8 @@ export function StartQuizButton({
   dismissed,
   forceOpen,
   onOpenStateChange,
+  questionSet: propQuestionSet,
+  onFinish,
   className = 'items-center justify-center',
 }: StartQuizButtonProps) {
   const [quizKey, setQuizKey] = useState(0)
@@ -33,11 +39,12 @@ export function StartQuizButton({
   const [quizError, setQuizError] = useState<string | null>(null)
 
   const handleLoadQuiz = useCallback(async () => {
-    if (!textId || quizLoading) return
+    if (quizLoading) return
     try {
       setQuizLoading(true)
       setQuizError(null)
-      const set = await getQuiz(textId)
+      const set =
+        propQuestionSet != null ? propQuestionSet : await getQuiz(textId)
       setQuizSet(set)
       setQuizKey((k) => k + 1)
       setQuizOpen(true)
@@ -47,7 +54,7 @@ export function StartQuizButton({
     } finally {
       setQuizLoading(false)
     }
-  }, [textId, quizLoading])
+  }, [textId, quizLoading, propQuestionSet])
 
   const handleCloseQuiz = () => {
     setQuizOpen(false)
@@ -154,6 +161,7 @@ export function StartQuizButton({
         questionSet={quizSet}
         textId={textId}
         ownerId={ownerId}
+        onFinish={onFinish}
       />
     </>
   )

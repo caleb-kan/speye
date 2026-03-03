@@ -33,6 +33,11 @@ const notificationsStore = localforage.createInstance({
   storeName: 'notifications',
 })
 
+const sectionQuizStore = localforage.createInstance({
+  name: 'speye-offline',
+  storeName: 'sectionQuiz',
+})
+
 // --- Generic cache helpers ---
 
 interface CacheEntry<T> {
@@ -191,6 +196,38 @@ export async function setCachedNotifications(
   await setCached(notificationsStore, userId, notifications)
 }
 
+// --- Section quiz progress (sectional texts) ---
+
+export interface SectionQuizProgress {
+  results: ({ correct: number; total: number } | null)[]
+  quizzedSectionIds: number[]
+}
+
+export async function getSectionQuizProgress(
+  textId: string
+): Promise<SectionQuizProgress | null> {
+  return getCached<SectionQuizProgress>(sectionQuizStore, textId, Infinity)
+}
+
+export async function setSectionQuizProgress(
+  textId: string,
+  progress: SectionQuizProgress
+): Promise<void> {
+  await setCached(sectionQuizStore, textId, progress)
+}
+
+export async function clearSectionQuizProgress(textId: string): Promise<void> {
+  try {
+    await sectionQuizStore.removeItem(textId)
+  } catch (err) {
+    pwaLogger.warn(
+      TAG,
+      `Failed to clear section quiz progress for textId="${textId}"`,
+      err
+    )
+  }
+}
+
 export async function getCachedQuiz(
   textId: string
 ): Promise<Text['quiz'] | null> {
@@ -244,6 +281,7 @@ export async function clearAllCaches(): Promise<void> {
     activityStore.clear(),
     metadataStore.clear(),
     notificationsStore.clear(),
+    sectionQuizStore.clear(),
   ])
   if (lastSync !== null) {
     await setCached(metadataStore, 'lastSyncTime', lastSync)

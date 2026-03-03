@@ -26,6 +26,10 @@ export async function updateText(
       // Reset quiz_valid when reprocessing
       ...(data.quiz_valid !== undefined && { quiz_valid: data.quiz_valid }),
       ...(data.summary !== undefined && { summary: data.summary }),
+      ...(data.sectional !== undefined && { sectional: data.sectional }),
+      ...(data.section_content !== undefined && {
+        section_content: data.section_content,
+      }),
     })
     .eq('id', textId)
     .select()

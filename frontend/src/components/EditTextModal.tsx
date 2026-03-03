@@ -65,6 +65,8 @@ export function EditTextModal({
             title: text.title,
             content: text.content,
             fiction: text.fiction,
+            sectional: text.sectional,
+            section_content: text.section_content,
           }
         : undefined,
     [text]

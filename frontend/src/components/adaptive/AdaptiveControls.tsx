@@ -36,6 +36,8 @@ type AdaptiveControlsProps = {
   showMiniQuiz?: boolean
   /** Called when mini quiz button is clicked */
   onStartQuiz?: () => void
+  /** Hide the progress bar (used in sectional mode) */
+  hideProgress?: boolean
   /** Hide the new text button */
   hideNewText?: boolean
 }
@@ -65,6 +67,7 @@ export function AdaptiveControls({
   trackingStatus,
   showMiniQuiz,
   onStartQuiz,
+  hideProgress = false,
   hideNewText = false,
 }: AdaptiveControlsProps) {
   const canGoBack = currentPage > 0
@@ -112,11 +115,13 @@ export function AdaptiveControls({
         </div>
       </div>
 
-      <ProgressBar
-        progress={progress}
-        height={PROGRESS_BAR_HEIGHT}
-        className="flex-1 max-w-md"
-      />
+      {!hideProgress && (
+        <ProgressBar
+          progress={progress}
+          height={PROGRESS_BAR_HEIGHT}
+          className="flex-1 max-w-md"
+        />
+      )}
 
       <div className="flex items-center gap-1">
         <IconButton

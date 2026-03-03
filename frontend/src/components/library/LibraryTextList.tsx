@@ -75,6 +75,11 @@ export function LibraryTextList({
                     {text.fiction ? 'Fiction' : 'Non-Fiction'}
                   </span>
                 )}
+                {text.sectional && (
+                  <span className="text-xs px-2 py-0.5 bg-primary/10 text-primary rounded">
+                    Sectional
+                  </span>
+                )}
                 {text.complexity !== null && (
                   <span className="text-xs text-text-secondary">
                     Complexity: {text.complexity}

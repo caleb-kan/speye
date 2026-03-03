@@ -7,6 +7,7 @@ export type {
   LlmDecision,
   AdminDecision,
   FailureStage,
+  SectionData,
 } from '../../../backend/supabase/database/texts/types'
 
 export type {
@@ -29,6 +30,7 @@ import type {
   LlmDecision,
   AdminDecision,
   FailureStage,
+  SectionData,
 } from '../../../backend/supabase/database/texts/types'
 
 export type TextInput = {
@@ -40,6 +42,8 @@ export type TextInput = {
   processing_status?: ProcessingStatus
   quiz_valid?: boolean | null
   isPublic?: boolean
+  sectional?: boolean
+  section_content?: SectionData[] | null
 }
 
 export type Text = {
@@ -62,6 +66,8 @@ export type Text = {
   admin_reviewed_at: string | null
   rejection_reason: string | null
   rejection_stage: FailureStage | null
+  sectional: boolean
+  section_content: SectionData[] | null
 }
 
 export type TextPreview = {
@@ -84,6 +90,8 @@ export type TextPreview = {
   rejection_stage: FailureStage | null
   admin_reviewed_by: string | null
   admin_reviewed_at: string | null
+  sectional?: boolean
+  section_content?: SectionData[] | null
 }
 
 export type NotificationType = 'info' | 'alert' | 'error'

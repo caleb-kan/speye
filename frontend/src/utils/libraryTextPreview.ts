@@ -26,6 +26,8 @@ export const createTextFromPreview = (
     admin_reviewed_at: textPreview.admin_reviewed_at,
     rejection_reason: textPreview.rejection_reason,
     rejection_stage: textPreview.rejection_stage,
+    sectional: textPreview.sectional ?? false,
+    section_content: textPreview.section_content ?? null,
   }
 }
 
@@ -50,5 +52,8 @@ export const createPreviewFromText = (textRecord: Text): TextPreview => {
     rejection_stage: textRecord.rejection_stage,
     admin_reviewed_by: textRecord.admin_reviewed_by,
     admin_reviewed_at: textRecord.admin_reviewed_at,
+    // Include sectional fields for preview
+    sectional: textRecord.sectional,
+    section_content: textRecord.section_content,
   }
 }

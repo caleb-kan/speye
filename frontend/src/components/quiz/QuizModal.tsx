@@ -22,6 +22,8 @@ type QuizModalProps = {
   questionSet: QuestionSet | null
   textId: string
   ownerId: string | null
+  /** If provided, called instead of saving to DB — used for section quizzes */
+  onFinish?: (correct: number, total: number) => void
 }
 
 export function QuizModal({
@@ -30,6 +32,7 @@ export function QuizModal({
   questionSet,
   textId,
   ownerId,
+  onFinish,
 }: QuizModalProps) {
   const { user } = useAuth()
 
@@ -64,6 +67,12 @@ export function QuizModal({
     const finalScore = Math.round((correctCount / questions.length) * 100)
 
     setIsFinished(true)
+
+    // Section quiz mode: pass results to parent for aggregate scoring
+    if (onFinish) {
+      onFinish(correctCount, questions.length)
+      return
+    }
 
     if (!user) return
 

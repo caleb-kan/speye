@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { TextDisplay } from './TextDisplay'
+import { SectionalTextDisplay } from './SectionalTextDisplay'
 import { ReadingControls } from './ReadingControls'
 import { TextTitle } from './TextTitle'
 import { useReader } from '../hooks/useReader'
@@ -7,6 +8,7 @@ import { useArrowNavigation } from '../hooks/useArrowNavigation'
 import type { Scrolling } from '../types/reading'
 import { Resizable } from './Resizable'
 import { ARROW_KEY_JUMP_WORDS } from '../constants/textDisplay'
+import type { SectionData } from '../types/database'
 
 type ReaderProps = {
   title: string | null
@@ -26,6 +28,14 @@ type ReaderProps = {
   showMiniQuiz?: boolean
   onStartQuiz?: () => void
   isSummary?: boolean
+  sectional?: boolean
+  section_content?: SectionData[] | null
+  onSectionComplete?: (sectionIndex: number) => void
+  onSectionIndexChange?: (sectionIndex: number) => void
+  /** Sections where the quiz was actually answered (controls dot colour) */
+  quizzedSections?: Set<number>
+  /** Total number of sections that have quizzes (for last-section status display) */
+  totalSectionQuizCount?: number
   hideNewText?: boolean
 }
 
@@ -47,6 +57,12 @@ export function Reader({
   showMiniQuiz,
   onStartQuiz,
   isSummary,
+  sectional = false,
+  section_content = null,
+  onSectionComplete,
+  onSectionIndexChange,
+  quizzedSections,
+  totalSectionQuizCount,
   hideNewText = false,
 }: ReaderProps) {
   const {
@@ -56,11 +72,21 @@ export function Reader({
     totalWords,
     progress,
     togglePlayPause,
+    pause,
     restart,
     hasText,
     jumpForward,
     jumpBack,
+    jumpToIndex,
   } = useReader({ text, wpm, disabled, initialWordIndex })
+
+  const handleSectionComplete = useCallback(
+    (sectionIndex: number) => {
+      pause()
+      onSectionComplete?.(sectionIndex)
+    },
+    [pause, onSectionComplete]
+  )
 
   const handleForward = useCallback(() => {
     jumpForward(ARROW_KEY_JUMP_WORDS)
@@ -109,31 +135,64 @@ export function Reader({
     <div className="flex flex-col flex-1 w-full">
       {/* Title with top padding to center between options bar and text */}
       {title && (
-        <div className="pt-8">
+        <div className="pt-8 pb-4">
           <TextTitle title={title} source={source} isSummary={isSummary} />
         </div>
       )}
 
-      {/* Text display - flex-1 to fill space, centered within */}
-      <div className="flex-1 flex items-center justify-center">
-        <Resizable
-          widthPercent={textWidthPercent}
-          onWidthChange={onTextWidthChange}
-        >
-          <TextDisplay
-            text={text}
+      {/* Text display - flex-1 to fill space */}
+      <div className="flex-1 w-full">
+        {sectional && section_content ? (
+          <SectionalTextDisplay
+            sections={section_content}
             currentWordIndex={currentWordIndex}
-            isPlaying={isPlaying}
-            scrolling={scrolling}
-            blurEnabled={blurEnabled}
-            wpm={wpm}
-            visibleLines={visibleLines}
-          />
-        </Resizable>
+            onWordIndexChange={jumpToIndex}
+            onSectionComplete={handleSectionComplete}
+            onSectionIndexChange={onSectionIndexChange}
+            quizzedSections={quizzedSections}
+            totalSectionQuizCount={totalSectionQuizCount}
+          >
+            {({ sectionText, sectionWordIndex }) => (
+              <div className="flex items-center justify-center h-full">
+                <Resizable
+                  widthPercent={textWidthPercent}
+                  onWidthChange={onTextWidthChange}
+                >
+                  <TextDisplay
+                    text={sectionText}
+                    currentWordIndex={sectionWordIndex}
+                    isPlaying={isPlaying}
+                    scrolling={scrolling}
+                    blurEnabled={blurEnabled}
+                    wpm={wpm}
+                    visibleLines={visibleLines}
+                  />
+                </Resizable>
+              </div>
+            )}
+          </SectionalTextDisplay>
+        ) : (
+          <div className="flex items-center justify-center h-full">
+            <Resizable
+              widthPercent={textWidthPercent}
+              onWidthChange={onTextWidthChange}
+            >
+              <TextDisplay
+                text={text}
+                currentWordIndex={currentWordIndex}
+                isPlaying={isPlaying}
+                scrolling={scrolling}
+                blurEnabled={blurEnabled}
+                wpm={wpm}
+                visibleLines={visibleLines}
+              />
+            </Resizable>
+          </div>
+        )}
       </div>
 
       {/* Controls at bottom */}
-      <div className="py-4">
+      <div>
         <ReadingControls
           isPlaying={isPlaying}
           onPlayPause={togglePlayPause}
@@ -145,6 +204,7 @@ export function Reader({
           disabled={disabled}
           showMiniQuiz={showMiniQuiz}
           onStartQuiz={onStartQuiz}
+          hideProgress={sectional}
           hideNewText={hideNewText}
         />
       </div>

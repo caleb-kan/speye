@@ -89,9 +89,12 @@ Deno.serve(async () => {
 
     // 2. Fetch the text content from the database
     // Include fiction to preserve user's explicit setting when editing
+    // Include sectional/section_content to use the correct processing path
     const { data: text, error: fetchError } = await supabase
       .from('texts')
-      .select('content, title, fiction, admin_decision, owner_id')
+      .select(
+        'content, title, fiction, admin_decision, owner_id, sectional, section_content'
+      )
       .eq('id', textId)
       .single()
 
@@ -118,6 +121,8 @@ Deno.serve(async () => {
           content: text.content,
           generateTitle: text.title === null,
           skipContentCheck: text.admin_decision === 'approved',
+          sectional: text.sectional,
+          section_content: text.section_content ?? null,
         }),
       }
     )

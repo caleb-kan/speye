@@ -15,6 +15,7 @@ type ReadingControlsProps = {
   currentWord: number
   totalWords: number
   disabled?: boolean
+  hideProgress?: boolean
   hideNewText?: boolean
 }
 
@@ -29,6 +30,7 @@ export const ReadingControls = memo(function ReadingControls({
   currentWord,
   totalWords,
   disabled = false,
+  hideProgress = false,
   hideNewText = false,
 }: ReadingControlsProps) {
   const isMobile = useIsMobile()
@@ -36,13 +38,15 @@ export const ReadingControls = memo(function ReadingControls({
   return (
     <div className="w-full flex flex-col items-center gap-4">
       {/* Progress Bar */}
-      <ProgressBar
-        progress={progress}
-        showWordCount
-        currentWord={currentWord}
-        totalWords={totalWords}
-        className="max-w-md"
-      />
+      {!hideProgress && (
+        <ProgressBar
+          progress={progress}
+          showWordCount
+          currentWord={currentWord}
+          totalWords={totalWords}
+          className="max-w-md"
+        />
+      )}
 
       {/* Control Buttons Container */}
       <div className="relative w-full max-w-md flex items-center justify-center h-14">

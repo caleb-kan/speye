@@ -2,7 +2,10 @@
 export const MAX_TITLE_CHARACTERS = 100
 // limit of 15k characters for upload content
 export const MAX_CONTENT_CHARACTERS = 15000
+// maximum number of sections allowed
+export const MAX_SECTIONS = 50
 
 // percentage of limit before warning user of approaching limit
 export const TITLE_CHARACTER_WARNING_THRESHOLD = 0.8
 export const CONTENT_CHARACTER_WARNING_THRESHOLD = 0.8
+export const SECTION_WARNING_THRESHOLD = 0.8

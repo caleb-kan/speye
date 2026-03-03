@@ -4,6 +4,8 @@ import {
   MAX_QUESTION_SETS,
   MIN_QUESTIONS,
   MAX_QUESTIONS,
+  MIN_QUESTIONS_SECTIONAL,
+  MAX_QUESTIONS_SECTIONAL,
   NUM_OPTIONS_PER_QUESTION,
 } from '../../../../lib/quizConstants'
 import { logDbQuery } from '../logger'
@@ -15,28 +17,38 @@ import type { Quiz, TextRecord } from './types'
  * collects all errors for a better editing UX; both enforce equivalent structural
  * constraints from lib/quizConstants.ts, though error messages differ.
  */
-export function assertValidQuiz(quiz: Quiz): void {
+export function assertValidQuiz(
+  quiz: Quiz,
+  options?: { sectional?: boolean }
+): void {
+  const sectional = options?.sectional ?? false
+  const minQuestions = sectional ? MIN_QUESTIONS_SECTIONAL : MIN_QUESTIONS
+  const maxQuestions = sectional ? MAX_QUESTIONS_SECTIONAL : MAX_QUESTIONS
+
   if (!quiz?.questionSets || !Array.isArray(quiz.questionSets)) {
     throw new Error('Invalid quiz structure')
   }
-  if (
-    quiz.questionSets.length < MIN_QUESTION_SETS ||
-    quiz.questionSets.length > MAX_QUESTION_SETS
-  ) {
-    throw new Error(
-      `Quiz must have between ${MIN_QUESTION_SETS} and ${MAX_QUESTION_SETS} question sets`
-    )
+  // Sectional texts have one question set per section (no fixed set count limit)
+  if (!sectional) {
+    if (
+      quiz.questionSets.length < MIN_QUESTION_SETS ||
+      quiz.questionSets.length > MAX_QUESTION_SETS
+    ) {
+      throw new Error(
+        `Quiz must have between ${MIN_QUESTION_SETS} and ${MAX_QUESTION_SETS} question sets`
+      )
+    }
   }
   for (const set of quiz.questionSets) {
     if (!Array.isArray(set?.questions)) {
       throw new Error('Invalid question set structure')
     }
     if (
-      set.questions.length < MIN_QUESTIONS ||
-      set.questions.length > MAX_QUESTIONS
+      set.questions.length < minQuestions ||
+      set.questions.length > maxQuestions
     ) {
       throw new Error(
-        `Each set must have between ${MIN_QUESTIONS} and ${MAX_QUESTIONS} questions`
+        `Each set must have between ${minQuestions} and ${maxQuestions} questions`
       )
     }
     for (const q of set.questions) {
@@ -75,7 +87,15 @@ export async function updateTextQuiz(
     throw new Error('textId is required')
   }
 
-  assertValidQuiz(quiz)
+  // Check if the text is sectional to apply the correct quiz constraints
+  const { data: textRow, error: fetchError } = await supabase
+    .from('texts')
+    .select('sectional')
+    .eq('id', textId)
+    .single()
+
+  if (fetchError) throw fetchError
+  assertValidQuiz(quiz, { sectional: textRow?.sectional ?? false })
 
   const { data: result, error } = await supabase
     .from('texts')

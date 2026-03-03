@@ -124,6 +124,21 @@ const successSchema = {
   additionalProperties: false,
 } as const
 
+// Sectional variant: summary is always null, enforced at the schema level so
+// the model cannot generate one even for non-fiction sectional texts.
+const successSectionalSchema = {
+  type: 'object',
+  properties: {
+    status: successSchema.properties.status,
+    title: successSchema.properties.title,
+    questionSets: successSchema.properties.questionSets,
+    fiction: successSchema.properties.fiction,
+    summary: { type: 'null' },
+  },
+  required: successSchema.required,
+  additionalProperties: false,
+} as const
+
 // Used when TOS check is active: flat object with all fields.
 // On error: status="error", error/violation_type populated, others null.
 // On success: status="success", title/questionSets/fiction/summary populated,
@@ -139,6 +154,22 @@ const fullSchema = {
     violation_type: nullable({ type: 'string' }),
   },
   required: [...successSchema.required, 'error', 'violation_type'],
+  additionalProperties: false,
+} as const
+
+// Sectional variant of fullSchema: summary is always null.
+const fullSectionalSchema = {
+  type: 'object',
+  properties: {
+    status: fullSchema.properties.status,
+    title: fullSchema.properties.title,
+    questionSets: fullSchema.properties.questionSets,
+    fiction: fullSchema.properties.fiction,
+    summary: { type: 'null' },
+    error: fullSchema.properties.error,
+    violation_type: fullSchema.properties.violation_type,
+  },
+  required: fullSchema.required,
   additionalProperties: false,
 } as const
 
@@ -203,6 +234,46 @@ SUMMARY REQUIREMENTS (non-fiction only, set to null for fiction):
 5. Retain specific facts, names, dates, and data central to the text
 6. Must contain enough information to answer all quiz questions above
 7. Do not add information not in the original text
+
+---
+
+CONFIGURATION:
+generateTitle: {generate_title}
+
+Output valid JSON only:`
+
+const SECTIONAL_PROCESSING_PROMPT = `SECTIONAL TEXT PROCESSING
+This is a sectional text with multiple parts. Each section will be processed separately for quiz generation.
+
+{sections_text}
+
+---
+
+TITLE REQUIREMENTS (only if generating title):
+1. Length: 2-8 words (concise but descriptive)
+2. Capture the central theme of the entire sectional text
+3. Be engaging and informative
+4. Match the tone of the text (formal for academic, evocative for fiction)
+5. Avoid generic titles like "An Interesting Story" or "Important Information"
+
+---
+
+QUIZ REQUIREMENTS:
+1. Generate 1 question set for each section, each with 3 to 7 multiple-choice questions. Decide the number of questions per set based on the sections's length, complexity, and number of key concepts. 
+2. Questions in one question set should only cover content from the specific section of the text
+3. Questions must be answerable solely from the section content provided
+4. Test comprehension of key concepts from each section, not trivial details
+5. All 4 options must be plausible - no obviously wrong answers
+6. Options should be similar in length and grammatical structure
+7. Randomize correct answer positions across questions (use 0, 1, 2, and 3)
+8. Avoid "all of the above", "none of the above", or negative phrasing
+9. Ensure questions across sets are unique and not repetitive
+10. For non-fiction texts, focus on key concepts and main findings from each section
+
+---
+
+SUMMARY REQUIREMENTS:
+For sectional texts, ALWAYS set summary to null regardless of fiction/non-fiction status.
 
 ---
 
@@ -277,6 +348,8 @@ const MIN_QUESTION_SETS = 1
 const MAX_QUESTION_SETS = 5
 const MIN_QUESTIONS = 5
 const MAX_QUESTIONS = 7
+const MIN_QUESTIONS_SECTIONAL = 3
+const MAX_QUESTIONS_SECTIONAL = 7
 const NUM_OPTIONS_PER_QUESTION = 4
 
 function isErrorResponse(data: unknown): data is ErrorResponse {
@@ -306,7 +379,11 @@ function isValidQuestion(q: QuizQuestion): boolean {
   )
 }
 
-function isValidResponse(data: unknown): data is ProcessTextResponse {
+function isValidResponse(
+  data: unknown,
+  sectional = false,
+  sectionCount = 0
+): data is ProcessTextResponse {
   if (!data || typeof data !== 'object') return false
   const response = data as ProcessTextResponse
 
@@ -316,28 +393,37 @@ function isValidResponse(data: unknown): data is ProcessTextResponse {
     return false
 
   if (!Array.isArray(response.questionSets)) return false
-  if (
-    response.questionSets.length < MIN_QUESTION_SETS ||
-    response.questionSets.length > MAX_QUESTION_SETS
-  )
-    return false
+
+  if (sectional) {
+    // Sectional texts must have exactly one question set per section
+    if (response.questionSets.length !== sectionCount) return false
+  } else {
+    if (
+      response.questionSets.length < MIN_QUESTION_SETS ||
+      response.questionSets.length > MAX_QUESTION_SETS
+    )
+      return false
+  }
 
   if (typeof response.fiction !== 'boolean') return false
 
-  // Validate summary: non-fiction must have a non-empty string summary.
+  // Validate summary: non-fiction non-sectional texts must have a non-empty string summary.
+  // Sectional texts always have null summary (enforced at the schema level).
   // Fiction summary is accepted here and nulled out in the response handler
   // to avoid rejecting an otherwise valid response due to LLM inconsistency.
-  if (!response.fiction) {
+  if (!response.fiction && !sectional) {
     if (typeof response.summary !== 'string' || !response.summary.trim())
       return false
   }
 
+  const minQuestions = sectional ? MIN_QUESTIONS_SECTIONAL : MIN_QUESTIONS
+  const maxQuestions = sectional ? MAX_QUESTIONS_SECTIONAL : MAX_QUESTIONS
   return response.questionSets.every(
     (set: QuestionSet) =>
       set &&
       Array.isArray(set.questions) &&
-      set.questions.length >= MIN_QUESTIONS &&
-      set.questions.length <= MAX_QUESTIONS &&
+      set.questions.length >= minQuestions &&
+      set.questions.length <= maxQuestions &&
       set.questions.every(isValidQuestion)
   )
 }
@@ -374,6 +460,8 @@ Deno.serve(async (req: Request) => {
       content?: unknown
       generateTitle?: unknown
       skipContentCheck?: unknown
+      sectional?: unknown
+      section_content?: unknown
     }
     try {
       body = await req.json()
@@ -382,7 +470,12 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ error: 'Invalid JSON body' }, 400)
     }
 
-    const { content, generateTitle = true } = body
+    const {
+      content,
+      generateTitle = true,
+      sectional = false,
+      section_content,
+    } = body
 
     // skipContentCheck can only be used by the worker (service role key)
     // to prevent external callers from bypassing content moderation
@@ -391,6 +484,52 @@ Deno.serve(async (req: Request) => {
     const isServiceRole =
       !!serviceRoleKey && authHeader === `Bearer ${serviceRoleKey}`
     const skipContentCheck = body.skipContentCheck === true && isServiceRole
+
+    // Validate sectional data if provided
+    const sectionalArray =
+      sectional && Array.isArray(section_content)
+        ? (section_content as Array<{ title: string; content: string }>)
+        : null
+
+    if (sectional && !sectionalArray) {
+      return jsonResponse(
+        { error: 'Sectional texts must provide section_content array' },
+        400
+      )
+    }
+
+    if (sectional && sectionalArray!.length === 0) {
+      return jsonResponse(
+        { error: 'Sectional texts must have at least one section' },
+        400
+      )
+    }
+
+    // Must match frontend/src/constants/textUpload.ts MAX_SECTIONS
+    if (sectional && sectionalArray!.length > 50) {
+      return jsonResponse(
+        { error: 'Sectional texts cannot have more than 50 sections' },
+        400
+      )
+    }
+
+    // For sectional texts, validate each section
+    if (sectional && sectionalArray) {
+      for (const section of sectionalArray) {
+        if (!section.title || typeof section.title !== 'string') {
+          return jsonResponse(
+            { error: 'Each section must have a valid title' },
+            400
+          )
+        }
+        if (!section.content || typeof section.content !== 'string') {
+          return jsonResponse(
+            { error: 'Each section must have valid content' },
+            400
+          )
+        }
+      }
+    }
 
     if (!content || typeof content !== 'string' || !content.trim()) {
       return jsonResponse(
@@ -405,21 +544,50 @@ Deno.serve(async (req: Request) => {
     // When admin has approved flagged content, skip TOS check on reprocessing
     let systemMessage: string
     let userMessage: string
+
+    // Format sections for processing if this is a sectional text
+    const sectionsText =
+      sectional && sectionalArray
+        ? sectionalArray
+            .map(
+              (section, index) =>
+                `SECTION ${index + 1}: ${section.title}\n\n${section.content}`
+            )
+            .join('\n\n---\n\n')
+        : null
+
     if (skipContentCheck) {
       systemMessage = config.system_message.replace(TOS_CHECK_SYSTEM_SUFFIX, '')
-      userMessage = (
-        'This text has been reviewed and approved by an administrator. ' +
-        'Do NOT perform any content policy checks. ' +
-        'Process it by generating a title, quiz question sets, and summary (if non-fiction):\n\n' +
-        PROCESSING_PROMPT
-      )
-        .replace('{generate_title}', String(generateTitle))
-        .replace('{text_content}', truncatedContent)
+      if (sectional && sectionsText) {
+        userMessage = (
+          'This sectional text has been reviewed and approved by an administrator. ' +
+          'Do NOT perform any content policy checks. ' +
+          'Process it by generating a title and quiz question sets:\n\n' +
+          SECTIONAL_PROCESSING_PROMPT
+        )
+          .replace('{generate_title}', String(generateTitle))
+          .replace('{sections_text}', sectionsText)
+      } else {
+        userMessage = (
+          'This text has been reviewed and approved by an administrator. ' +
+          'Do NOT perform any content policy checks. ' +
+          'Process it by generating a title, quiz question sets, and summary (if non-fiction):\n\n' +
+          PROCESSING_PROMPT
+        )
+          .replace('{generate_title}', String(generateTitle))
+          .replace('{text_content}', truncatedContent)
+      }
     } else {
       systemMessage = config.system_message
-      userMessage = (TOS_CHECK_PROMPT + PROCESSING_PROMPT)
-        .replace('{generate_title}', String(generateTitle))
-        .replace('{text_content}', truncatedContent)
+      if (sectional && sectionsText) {
+        userMessage = (TOS_CHECK_PROMPT + SECTIONAL_PROCESSING_PROMPT)
+          .replace('{generate_title}', String(generateTitle))
+          .replace('{sections_text}', sectionsText)
+      } else {
+        userMessage = (TOS_CHECK_PROMPT + PROCESSING_PROMPT)
+          .replace('{generate_title}', String(generateTitle))
+          .replace('{text_content}', truncatedContent)
+      }
     }
 
     let lastInvalidOutputError: Error | null = null
@@ -438,10 +606,20 @@ Deno.serve(async (req: Request) => {
           type: 'json_schema',
           json_schema: {
             name: skipContentCheck
-              ? 'process_text_success'
-              : 'process_text_response',
+              ? sectional
+                ? 'process_text_success_sectional'
+                : 'process_text_success'
+              : sectional
+                ? 'process_text_response_sectional'
+                : 'process_text_response',
             strict: true,
-            schema: skipContentCheck ? successSchema : fullSchema,
+            schema: skipContentCheck
+              ? sectional
+                ? successSectionalSchema
+                : successSchema
+              : sectional
+                ? fullSectionalSchema
+                : fullSchema,
           },
         },
       })
@@ -545,7 +723,13 @@ Deno.serve(async (req: Request) => {
         )
       }
 
-      if (!isValidResponse(parsed)) {
+      if (
+        !isValidResponse(
+          parsed,
+          sectional === true,
+          sectionalArray?.length ?? 0
+        )
+      ) {
         lastInvalidOutputError = new Error(
           'Response does not match expected format'
         )
@@ -577,7 +761,8 @@ Deno.serve(async (req: Request) => {
           title: parsed.title,
           questionSets: parsed.questionSets,
           fiction: parsed.fiction,
-          summary: parsed.fiction ? null : (parsed.summary ?? null),
+          summary:
+            sectional || parsed.fiction ? null : (parsed.summary ?? null),
         },
         200,
         {

@@ -14,3 +14,23 @@ export function countWords(text: string): number {
     .split(/\s+/)
     .filter((word) => word.length > 0).length
 }
+
+/**
+ * Compute cumulative word offsets for an array of section contents.
+ * Returns an array of length `sections.length + 1` where `offsets[i]` is the
+ * global word index at the start of section `i`, and the last entry is the
+ * total word count across all sections.
+ */
+export function computeSectionWordOffsets(
+  sections: { content: string }[]
+): number[] {
+  const offsets = [0]
+  sections.forEach((section) => {
+    const words = section.content
+      .trim()
+      .split(/\s+/)
+      .filter((w) => w.length > 0)
+    offsets.push(offsets[offsets.length - 1] + words.length)
+  })
+  return offsets
+}

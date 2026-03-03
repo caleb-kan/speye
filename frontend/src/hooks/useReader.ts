@@ -39,6 +39,8 @@ type UseReaderReturn = {
   jumpForward: (count: number) => void
   /** Jump back by a number of words (pauses playback) */
   jumpBack: (count: number) => void
+  /** Jump to an absolute word index (pauses playback) */
+  jumpToIndex: (index: number) => void
 }
 
 /**
@@ -92,8 +94,9 @@ export function useReader({
   }, [currentWordIndex, totalWords])
 
   const pause = useCallback(() => {
+    clearTimer()
     setIsPlaying(false)
-  }, [])
+  }, [clearTimer])
 
   const togglePlayPause = useCallback(() => {
     if (isPlaying) {
@@ -137,6 +140,18 @@ export function useReader({
       setCurrentWordIndex((prev) => Math.max(0, prev - count))
     },
     [clearTimer, totalWords]
+  )
+
+  const jumpToIndex = useCallback(
+    (index: number) => {
+      if (totalWords === 0) return
+      clearTimer()
+      setIsPlaying(false)
+      const clamped = Math.max(0, Math.min(index, totalWords - 1))
+      setIsComplete(clamped >= totalWords - 1)
+      setCurrentWordIndex(clamped)
+    },
+    [totalWords, clearTimer]
   )
 
   useEffect(() => {
@@ -183,5 +198,6 @@ export function useReader({
     hasText,
     jumpForward,
     jumpBack,
+    jumpToIndex,
   }
 }

@@ -12,6 +12,7 @@ export async function getTextForPvp(
     .eq('processing_status', 'completed')
     .eq('quiz_valid', true)
     .eq('admin_decision', 'approved')
+    .eq('sectional', false)
     .maybeSingle()
 
   logDbQuery({

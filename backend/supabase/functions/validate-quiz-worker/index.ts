@@ -79,7 +79,7 @@ Deno.serve(async () => {
     const { data: text, error: fetchError } = await supabase
       .from('texts')
       .select(
-        'content, quiz, processing_status, summary, fiction, admin_decision'
+        'content, quiz, processing_status, summary, fiction, admin_decision, sectional, section_content'
       )
       .eq('id', textId)
       .single()
@@ -115,7 +115,24 @@ Deno.serve(async () => {
       })
     }
 
-    // 3. Call the validate-quiz edge function
+    // 3. Build full content for validation.
+    // For sectional texts, combine all section contents so the LLM can
+    // validate quiz questions against the complete text.
+    let validationContent = text.content
+    if (
+      text.sectional &&
+      Array.isArray(text.section_content) &&
+      text.section_content.length > 0
+    ) {
+      validationContent = text.section_content
+        .map(
+          (s: { title: string; content: string }) =>
+            `## ${s.title}\n\n${s.content}`
+        )
+        .join('\n\n')
+    }
+
+    // 4. Call the validate-quiz edge function
     const validateResponse = await fetch(
       `${supabaseUrl}/functions/v1/validate-quiz`,
       {
@@ -125,7 +142,7 @@ Deno.serve(async () => {
           Authorization: `Bearer ${supabaseServiceKey}`,
         },
         body: JSON.stringify({
-          content: text.content,
+          content: validationContent,
           quiz: text.quiz,
           summary: text.fiction === false ? text.summary : undefined,
         }),

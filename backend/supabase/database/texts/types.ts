@@ -1,4 +1,12 @@
 /**
+ * Section data structure for sectional texts
+ */
+export interface SectionData {
+  title: string
+  content: string
+}
+
+/**
  * Quiz question structure
  */
 export interface QuizQuestion {
@@ -39,6 +47,8 @@ export interface TextInput {
   quiz_valid?: boolean | null
   isPublic?: boolean
   summary?: string | null
+  sectional?: boolean
+  section_content?: SectionData[] | null
 }
 
 /**
@@ -93,4 +103,6 @@ export interface TextRecord {
   admin_reviewed_at: string | null
   rejection_reason: string | null
   rejection_stage: FailureStage | null
+  sectional: boolean
+  section_content: SectionData[] | null
 }

@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import type { GazeData } from '../../types/webgazer'
+import type { SectionData } from '../../types/database'
 import { SingleLineTextDisplay } from './SingleLineTextDisplay'
 import { AdaptiveControls } from './AdaptiveControls'
 import { CalibrationOverlay } from './calibration'
@@ -13,6 +14,8 @@ import { useCalibrationDriftDetection } from '../../hooks/useCalibrationDriftDet
 import { TextTitle } from '../TextTitle'
 import { useArrowNavigation } from '../../hooks/useArrowNavigation'
 import { DEFAULT_CONTAINER_WIDTH } from '../../constants/adaptive'
+import { SectionalTextDisplay } from '../SectionalTextDisplay'
+import { computeSectionWordOffsets } from '../../utils/textUtils'
 
 /**
  * Calibration UI update interval (ms).
@@ -43,6 +46,18 @@ type AdaptiveReaderProps = {
   onCalculatedWpmChange?: (wpm: number) => void
   /** Whether the reader is showing a summary */
   isSummary?: boolean
+  /** Whether to display text in sections */
+  sectional?: boolean
+  /** Section data array for sectional display */
+  section_content?: SectionData[] | null
+  /** Called when a section's reading is complete */
+  onSectionComplete?: (sectionIndex: number) => void
+  /** Called when the active section index changes */
+  onSectionIndexChange?: (sectionIndex: number) => void
+  /** Sections where the quiz was actually answered (controls dot colour in nav) */
+  quizzedSections?: Set<number>
+  /** Total number of sections that have quizzes (for nav status display) */
+  totalSectionQuizCount?: number
   /** Hide the new text button */
   hideNewText?: boolean
 }
@@ -60,6 +75,12 @@ export function AdaptiveReader({
   onStartQuiz,
   onCalculatedWpmChange,
   isSummary,
+  sectional = false,
+  section_content = null,
+  onSectionComplete,
+  onSectionIndexChange,
+  quizzedSections,
+  totalSectionQuizCount,
   hideNewText = false,
 }: AdaptiveReaderProps) {
   const [containerLeft, setContainerLeft] = useState(0)
@@ -145,6 +166,64 @@ export function AdaptiveReader({
     isCalibrated,
   })
 
+  // --- Sectional state (computed before useHorizontalReader) ---
+  const isSectional =
+    sectional && !!section_content && section_content.length > 0
+
+  // Memoize sections to provide stable dependency for sectionWordOffsets
+  const sections = useMemo(
+    () => (isSectional ? section_content! : []),
+    [isSectional, section_content]
+  )
+
+  const sectionWordOffsets = useMemo(
+    () => (isSectional ? computeSectionWordOffsets(sections) : [0]),
+    [sections, isSectional]
+  )
+
+  // Compute which section the saved initialWordIndex belongs to (for position restoration)
+  const computedInitialSectionIndex = (() => {
+    if (!isSectional || initialWordIndex <= 0 || sections.length === 0) return 0
+    let idx = sections.length - 1
+    for (let i = 0; i < sectionWordOffsets.length - 1; i++) {
+      if (
+        initialWordIndex >= sectionWordOffsets[i] &&
+        initialWordIndex < sectionWordOffsets[i + 1]
+      ) {
+        idx = i
+        break
+      }
+    }
+    return idx
+  })()
+
+  const [currentSectionIndex, setCurrentSectionIndex] = useState(
+    computedInitialSectionIndex
+  )
+
+  // Section-relative initial word index passed to useHorizontalReader.
+  // Starts as the within-section offset of the saved position; resets to 0
+  // on every section change so the next section always starts at chunk 0.
+  const computedSectionInitialWordIndex = isSectional
+    ? Math.max(
+        0,
+        initialWordIndex -
+          (sectionWordOffsets[computedInitialSectionIndex] ?? 0)
+      )
+    : initialWordIndex
+
+  const [hookInitialWordIndex, setHookInitialWordIndex] = useState(
+    computedSectionInitialWordIndex
+  )
+
+  // Active text: current section's content in sectional mode, full text otherwise
+  const activeText =
+    isSectional && sections.length > 0
+      ? (sections[currentSectionIndex]?.content ?? text)
+      : text
+
+  const sectionWordOffset = sectionWordOffsets[currentSectionIndex] ?? 0
+
   // Horizontal reading with velocity transition detection
   // Advances when gaze reaches end zone and STARTS moving back left
   const {
@@ -160,7 +239,7 @@ export function AdaptiveReader({
     goForward,
     wordsRead,
   } = useHorizontalReader({
-    text,
+    text: activeText,
     gazeX: smoothedGaze?.x ?? null,
     isGazeReliable: isReliable,
     containerLeft,
@@ -169,8 +248,25 @@ export function AdaptiveReader({
     totalChunks,
     chunkWordCounts,
     textFillRatio,
-    initialWordIndex,
+    initialWordIndex: hookInitialWordIndex,
   })
+
+  // Global word position (section offset + section-relative wordsRead)
+  const globalWordsRead = isSectional
+    ? sectionWordOffset + wordsRead
+    : wordsRead
+
+  // Global progress across all sections (0-100).
+  // In sectional mode, progress from useHorizontalReader only covers the current
+  // section; we replace it with a word-count-based ratio over the full text.
+  const totalSectionWords = isSectional
+    ? (sectionWordOffsets[sections.length] ?? 0)
+    : 0
+  const globalProgress = isSectional
+    ? totalSectionWords > 0
+      ? (globalWordsRead / totalSectionWords) * 100
+      : 0
+    : progress
 
   useEffect(() => {
     if (Number.isFinite(calculatedWpm) && calculatedWpm > 0) {
@@ -184,8 +280,13 @@ export function AdaptiveReader({
   const hasStartedReadingRef = useRef(initialWordIndex === 0)
 
   useEffect(() => {
-    // When restoring a position (initialWordIndex > 0), don't report wordsRead=0
-    // because the hook hasn't applied the initial position yet
+    if (isSectional) {
+      // In sectional mode, skip the initial 0 report when restoring within a section
+      if (hookInitialWordIndex > 0 && wordsRead === 0) return
+      onPositionChangeRef.current?.(globalWordsRead)
+      return
+    }
+    // Non-sectional: avoid overwriting restored position before hook applies it
     if (
       initialWordIndex > 0 &&
       wordsRead === 0 &&
@@ -193,16 +294,59 @@ export function AdaptiveReader({
     ) {
       return
     }
-
-    // Once we have words read or started from 0, we can report changes
     hasStartedReadingRef.current = true
     onPositionChangeRef.current?.(wordsRead)
-  }, [wordsRead, initialWordIndex])
+  }, [
+    wordsRead,
+    initialWordIndex,
+    isSectional,
+    sectionWordOffset,
+    hookInitialWordIndex,
+    globalWordsRead,
+  ])
 
-  // Notify parent of completion
+  // Notify parent of completion.
+  // In sectional mode, only fire onComplete(true) when the last section is done.
   useEffect(() => {
-    onComplete?.(isComplete)
-  }, [isComplete, onComplete])
+    if (isSectional) {
+      if (isComplete && currentSectionIndex >= sections.length - 1) {
+        onComplete?.(true)
+      } else if (!isComplete) {
+        onComplete?.(false)
+      }
+    } else {
+      onComplete?.(isComplete)
+    }
+  }, [
+    isComplete,
+    onComplete,
+    isSectional,
+    currentSectionIndex,
+    sections.length,
+  ])
+
+  // Section completion: fire onSectionComplete when a non-last section finishes.
+  // Guarded by a ref to prevent re-firing within the same section.
+  const sectionCompleteTriggeredRef = useRef(false)
+  useEffect(() => {
+    if (!isSectional) return
+    if (isComplete && !sectionCompleteTriggeredRef.current) {
+      sectionCompleteTriggeredRef.current = true
+      const isLastSection = currentSectionIndex >= sections.length - 1
+      if (!isLastSection) {
+        onSectionComplete?.(currentSectionIndex)
+      }
+    }
+    if (!isComplete) {
+      sectionCompleteTriggeredRef.current = false
+    }
+  }, [
+    isComplete,
+    isSectional,
+    currentSectionIndex,
+    sections.length,
+    onSectionComplete,
+  ])
 
   // Keyboard navigation with arrow keys
   useArrowNavigation({
@@ -255,6 +399,26 @@ export function AdaptiveReader({
     resetDriftDetection()
     setShowCalibration(true)
   }, [calibration, clearWebGazerData, resetDriftDetection])
+
+  // Navigate to a different section (called by SectionalTextDisplay nav buttons)
+  const handleWordIndexChange = useCallback(
+    (globalIndex: number) => {
+      let newSectionIdx = sections.length - 1
+      for (let i = 0; i < sectionWordOffsets.length - 1; i++) {
+        if (
+          globalIndex >= sectionWordOffsets[i] &&
+          globalIndex < sectionWordOffsets[i + 1]
+        ) {
+          newSectionIdx = i
+          break
+        }
+      }
+      setCurrentSectionIndex(newSectionIdx)
+      // New section always starts from chunk 0
+      setHookInitialWordIndex(0)
+    },
+    [sections.length, sectionWordOffsets]
+  )
 
   // Memoize to prevent AdaptiveControls re-renders
   const trackingStatus = useMemo(
@@ -319,7 +483,7 @@ export function AdaptiveReader({
   // Main reading interface
   return (
     <div className="flex flex-col flex-1 min-h-0">
-      <div className="pt-8 shrink-0">
+      <div className="pt-8 pb-4 shrink-0">
         {title ? (
           <TextTitle title={title} source={source} isSummary={isSummary} />
         ) : (
@@ -337,32 +501,71 @@ export function AdaptiveReader({
         />
       )}
 
-      {/* Main text display - centered */}
-      <div className="flex-1 flex items-center justify-center px-4 min-h-0">
-        <div className="w-full max-w-5xl">
-          <SingleLineTextDisplay
-            text={text}
-            currentChunk={currentChunk}
-            horizontalProgress={horizontalProgress}
-            isTrackingReliable={isReliable}
-            isInEndZone={isInEndZone}
-            isSweepDetected={isSweepDetected}
-            onContainerMeasured={handleContainerMeasured}
-            onTotalChunksCalculated={handleTotalChunksCalculated}
-            onChunkWordCounts={handleChunkWordCounts}
-            onTextFillRatioMeasured={handleTextFillRatioMeasured}
-          />
+      {/* Text display area — sectional or standard */}
+      {isSectional ? (
+        <div className="flex-1 min-h-0 relative">
+          {/* Section navigation header. Children is empty — reading content is
+              rendered as an absolutely positioned sibling so it stays vertically
+              centred in the full outer container, matching non-sectional mode. */}
+          <SectionalTextDisplay
+            sections={sections}
+            currentWordIndex={globalWordsRead}
+            onWordIndexChange={handleWordIndexChange}
+            onSectionIndexChange={onSectionIndexChange}
+            quizzedSections={quizzedSections}
+            totalSectionQuizCount={totalSectionQuizCount}
+          >
+            {() => <div className="h-full" />}
+          </SectionalTextDisplay>
+
+          {/* Reading display — centred in the full outer container via absolute
+              positioning. pointer-events-none lets nav-button clicks pass through. */}
+          <div className="absolute inset-0 flex items-center justify-center px-4 pointer-events-none">
+            <div className="w-full max-w-5xl">
+              <SingleLineTextDisplay
+                text={activeText}
+                currentChunk={currentChunk}
+                horizontalProgress={horizontalProgress}
+                isTrackingReliable={isReliable}
+                isInEndZone={isInEndZone}
+                isSweepDetected={isSweepDetected}
+                onContainerMeasured={handleContainerMeasured}
+                onTotalChunksCalculated={handleTotalChunksCalculated}
+                onChunkWordCounts={handleChunkWordCounts}
+                onTextFillRatioMeasured={handleTextFillRatioMeasured}
+              />
+            </div>
+          </div>
         </div>
-      </div>
+      ) : (
+        /* Main text display - centered */
+        <div className="flex-1 flex items-center justify-center px-4 min-h-0">
+          <div className="w-full max-w-5xl">
+            <SingleLineTextDisplay
+              text={text}
+              currentChunk={currentChunk}
+              horizontalProgress={horizontalProgress}
+              isTrackingReliable={isReliable}
+              isInEndZone={isInEndZone}
+              isSweepDetected={isSweepDetected}
+              onContainerMeasured={handleContainerMeasured}
+              onTotalChunksCalculated={handleTotalChunksCalculated}
+              onChunkWordCounts={handleChunkWordCounts}
+              onTextFillRatioMeasured={handleTextFillRatioMeasured}
+            />
+          </div>
+        </div>
+      )}
 
       <AdaptiveControls
         {...sharedControlsProps}
-        progress={progress}
+        progress={globalProgress}
         calculatedWpm={calculatedWpm}
         disabled={false}
         trackingStatus={trackingStatus}
         showMiniQuiz={showMiniQuiz}
         onStartQuiz={onStartQuiz}
+        hideProgress={isSectional}
       />
     </div>
   )

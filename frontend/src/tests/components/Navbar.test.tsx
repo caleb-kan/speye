@@ -7,6 +7,9 @@ import { createMockUser, createMockSession } from '../helpers/mocks'
 import '@testing-library/jest-dom'
 
 vi.mock('../../hooks/useAuth')
+vi.mock('../../hooks/useIsMobile', () => ({
+  useIsMobile: () => false,
+}))
 vi.mock('../../hooks/useReadingPreferences', () => ({
   useReadingPreferences: () => ({
     preferences: { mode: 'standard' },
@@ -69,6 +72,51 @@ describe('Navbar', () => {
       expect(
         screen.getByRole('navigation', { name: 'Main navigation' })
       ).toBeInTheDocument()
+    })
+  })
+
+  describe('Tooltips', () => {
+    beforeEach(() => {
+      mockUseAuth.mockReturnValue({
+        user: null,
+        session: null,
+        loading: false,
+        signOut: vi.fn(),
+      })
+    })
+
+    it('renders tooltips for each nav item', () => {
+      renderNavbar()
+      expect(screen.getByText('Home')).toBeInTheDocument()
+      expect(screen.getByText('Library')).toBeInTheDocument()
+      expect(screen.getByText('Settings')).toBeInTheDocument()
+    })
+
+    it('renders tooltip for login link when logged out', () => {
+      renderNavbar()
+      expect(screen.getByText('Log in')).toBeInTheDocument()
+    })
+
+    it('tooltips are hidden from screen readers', () => {
+      renderNavbar()
+      const tooltips = document.querySelectorAll('[aria-hidden="true"]')
+      expect(tooltips.length).toBeGreaterThan(0)
+    })
+
+    it('renders tooltip for profile link when logged in', () => {
+      const mockUser = createMockUser({
+        id: '123',
+        email: 'test@example.com',
+        user_metadata: { username: 'testuser' },
+      })
+      mockUseAuth.mockReturnValue({
+        user: mockUser,
+        session: createMockSession(mockUser),
+        loading: false,
+        signOut: vi.fn(),
+      })
+      renderNavbar()
+      expect(screen.getByText('Profile')).toBeInTheDocument()
     })
   })
 

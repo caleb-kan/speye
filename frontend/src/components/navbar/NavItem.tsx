@@ -1,10 +1,12 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import type { ReactNode } from 'react'
+import { NavTooltip } from './NavTooltip'
 
 type NavItemProps = {
   to: string
   icon: ReactNode
   label: string
+  isMobile: boolean
   state?: unknown
   onBeforeNavigate?: (to: string) => void
 }
@@ -13,6 +15,7 @@ export function NavItem({
   to,
   icon,
   label,
+  isMobile,
   state,
   onBeforeNavigate,
 }: NavItemProps) {
@@ -46,6 +49,7 @@ export function NavItem({
       aria-label={label}
       aria-current={isActive ? 'page' : undefined}
       className={`
+        group relative
         flex justify-center items-center
         w-full h-9
         rounded-full transition-colors
@@ -54,6 +58,7 @@ export function NavItem({
       `}
     >
       {icon}
+      <NavTooltip label={label} isMobile={isMobile} />
     </Link>
   )
 }

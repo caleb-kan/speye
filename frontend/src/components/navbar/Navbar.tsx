@@ -1,5 +1,6 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { NavItem } from './NavItem'
+import { NavTooltip } from './NavTooltip'
 import {
   Home,
   BookOpen,
@@ -102,6 +103,7 @@ export function Navbar() {
         to={MODE_ROUTES[preferences.mode]}
         icon={<Home size={22} />}
         label="Home"
+        isMobile={isMobile}
         state={null}
         onBeforeNavigate={handleBeforeNavigate}
       />
@@ -109,6 +111,7 @@ export function Navbar() {
         to={ROUTES.LIBRARY}
         icon={<BookOpen size={22} />}
         label="Library"
+        isMobile={isMobile}
         onBeforeNavigate={handleBeforeNavigate}
       />
       {user && (
@@ -116,6 +119,7 @@ export function Navbar() {
           to={ROUTES.ACTIVITY}
           icon={<ListChecks size={22} />}
           label="Activity"
+          isMobile={isMobile}
           onBeforeNavigate={handleBeforeNavigate}
         />
       )}
@@ -124,6 +128,7 @@ export function Navbar() {
           to={ROUTES.PVP}
           icon={<Swords size={22} />}
           label="Ranked"
+          isMobile={isMobile}
           onBeforeNavigate={handleBeforeNavigate}
         />
       )}
@@ -131,6 +136,7 @@ export function Navbar() {
         to={ROUTES.SETTINGS}
         icon={<Settings size={22} />}
         label="Settings"
+        isMobile={isMobile}
         onBeforeNavigate={handleBeforeNavigate}
       />
 
@@ -149,6 +155,7 @@ export function Navbar() {
           to={ROUTES.ADMIN}
           icon={<Shield size={22} />}
           label="Admin"
+          isMobile={isMobile}
           onBeforeNavigate={handleBeforeNavigate}
         />
       )}
@@ -162,15 +169,18 @@ export function Navbar() {
         />
       ) : user ? (
         <div
-          className="flex justify-center items-center w-8 h-8 shrink-0 rounded-full overflow-hidden"
+          className="group relative flex justify-center items-center w-8 h-8 shrink-0 rounded-full"
           aria-hidden="true"
           data-testid="navbar-profile-avatar"
         >
-          <DefaultAvatar
-            username={getUsername(user)}
-            avatarUrl={getAvatarUrl(user)}
-            size="sm"
-          />
+          <span className="w-full h-full overflow-hidden rounded-full">
+            <DefaultAvatar
+              username={getUsername(user)}
+              avatarUrl={getAvatarUrl(user)}
+              size="sm"
+            />
+          </span>
+          <NavTooltip label="Profile" isMobile={isMobile} />
         </div>
       ) : (
         <Link
@@ -179,6 +189,7 @@ export function Navbar() {
           aria-label="Log in"
           aria-current={isLoginActive ? 'page' : undefined}
           className={`
+            group relative
             flex justify-center items-center
             w-8 h-8
             rounded-full transition-colors
@@ -188,6 +199,7 @@ export function Navbar() {
           data-testid="navbar-login-link"
         >
           <User size={22} />
+          <NavTooltip label="Log in" isMobile={isMobile} />
         </Link>
       )}
     </nav>

@@ -69,6 +69,7 @@ async function pickFromCache(
 ): Promise<Text | null> {
   const cachedTexts = await getAllCachedTexts()
   const matching = cachedTexts.filter((t) => {
+    if (t.owner_id !== null) return false
     if (t.fiction !== filters.fiction) return false
     const c = t.complexity ?? 0
     if (c < filters.complexityMin || c > filters.complexityMax) return false

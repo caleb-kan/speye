@@ -17,7 +17,14 @@ export function calculateWpmFromReading(
   wordsRead: number,
   elapsedMs: number
 ): number {
-  if (elapsedMs <= 0 || wordsRead <= 0) return 0
+  if (
+    !Number.isFinite(elapsedMs) ||
+    !Number.isFinite(wordsRead) ||
+    elapsedMs <= 0 ||
+    wordsRead <= 0
+  ) {
+    return 0
+  }
   const elapsedMinutes = elapsedMs / 60000
   return Math.round(wordsRead / elapsedMinutes)
 }

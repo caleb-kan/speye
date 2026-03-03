@@ -63,18 +63,18 @@ describe('WordSpan', () => {
     expect(span1).not.toEqual(span2)
   })
 
-  it('applies blur effect when blurEnabled is true and distance is far', () => {
+  it('applies blur effect when blurEnabled is true and word is far behind', () => {
     render(
       <WordSpan
         {...defaultProps}
         blurEnabled={true}
-        currentWordIndex={0}
-        globalIndex={8}
+        currentWordIndex={8}
+        globalIndex={0}
       />
     )
     const span = screen.getByTestId('word-span')
     const style = span?.getAttribute('style')
-    // At distance 8, blur should be applied if blurEnabled
+    // At distance -8, blur should be applied to already-read words
     expect(style).toContain('filter: blur')
   })
 

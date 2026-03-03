@@ -5,7 +5,6 @@ import {
   BACKWARD_BLUR_TRANSITION,
   MAX_BLUR,
   HIGHLIGHT_WIDTH,
-  FORWARD_BLUR_RADIUS,
 } from '../../utils/wordStyle'
 
 describe('getWordStyle', () => {
@@ -72,20 +71,6 @@ describe('getWordStyle', () => {
   })
 
   describe('upcoming words (distance > 0)', () => {
-    it('gradually blurs upcoming words within FORWARD_BLUR_RADIUS', () => {
-      const style1 = getWordStyle(1, true)
-      const style2 = getWordStyle(FORWARD_BLUR_RADIUS, true)
-
-      expect(style1.blur).toBeGreaterThan(0)
-      expect(style1.blur).toBeLessThan(MAX_BLUR)
-      expect(style2.blur).toBe(MAX_BLUR)
-    })
-
-    it('fully blurs words beyond FORWARD_BLUR_RADIUS', () => {
-      const style = getWordStyle(FORWARD_BLUR_RADIUS + 1, true)
-      expect(style.blur).toBe(MAX_BLUR)
-    })
-
     it('uses highlight colors within HIGHLIGHT_WIDTH', () => {
       const style = getWordStyle(1, true)
       expect(style.color).toContain('color-mix')
@@ -98,9 +83,9 @@ describe('getWordStyle', () => {
       expect(style.opacity).toBe(0.6)
     })
 
-    it('has no blur when blur is disabled', () => {
-      const style = getWordStyle(5, false)
-      expect(style.blur).toBe(0)
+    it('never has blur regardless of blurEnabled flag', () => {
+      expect(getWordStyle(1, true).blur).toBe(0)
+      expect(getWordStyle(1, false).blur).toBe(0)
     })
   })
 })

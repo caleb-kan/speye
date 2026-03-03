@@ -116,10 +116,10 @@ describe('Navbar', () => {
       expect(screen.queryByTestId('navbar-login-link')).not.toBeInTheDocument()
     })
 
-    it('does not show profile link while loading', () => {
+    it('does not show profile avatar while loading', () => {
       renderNavbar()
       expect(
-        screen.queryByTestId('navbar-profile-link')
+        screen.queryByTestId('navbar-profile-avatar')
       ).not.toBeInTheDocument()
     })
   })
@@ -140,17 +140,15 @@ describe('Navbar', () => {
       })
     })
 
-    it('shows profile link when user is logged in', () => {
+    it('shows profile avatar when user is logged in', () => {
       renderNavbar()
-      expect(screen.getByTestId('navbar-profile-link')).toBeInTheDocument()
+      expect(screen.getByTestId('navbar-profile-avatar')).toBeInTheDocument()
     })
 
-    it('profile link navigates to /settings', () => {
+    it('profile avatar is not a link', () => {
       renderNavbar()
-      expect(screen.getByTestId('navbar-profile-link')).toHaveAttribute(
-        'href',
-        '/settings'
-      )
+      const avatar = screen.getByTestId('navbar-profile-avatar')
+      expect(avatar.tagName).not.toBe('A')
     })
 
     it('does not show login link when logged in', () => {
@@ -163,11 +161,12 @@ describe('Navbar', () => {
       expect(screen.getByText('T')).toBeInTheDocument()
     })
 
-    it('avatar has accessible label', () => {
+    it('avatar is decorative (aria-hidden)', () => {
       renderNavbar()
-      expect(
-        screen.getByRole('img', { name: 'Avatar for testuser' })
-      ).toBeInTheDocument()
+      expect(screen.getByTestId('navbar-profile-avatar')).toHaveAttribute(
+        'aria-hidden',
+        'true'
+      )
     })
   })
 })

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRefSync } from './useRefSync'
 import {
   getPvpGame,
@@ -20,6 +20,7 @@ import {
   PVP_SLOW_POLL_INTERVAL_MS,
   PVP_CLOCK_SYNC_MAX_RETRIES,
   PVP_CLOCK_SYNC_RETRY_DELAY_MS,
+  PVP_VS_SCREEN_MIN_DURATION_MS,
   SLOW_POLL_PHASES,
   POLLABLE_PHASES,
 } from '../constants/pvp'
@@ -127,9 +128,48 @@ export function usePvpGameState(gameId: string | null) {
 
   const phaseRef = useRefSync(phase)
 
-  const applyResolved = useCallback((resolved: PvpPhase | null): void => {
-    if (resolved) setPhase(resolved)
-  }, [])
+  const pregameEnteredAtRef = useRef(0)
+  const vsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    if (vsTimerRef.current) {
+      clearTimeout(vsTimerRef.current)
+      vsTimerRef.current = null
+    }
+    pregameEnteredAtRef.current = 0
+    return () => {
+      if (vsTimerRef.current) clearTimeout(vsTimerRef.current)
+    }
+  }, [gameId])
+
+  const applyResolved = useCallback(
+    (resolved: PvpPhase | null): void => {
+      if (!resolved) return
+
+      // Enforce minimum VS screen display time before transitioning
+      // to countdown so players can see who they are matched against.
+      if (resolved === 'countdown') {
+        const elapsed = Date.now() - pregameEnteredAtRef.current
+        const remaining = PVP_VS_SCREEN_MIN_DURATION_MS - elapsed
+        if (remaining > 0) {
+          if (vsTimerRef.current) clearTimeout(vsTimerRef.current)
+          vsTimerRef.current = setTimeout(() => {
+            vsTimerRef.current = null
+            if (phaseRef.current === 'pregame') {
+              setPhase('countdown')
+            }
+          }, remaining)
+          return
+        }
+      } else if (vsTimerRef.current) {
+        clearTimeout(vsTimerRef.current)
+        vsTimerRef.current = null
+      }
+
+      setPhase(resolved)
+    },
+    [phaseRef]
+  )
 
   useEffect(() => {
     if (!gameId || !user) return
@@ -211,13 +251,14 @@ export function usePvpGameState(gameId: string | null) {
         if (resolved) {
           applyResolved(resolved)
         } else if (gameData.status === 'pending') {
+          pregameEnteredAtRef.current = Date.now()
           setPhase('pregame')
           try {
             const updated = await markReady(gameId!, user!.id)
             if (cancelled) return
             setGame(updated)
             if (updated.status === 'active' && updated.reading_started_at) {
-              setPhase(
+              applyResolved(
                 getReadingPhase(updated.reading_started_at, serverTimeResult)
               )
             }
@@ -228,6 +269,7 @@ export function usePvpGameState(gameId: string | null) {
             setPhase('error')
           }
         } else {
+          pregameEnteredAtRef.current = Date.now()
           setPhase('pregame')
         }
       } catch (err) {

@@ -18,6 +18,7 @@ vi.mock('../../hooks/useAuth', () => ({
 }))
 
 import { usePvpGameState } from '../../hooks/usePvpGameState'
+import { PVP_VS_SCREEN_MIN_DURATION_MS } from '../../constants/pvp'
 import { makeGame as makeBaseGame } from '../helpers/pvpMockFactory'
 import type { PvpGame, PvpTextData } from '../../types/database'
 
@@ -233,6 +234,7 @@ describe('usePvpGameState hook', () => {
   })
 
   it('calls markReady on pending game and transitions on active response', async () => {
+    vi.useFakeTimers()
     const futureStart = new Date(Date.now() + 5000).toISOString()
     const activeGame = makeGame({
       status: 'active',
@@ -247,11 +249,92 @@ describe('usePvpGameState hook', () => {
 
     const { result } = renderHook(() => usePvpGameState(GAME_ID))
 
-    await waitFor(() => {
-      expect(result.current.phase).toBe('countdown')
+    // Flush async init (mocks resolve immediately)
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(100)
     })
 
     expect(mockMarkReady).toHaveBeenCalledWith(GAME_ID, USER_ID)
+    // Still on VS screen due to minimum display duration
+    expect(result.current.phase).toBe('pregame')
+
+    // Advance past VS screen minimum duration
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(PVP_VS_SCREEN_MIN_DURATION_MS)
+    })
+
+    expect(result.current.phase).toBe('countdown')
+  })
+
+  it('transitions to results immediately when game completes during VS screen', async () => {
+    vi.useFakeTimers()
+    const futureStart = new Date(Date.now() + 5000).toISOString()
+    const activeGame = makeGame({
+      status: 'active',
+      player1_ready: true,
+      player2_ready: true,
+      reading_started_at: futureStart,
+    })
+    setupPendingGame()
+    mockMarkReady.mockResolvedValue(activeGame)
+
+    const { result } = renderHook(() => usePvpGameState(GAME_ID))
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(100)
+    })
+
+    expect(result.current.phase).toBe('pregame')
+
+    // Game abandoned while VS screen is showing
+    const abandonedGame = makeGame({ status: 'abandoned' })
+    act(() => {
+      result.current.handleGameUpdate(abandonedGame)
+    })
+
+    // Should transition to results immediately, not wait for VS timer
+    expect(result.current.phase).toBe('results')
+
+    // VS timer fires later but phase should not regress
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(PVP_VS_SCREEN_MIN_DURATION_MS)
+    })
+
+    expect(result.current.phase).toBe('results')
+  })
+
+  it('transitions to reading immediately when game advances past countdown during VS screen', async () => {
+    vi.useFakeTimers()
+    const futureStart = new Date(Date.now() + 5000).toISOString()
+    const activeGame = makeGame({
+      status: 'active',
+      player1_ready: true,
+      player2_ready: true,
+      reading_started_at: futureStart,
+    })
+    setupPendingGame()
+    mockMarkReady.mockResolvedValue(activeGame)
+
+    const { result } = renderHook(() => usePvpGameState(GAME_ID))
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(100)
+    })
+
+    expect(result.current.phase).toBe('pregame')
+
+    // Realtime update: game already past countdown
+    const pastStart = new Date(Date.now() - 10000).toISOString()
+    const readingGame = makeGame({
+      status: 'active',
+      reading_started_at: pastStart,
+    })
+    act(() => {
+      result.current.handleGameUpdate(readingGame)
+    })
+
+    // Should bypass VS timer and go directly to reading
+    expect(result.current.phase).toBe('reading')
   })
 
   it('shows error when markReady fails', async () => {
@@ -438,8 +521,8 @@ describe('usePvpGameState hook', () => {
 
   it('sets clockSyncWarning when server time fetch fails', async () => {
     mockGetServerTime.mockRejectedValue(new Error('timeout'))
-    // Promise.all([fetchClockOffset(), getPvpGame()]) rejects, then
-    // the catch block calls getPvpGame a second time as fallback
+    // Promise.allSettled lets getPvpGame succeed even when
+    // fetchClockOffset rejects, so init completes with offset=0
     mockGetPvpGame.mockResolvedValue(makeGame())
     mockGetTextForPvp.mockResolvedValue(MOCK_TEXT)
     mockMarkReady.mockResolvedValue(makeGame())

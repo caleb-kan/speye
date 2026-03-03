@@ -24,6 +24,7 @@ export const PVP_TICK_INTERVAL_MS = 1000
 
 // Game rule constants
 export const PVP_QUIZ_QUESTION_TIMER_S = 20
+export const PVP_VS_SCREEN_MIN_DURATION_MS = 3000
 export const PVP_COUNTDOWN_S = 5
 export const PVP_LONG_WAIT_THRESHOLD_S = 60
 export const PVP_MILESTONE_TOAST_DISPLAY_MS = 3000

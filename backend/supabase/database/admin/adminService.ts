@@ -28,6 +28,28 @@ export type UserTrendData = {
   active_count: number
 }
 
+export interface QuizTrendPoint {
+  date: string
+  avg_accuracy: number | null
+  quiz_count: number
+}
+
+export interface AdminQuizStats {
+  global_avg_accuracy: number
+  total_quizzes_taken: number
+  trend: QuizTrendPoint[]
+}
+
+export interface WpmBucket {
+  range: string
+  count: number
+}
+
+export interface WpmStats {
+  recent: { avg_wpm: number; distribution: WpmBucket[] }
+  all_time: { avg_wpm: number; distribution: WpmBucket[] }
+}
+
 export async function getPendingAdminReviews(): Promise<AdminReviewText[]> {
   const { data, error } = await supabase
     .from('texts')
@@ -190,4 +212,36 @@ export async function getUserTrend(): Promise<UserTrendData[]> {
   }
 
   return data ?? []
+}
+
+export async function getAdminQuizStats(): Promise<AdminQuizStats> {
+  const { data, error } = await supabase.rpc('get_admin_quiz_stats')
+
+  logDbQuery({
+    table: 'rpc',
+    action: 'RPC:get_admin_quiz_stats',
+    errors: error ? error.message : undefined,
+  })
+
+  if (error) {
+    throw error
+  }
+
+  return data as AdminQuizStats
+}
+
+export async function getAdminWpmDistribution(): Promise<WpmStats> {
+  const { data, error } = await supabase.rpc('get_admin_wpm_distribution')
+
+  logDbQuery({
+    table: 'rpc',
+    action: 'RPC:get_admin_wpm_distribution',
+    errors: error ? error.message : undefined,
+  })
+
+  if (error) {
+    throw error
+  }
+
+  return data as WpmStats
 }

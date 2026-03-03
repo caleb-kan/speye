@@ -92,6 +92,52 @@ export async function mockAdminEndpoints(page: Page) {
     })
   })
 
+  await page.route('**/rest/v1/rpc/get_admin_quiz_stats**', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        global_avg_accuracy: 75,
+        total_quizzes_taken: 100,
+        trend: [
+          { date: '2025-02-01', avg_accuracy: 70, quiz_count: 30 },
+          { date: '2025-02-08', avg_accuracy: 75, quiz_count: 35 },
+          { date: '2025-02-15', avg_accuracy: 80, quiz_count: 35 },
+        ],
+      }),
+    })
+  })
+
+  await page.route(
+    '**/rest/v1/rpc/get_admin_wpm_distribution**',
+    async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          recent: {
+            avg_wpm: 250,
+            distribution: [
+              { range: '0-100', count: 5 },
+              { range: '100-200', count: 15 },
+              { range: '200-300', count: 25 },
+              { range: '300-400', count: 10 },
+            ],
+          },
+          all_time: {
+            avg_wpm: 230,
+            distribution: [
+              { range: '0-100', count: 10 },
+              { range: '100-200', count: 30 },
+              { range: '200-300', count: 40 },
+              { range: '300-400', count: 20 },
+            ],
+          },
+        }),
+      })
+    }
+  )
+
   const approvalResponses = pendingApprovals.map((a) => ({
     ...a,
     users: a.owner_username ? { username: a.owner_username } : null,

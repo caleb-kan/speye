@@ -1,15 +1,25 @@
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PvpRankBadge } from '../shared/PvpRankBadge'
 import { EloDisplay } from '../shared/EloDisplay'
 import { useEloAnimation } from '../../../hooks/useEloAnimation'
 import { ROUTES } from '../../../utils/routes'
 import {
+  getRankFromElo,
   getPlayerPrefix,
   getPlayerData,
   getMatchResult,
 } from '../../../utils/pvp'
 import type { PvpGame } from '../../../types/database'
 import type { MatchResult } from '../../../utils/pvp'
+import type { RankInfo } from '../../../constants/pvp'
+
+// Animation timing for rank change sequence (progress bar, badge, banner).
+// These must stay coordinated: bar fills/drains, then labels roll, then
+// the banner appears after the swap completes.
+const RANK_FILL_DURATION_MS = 1200
+const RANK_SWAP_DELAY_MS = 1700
+const EVOLUTION_BANNER_DELAY_MS = 2200
 
 const RESULT_DISPLAY: Record<MatchResult, { text: string; color: string }> = {
   win: { text: 'VICTORY', color: 'text-success' },
@@ -36,16 +46,18 @@ export function PvpResults({
   const result = getMatchResult(initialGame.winner_id, userId, isForfeit)
 
   const {
+    eloBefore,
     displayElo,
     eloChange,
     eloAfter,
     eloReady,
     eloFetchFailed,
     rankPromoted,
+    rankDemoted,
     newRankTier,
     newRankColor,
     game,
-  } = useEloAnimation(initialGame, userId, result === 'win')
+  } = useEloAnimation(initialGame, userId)
 
   const { myPrefix, oppPrefix } = getPlayerPrefix(userId, game.player1_id)
   const myData = getPlayerData(game, myPrefix)
@@ -69,29 +81,32 @@ export function PvpResults({
       <EloSection
         eloReady={eloReady}
         eloFetchFailed={eloFetchFailed}
+        eloBefore={eloBefore}
         eloAfter={eloAfter}
         displayElo={displayElo}
         eloChange={eloChange}
+        rankChanged={rankPromoted || rankDemoted}
       />
 
-      {rankPromoted && newRankColor && (
-        <div
-          role="status"
-          aria-live="polite"
-          className="mb-6 p-4 rounded-xl animate-in zoom-in duration-700 delay-500"
-          style={{
-            // Hex-alpha opacity: 15 = ~8%, 40 = ~25%.
-            // Safe because newRankColor is always a 6-digit hex from RANK_TIERS.
-            backgroundColor: `${newRankColor}15`,
-            border: `1px solid ${newRankColor}40`,
-          }}
-        >
-          <p className="text-sm text-text-secondary mb-1">Promoted to</p>
-          <p className="text-xl font-bold" style={{ color: newRankColor }}>
-            {newRankTier}
-          </p>
-        </div>
+      {eloReady && eloBefore != null && eloAfter != null && (
+        <EloProgressBar
+          eloBefore={eloBefore}
+          eloAfter={eloAfter}
+          rankChanged={rankPromoted || rankDemoted}
+        />
       )}
+
+      {(rankPromoted || rankDemoted) &&
+        newRankTier &&
+        newRankColor &&
+        eloAfter != null && (
+          <EvolutionBanner
+            newRankTier={newRankTier}
+            newRankColor={newRankColor}
+            newRankEmoji={getRankFromElo(eloAfter).emoji}
+            demoted={rankDemoted}
+          />
+        )}
 
       <div className="bg-bg-secondary/50 rounded-2xl border border-text-secondary/10 p-5 mb-6">
         <div className="grid grid-cols-3 gap-4 text-center">
@@ -161,20 +176,34 @@ export function PvpResults({
 function EloSection({
   eloReady,
   eloFetchFailed,
+  eloBefore,
   eloAfter,
   displayElo,
   eloChange,
+  rankChanged,
 }: {
   eloReady: boolean
   eloFetchFailed: boolean
+  eloBefore: number | null
   eloAfter: number | null
   displayElo: number | null
   eloChange: number | null
+  rankChanged: boolean
 }) {
+  const [showNewRank, setShowNewRank] = useState(false)
+
+  useEffect(() => {
+    if (!rankChanged) return
+    const t = setTimeout(() => setShowNewRank(true), RANK_SWAP_DELAY_MS)
+    return () => clearTimeout(t)
+  }, [rankChanged])
+
+  const badgeElo = rankChanged && !showNewRank ? eloBefore : eloAfter
+
   if (eloReady && eloAfter != null) {
     return (
       <div className="flex items-center justify-center gap-3 mb-8">
-        <PvpRankBadge elo={eloAfter} size="md" />
+        <PvpRankBadge elo={badgeElo} size="md" />
         <EloDisplay elo={displayElo ?? 0} change={eloChange} size="lg" />
       </div>
     )
@@ -228,5 +257,192 @@ function StatRow({
         {oppVal != null ? `${oppVal}${suffix}` : '-'}
       </span>
     </>
+  )
+}
+
+function tierProgress(elo: number, rank: RankInfo): number {
+  if (rank.maxElo === null) return 100
+  const range = rank.maxElo - rank.minElo + 1
+  return Math.min(100, Math.max(0, ((elo - rank.minElo) / range) * 100))
+}
+
+function EloProgressBar({
+  eloBefore,
+  eloAfter,
+  rankChanged,
+}: {
+  eloBefore: number
+  eloAfter: number
+  rankChanged: boolean
+}) {
+  const oldRank = getRankFromElo(eloBefore)
+  const newRank = getRankFromElo(eloAfter)
+  const startProgress = tierProgress(eloBefore, oldRank)
+  const isGain = eloAfter >= eloBefore
+
+  const [phase, setPhase] = useState<
+    'initial' | 'filling' | 'rolling' | 'swapped'
+  >('initial')
+
+  useEffect(() => {
+    const t1 = requestAnimationFrame(() => setPhase('filling'))
+    if (!rankChanged) return () => cancelAnimationFrame(t1)
+    const t2 = setTimeout(() => setPhase('rolling'), RANK_FILL_DURATION_MS)
+    const t3 = setTimeout(() => setPhase('swapped'), RANK_SWAP_DELAY_MS)
+    return () => {
+      cancelAnimationFrame(t1)
+      clearTimeout(t2)
+      clearTimeout(t3)
+    }
+  }, [rankChanged])
+
+  const showOld = phase === 'initial' || phase === 'filling'
+  const isRolling = phase === 'rolling'
+  const showNew = phase === 'swapped'
+  const displayRank = showOld || isRolling ? oldRank : newRank
+
+  let barWidth: number
+  if (rankChanged) {
+    if (phase === 'initial') barWidth = startProgress
+    // On demotion, bar drains to 0%; on promotion, fills to 100%
+    else if (phase === 'filling' || phase === 'rolling')
+      barWidth = isGain ? 100 : 0
+    else barWidth = tierProgress(eloAfter, newRank)
+  } else {
+    barWidth =
+      phase === 'initial' ? startProgress : tierProgress(eloAfter, newRank)
+  }
+
+  return (
+    <div className="mb-6 w-80 mx-auto">
+      {/* Label row with roll animation on rank change */}
+      <div className="overflow-hidden mb-1.5">
+        <div
+          key={displayRank.tier}
+          className={isRolling ? 'roll-out-up' : showNew ? 'roll-in-up' : ''}
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-lg">{displayRank.emoji}</span>
+            <span className="text-xs font-medium text-text-secondary">
+              {displayRank.tier}
+            </span>
+            <span className="ml-auto text-xs font-semibold tabular-nums text-text">
+              {eloBefore} → {eloAfter}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="h-4 rounded-full bg-text-secondary/10 overflow-hidden">
+        <BarFill
+          width={barWidth}
+          color={isGain ? 'bg-success' : 'bg-error'}
+          resetFrom={showNew ? (isGain ? 0 : 100) : undefined}
+        />
+      </div>
+
+      <div className="overflow-hidden mt-0.5">
+        <div
+          key={`range-${displayRank.tier}`}
+          className={isRolling ? 'roll-out-up' : showNew ? 'roll-in-up' : ''}
+        >
+          <div className="flex justify-between text-[10px] text-text-secondary tabular-nums">
+            <span>{displayRank.minElo}</span>
+            <span>
+              {displayRank.maxElo !== null ? displayRank.maxElo + 1 : ''}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function EvolutionBanner({
+  newRankTier,
+  newRankColor,
+  newRankEmoji,
+  demoted,
+}: {
+  newRankTier: string
+  newRankColor: string
+  newRankEmoji: string
+  demoted: boolean
+}) {
+  const [visible, setVisible] = useState(false)
+
+  useEffect(() => {
+    const t = setTimeout(() => setVisible(true), EVOLUTION_BANNER_DELAY_MS)
+    return () => clearTimeout(t)
+  }, [])
+
+  if (!visible) return null
+
+  return (
+    <div role="status" aria-live="polite" className="mb-6 overflow-hidden">
+      <div className="roll-in-up">
+        <div
+          className="p-4 rounded-xl"
+          style={{
+            backgroundColor: `${newRankColor}15`,
+            border: `1px solid ${newRankColor}40`,
+          }}
+        >
+          <p className="text-sm text-text-secondary mb-1">
+            {demoted ? 'De-evolved into' : 'Evolved into'}
+          </p>
+          <p className="text-2xl font-bold" style={{ color: newRankColor }}>
+            <span className="mr-2">{newRankEmoji}</span>
+            {newRankTier}
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function BarFill({
+  width,
+  color,
+  resetFrom,
+}: {
+  width: number
+  color: string
+  resetFrom?: number
+}) {
+  const hasReset = resetFrom !== undefined
+  const [animatedWidth, setAnimatedWidth] = useState(
+    hasReset ? resetFrom : width
+  )
+  const [transition, setTransition] = useState(!hasReset)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!hasReset) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setAnimatedWidth(width)
+      return
+    }
+    setTransition(false)
+    setAnimatedWidth(resetFrom)
+
+    const raf = requestAnimationFrame(() => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+      ref.current?.offsetHeight
+      setTransition(true)
+      setAnimatedWidth(width)
+    })
+    return () => cancelAnimationFrame(raf)
+  }, [width, resetFrom, hasReset])
+
+  return (
+    <div
+      ref={ref}
+      className={`h-full rounded-full ${color}`}
+      style={{
+        width: `${animatedWidth}%`,
+        transition: transition ? 'width 1s ease-out' : 'none',
+      }}
+    />
   )
 }

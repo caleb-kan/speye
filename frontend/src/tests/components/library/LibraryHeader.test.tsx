@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import '@testing-library/jest-dom'
@@ -10,6 +10,10 @@ vi.mock('../../../hooks/useIsMobile', () => ({
 
 describe('LibraryHeader', () => {
   const mockOnUpload = vi.fn()
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
 
   it('should show upload button when showUpload is true', () => {
     render(

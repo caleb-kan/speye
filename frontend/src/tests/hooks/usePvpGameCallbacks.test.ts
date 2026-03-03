@@ -70,7 +70,7 @@ vi.mock('../../services/saveQuizResult', () => ({
   saveQuizResult: (...args: unknown[]) => mockSaveQuizResult(...args),
 }))
 
-vi.mock('../../../lib/scoring', () => ({
+vi.mock('../../../../lib/scoring', () => ({
   computeOverallScore: (wpm: number, score: number) => wpm + score,
 }))
 
@@ -687,7 +687,7 @@ describe('usePvpGameCallbacks', () => {
       expect(mockSubmitPvpResult).toHaveBeenCalledWith(GAME_ID, USER_ID, 50, 80)
     })
 
-    it('falls back to preference WPM in standard mode', async () => {
+    it('falls back to preference WPM when reading was not started', async () => {
       mockPreferences.mode = 'standard'
       mockSubmitPvpResult.mockResolvedValueOnce(null)
       const opts = makeDefaultOptions()
@@ -702,7 +702,145 @@ describe('usePvpGameCallbacks', () => {
         await result.current.handleQuizFinish(80)
       })
 
-      // Should use preference WPM (400), not adaptive WPM
+      // No reading started, so measured WPM is null; falls back to preference
+      expect(mockSubmitPvpResult).toHaveBeenCalledWith(
+        GAME_ID,
+        USER_ID,
+        400,
+        80
+      )
+    })
+  })
+
+  describe('measured WPM from elapsed reading time', () => {
+    /** Simulate a complete reading session of the given duration. */
+    function simulateReading(
+      result: { current: ReturnType<typeof usePvpGameCallbacks> },
+      durationMs: number
+    ) {
+      act(() => {
+        result.current.handlePositionChange(1)
+      })
+      vi.advanceTimersByTime(durationMs)
+      act(() => {
+        result.current.handleReadingComplete(true)
+      })
+    }
+
+    it('uses measured WPM instead of preference for quiz submission', async () => {
+      mockSubmitPvpResult.mockResolvedValueOnce(null)
+      const opts = makeDefaultOptions({ phase: 'reading' })
+      const { result } = renderHook(() => usePvpGameCallbacks(opts))
+
+      // 10 words in 6 seconds = 100 WPM
+      simulateReading(result, 6000)
+
+      await act(async () => {
+        await result.current.handleQuizFinish(80)
+      })
+
+      expect(mockSubmitPvpResult).toHaveBeenCalledWith(
+        GAME_ID,
+        USER_ID,
+        100,
+        80
+      )
+    })
+
+    it('computes overall score from measured WPM, not preference', async () => {
+      mockSubmitPvpResult.mockResolvedValueOnce(null)
+      const opts = makeDefaultOptions({ phase: 'reading' })
+      const { result } = renderHook(() => usePvpGameCallbacks(opts))
+
+      // 10 words in 6 seconds = 100 WPM
+      simulateReading(result, 6000)
+
+      await act(async () => {
+        await result.current.handleQuizFinish(80)
+      })
+
+      // Mock computeOverallScore returns wpm + score = 100 + 80 = 180
+      expect(result.current.myWpm).toBe(100)
+      expect(result.current.myOverallScore).toBe(180)
+    })
+
+    it('caps measured WPM at MAX_WPM (2000)', async () => {
+      mockSubmitPvpResult.mockResolvedValueOnce(null)
+      const opts = makeDefaultOptions({ phase: 'reading' })
+      const { result } = renderHook(() => usePvpGameCallbacks(opts))
+
+      // 10 words in 100ms = 6000 WPM, capped to 2000
+      simulateReading(result, 100)
+
+      await act(async () => {
+        await result.current.handleQuizFinish(80)
+      })
+
+      expect(mockSubmitPvpResult).toHaveBeenCalledWith(
+        GAME_ID,
+        USER_ID,
+        2000,
+        80
+      )
+    })
+
+    it('logs activity with measured WPM on reading complete', () => {
+      const opts = makeDefaultOptions({ phase: 'reading' })
+      const { result } = renderHook(() => usePvpGameCallbacks(opts))
+
+      // 10 words in 6 seconds = 100 WPM
+      simulateReading(result, 6000)
+
+      expect(logUserActivity).toHaveBeenCalledWith(
+        expect.objectContaining({ wpm: 100 })
+      )
+    })
+
+    it('adaptive WPM takes priority over measured WPM', async () => {
+      mockPreferences.mode = 'adaptive'
+      mockSubmitPvpResult.mockResolvedValueOnce(null)
+      const opts = makeDefaultOptions({ phase: 'reading' })
+      const { result } = renderHook(() => usePvpGameCallbacks(opts))
+
+      // Set adaptive WPM before reading
+      act(() => {
+        result.current.handleAdaptiveWpmChange(250)
+      })
+
+      // 10 words in 6 seconds = 100 WPM measured
+      simulateReading(result, 6000)
+
+      await act(async () => {
+        await result.current.handleQuizFinish(80)
+      })
+
+      // Should use adaptive WPM (250), not measured (100)
+      expect(mockSubmitPvpResult).toHaveBeenCalledWith(
+        GAME_ID,
+        USER_ID,
+        250,
+        80
+      )
+    })
+
+    it('falls back to preference when reading completes instantly', async () => {
+      mockSubmitPvpResult.mockResolvedValueOnce(null)
+      const opts = makeDefaultOptions({ phase: 'reading' })
+      const { result } = renderHook(() => usePvpGameCallbacks(opts))
+
+      // 0ms elapsed: calculateWpmFromReading returns 0, measuredWpmRef
+      // stays null, so getEffectiveWpm falls back to preference
+      act(() => {
+        result.current.handlePositionChange(1)
+      })
+      act(() => {
+        result.current.handleReadingComplete(true)
+      })
+
+      await act(async () => {
+        await result.current.handleQuizFinish(80)
+      })
+
       expect(mockSubmitPvpResult).toHaveBeenCalledWith(
         GAME_ID,
         USER_ID,

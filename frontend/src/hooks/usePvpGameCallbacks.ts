@@ -22,6 +22,8 @@ import {
 import { logUserActivity } from '../services/logUserActivity'
 import { saveQuizResult } from '../services/saveQuizResult'
 import { computeOverallScore } from '../../../lib/scoring'
+import { calculateWpmFromReading } from '../utils/wpmCalculations'
+import { MAX_WPM } from '../constants/wpm'
 import {
   PVP_SUBMIT_STORAGE_PREFIX,
   PVP_SUBMIT_MAX_ATTEMPTS,
@@ -70,6 +72,7 @@ export function usePvpGameCallbacks({
   const phaseRef = useRefSync(phase)
   const playerWpmRef = useRefSync(preferences.wpm)
   const adaptiveWpmRef = useRef<number | null>(null)
+  const measuredWpmRef = useRef<number | null>(null)
   const playerWpm = preferences.wpm
 
   const [myProgress, setMyProgress] = useState(0)
@@ -119,6 +122,7 @@ export function usePvpGameCallbacks({
     readingStartRef.current = null
     gameStartRef.current = null
     adaptiveWpmRef.current = null
+    measuredWpmRef.current = null
 
     setMyProgress(0)
     setOpponentProgress(0)
@@ -218,13 +222,15 @@ export function usePvpGameCallbacks({
     enabled: phase === 'reading',
   })
 
-  const getEffectiveWpm = useCallback(
-    (): number =>
-      preferences.mode === 'adaptive' && adaptiveWpmRef.current !== null
-        ? adaptiveWpmRef.current
-        : playerWpmRef.current,
-    [preferences.mode, playerWpmRef]
-  )
+  const getEffectiveWpm = useCallback((): number => {
+    if (preferences.mode === 'adaptive' && adaptiveWpmRef.current !== null) {
+      return adaptiveWpmRef.current
+    }
+    if (measuredWpmRef.current !== null) {
+      return measuredWpmRef.current
+    }
+    return playerWpmRef.current
+  }, [preferences.mode, playerWpmRef])
 
   const handleAdaptiveWpmChange = useCallback((wpm: number) => {
     adaptiveWpmRef.current = wpm
@@ -262,6 +268,22 @@ export function usePvpGameCallbacks({
       ) {
         readingCompletedRef.current = true
         setMyProgress(100)
+
+        // Compute actual WPM from elapsed reading time so the result
+        // reflects the true average speed (including pauses and mid-read
+        // WPM changes) rather than the last-set preference value.
+        if (readingStartRef.current && totalWordsRef.current > 0) {
+          const elapsedMs =
+            Date.now() - new Date(readingStartRef.current).getTime()
+          const computed = calculateWpmFromReading(
+            totalWordsRef.current,
+            elapsedMs
+          )
+          if (computed > 0) {
+            measuredWpmRef.current = Math.min(computed, MAX_WPM)
+          }
+        }
+
         if (userId) {
           updateProgress(totalWordsRef.current, 100)
           sendMilestone({ userId, type: 'started_quiz' })

@@ -36,7 +36,6 @@ export function Navbar() {
   const { isOnline } = useNetworkStatus()
 
   const isLoginActive = location.pathname === ROUTES.LOGIN
-  const isSettingsActive = location.pathname === ROUTES.SETTINGS
   const isInAdaptiveMode = location.pathname === ROUTES.ADAPTIVE
   const isInReadingRoute =
     location.pathname === ROUTES.HOME ||
@@ -71,7 +70,7 @@ export function Navbar() {
     clearReadingActivitySession()
   }
 
-  // Handles navigation for auth links that don't use NavItem.
+  // Handles navigation for the login link (which doesn't use NavItem).
   // Logs activity, then handles navigation when leaving
   // adaptive mode to ensure WebGazer is properly cleaned up.
   const handleAuthLinkClick = (e: React.MouseEvent, targetPath: string) => {
@@ -162,27 +161,17 @@ export function Navbar() {
           data-testid="auth-loading-placeholder"
         />
       ) : user ? (
-        <Link
-          to={ROUTES.SETTINGS}
-          onClick={(e) => handleAuthLinkClick(e, ROUTES.SETTINGS)}
-          aria-label="Profile settings"
-          aria-current={isSettingsActive ? 'page' : undefined}
-          className={`
-            flex justify-center items-center
-            w-8 h-8 shrink-0
-            rounded-full transition-all
-            overflow-hidden
-            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary
-            ${isSettingsActive ? 'ring-2 ring-primary' : 'hover:ring-2 hover:ring-text-secondary/50'}
-          `}
-          data-testid="navbar-profile-link"
+        <div
+          className="flex justify-center items-center w-8 h-8 shrink-0 rounded-full overflow-hidden"
+          aria-hidden="true"
+          data-testid="navbar-profile-avatar"
         >
           <DefaultAvatar
             username={getUsername(user)}
             avatarUrl={getAvatarUrl(user)}
             size="sm"
           />
-        </Link>
+        </div>
       ) : (
         <Link
           to={ROUTES.LOGIN}

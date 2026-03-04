@@ -180,7 +180,6 @@ export function Navbar() {
               size="sm"
             />
           </span>
-          <NavTooltip label="Profile" isMobile={isMobile} />
         </div>
       ) : (
         <Link

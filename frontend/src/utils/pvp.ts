@@ -1,6 +1,7 @@
 import { MAX_QUIZ_SCORE } from '../../../lib/quizConstants'
 import { RANK_TIERS } from '../constants/pvp'
-import type { RankInfo } from '../constants/pvp'
+import type { RankInfo, MatchResult } from '../constants/pvp'
+export type { MatchResult }
 import type { PvpGame } from '../types/database'
 
 export function getRankFromElo(elo: number): RankInfo {
@@ -53,8 +54,6 @@ export function getTimeAgo(dateStr: string): string {
   const days = Math.floor(hours / 24)
   return `${days}d`
 }
-
-export type MatchResult = 'win' | 'draw' | 'loss'
 
 export function getMatchResult(
   winnerId: string | null,

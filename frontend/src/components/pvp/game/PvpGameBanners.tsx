@@ -1,3 +1,5 @@
+import { WARNING_BANNER, ERROR_BANNER } from '../../../constants/pvp'
+
 type PvpGameBannersProps = {
   afkWarning: boolean
   opponentDisconnected: boolean
@@ -9,11 +11,6 @@ type PvpGameBannersProps = {
   clockSyncWarning?: boolean
   onRetrySubmit?: () => void
 }
-
-export const WARNING_BANNER =
-  'bg-warning/90 text-bg px-4 py-2 rounded-xl text-sm font-medium'
-export const ERROR_BANNER =
-  'bg-error/90 text-bg px-4 py-2 rounded-xl text-sm font-medium'
 
 export function PvpGameBanners({
   afkWarning,
@@ -83,8 +80,8 @@ export function PvpGameBanners({
         </div>
       )}
 
-      {warnings.map((msg, i) => (
-        <div key={i} className={WARNING_BANNER} role="status">
+      {warnings.map((msg) => (
+        <div key={msg} className={WARNING_BANNER} role="status">
           {msg}
         </div>
       ))}

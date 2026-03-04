@@ -102,22 +102,6 @@ describe('Navbar', () => {
       const tooltips = document.querySelectorAll('[aria-hidden="true"]')
       expect(tooltips.length).toBeGreaterThan(0)
     })
-
-    it('renders tooltip for profile link when logged in', () => {
-      const mockUser = createMockUser({
-        id: '123',
-        email: 'test@example.com',
-        user_metadata: { username: 'testuser' },
-      })
-      mockUseAuth.mockReturnValue({
-        user: mockUser,
-        session: createMockSession(mockUser),
-        loading: false,
-        signOut: vi.fn(),
-      })
-      renderNavbar()
-      expect(screen.getByText('Profile')).toBeInTheDocument()
-    })
   })
 
   describe('Auth Section - Logged Out', () => {

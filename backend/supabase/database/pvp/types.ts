@@ -85,6 +85,11 @@ export type PvpLeaderboardEntry = Pick<
 
 export type PvpLeaderboardEntryWithRank = PvpLeaderboardEntry & { rank: number }
 
+export type EloHistoryPoint = {
+  game_date: string
+  elo_rating: number
+}
+
 export interface PvpMatchHistoryEntry {
   id: string
   opponent_id: string

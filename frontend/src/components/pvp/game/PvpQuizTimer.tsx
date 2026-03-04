@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRefSync } from '../../../hooks/useRefSync'
-import { PVP_QUIZ_TIMER_TICK_MS } from '../../../constants/pvp'
-
-const CIRCLE_RADIUS = 42
-const WARNING_FRACTION = 0.5
-const DANGER_FRACTION = 0.25
+import {
+  PVP_QUIZ_TIMER_TICK_MS,
+  PVP_QUIZ_TIMER_CIRCLE_RADIUS,
+  PVP_QUIZ_TIMER_WARNING_FRACTION,
+  PVP_QUIZ_TIMER_DANGER_FRACTION,
+} from '../../../constants/pvp'
 
 type PvpQuizTimerProps = {
   durationSeconds: number
@@ -42,13 +43,13 @@ export function PvpQuizTimer({
   }, [durationSeconds, resetKey, onExpireRef])
 
   const fraction = durationSeconds > 0 ? remaining / durationSeconds : 0
-  const circumference = 2 * Math.PI * CIRCLE_RADIUS
+  const circumference = 2 * Math.PI * PVP_QUIZ_TIMER_CIRCLE_RADIUS
   const offset = circumference * (1 - fraction)
 
   let strokeColor: string
-  if (fraction > WARNING_FRACTION) {
+  if (fraction > PVP_QUIZ_TIMER_WARNING_FRACTION) {
     strokeColor = 'var(--color-primary)'
-  } else if (fraction > DANGER_FRACTION) {
+  } else if (fraction > PVP_QUIZ_TIMER_DANGER_FRACTION) {
     strokeColor = 'var(--color-warning, #EAB308)'
   } else {
     strokeColor = 'var(--color-error, #EF4444)'
@@ -65,7 +66,7 @@ export function PvpQuizTimer({
         <circle
           cx="48"
           cy="48"
-          r={CIRCLE_RADIUS}
+          r={PVP_QUIZ_TIMER_CIRCLE_RADIUS}
           fill="none"
           stroke="currentColor"
           strokeWidth="4"
@@ -74,7 +75,7 @@ export function PvpQuizTimer({
         <circle
           cx="48"
           cy="48"
-          r={CIRCLE_RADIUS}
+          r={PVP_QUIZ_TIMER_CIRCLE_RADIUS}
           fill="none"
           stroke={strokeColor}
           strokeWidth="4"

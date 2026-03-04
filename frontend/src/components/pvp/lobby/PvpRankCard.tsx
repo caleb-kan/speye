@@ -85,6 +85,7 @@ export function PvpRankCard({
         onClick={onPlayRanked}
         disabled={loading || ratingError}
         className="
+          mt-8
           px-10 py-3.5 rounded-xl
           bg-text text-bg font-semibold text-base
           hover:bg-success hover:text-bg hover:shadow-[0_0_20px_var(--color-success)]

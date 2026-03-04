@@ -18,6 +18,7 @@ export type {
   PvpLeaderboardEntryWithRank,
   PvpMatchHistoryEntry,
   MatchmakeResult,
+  EloHistoryPoint,
 } from '../../../backend/supabase/database/pvp/types'
 export { PVP_GAME_STATUSES } from '../../../backend/supabase/database/pvp/types'
 

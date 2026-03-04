@@ -10,22 +10,14 @@ import {
   getPlayerData,
   getMatchResult,
 } from '../../../utils/pvp'
+import {
+  PVP_RANK_FILL_DURATION_MS,
+  PVP_RANK_SWAP_DELAY_MS,
+  PVP_EVOLUTION_BANNER_DELAY_MS,
+  RESULT_DISPLAY,
+} from '../../../constants/pvp'
 import type { PvpGame } from '../../../types/database'
-import type { MatchResult } from '../../../utils/pvp'
 import type { RankInfo } from '../../../constants/pvp'
-
-// Animation timing for rank change sequence (progress bar, badge, banner).
-// These must stay coordinated: bar fills/drains, then labels roll, then
-// the banner appears after the swap completes.
-const RANK_FILL_DURATION_MS = 1200
-const RANK_SWAP_DELAY_MS = 1700
-const EVOLUTION_BANNER_DELAY_MS = 2200
-
-const RESULT_DISPLAY: Record<MatchResult, { text: string; color: string }> = {
-  win: { text: 'VICTORY', color: 'text-success' },
-  draw: { text: 'DRAW', color: 'text-warning' },
-  loss: { text: 'DEFEAT', color: 'text-error' },
-}
 
 type PvpResultsProps = {
   game: PvpGame
@@ -194,7 +186,7 @@ function EloSection({
 
   useEffect(() => {
     if (!rankChanged) return
-    const t = setTimeout(() => setShowNewRank(true), RANK_SWAP_DELAY_MS)
+    const t = setTimeout(() => setShowNewRank(true), PVP_RANK_SWAP_DELAY_MS)
     return () => clearTimeout(t)
   }, [rankChanged])
 
@@ -287,8 +279,8 @@ function EloProgressBar({
   useEffect(() => {
     const t1 = requestAnimationFrame(() => setPhase('filling'))
     if (!rankChanged) return () => cancelAnimationFrame(t1)
-    const t2 = setTimeout(() => setPhase('rolling'), RANK_FILL_DURATION_MS)
-    const t3 = setTimeout(() => setPhase('swapped'), RANK_SWAP_DELAY_MS)
+    const t2 = setTimeout(() => setPhase('rolling'), PVP_RANK_FILL_DURATION_MS)
+    const t3 = setTimeout(() => setPhase('swapped'), PVP_RANK_SWAP_DELAY_MS)
     return () => {
       cancelAnimationFrame(t1)
       clearTimeout(t2)
@@ -372,7 +364,7 @@ function EvolutionBanner({
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
-    const t = setTimeout(() => setVisible(true), EVOLUTION_BANNER_DELAY_MS)
+    const t = setTimeout(() => setVisible(true), PVP_EVOLUTION_BANNER_DELAY_MS)
     return () => clearTimeout(t)
   }, [])
 

@@ -1,16 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
-import { PVP_MILESTONE_TOAST_DISPLAY_MS } from '../../../constants/pvp'
+import {
+  PVP_MILESTONE_TOAST_DISPLAY_MS,
+  MILESTONE_LABELS,
+} from '../../../constants/pvp'
 import type { MilestoneType } from '../../../constants/pvp'
 
 type Milestone = {
   id: string
   type: MilestoneType
-}
-
-const MILESTONE_LABELS: Record<MilestoneType, string> = {
-  halfway: 'Opponent passed halfway!',
-  started_quiz: 'Opponent started the quiz!',
-  finished: 'Opponent finished!',
 }
 
 type PvpMilestoneToastProps = {

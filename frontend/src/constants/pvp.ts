@@ -1,3 +1,5 @@
+export type MatchResult = 'win' | 'draw' | 'loss'
+
 export const PVP_STARTING_ELO = 1000
 
 export const PVP_HEARTBEAT_INTERVAL_MS = 5000
@@ -132,3 +134,59 @@ export const RANK_TIERS = buildRankTiers()
 export type RankTier = string
 
 export type RankInfo = (typeof RANK_TIERS)[number]
+
+// Glow effect constants for rank badges
+export const GLOW_SPREAD = 14
+export const GLOW_LAYERS = 2
+
+export const GLOW_COLOR: Record<RankLevel, string | null> = {
+  Baby: null,
+  Young: '#C0C0C0',
+  Prime: '#FFD700',
+}
+
+// Banner style classes
+export const WARNING_BANNER =
+  'bg-warning/90 text-bg px-4 py-2 rounded-xl text-sm font-medium'
+export const ERROR_BANNER =
+  'bg-error/90 text-bg px-4 py-2 rounded-xl text-sm font-medium'
+
+// Milestone labels
+export const MILESTONE_LABELS: Record<MilestoneType, string> = {
+  halfway: 'Opponent passed halfway!',
+  started_quiz: 'Opponent started the quiz!',
+  finished: 'Opponent finished!',
+}
+
+// Quiz timer visual constants
+export const PVP_QUIZ_TIMER_CIRCLE_RADIUS = 42
+export const PVP_QUIZ_TIMER_WARNING_FRACTION = 0.5
+export const PVP_QUIZ_TIMER_DANGER_FRACTION = 0.25
+
+// Results animation timing
+export const PVP_RANK_FILL_DURATION_MS = 1200
+export const PVP_RANK_SWAP_DELAY_MS = 1700
+export const PVP_EVOLUTION_BANNER_DELAY_MS = 2200
+
+// Result display mappings
+export const RESULT_DISPLAY: Record<
+  MatchResult,
+  { text: string; color: string }
+> = {
+  win: { text: 'VICTORY', color: 'text-success' },
+  draw: { text: 'DRAW', color: 'text-warning' },
+  loss: { text: 'DEFEAT', color: 'text-error' },
+}
+
+export const RESULT_BADGE: Record<
+  MatchResult,
+  { label: string; color: string }
+> = {
+  win: { label: 'W', color: 'text-success bg-success/10' },
+  draw: { label: 'D', color: 'text-warning bg-warning/10' },
+  loss: { label: 'L', color: 'text-error bg-error/10' },
+}
+
+// Leaderboard layout
+export const PVP_LEADERBOARD_GRID_COLS =
+  'grid-cols-[24px_24px_1fr_60px_60px_52px]'

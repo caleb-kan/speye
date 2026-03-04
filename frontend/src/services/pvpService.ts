@@ -1,6 +1,7 @@
 export {
   getPvpRating,
   getPvpLeaderboard,
+  searchPvpUserByUsername,
 } from '../../../backend/supabase/database/pvp/pvpRatings'
 
 export {

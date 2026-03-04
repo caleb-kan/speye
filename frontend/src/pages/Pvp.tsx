@@ -7,7 +7,7 @@ import {
   PvpLoadingSpinner,
   PvpLoginRequired,
 } from '../components/pvp/shared/PvpCenteredMessage'
-import { WARNING_BANNER } from '../components/pvp/game/PvpGameBanners'
+import { WARNING_BANNER } from '../constants/pvp'
 import { ROUTES } from '../utils/routes'
 
 export function Pvp() {

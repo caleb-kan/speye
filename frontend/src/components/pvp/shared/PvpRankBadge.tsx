@@ -1,5 +1,5 @@
 import { getRankFromElo } from '../../../utils/pvp'
-import type { RankLevel } from '../../../constants/pvp'
+import { GLOW_SPREAD, GLOW_LAYERS, GLOW_COLOR } from '../../../constants/pvp'
 
 type PvpRankBadgeProps = {
   elo: number | null
@@ -10,15 +10,6 @@ const sizes = {
   sm: { fontSize: 'text-lg', badge: 'w-8 h-8' },
   md: { fontSize: 'text-3xl', badge: 'w-12 h-12' },
   lg: { fontSize: 'text-5xl', badge: 'w-20 h-20' },
-}
-
-const GLOW_SPREAD = 14
-const GLOW_LAYERS = 2
-
-const GLOW_COLOR: Record<RankLevel, string | null> = {
-  Baby: null,
-  Young: '#C0C0C0',
-  Prime: '#FFD700',
 }
 
 function buildGlowFilter(color: string) {

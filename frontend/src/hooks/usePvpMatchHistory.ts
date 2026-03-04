@@ -3,9 +3,9 @@ import { getPvpMatchHistory } from '../services/pvpService'
 import { useAuth } from './useAuth'
 import type { PvpMatchHistoryEntry } from '../types/database'
 
-export function usePvpMatchHistory() {
+export function usePvpMatchHistory(targetUserId?: string | null) {
   const { user } = useAuth()
-  const userId = user?.id ?? null
+  const userId = targetUserId ?? user?.id ?? null
   const [matches, setMatches] = useState<PvpMatchHistoryEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)

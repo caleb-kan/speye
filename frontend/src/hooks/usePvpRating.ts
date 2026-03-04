@@ -3,9 +3,9 @@ import { getPvpRating } from '../services/pvpService'
 import { useAuth } from './useAuth'
 import type { PvpRating } from '../types/database'
 
-export function usePvpRating() {
+export function usePvpRating(targetUserId?: string | null) {
   const { user } = useAuth()
-  const userId = user?.id ?? null
+  const userId = targetUserId ?? user?.id ?? null
   const [rating, setRating] = useState<PvpRating | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)

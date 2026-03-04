@@ -2,6 +2,8 @@ import type { NotificationType } from '../types'
 
 export type ApprovalFilterTab = 'flagged' | 'passed'
 
+export const VERIFIED_SCORE_THRESHOLD = 25
+
 export const DEFAULT_APPROVAL_FILTER_TAB: ApprovalFilterTab = 'flagged'
 
 export const ADMIN_TEXT_PREVIEW_LENGTH = 80

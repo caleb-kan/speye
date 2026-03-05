@@ -126,6 +126,25 @@ describe('Navbar', () => {
         '/login'
       )
     })
+
+    it('shows Activity and Ranked links but they are disabled', () => {
+      renderNavbar()
+      const activityLink = screen.getByRole('link', { name: 'Activity' })
+      const rankedLink = screen.getByRole('link', { name: 'Ranked' })
+
+      expect(activityLink).toBeInTheDocument()
+      expect(rankedLink).toBeInTheDocument()
+      expect(activityLink).toHaveAttribute('aria-disabled', 'true')
+      expect(rankedLink).toHaveAttribute('aria-disabled', 'true')
+    })
+
+    it('shows custom tooltips for disabled Activity and Ranked buttons', () => {
+      renderNavbar()
+      expect(
+        screen.getByText('Sign in to see your activity')
+      ).toBeInTheDocument()
+      expect(screen.getByText('Sign in to play Ranked')).toBeInTheDocument()
+    })
   })
 
   describe('Auth Section - Loading', () => {
@@ -177,10 +196,11 @@ describe('Navbar', () => {
       expect(screen.getByTestId('navbar-profile-avatar')).toBeInTheDocument()
     })
 
-    it('profile avatar is not a link', () => {
+    it('profile avatar is a link to profile page', () => {
       renderNavbar()
       const avatar = screen.getByTestId('navbar-profile-avatar')
-      expect(avatar.tagName).not.toBe('A')
+      expect(avatar.tagName).toBe('A')
+      expect(avatar).toHaveAttribute('href', '/profile')
     })
 
     it('does not show login link when logged in', () => {
@@ -193,12 +213,23 @@ describe('Navbar', () => {
       expect(screen.getByText('T')).toBeInTheDocument()
     })
 
-    it('avatar is decorative (aria-hidden)', () => {
+    it('avatar link is accessible to screen readers', () => {
       renderNavbar()
       expect(screen.getByTestId('navbar-profile-avatar')).toHaveAttribute(
-        'aria-hidden',
-        'true'
+        'aria-label',
+        'Profile'
       )
+    })
+
+    it('shows Activity and Ranked links and they are enabled', () => {
+      renderNavbar()
+      const activityLink = screen.getByRole('link', { name: 'Activity' })
+      const rankedLink = screen.getByRole('link', { name: 'Ranked' })
+
+      expect(activityLink).toBeInTheDocument()
+      expect(rankedLink).toBeInTheDocument()
+      expect(activityLink).not.toHaveAttribute('aria-disabled', 'true')
+      expect(rankedLink).not.toHaveAttribute('aria-disabled', 'true')
     })
   })
 })

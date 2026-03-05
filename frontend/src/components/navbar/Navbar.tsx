@@ -37,6 +37,7 @@ export function Navbar() {
   const { isOnline } = useNetworkStatus()
 
   const isLoginActive = location.pathname === ROUTES.LOGIN
+  const isProfileActive = location.pathname === ROUTES.PROFILE
   const isInAdaptiveMode = location.pathname === ROUTES.ADAPTIVE
   const isInReadingRoute =
     location.pathname === ROUTES.HOME ||
@@ -114,24 +115,24 @@ export function Navbar() {
         isMobile={isMobile}
         onBeforeNavigate={handleBeforeNavigate}
       />
-      {user && (
-        <NavItem
-          to={ROUTES.ACTIVITY}
-          icon={<ListChecks size={22} />}
-          label="Activity"
-          isMobile={isMobile}
-          onBeforeNavigate={handleBeforeNavigate}
-        />
-      )}
-      {user && (
-        <NavItem
-          to={ROUTES.PVP}
-          icon={<Swords size={22} />}
-          label="Ranked"
-          isMobile={isMobile}
-          onBeforeNavigate={handleBeforeNavigate}
-        />
-      )}
+      <NavItem
+        to={ROUTES.ACTIVITY}
+        icon={<ListChecks size={22} />}
+        label="Activity"
+        isMobile={isMobile}
+        onBeforeNavigate={handleBeforeNavigate}
+        disabled={!user}
+        disabledLabel="Sign in to see your activity"
+      />
+      <NavItem
+        to={ROUTES.PVP}
+        icon={<Swords size={22} />}
+        label="Ranked"
+        isMobile={isMobile}
+        onBeforeNavigate={handleBeforeNavigate}
+        disabled={!user}
+        disabledLabel="Sign in to play Ranked"
+      />
       <NavItem
         to={ROUTES.SETTINGS}
         icon={<Settings size={22} />}
@@ -168,9 +169,12 @@ export function Navbar() {
           data-testid="auth-loading-placeholder"
         />
       ) : user ? (
-        <div
+        <Link
+          to={ROUTES.PROFILE}
+          onClick={(e) => handleAuthLinkClick(e, ROUTES.PROFILE)}
+          aria-label="Profile"
+          aria-current={isProfileActive ? 'page' : undefined}
           className="group relative flex justify-center items-center w-8 h-8 shrink-0 rounded-full"
-          aria-hidden="true"
           data-testid="navbar-profile-avatar"
         >
           <span className="w-full h-full overflow-hidden rounded-full">
@@ -180,7 +184,8 @@ export function Navbar() {
               size="sm"
             />
           </span>
-        </div>
+          <NavTooltip label="Profile" isMobile={isMobile} />
+        </Link>
       ) : (
         <Link
           to={ROUTES.LOGIN}

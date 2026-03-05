@@ -9,6 +9,8 @@ type NavItemProps = {
   isMobile: boolean
   state?: unknown
   onBeforeNavigate?: (to: string) => void
+  disabled?: boolean
+  disabledLabel?: string
 }
 
 export function NavItem({
@@ -18,6 +20,8 @@ export function NavItem({
   isMobile,
   state,
   onBeforeNavigate,
+  disabled = false,
+  disabledLabel,
 }: NavItemProps) {
   const location = useLocation()
   const navigate = useNavigate()
@@ -25,6 +29,11 @@ export function NavItem({
   const isInAdaptiveMode = location.pathname === '/adaptive'
 
   const handleClick = (e: React.MouseEvent) => {
+    if (disabled) {
+      e.preventDefault()
+      return
+    }
+
     if (isActive) {
       e.preventDefault()
       return
@@ -48,17 +57,29 @@ export function NavItem({
       onClick={handleClick}
       aria-label={label}
       aria-current={isActive ? 'page' : undefined}
+      aria-disabled={disabled}
       className={`
         group relative
         flex justify-center items-center
         w-full h-9
         rounded-full transition-colors
         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary
-        ${isActive ? 'text-primary' : 'text-text-secondary hover:text-text'}
+        ${
+          disabled
+            ? 'text-text-secondary/40 cursor-not-allowed'
+            : isActive
+              ? 'text-primary'
+              : 'text-text-secondary hover:text-text'
+        }
       `}
     >
       {icon}
-      <NavTooltip label={label} isMobile={isMobile} />
+      <NavTooltip
+        label={label}
+        isMobile={isMobile}
+        disabled={disabled}
+        disabledLabel={disabledLabel}
+      />
     </Link>
   )
 }

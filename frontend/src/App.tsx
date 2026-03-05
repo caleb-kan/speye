@@ -16,6 +16,7 @@ import { NetworkStatusProvider } from './context/NetworkStatusProvider'
 import { getRuntimeBase } from './utils/getRuntimeBase'
 import { Home } from './pages/Home'
 import { Settings } from './pages/Settings'
+import { Profile } from './pages/Profile'
 import { Library } from './pages/Library'
 import { Activity } from './pages/Activity'
 import { Admin } from './pages/Admin'
@@ -124,6 +125,7 @@ function App() {
                         <Route path="activity" element={<Activity />} />
                         <Route path="admin" element={<Admin />} />
                         <Route path="settings" element={<Settings />} />
+                        <Route path="profile" element={<Profile />} />
                         <Route
                           path="notifications"
                           element={<Notifications />}

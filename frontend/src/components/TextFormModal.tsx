@@ -671,22 +671,7 @@ export function TextFormModal({
         <button
           type="submit"
           className="px-4 py-2 bg-primary text-bg rounded-lg hover:opacity-90 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-bg-secondary disabled:opacity-50 disabled:cursor-not-allowed"
-          disabled={
-            isSubmitting ||
-            isMakingPublicCopy ||
-            (!isSectional && !content.trim()) ||
-            (isSectional &&
-              sections.some((s) => !s.title.trim() || !s.content.trim())) ||
-            (mode === 'edit' &&
-              ((!isSectional &&
-                content.trim() === initialData?.content &&
-                title.trim() === (initialData?.title || '') &&
-                fiction === initialData?.fiction) ||
-                (isSectional &&
-                  isSectional === (initialData?.sectional ?? false) &&
-                  JSON.stringify(sections) ===
-                    JSON.stringify(getSectionContent(initialData)))))
-          }
+          disabled={!hasUnsavedChanges}
         >
           {isSubmitting ? config.submittingLabel : config.submitLabel}
         </button>

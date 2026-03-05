@@ -5,4 +5,5 @@ export const STORAGE_KEYS = {
   WEBGAZER_REGRESSION_VERSION: 'webgazer-regression-version',
   READING_ACTIVITY_SESSION: 'reading-activity-session',
   RSVP_OPTIONS_OPEN: 'rsvp-options-open',
+  PWA_BANNER_DISMISSED: 'pwa-install-banner-dismissed',
 } as const

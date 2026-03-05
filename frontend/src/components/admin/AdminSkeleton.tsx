@@ -8,7 +8,7 @@ import {
 export function AdminSkeleton() {
   return (
     <div className="p-6 flex-1 flex flex-col">
-      <div className="w-full max-w-6xl mx-auto space-y-8">
+      <div className="w-full max-w-7xl mx-auto space-y-8">
         <HeaderSkeleton />
 
         {/* Stats Grid */}

@@ -32,7 +32,7 @@ export async function uploadText(
     .insert([
       {
         owner_id: data.isPublic ? null : userId,
-        content: representativeContent,
+        content: data.content,
         complexity: complexity,
         // Optional fields - only include if provided
         ...(data.title !== undefined && { title: data.title }),

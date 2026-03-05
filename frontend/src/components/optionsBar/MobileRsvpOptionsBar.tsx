@@ -33,7 +33,7 @@ function OptionRow({
 }) {
   return (
     <div className="flex items-center justify-between gap-3 px-4 py-2 overflow-visible">
-      <span className="text-text-secondary text-xs shrink-0">{label}</span>
+      <span className="text-text text-xs shrink-0">{label}</span>
       <div className="flex items-center gap-1.5 overflow-visible">
         {children}
       </div>

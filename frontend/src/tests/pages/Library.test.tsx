@@ -60,6 +60,10 @@ vi.mock('../../hooks/useLibraryBestScores', () => ({
   useLibraryBestScores: () => ({}),
 }))
 
+vi.mock('../../hooks/useLibraryLastReadDates', () => ({
+  useLibraryLastReadDates: () => ({}),
+}))
+
 vi.mock('../../hooks/useComplexitySlider', () => ({
   useComplexitySlider: () => ({
     sliderRef: { current: null },

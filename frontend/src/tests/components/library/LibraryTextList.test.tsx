@@ -45,6 +45,7 @@ const createMockTextPreview = (
 const defaultProps = {
   activeTab: 'public' as const,
   bestScores: {} as Record<string, number>,
+  lastReadDates: {} as Record<string, string>,
   retryingTextIds: new Set<string>(),
   onReadText: vi.fn(),
   onReadSummary: vi.fn(),
@@ -147,6 +148,26 @@ describe('LibraryTextList', () => {
     render(<LibraryTextList texts={texts} {...defaultProps} />)
 
     expect(screen.queryByText('Read Summary')).not.toBeInTheDocument()
+  })
+
+  it('should show last read date when available', () => {
+    const texts = [createMockTextPreview()]
+    render(
+      <LibraryTextList
+        {...defaultProps}
+        texts={texts}
+        lastReadDates={{ 'text-1': '2026-01-20T14:00:00Z' }}
+      />
+    )
+
+    expect(screen.getByText(/Last read/)).toBeInTheDocument()
+  })
+
+  it('should not show last read date when not available', () => {
+    const texts = [createMockTextPreview()]
+    render(<LibraryTextList texts={texts} {...defaultProps} />)
+
+    expect(screen.queryByText(/Last read/)).not.toBeInTheDocument()
   })
 
   it('should show best score when available', () => {

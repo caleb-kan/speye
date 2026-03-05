@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react'
 import { useLocation } from 'react-router-dom'
+import { useAuth } from '../hooks/useAuth'
 import { STORAGE_KEYS } from '../constants/storage'
 import { RsvpReadingSession } from '../components/rsvp/RsvpReadingSession'
 import { useReadingPreferences } from '../hooks/useReadingPreferences'
@@ -22,6 +23,7 @@ export function Rsvp() {
   const modeTimestamp = state?._ts
   const isSummary = state?.isSummary ?? false
 
+  const { user } = useAuth()
   const [currentTextComplexity, setCurrentTextComplexity] = useState<
     number | null
   >(null)
@@ -82,6 +84,7 @@ export function Rsvp() {
       preservedText,
       onClearLibraryText: clearLibraryText,
       currentTextComplexity,
+      userId: user?.id,
     })
 
   // Sync text complexity when text changes (adjust state during render)

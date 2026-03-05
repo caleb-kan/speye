@@ -5,6 +5,7 @@ export interface FetchTextsFilters {
   fiction: boolean
   complexityMin: number
   complexityMax: number
+  excludeTextIds?: string[]
 }
 
 export async function getRandomText(filters: FetchTextsFilters) {
@@ -12,6 +13,7 @@ export async function getRandomText(filters: FetchTextsFilters) {
     fiction_filter: filters.fiction,
     complexity_min: filters.complexityMin,
     complexity_max: filters.complexityMax,
+    excluded_ids: filters.excludeTextIds ?? [],
   })
 
   logDbQuery({

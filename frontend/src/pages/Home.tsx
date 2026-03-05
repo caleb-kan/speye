@@ -3,6 +3,7 @@ import { useReadingContextSync } from '../hooks/useReadingContextSync'
 import { useRestoreReadingProgress } from '../hooks/useRestoreReadingProgress'
 import { useClearLocationState } from '../hooks/useClearLocationState'
 import { useTextNavigation } from '../hooks/useTextNavigation'
+import { useAuth } from '../hooks/useAuth'
 import { useOutletContext, useLocation } from 'react-router-dom'
 import { HomeContent } from '../components/home/HomeContent'
 import type { ReadingContext } from '../types/reading'
@@ -17,6 +18,7 @@ export function Home() {
   const modeTimestamp = state?._ts
   const isSummary = state?.isSummary ?? false
 
+  const { user } = useAuth()
   const context = useOutletContext<ReadingContext>()
 
   const clearLibraryText = useClearLocationState('/home')
@@ -32,6 +34,7 @@ export function Home() {
       preservedText,
       onClearLibraryText: clearLibraryText,
       currentTextComplexity: context.currentTextComplexity,
+      userId: user?.id,
     })
 
   useReadingContextSync(currentText, context)

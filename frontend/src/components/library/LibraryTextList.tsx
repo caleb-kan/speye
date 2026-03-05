@@ -19,6 +19,7 @@ export type LibraryTextListProps = {
   texts: TextPreview[]
   activeTab: 'private' | 'public'
   bestScores: Record<string, number>
+  lastReadDates: Record<string, string>
   retryingTextIds: Set<string>
   onReadText: (text: TextPreview) => void
   onReadSummary: (text: TextPreview) => void
@@ -32,6 +33,7 @@ export function LibraryTextList({
   texts,
   activeTab,
   bestScores,
+  lastReadDates,
   retryingTextIds,
   onReadText,
   onReadSummary,
@@ -121,79 +123,89 @@ export function LibraryTextList({
                 Uploaded {new Date(text.uploaded_at).toLocaleDateString()}
               </p>
             </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              {text.processing_status === 'completed' && (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => onReadText(text)}
-                    className="p-2 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
-                    aria-label="Read text"
-                    title="Start reading"
-                  >
-                    <Play className="w-4 h-4" />
-                  </button>
-                  {!isMobile && text.has_summary && (
+            <div className="flex flex-col items-end gap-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                {text.processing_status === 'completed' && (
+                  <>
                     <button
                       type="button"
-                      onClick={() => onReadSummary(text)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-primary bg-primary/10 hover:bg-primary/20 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
-                      aria-label="Read summary"
+                      onClick={() => onReadText(text)}
+                      className="p-2 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
+                      aria-label="Read text"
+                      title="Start reading"
                     >
-                      <FileText className="w-3.5 h-3.5" />
-                      Read Summary
+                      <Play className="w-4 h-4" />
                     </button>
-                  )}
-                </>
-              )}
-              {(text.processing_status === 'failed' ||
-                (text.processing_status === 'completed' &&
-                  text.quiz_valid === false)) &&
-                (activeTab === 'private' || isAdmin) &&
-                !(
-                  text.rejection_stage === 'process_text' &&
-                  text.llm_violation_type !== null
-                ) && (
-                  <button
-                    type="button"
-                    onClick={() => onRetryProcessing(text.id)}
-                    disabled={!isOnline || retryingTextIds.has(text.id)}
-                    className="p-2 text-text-secondary hover:text-error hover:bg-error/10 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-error disabled:opacity-50 disabled:cursor-not-allowed"
-                    aria-label="Retry processing"
-                    title={isOnline ? 'Regenerate quiz' : 'Unavailable offline'}
-                  >
-                    <RefreshCw
-                      className={`w-4 h-4 ${retryingTextIds.has(text.id) ? 'animate-spin' : ''}`}
-                    />
-                  </button>
+                    {!isMobile && text.has_summary && (
+                      <button
+                        type="button"
+                        onClick={() => onReadSummary(text)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-primary bg-primary/10 hover:bg-primary/20 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
+                        aria-label="Read summary"
+                      >
+                        <FileText className="w-3.5 h-3.5" />
+                        Read Summary
+                      </button>
+                    )}
+                  </>
                 )}
-              {(activeTab === 'private' || isAdmin) && (
-                <>
-                  {text.processing_status === 'completed' && (
+                {(text.processing_status === 'failed' ||
+                  (text.processing_status === 'completed' &&
+                    text.quiz_valid === false)) &&
+                  (activeTab === 'private' || isAdmin) &&
+                  !(
+                    text.rejection_stage === 'process_text' &&
+                    text.llm_violation_type !== null
+                  ) && (
                     <button
                       type="button"
-                      onClick={() => onEditText(text)}
-                      disabled={!isOnline}
-                      className="p-2 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
-                      aria-label="Edit text"
+                      onClick={() => onRetryProcessing(text.id)}
+                      disabled={!isOnline || retryingTextIds.has(text.id)}
+                      className="p-2 text-text-secondary hover:text-error hover:bg-error/10 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-error disabled:opacity-50 disabled:cursor-not-allowed"
+                      aria-label="Retry processing"
                       title={
-                        isOnline ? 'Edit text or quiz' : 'Unavailable offline'
+                        isOnline ? 'Regenerate quiz' : 'Unavailable offline'
                       }
                     >
-                      <Pencil className="w-4 h-4" />
+                      <RefreshCw
+                        className={`w-4 h-4 ${retryingTextIds.has(text.id) ? 'animate-spin' : ''}`}
+                      />
                     </button>
                   )}
-                  <button
-                    type="button"
-                    onClick={() => onDeleteText(text.id)}
-                    disabled={!isOnline}
-                    className="p-2 text-text-secondary hover:text-error hover:bg-error/10 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-error disabled:opacity-50 disabled:cursor-not-allowed"
-                    aria-label="Delete text"
-                    title={isOnline ? 'Delete text' : 'Unavailable offline'}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </>
+                {(activeTab === 'private' || isAdmin) && (
+                  <>
+                    {text.processing_status === 'completed' && (
+                      <button
+                        type="button"
+                        onClick={() => onEditText(text)}
+                        disabled={!isOnline}
+                        className="p-2 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                        aria-label="Edit text"
+                        title={
+                          isOnline ? 'Edit text or quiz' : 'Unavailable offline'
+                        }
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => onDeleteText(text.id)}
+                      disabled={!isOnline}
+                      className="p-2 text-text-secondary hover:text-error hover:bg-error/10 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-error disabled:opacity-50 disabled:cursor-not-allowed"
+                      aria-label="Delete text"
+                      title={isOnline ? 'Delete text' : 'Unavailable offline'}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </>
+                )}
+              </div>
+              {lastReadDates[text.id] && (
+                <p className="text-xs text-text-secondary">
+                  Last read{' '}
+                  {new Date(lastReadDates[text.id]).toLocaleDateString()}
+                </p>
               )}
             </div>
           </div>

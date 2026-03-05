@@ -9,6 +9,7 @@ import { useComplexitySlider } from '../hooks/useComplexitySlider'
 import { useLibraryTextActions } from '../hooks/useLibraryTextActions'
 import { useLibraryPublicTexts } from '../hooks/useLibraryPublicTexts'
 import { useLibraryBestScores } from '../hooks/useLibraryBestScores'
+import { useLibraryLastReadDates } from '../hooks/useLibraryLastReadDates'
 import { useAutoClearMessage } from '../hooks/useAutoClearMessage'
 import { useLibraryFilterHandlers } from '../hooks/useLibraryFilterHandlers'
 import { useLibraryPagination } from '../hooks/useLibraryPagination'
@@ -115,6 +116,7 @@ export function Library() {
   })
 
   const bestScores = useLibraryBestScores(user?.id ?? null, activeTab)
+  const lastReadDates = useLibraryLastReadDates(user?.id ?? null)
 
   const {
     handleSearchChange,
@@ -197,6 +199,7 @@ export function Library() {
           hasActiveFilters={hasActiveFilters}
           paginatedTexts={paginatedTexts}
           bestScores={bestScores}
+          lastReadDates={lastReadDates}
           retryingTextIds={retryingTextIds}
           onReadText={handleReadText}
           onReadSummary={handleReadSummary}

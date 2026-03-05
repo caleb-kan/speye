@@ -7,6 +7,7 @@ type UseTextsOptions = {
   complexityMin: number
   complexityMax: number
   currentTextComplexity: number | null
+  excludeTextIds?: string[]
 }
 
 export function useTexts({
@@ -14,6 +15,7 @@ export function useTexts({
   complexityMin,
   complexityMax,
   currentTextComplexity,
+  excludeTextIds,
 }: UseTextsOptions) {
   const [randomText, setRandomText] = useState<Text | null>(null)
   const [loading, setLoading] = useState(true)
@@ -26,7 +28,13 @@ export function useTexts({
   const fetchIdRef = useRef(0)
 
   const doFetch = useCallback(
-    async (requestId: number, f: boolean, cMin: number, cMax: number) => {
+    async (
+      requestId: number,
+      f: boolean,
+      cMin: number,
+      cMax: number,
+      excluded?: string[]
+    ) => {
       try {
         setLoading(true)
         setError(null)
@@ -35,6 +43,7 @@ export function useTexts({
           fiction: f,
           complexityMin: cMin,
           complexityMax: cMax,
+          excludeTextIds: excluded,
         })
 
         // Only update state if this is still the latest request
@@ -56,8 +65,8 @@ export function useTexts({
   // Public refetch function that can be called externally
   const refetch = useCallback(() => {
     const requestId = ++fetchIdRef.current
-    doFetch(requestId, fiction, complexityMin, complexityMax)
-  }, [doFetch, fiction, complexityMin, complexityMax])
+    doFetch(requestId, fiction, complexityMin, complexityMax, excludeTextIds)
+  }, [doFetch, fiction, complexityMin, complexityMax, excludeTextIds])
 
   // Single effect for all fetch logic
   useEffect(() => {
@@ -80,9 +89,16 @@ export function useTexts({
       initialFetchDoneRef.current = true
       // Increment fetch ID to invalidate any in-flight requests
       const requestId = ++fetchIdRef.current
-      doFetch(requestId, fiction, complexityMin, complexityMax)
+      doFetch(requestId, fiction, complexityMin, complexityMax, excludeTextIds)
     }
-  }, [fiction, complexityMin, complexityMax, currentTextComplexity, doFetch])
+  }, [
+    fiction,
+    complexityMin,
+    complexityMax,
+    currentTextComplexity,
+    excludeTextIds,
+    doFetch,
+  ])
 
   return {
     randomText,

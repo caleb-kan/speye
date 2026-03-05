@@ -2,6 +2,8 @@ import type { Text, TextInput, TextPreview, Quiz } from '../types/database'
 import { deleteText } from '../../../backend/supabase/database/texts/deleteText'
 import { getLibraryTexts } from '../../../backend/supabase/database/texts/getLibraryTexts'
 import { getTextBestScores } from '../../../backend/supabase/database/texts/getTextBestScores'
+import { getLastReadDates } from '../../../backend/supabase/database/userActivity/getLastReadDates'
+import { getRecentlyQuizzedTextIds } from '../../../backend/supabase/database/userActivity/getRecentlyQuizzedTextIds'
 import { getTextContent } from '../../../backend/supabase/database/texts/getTextContent'
 import { retryProcessing } from '../../../backend/supabase/database/texts/retryProcessing'
 import { updateText } from '../../../backend/supabase/database/texts/updateText'
@@ -14,6 +16,10 @@ import {
   setCachedText,
   getCachedBestScores,
   setCachedBestScores,
+  getCachedLastReadDates,
+  setCachedLastReadDates,
+  getCachedRecentlyQuizzedTextIds,
+  setCachedRecentlyQuizzedTextIds,
 } from './offlineCache'
 import { pwaLogger } from '../utils/pwaLogger'
 import { isOffline } from './networkStatus'
@@ -125,6 +131,62 @@ export const fetchTextBestScores = async (
       err
     )
     const cached = await getCachedBestScores(userId)
+    if (cached) return cached
+    throw err
+  }
+}
+
+export const fetchLastReadDates = async (
+  userId: string
+): Promise<Record<string, string>> => {
+  if (isOffline()) {
+    pwaLogger.debug(TAG, 'Offline — returning cached last read dates', {
+      userId,
+    })
+    return (await getCachedLastReadDates(userId)) ?? {}
+  }
+
+  try {
+    const dates = await getLastReadDates(userId)
+    void setCachedLastReadDates(userId, dates).catch((err) =>
+      pwaLogger.warn(TAG, 'Failed to cache last read dates', err)
+    )
+    return dates
+  } catch (err) {
+    pwaLogger.warn(
+      TAG,
+      'Network fetch failed for last read dates, falling back to cache',
+      err
+    )
+    const cached = await getCachedLastReadDates(userId)
+    if (cached) return cached
+    throw err
+  }
+}
+
+export const fetchRecentlyQuizzedTextIds = async (
+  userId: string
+): Promise<string[]> => {
+  if (isOffline()) {
+    pwaLogger.debug(TAG, 'Offline — returning cached recently quizzed IDs', {
+      userId,
+    })
+    return (await getCachedRecentlyQuizzedTextIds(userId)) ?? []
+  }
+
+  try {
+    const ids = await getRecentlyQuizzedTextIds(userId)
+    void setCachedRecentlyQuizzedTextIds(userId, ids).catch((err) =>
+      pwaLogger.warn(TAG, 'Failed to cache recently quizzed IDs', err)
+    )
+    return ids
+  } catch (err) {
+    pwaLogger.warn(
+      TAG,
+      'Network fetch failed for recently quizzed IDs, falling back to cache',
+      err
+    )
+    const cached = await getCachedRecentlyQuizzedTextIds(userId)
     if (cached) return cached
     throw err
   }

@@ -4,6 +4,8 @@ export const CACHE_TTL = {
   LIBRARY_LISTING: 1 * 60 * 60 * 1000, // 1 hour
   ACTIVITY: 30 * 60 * 1000, // 30 min
   BEST_SCORES: 1 * 60 * 60 * 1000, // 1 hour
+  LAST_READ_DATES: 1 * 60 * 60 * 1000, // 1 hour
+  RECENTLY_QUIZZED: 30 * 60 * 1000, // 30 min
   LAST_POSITION: Infinity, // never expires
   NOTIFICATIONS: 15 * 60 * 1000, // 15 min
 } as const

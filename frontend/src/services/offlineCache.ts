@@ -162,6 +162,40 @@ export async function setCachedBestScores(
   await setCached(metadataStore, `bestScores:${userId}`, scores)
 }
 
+export async function getCachedLastReadDates(
+  userId: string
+): Promise<Record<string, string> | null> {
+  return getCached<Record<string, string>>(
+    metadataStore,
+    `lastReadDates:${userId}`,
+    CACHE_TTL.LAST_READ_DATES
+  )
+}
+
+export async function setCachedLastReadDates(
+  userId: string,
+  dates: Record<string, string>
+): Promise<void> {
+  await setCached(metadataStore, `lastReadDates:${userId}`, dates)
+}
+
+export async function getCachedRecentlyQuizzedTextIds(
+  userId: string
+): Promise<string[] | null> {
+  return getCached<string[]>(
+    metadataStore,
+    `recentlyQuizzed:${userId}`,
+    CACHE_TTL.RECENTLY_QUIZZED
+  )
+}
+
+export async function setCachedRecentlyQuizzedTextIds(
+  userId: string,
+  ids: string[]
+): Promise<void> {
+  await setCached(metadataStore, `recentlyQuizzed:${userId}`, ids)
+}
+
 export async function getCachedLastPosition(
   textId: string
 ): Promise<number | null> {

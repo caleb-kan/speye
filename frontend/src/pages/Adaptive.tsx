@@ -72,6 +72,7 @@ export function Adaptive() {
       preservedText,
       onClearLibraryText: clearLibraryText,
       currentTextComplexity,
+      userId: user?.id,
     })
 
   useAdaptiveTextSync(

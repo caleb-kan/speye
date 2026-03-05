@@ -11,6 +11,7 @@ export type GetRandomTextFilters = {
   fiction: boolean
   complexityMin: number
   complexityMax: number
+  excludeTextIds?: string[]
 }
 
 export async function getRandomText(
@@ -73,6 +74,7 @@ async function pickFromCache(
     if (t.fiction !== filters.fiction) return false
     const c = t.complexity ?? 0
     if (c < filters.complexityMin || c > filters.complexityMax) return false
+    if (filters.excludeTextIds?.includes(t.id)) return false
     return t.content && t.processing_status === 'completed'
   })
 

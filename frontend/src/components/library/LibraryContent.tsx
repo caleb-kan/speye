@@ -12,6 +12,7 @@ export type LibraryContentProps = {
   hasActiveFilters: boolean
   paginatedTexts: TextPreview[]
   bestScores: Record<string, number>
+  lastReadDates: Record<string, string>
   retryingTextIds: Set<string>
   onReadText: (textPreview: TextPreview) => Promise<void>
   onReadSummary: (textPreview: TextPreview) => Promise<void>
@@ -29,6 +30,7 @@ export function LibraryContent({
   hasActiveFilters,
   paginatedTexts,
   bestScores,
+  lastReadDates,
   retryingTextIds,
   onReadText,
   onReadSummary,
@@ -60,6 +62,7 @@ export function LibraryContent({
         texts={paginatedTexts}
         activeTab={activeTab}
         bestScores={bestScores}
+        lastReadDates={lastReadDates}
         retryingTextIds={retryingTextIds}
         onReadText={onReadText}
         onReadSummary={onReadSummary}

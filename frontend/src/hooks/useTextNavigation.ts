@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Text } from '../types/database'
 import { useTexts } from './useTexts'
+import { useRecentlyQuizzedTextIds } from './useRecentlyQuizzedTextIds'
 
 type UseTextNavigationOptions = {
   /** Text filters for fetching */
@@ -19,6 +20,8 @@ type UseTextNavigationOptions = {
   currentTextComplexity: number | null
   /** Callback when filters change and fetch a new text */
   onFiltersChanged?: () => void
+  /** User ID for excluding recently-quizzed texts */
+  userId?: string | null
 }
 
 type UseTextNavigationReturn = {
@@ -52,7 +55,9 @@ export function useTextNavigation({
   onClearLibraryText,
   currentTextComplexity,
   onFiltersChanged,
+  userId,
 }: UseTextNavigationOptions): UseTextNavigationReturn {
+  const recentlyQuizzedTextIds = useRecentlyQuizzedTextIds(userId ?? null)
   const [filtersChanged, setFiltersChanged] = useState(false)
   const initialFiltersRef = useRef<typeof filters | null>(null)
   const preservedTextIdRef = useRef<string | null>(null)
@@ -97,6 +102,7 @@ export function useTextNavigation({
   const { randomText, loading, error, refetch } = useTexts({
     ...filters,
     currentTextComplexity: filtersChanged ? null : currentTextComplexity,
+    excludeTextIds: recentlyQuizzedTextIds,
   })
 
   const currentText =

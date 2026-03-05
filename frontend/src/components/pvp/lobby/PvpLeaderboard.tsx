@@ -138,7 +138,7 @@ export function PvpLeaderboard({
   onSelectUser,
 }: PvpLeaderboardProps) {
   return (
-    <div className="h-[420px] w-full bg-bg-secondary/50 border border-text-secondary/10 rounded-2xl p-4 flex flex-col">
+    <div className="w-full bg-bg-secondary/50 border border-text-secondary/10 rounded-2xl p-4 flex flex-col">
       <div className="flex items-center gap-2 mb-4 flex-shrink-0">
         <Trophy size={18} className="text-primary" />
         <h3 className="text-lg font-semibold text-text">Elo Leaderboard</h3>
@@ -154,7 +154,7 @@ export function PvpLeaderboard({
         <div className="text-right">Win%</div>
       </div>
 
-      <div className="flex-1 overflow-y-auto min-h-0">
+      <div className="flex-1 min-h-0">
         <LeaderboardContent
           top={top}
           currentUser={currentUser}

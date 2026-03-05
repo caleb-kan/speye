@@ -11,6 +11,7 @@ export const ROUTES = {
   ACTIVITY: '/activity',
   ADMIN: '/admin',
   SETTINGS: '/settings',
+  PROFILE: '/profile',
   NOTIFICATIONS: '/notifications',
   LOGIN: '/login',
   COMPLETE_PROFILE: '/complete-profile',

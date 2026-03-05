@@ -1,22 +1,16 @@
 import { useEffect } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { useTheme } from '../hooks/useTheme'
-import { useAuth } from '../hooks/useAuth'
-import { getAvatarUrl } from '../utils/getAvatarUrl'
-import { ProfileSection } from '../components/settings/ProfileSection'
 import { ThemeSection } from '../components/settings/ThemeSection'
 import { ShortcutsSection } from '../components/settings/ShortcutsSection'
 import { AboutSection } from '../components/settings/AboutSection'
-import { AccountSection } from '../components/settings/AccountSection'
-import { LoginPromptSection } from '../components/settings/LoginPromptSection'
 import { OfflineCacheSection } from '../components/settings/OfflineCacheSection'
 import { useIsMobile } from '../hooks/useIsMobile'
-import { useDefaultReadingRoute } from '../hooks/useDefaultReadingRoute'
+import { useAuth } from '../hooks/useAuth'
 
 export function Settings() {
   const { theme, setTheme, themes } = useTheme()
-  const { user, signOut } = useAuth()
-  const navigate = useNavigate()
+  const { user } = useAuth()
   const { hash } = useLocation()
 
   // Scroll to hash fragment (e.g. #offline-cache) after mount
@@ -27,24 +21,9 @@ export function Settings() {
   }, [hash])
 
   const isMobile = useIsMobile()
-  const defaultRoute = useDefaultReadingRoute()
-
-  const handleSignOut = async () => {
-    try {
-      await signOut()
-      navigate(defaultRoute)
-    } catch (error) {
-      console.error('Sign out failed:', error)
-    }
-  }
-
   return (
     <div className="flex-1 flex flex-col items-center px-4 sm:px-8 p-6">
       <div className="w-full max-w-xl">
-        {user && (
-          <ProfileSection user={user} avatarUrl={getAvatarUrl(user) ?? null} />
-        )}
-
         <ThemeSection theme={theme} themes={themes} onThemeChange={setTheme} />
 
         <AboutSection />
@@ -52,12 +31,6 @@ export function Settings() {
         {!isMobile && <ShortcutsSection />}
 
         {user && <OfflineCacheSection />}
-
-        {user ? (
-          <AccountSection onSignOut={handleSignOut} />
-        ) : (
-          <LoginPromptSection onLogin={() => navigate('/login')} />
-        )}
 
         <div className="mt-6 pb-2 text-center text-xs text-text-secondary">
           <p>© 2026 sp(eye). All rights reserved</p>

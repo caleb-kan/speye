@@ -1,9 +1,18 @@
 type NavTooltipProps = {
   label: string
   isMobile: boolean
+  disabledLabel?: string
+  disabled?: boolean
 }
 
-export function NavTooltip({ label, isMobile }: NavTooltipProps) {
+export function NavTooltip({
+  label,
+  isMobile,
+  disabledLabel,
+  disabled,
+}: NavTooltipProps) {
+  const displayLabel = disabled && disabledLabel ? disabledLabel : label
+
   return (
     <span
       aria-hidden="true"
@@ -14,7 +23,7 @@ export function NavTooltip({ label, isMobile }: NavTooltipProps) {
         ${isMobile ? 'left-1/2 -translate-x-1/2 top-full mt-2' : 'left-full top-1/2 -translate-y-1/2 ml-3'}
       `}
     >
-      {label}
+      {displayLabel}
     </span>
   )
 }

@@ -46,6 +46,7 @@ export interface WpmBucket {
 }
 
 export interface WpmStats {
+  last_7d: { avg_wpm: number; distribution: WpmBucket[] }
   recent: { avg_wpm: number; distribution: WpmBucket[] }
   all_time: { avg_wpm: number; distribution: WpmBucket[] }
 }

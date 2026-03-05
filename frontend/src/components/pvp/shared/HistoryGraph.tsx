@@ -120,12 +120,10 @@ export function HistoryGraph<T extends Record<string, unknown>>({
     onHoverDataPoint?.(null)
   }
   // Calculate min and max values for the Y-axis domain
-  const values = data
-    .map((item) => {
-      const value = item[valueKey]
-      return typeof value === 'number' ? value : 0
-    })
-    .filter((v) => v !== null && v !== undefined)
+  const values = data.map((item) => {
+    const value = item[valueKey]
+    return typeof value === 'number' ? value : 0
+  })
 
   const minValue = values.length > 0 ? Math.min(...values) : 0
   const maxValue = values.length > 0 ? Math.max(...values) : 100

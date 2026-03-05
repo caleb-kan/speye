@@ -92,10 +92,10 @@ export function PvpLobby() {
     setSearchedUser({ id: entry.user_id, username: entry.username })
   }
 
-  const handleLeaderboardSelectUser = (userId: string | null) => {
+  const handleLeaderboardSelectUser = (userId: string) => {
     setHoveredMatchId(null)
     setSelectedUserId(userId)
-    if (!userId || searchedUser?.id !== userId) {
+    if (searchedUser?.id !== userId) {
       setSearchedUser(null)
     }
   }

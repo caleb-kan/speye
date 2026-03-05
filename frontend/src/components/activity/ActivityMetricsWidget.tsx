@@ -122,7 +122,7 @@ export function ActivityMetricsWidget({
               <div className="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_8px_var(--color-primary)]"></div>
             </div>
             <span className="text-xs font-bold text-text tabular-nums leading-none mt-1">
-              ~{wpmAvg}{' '}
+              {wpmAvg}{' '}
               <span className="text-[9px] font-normal text-text-secondary">
                 WPM
               </span>

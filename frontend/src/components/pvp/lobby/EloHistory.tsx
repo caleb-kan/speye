@@ -82,7 +82,7 @@ export function EloHistory({
                 </span>
               </div>
             )}
-            {!rank && !currentElo && (
+            {!rank && currentElo == null && (
               <div className="text-text-secondary text-sm">-</div>
             )}
           </div>

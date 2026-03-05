@@ -7,6 +7,7 @@ import { useReader } from '../hooks/useReader'
 import { useArrowNavigation } from '../hooks/useArrowNavigation'
 import type { Scrolling } from '../types/reading'
 import { Resizable } from './Resizable'
+import { ShortcutHints } from './ShortcutHints'
 import { ARROW_KEY_JUMP_WORDS } from '../constants/textDisplay'
 import type { SectionData } from '../types/database'
 
@@ -142,6 +143,7 @@ export function Reader({
 
       {/* Text display - flex-1 to fill space */}
       <div className="flex-1 w-full">
+        {!disabled && <ShortcutHints />}
         {sectional && section_content ? (
           <SectionalTextDisplay
             sections={section_content}

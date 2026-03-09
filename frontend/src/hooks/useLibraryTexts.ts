@@ -42,7 +42,6 @@ export function useLibraryTexts(userId: string | null): UseLibraryTextsReturn {
     }
   }, [userId])
 
-  // Initial fetch when userId changes
   useEffect(() => {
     if (userId) {
       fetchTexts()
@@ -51,7 +50,6 @@ export function useLibraryTexts(userId: string | null): UseLibraryTextsReturn {
     }
   }, [userId, fetchTexts])
 
-  // Real-time subscription callbacks
   const subscriptionCallbacks = useMemo(
     () => ({
       onInsert: (newText: TextPreview) => {
@@ -92,7 +90,6 @@ export function useLibraryTexts(userId: string | null): UseLibraryTextsReturn {
     []
   )
 
-  // Subscribe to real-time updates
   useTextSubscription(userId, subscriptionCallbacks)
 
   return {

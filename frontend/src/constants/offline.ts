@@ -12,7 +12,6 @@ export const CACHE_TTL = {
 
 export const SYNC = {
   MAX_RETRY_COUNT: 5,
-  QUEUE_STORAGE_KEY: 'speye-operation-queue',
   UNLOAD_QUEUE_KEY: 'speye-unload-queue',
 } as const
 

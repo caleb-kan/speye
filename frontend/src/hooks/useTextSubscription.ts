@@ -82,7 +82,6 @@ export function useTextSubscription(
   const subscribe = useCallback(() => {
     if (!userId || !mountedRef.current) return
 
-    // Unsubscribe from existing channel if any
     if (channelRef.current) {
       supabase.removeChannel(channelRef.current)
     }
@@ -126,7 +125,6 @@ export function useTextSubscription(
 
         if (subscriptionStatus === 'SUBSCRIBED') {
           setStatus('connected')
-          // Reset retry delay on successful connection
           retryDelayRef.current = INITIAL_RETRY_DELAY_MS
         } else if (
           subscriptionStatus === 'CHANNEL_ERROR' ||
@@ -134,11 +132,9 @@ export function useTextSubscription(
         ) {
           console.error('Subscription error:', err)
           setStatus('error')
-          // Schedule retry on error
           scheduleRetry()
         } else if (subscriptionStatus === 'CLOSED') {
           setStatus('disconnected')
-          // Attempt to reconnect if closed unexpectedly
           if (mountedRef.current && userId) {
             scheduleRetry()
           }
@@ -148,12 +144,10 @@ export function useTextSubscription(
     channelRef.current = channel
   }, [userId, scheduleRetry])
 
-  // Update the ref whenever subscribe changes
   useEffect(() => {
     subscribeRef.current = subscribe
   }, [subscribe])
 
-  // Subscribe on mount, unsubscribe on unmount
   useEffect(() => {
     mountedRef.current = true
     // eslint-disable-next-line react-hooks/set-state-in-effect -- initializing subscription which manages its own state

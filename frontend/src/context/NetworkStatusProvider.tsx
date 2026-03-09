@@ -111,7 +111,6 @@ export function NetworkStatusProvider({
     }
   }, [isOnline])
 
-  // Refresh pending count whenever the queue changes
   useEffect(() => {
     void refreshPendingCount()
     const unsubscribe = onQueueChange(() => void refreshPendingCount())

@@ -1,8 +1,5 @@
 import { STORAGE_KEYS } from '../constants/storage'
-import {
-  CALIBRATION_EXPIRY_MS,
-  CALIBRATION_ACCURACY_THRESHOLD,
-} from '../constants/calibration'
+import { CALIBRATION_ACCURACY_THRESHOLD } from '../constants/calibration'
 import type { CalibrationState } from '../types/adaptive'
 
 const defaultCalibrationState: CalibrationState = {
@@ -52,14 +49,6 @@ export function saveCalibrationState(state: CalibrationState): SaveResult {
       return { success: false, fallback: false }
     }
   }
-}
-
-export function isCalibrationExpired(
-  lastCalibrationTime: number | null,
-  maxAgeMs: number = CALIBRATION_EXPIRY_MS
-): boolean {
-  if (lastCalibrationTime === null) return true
-  return Date.now() - lastCalibrationTime > maxAgeMs
 }
 
 export function markCalibrationFailed(): CalibrationState {

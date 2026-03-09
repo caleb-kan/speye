@@ -103,7 +103,7 @@ export function Adaptive() {
     handleNewText
   )
 
-  // Create fixed text info if reading from library (shows fixed genre/complexity in OptionsBar)
+  // Shows fixed genre/complexity in OptionsBar when reading from library
   const fixedText: FixedTextInfo | undefined = libraryText
     ? { fiction: libraryText.fiction, complexity: libraryText.complexity }
     : undefined
@@ -115,7 +115,7 @@ export function Adaptive() {
     returnTo: '/adaptive',
   })
 
-  // Shared OptionsBar props for adaptive mode (blur is always off in adaptive mode)
+  // Blur is always off in adaptive mode
   const optionsBarProps = {
     wpm,
     onWpmChange: setWpm,
@@ -142,22 +142,18 @@ export function Adaptive() {
     readingPosition,
   }
 
-  // Show loading state while checking auth
   if (authLoading) {
     return <AdaptiveAuthLoading />
   }
 
-  // Don't render if not authenticated (will redirect)
   if (!user) {
     return null
   }
 
-  // Show loading state while fetching texts
   if (loading) {
     return <AdaptiveTextLoadingSkeleton optionsBarProps={optionsBarProps} />
   }
 
-  // Show error state
   if (error || !currentText) {
     return (
       <AdaptiveErrorState

@@ -76,7 +76,7 @@ export function getPlayerPrefix(
     : { myPrefix: 'player2', oppPrefix: 'player1' }
 }
 
-export type PlayerGameData = {
+type PlayerGameData = {
   wpm: number | null
   quiz_score: number | null
   overall_score: number | null

@@ -84,7 +84,6 @@ export function ApprovalsList(props: ApprovalsListProps) {
 
   return (
     <div className="bg-bg-secondary/30 border border-text-secondary/10 rounded-2xl overflow-hidden flex flex-col h-full">
-      {/* Widget Header */}
       <div className="px-6 py-4 border-b border-text-secondary/10 flex items-center justify-between bg-text/[0.02]">
         <div className="flex items-center gap-3">
           <div className="p-1.5 bg-primary/10 rounded text-primary">
@@ -97,7 +96,6 @@ export function ApprovalsList(props: ApprovalsListProps) {
         </span>
       </div>
 
-      {/* Filter Tabs */}
       <div className="px-4 pt-3 pb-1 shrink-0">
         <div className="flex gap-1.5 p-1 bg-bg/30 rounded-xl border border-text-secondary/10">
           {FILTER_TABS.map((tab) => {
@@ -125,7 +123,6 @@ export function ApprovalsList(props: ApprovalsListProps) {
         </div>
       </div>
 
-      {/* Scrollable List Area */}
       <div className="flex-1 overflow-y-auto p-4 pb-10 space-y-3">
         {displayedApprovals.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-text-secondary">

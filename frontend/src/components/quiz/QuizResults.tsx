@@ -20,6 +20,7 @@ type Props = {
   onClose: () => void
   isSaving: boolean
   savedWpm: number | null
+  saveError?: boolean
 }
 
 export function QuizResults({
@@ -31,6 +32,7 @@ export function QuizResults({
   onClose,
   isSaving,
   savedWpm,
+  saveError,
 }: Props) {
   const { user } = useAuth()
   const userId = user?.id
@@ -55,7 +57,6 @@ export function QuizResults({
     return () => clearTimeout(timer)
   }, [])
 
-  // Full-screen circular score animation
   if (phase === 'score') {
     return (
       <div className="flex items-center justify-center p-8 min-h-100">
@@ -69,7 +70,6 @@ export function QuizResults({
   return (
     <div className="animate-in fade-in duration-500">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center p-4">
-        {/* Left Column: Leaderboard (public + signed-in) or Score */}
         <div className="flex flex-col items-center justify-center space-y-6 border-r border-text-secondary/10 pr-6 md:pr-12">
           {canShowLeaderboard ? (
             <div className="w-full animate-in fade-in zoom-in-95 duration-500">
@@ -101,7 +101,6 @@ export function QuizResults({
           )}
         </div>
 
-        {/* Right Column: Stats + Close */}
         <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
           <div className="space-y-2">
             <h2 className="text-3xl font-medium tracking-tight text-text">
@@ -112,7 +111,6 @@ export function QuizResults({
             </p>
           </div>
 
-          {/* Stats */}
           <div className="flex items-center gap-6">
             <div className="bg-bg-secondary/50 rounded-2xl p-5 border border-text-secondary/10 flex-1">
               <div className="text-text-secondary text-sm mb-1">Correct</div>
@@ -131,7 +129,12 @@ export function QuizResults({
             )}
           </div>
 
-          {/* Action Button */}
+          {saveError && (
+            <p className="text-error text-sm">
+              Failed to save your result. Please try again later.
+            </p>
+          )}
+
           <div className="pt-4">
             <button
               onClick={onClose}

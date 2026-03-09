@@ -3,6 +3,9 @@ import { useNetworkStatus } from './useNetworkStatus'
 import { getCacheStats, clearAllCaches } from '../services/offlineCache'
 import { prefetchAllTexts } from '../services/prefetchService'
 
+const CACHE_STATS_POLL_INTERVAL_MS = 500
+const HOVER_SUPPRESSION_DURATION_MS = 400
+
 export function useOfflineCacheSection() {
   const {
     isOnline,
@@ -53,7 +56,7 @@ export function useOfflineCacheSection() {
       if (!mountedRef.current || !active) return
       setTextCount(stats.textCount)
       setCacheSize(stats.totalSizeEstimate)
-    }, 500)
+    }, CACHE_STATS_POLL_INTERVAL_MS)
 
     return () => {
       active = false
@@ -65,7 +68,7 @@ export function useOfflineCacheSection() {
     setHoverSuppressed(true)
     setTimeout(() => {
       if (mountedRef.current) setHoverSuppressed(false)
-    }, 400)
+    }, HOVER_SUPPRESSION_DURATION_MS)
   }
 
   const handleSaveOffline = async () => {

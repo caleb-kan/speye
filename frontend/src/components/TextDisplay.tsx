@@ -9,6 +9,7 @@ import {
   MIN_TRANSITION_MS,
   MAX_TRANSITION_MS,
   WORDS_PER_LINE_ESTIMATE,
+  TRANSITION_SPEED_FACTOR,
 } from '../constants/textDisplay'
 import { splitTextToWords } from '../utils/textParsing'
 import { wpmToMsPerWord } from '../utils/wpmCalculations'
@@ -34,30 +35,23 @@ export function TextDisplay({
   wpm,
   visibleLines,
 }: TextDisplayProps) {
-  // Container heights based on visible lines
   const staticModeHeight = `${HEIGHT_PER_LINE * visibleLines}px`
   const dynamicModeHeight = `${HEIGHT_PER_LINE * visibleLines + TRANSITION_BUFFER}px`
 
-  // Padding to prevent blur effects from being clipped at container edges
   const blurPadding = MAX_BLUR + BLUR_PADDING_BUFFER
 
-  // Calculate transition duration based on WPM
-  // Transition should be at most 80% of time per word for smooth highlighting
   const msPerWord = wpmToMsPerWord(wpm)
   const transitionMs = Math.max(
     MIN_TRANSITION_MS,
-    Math.min(MAX_TRANSITION_MS, msPerWord * 0.8)
+    Math.min(MAX_TRANSITION_MS, msPerWord * TRANSITION_SPEED_FACTOR)
   )
   const wordTransition = `color ${transitionMs}ms cubic-bezier(0.4, 0, 0.2, 1), opacity ${transitionMs}ms cubic-bezier(0.4, 0, 0.2, 1), filter ${transitionMs}ms cubic-bezier(0.4, 0, 0.2, 1)`
 
-  // Parse words from text
   const words = useMemo(() => splitTextToWords(text), [text])
 
-  // Dynamic mode refs
   const dynamicContainerRef = useRef<HTMLDivElement>(null)
   const activeWordRef = useRef<HTMLSpanElement>(null)
 
-  // Static mode pagination
   const {
     pageStartIndex,
     containerRef: staticContainerRef,
@@ -68,7 +62,6 @@ export function TextDisplay({
     enabled: scrolling === 'static',
   })
 
-  // Dynamic mode: scroll to active word
   useEffect(() => {
     if (
       scrolling === 'dynamic' &&
@@ -91,7 +84,6 @@ export function TextDisplay({
     }
   }, [currentWordIndex, isPlaying, scrolling])
 
-  // Dynamic mode: update fade masks based on scroll position
   const updateFades = useCallback(() => {
     const container = dynamicContainerRef.current
     if (!container) return
@@ -110,7 +102,6 @@ export function TextDisplay({
     const container = dynamicContainerRef.current
     if (!container || scrolling !== 'dynamic') return
 
-    // Set initial state (no top fade, bottom fade present if content overflows)
     container.style.setProperty('--top-fade', '0px')
     const hasOverflow = container.scrollHeight > container.clientHeight
     container.style.setProperty(
@@ -122,7 +113,6 @@ export function TextDisplay({
     return () => container.removeEventListener('scroll', updateFades)
   }, [scrolling, updateFades, words])
 
-  // Empty text early return
   if (words.length === 0) {
     return (
       <div className="mx-auto w-full h-48 flex items-center justify-center text-center text-text-secondary">
@@ -131,9 +121,7 @@ export function TextDisplay({
     )
   }
 
-  // Static mode rendering
   if (scrolling === 'static') {
-    // Render enough words for overflow detection
     const wordsPerPage = (visibleLines + 1) * WORDS_PER_LINE_ESTIMATE
     const maxWordsToRender = Math.min(
       words.length - pageStartIndex,
@@ -146,13 +134,11 @@ export function TextDisplay({
 
     return (
       <div className="relative mx-auto w-full">
-        {/* Outer wrapper provides space for blur to extend into */}
         <div
           key={pageStartIndex}
           className="animate-fade-in"
           style={{ padding: `${blurPadding}px` }}
         >
-          {/* Inner container clips content at bottom, allows blur to extend on other sides */}
           <div
             ref={staticContainerRef}
             className="text-2xl leading-relaxed select-none"
@@ -183,9 +169,6 @@ export function TextDisplay({
     )
   }
 
-  // Dynamic mode with CSS mask for fade edges
-  // --top-fade: 0px initially, 64px when scrolled (content above)
-  // --bottom-fade: 64px initially if overflow, 0px when at end (no content below)
   return (
     <div className="relative mx-auto w-full animate-fade-in">
       <div

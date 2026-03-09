@@ -28,7 +28,6 @@ export function ActivityFeed({ sessions, groupedSessions }: ActivityFeedProps) {
                 className="group/timeline relative flex flex-col md:flex-row gap-2 md:gap-0 animate-in fade-in slide-in-from-bottom-8 fill-mode-backwards"
                 style={{ animationDelay: `${400 + groupIndex * 100}ms` }}
               >
-                {/* Sticky Date Marker (Left Column) */}
                 <div className="md:w-24 md:mr-4 shrink-0 flex flex-col md:items-end">
                   <div className="sticky top-8 flex flex-col md:items-end">
                     <div
@@ -44,13 +43,11 @@ export function ActivityFeed({ sessions, groupedSessions }: ActivityFeedProps) {
                   </div>
                 </div>
 
-                {/* Timeline Spine (Middle Column) */}
                 <div className="hidden md:flex flex-col items-center w-3 mr-6">
                   <div className="w-3 h-3 rounded-full bg-bg border-2 border-text-secondary/20 group-hover/timeline:border-primary/50 group-hover/timeline:bg-primary/20 transition-colors duration-300 shrink-0 mt-2" />
                   <div className="flex-1 w-px bg-gradient-to-b from-text-secondary/20 via-text-secondary/10 to-transparent" />
                 </div>
 
-                {/* Sessions List (Right Column) */}
                 <div className="flex-1 min-w-0 space-y-3 sm:space-y-2">
                   {groupSessions.map((session, index) => (
                     <SessionItem

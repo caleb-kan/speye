@@ -134,14 +134,12 @@ export function Reader({
 
   return (
     <div className="flex flex-col flex-1 w-full">
-      {/* Title with top padding to center between options bar and text */}
       {title && (
         <div className="pt-8 pb-4">
           <TextTitle title={title} source={source} isSummary={isSummary} />
         </div>
       )}
 
-      {/* Text display - flex-1 to fill space */}
       <div className="flex-1 w-full">
         {!disabled && <ShortcutHints />}
         {sectional && section_content ? (
@@ -193,7 +191,6 @@ export function Reader({
         )}
       </div>
 
-      {/* Controls at bottom */}
       <div>
         <ReadingControls
           isPlaying={isPlaying}

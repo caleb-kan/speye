@@ -82,11 +82,9 @@ async function computeBestPerUser(textId: string) {
     .not('score', 'is', null)
 
   if (error) {
-    console.error(
-      'Failed to fetch user_activity for leaderboard:',
-      error.message
+    throw new Error(
+      `Failed to fetch user_activity for leaderboard: ${error.message}`
     )
-    return []
   }
   if (!rows) return []
 
@@ -178,14 +176,12 @@ async function backfillText(textId: string) {
 async function updateUserEntry(textId: string, userId: string) {
   const lbKey = `lb:${textId}`
 
-  // Check if sorted set exists; if not, backfill everything
   const exists = await redis.exists(lbKey)
   if (!exists) {
     await backfillText(textId)
     return { status: 'backfilled' }
   }
 
-  // Compute this user's best score from Supabase
   const { data: rows, error } = await supabase
     .from('user_activity')
     .select('wpm, score')

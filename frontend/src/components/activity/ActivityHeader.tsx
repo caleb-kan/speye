@@ -29,9 +29,7 @@ export function ActivityHeader({
         </p>
       </div>
 
-      {/* Control Bank */}
       <div className="flex flex-wrap items-center justify-start md:justify-end gap-3 sm:gap-4">
-        {/* Data Filter Pill */}
         <div className="flex items-center bg-bg-secondary/40 backdrop-blur-xl p-1.5 rounded-2xl border border-text-secondary/10 shadow-sm ring-1 ring-white/5">
           <button
             onClick={() => setIsVerifiedMode(false)}
@@ -46,7 +44,6 @@ export function ActivityHeader({
             <span className="sm:hidden">All</span>
           </button>
 
-          {/* Verified Button + Hover Tooltip Container */}
           <div className="relative group/verify ml-1">
             <button
               onClick={() => setIsVerifiedMode(true)}
@@ -59,7 +56,6 @@ export function ActivityHeader({
               <ShieldCheck size={14} strokeWidth={2.5} />
               <span>Verified</span>
 
-              {/* Info Indicator */}
               <Info
                 size={12}
                 strokeWidth={3}
@@ -87,7 +83,6 @@ export function ActivityHeader({
           </div>
         </div>
 
-        {/* Timeframe Pill */}
         <div className="flex items-center bg-bg-secondary/40 backdrop-blur-xl p-1.5 rounded-2xl border border-text-secondary/10 shadow-sm ring-1 ring-white/5">
           <div className="hidden sm:flex items-center justify-center px-3 mr-1 border-r border-text-secondary/15 h-5">
             <Calendar className="w-4 h-4 text-text-secondary/60" />

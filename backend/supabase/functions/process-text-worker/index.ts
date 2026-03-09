@@ -1,6 +1,9 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 
+/** Message hidden from other workers for this duration while processing */
+const QUEUE_VISIBILITY_TIMEOUT_S = 300
+
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
@@ -59,11 +62,10 @@ Deno.serve(async () => {
 
   try {
     // 1. Read one message from the process_text queue
-    // Visibility timeout of 300 seconds (5 min) - message hidden from other workers while processing
     // Longer timeout prevents duplicate processing if LLM calls are slow
     const { data: messages, error: readError } = await queue.rpc('read', {
       queue_name: 'process_text',
-      sleep_seconds: 300,
+      sleep_seconds: QUEUE_VISIBILITY_TIMEOUT_S,
       n: 1,
     })
 
@@ -243,10 +245,16 @@ Deno.serve(async () => {
       console.error('Error updating text:', updateError)
       // Still delete the message to prevent retry loops
       // User can manually retry via the retry button
-      await supabase
+      const { error: fallbackError } = await supabase
         .from('texts')
-        .update({ processing_status: 'failed' }, { count: 'exact' })
+        .update({ processing_status: 'failed' })
         .eq('id', textId)
+      if (fallbackError) {
+        console.error(
+          'Failed to set processing_status to failed:',
+          fallbackError
+        )
+      }
       await deleteQueueMessage(job.msg_id)
       return new Response(JSON.stringify({ error: updateError.message }), {
         status: 500,

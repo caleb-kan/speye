@@ -25,7 +25,7 @@ export function PvpLoadingSpinner() {
 export function PvpLoginRequired() {
   return (
     <PvpCenteredMessage>
-      <p className="text-text-secondary">Please log in to play ranked.</p>
+      <p className="text-text-secondary">Please log in to play PvP.</p>
     </PvpCenteredMessage>
   )
 }

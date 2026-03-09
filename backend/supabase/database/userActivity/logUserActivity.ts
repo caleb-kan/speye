@@ -1,6 +1,6 @@
 import { supabase } from '../../../../lib/supabase'
 import { logDbQuery } from '../logger'
-import type { Mode } from '../../../../frontend/src/types/reading'
+import type { Mode } from './types'
 
 export type UserActivityLogParams = {
   textId: string

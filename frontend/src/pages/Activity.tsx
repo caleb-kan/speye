@@ -25,7 +25,6 @@ export function Activity() {
     execute,
   } = useAsyncOperation<CollapsedActivitySession[]>()
 
-  // Global Page States
   const [timeframe, setTimeframe] = useState<Timeframe>('30D')
   const [isVerifiedMode, setIsVerifiedMode] = useState(false)
 
@@ -54,7 +53,6 @@ export function Activity() {
   return (
     <div className="flex flex-1 flex-col items-center w-full px-4 sm:px-6 py-6 pb-12 bg-bg min-h-0 overflow-y-auto">
       <div className="w-full max-w-6xl space-y-6 animate-in fade-in duration-500">
-        {/* Unified Control Header */}
         <ActivityHeader
           timeframe={timeframe}
           setTimeframe={setTimeframe}

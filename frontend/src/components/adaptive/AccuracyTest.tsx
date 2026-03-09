@@ -18,8 +18,8 @@ import { isAccuracySufficient } from '../../utils/calibrationStorage'
 import { Spinner } from '../ui/Spinner'
 import { getViewportCenter } from '../../utils/gazeNormalization'
 
-/** UI update interval for progress display (ms) - matches other throttle settings for consistency */
 const UI_UPDATE_INTERVAL_MS = 50
+const COUNTDOWN_INTERVAL_MS = 1000
 
 type AccuracyTestProps = {
   /** Called when accuracy test completes */
@@ -35,7 +35,6 @@ export function AccuracyTest({
   gazeData,
   targetPosition,
 }: AccuracyTestProps) {
-  // Default to viewport center if no target position provided
   const viewportCenter = useMemo(() => getViewportCenter(), [])
   const targetX = targetPosition?.x ?? viewportCenter.x
   const targetY = targetPosition?.y ?? viewportCenter.y
@@ -50,7 +49,6 @@ export function AccuracyTest({
   const lastUIUpdateRef = useRef(0)
   const stateRef = useRef(state)
 
-  // Keep refs fresh to avoid stale closures
   useEffect(() => {
     onCompleteRef.current = onComplete
   }, [onComplete])
@@ -59,7 +57,6 @@ export function AccuracyTest({
     stateRef.current = state
   }, [state])
 
-  // Countdown before starting collection
   useEffect(() => {
     if (state !== 'waiting') return
 
@@ -72,56 +69,46 @@ export function AccuracyTest({
         }
         return prev - 1
       })
-    }, 1000)
+    }, COUNTDOWN_INTERVAL_MS)
 
     return () => clearInterval(timer)
   }, [state])
 
-  // Collect gaze sample - uses refs to avoid state updates on every sample
   const collectSample = useCallback((data: GazeData) => {
     if (stateRef.current !== 'collecting') return
 
-    // Add sample to ref (no state update)
     samplesRef.current.push(data)
     const currentCount = samplesRef.current.length
 
-    // Throttle UI updates to reduce re-renders
     const now = Date.now()
     if (now - lastUIUpdateRef.current >= UI_UPDATE_INTERVAL_MS) {
       lastUIUpdateRef.current = now
       setSampleCount(currentCount)
-      // Progress based on sample count (since that's what determines completion)
       setProgress(Math.min(100, (currentCount / ACCURACY_SAMPLE_COUNT) * 100))
     }
 
-    // Check if collection is complete
     if (currentCount >= ACCURACY_SAMPLE_COUNT) {
-      // Final UI update
       setSampleCount(currentCount)
       setProgress(100)
       setState('calculating')
     }
   }, [])
 
-  // Process incoming gaze data
   useEffect(() => {
     if (state !== 'collecting' || !gazeData) return
     collectSample(gazeData)
   }, [state, gazeData, collectSample])
 
-  // Timeout protection: Force calculation if gaze data stops coming
   useEffect(() => {
     if (state !== 'collecting') return
 
     const timeout = setTimeout(() => {
       const currentCount = samplesRef.current.length
       if (currentCount >= MIN_ACCURACY_SAMPLES) {
-        // Set final progress based on samples collected
         setSampleCount(currentCount)
         setProgress(Math.min(100, (currentCount / ACCURACY_SAMPLE_COUNT) * 100))
         setState('calculating')
       } else {
-        // Insufficient samples - show helpful message instead of 0% accuracy
         setState('insufficient-samples')
         setTimeout(() => {
           onCompleteRef.current(0, false)
@@ -132,7 +119,6 @@ export function AccuracyTest({
     return () => clearTimeout(timeout)
   }, [state])
 
-  // Calculate accuracy when collection is complete
   useEffect(() => {
     if (state !== 'calculating') return
 
@@ -158,7 +144,6 @@ export function AccuracyTest({
 
   return (
     <div className="fixed inset-0 bg-bg" style={{ zIndex: Z_INDEX.OVERLAY }}>
-      {/* Target point to stare at - positioned at target location */}
       <div
         className={`
           absolute w-6 h-6 rounded-full bg-primary
@@ -173,7 +158,6 @@ export function AccuracyTest({
         aria-label="Focus your gaze on this target point"
       />
 
-      {/* Instructions positioned below the target */}
       <div
         className="absolute text-center max-w-md transform -translate-x-1/2"
         style={{

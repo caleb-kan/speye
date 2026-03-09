@@ -56,7 +56,6 @@ export function CalibrationOverlay({
     recordScreenPosition,
   })
 
-  // Handle accuracy test completion
   const handleAccuracyComplete = useCallback(
     (accuracy: number, passed: boolean) => {
       markComplete()
@@ -65,7 +64,6 @@ export function CalibrationOverlay({
     [onComplete, markComplete]
   )
 
-  // Phase-based rendering
   switch (phase) {
     case 'intro':
       return (

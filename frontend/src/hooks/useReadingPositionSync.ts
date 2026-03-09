@@ -38,7 +38,6 @@ export function useReadingPositionSync({
   const prevModeTimestampRef = useRef<number | undefined>(modeTimestamp)
 
   useEffect(() => {
-    // Sync position with navigation state when switching modes
     if (modeTimestamp !== prevModeTimestampRef.current) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing with navigation state on mode switch
       setPosition(initialPosition)
@@ -47,7 +46,6 @@ export function useReadingPositionSync({
       return
     }
 
-    // Reset position when text changes (new text loaded)
     if (textId !== null && textId !== prevTextIdRef.current) {
       setPosition(0)
       prevTextIdRef.current = textId

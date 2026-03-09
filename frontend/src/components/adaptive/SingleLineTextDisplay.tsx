@@ -110,13 +110,11 @@ export function SingleLineTextDisplay({
           transition: `border-color ${BORDER_TRANSITION_MS}ms ease-out`,
         }}
       >
-        {/* End-zone indicator - extends from dynamic threshold to container edge */}
         <div
           className={`absolute top-0 bottom-0 pointer-events-none ${
             isSweepDetected ? 'animate-pulse' : ''
           }`}
           style={{
-            // Extend to container edge, width spans from dynamic threshold to right edge
             right: 0,
             width: `${(1 - localEffectiveThreshold) * 100}%`,
             background: isSweepDetected
@@ -131,12 +129,10 @@ export function SingleLineTextDisplay({
           }}
         />
 
-        {/* Double-buffer text container for smooth crossfade transitions */}
         <div
           className="relative z-10 w-full"
           style={{ height: SINGLE_LINE_FONT_SIZE * SINGLE_LINE_LINE_HEIGHT }}
         >
-          {/* Buffer A */}
           <div
             className="absolute inset-0 flex items-center justify-center text-center text-text font-medium whitespace-nowrap"
             style={{
@@ -155,7 +151,6 @@ export function SingleLineTextDisplay({
             {bufferAText}
           </div>
 
-          {/* Buffer B */}
           <div
             className="absolute inset-0 flex items-center justify-center text-center text-text font-medium whitespace-nowrap"
             role="region"

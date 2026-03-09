@@ -54,7 +54,6 @@ export function AdaptiveReadingSession({
     userIdRef.current = user?.id ?? null
   }, [session, user])
 
-  // Reset log flags only when text changes to prevent double-logging
   useEffect(() => {
     hasLoggedCompleteRef.current = false
     hasLoggedLeaveRef.current = false

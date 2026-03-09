@@ -113,7 +113,6 @@ export function useWebGazer({
     onGazeRef.current = onGaze
   }, [onGaze])
 
-  // Initialize WebGazer
   useEffect(() => {
     // When disabled, let any pending cleanup (stopCamera) proceed
     if (!enabled) {
@@ -176,13 +175,11 @@ export function useWebGazer({
         // Set up gaze listener BEFORE resuming so the loop has a valid callback
         setupGazeListener(globalWebgazerInstance)
 
-        // Update display settings
         globalWebgazerInstance
           .showVideoPreview(showPreview)
           .showPredictionPoints(showPredictionPoints)
           .showFaceFeedbackBox(showPreview)
 
-        // Resume WebGazer - this restarts the camera if it was stopped
         await globalWebgazerInstance.resume()
 
         // Check if component unmounted during async resume
@@ -234,20 +231,25 @@ export function useWebGazer({
       )
       if (storedRegression !== WEBGAZER_REGRESSION_MODEL) {
         try {
+          // Clear only the default localforage instance (where webgazer stores
+          // calibration data). The app's offline caches use named instances
+          // ('speye-offline') and are not affected by this clear.
           const localforage = await import('localforage')
           await localforage.default.clear()
-          localStorage.removeItem(STORAGE_KEYS.ADAPTIVE_CALIBRATION)
-          localStorage.setItem(
-            STORAGE_KEYS.WEBGAZER_REGRESSION_VERSION,
-            WEBGAZER_REGRESSION_MODEL
-          )
-        } catch {
-          localStorage.removeItem(STORAGE_KEYS.ADAPTIVE_CALIBRATION)
-          localStorage.setItem(
-            STORAGE_KEYS.WEBGAZER_REGRESSION_VERSION,
-            WEBGAZER_REGRESSION_MODEL
-          )
+        } catch (e) {
+          // If localforage clear fails, calibration data from the old model may
+          // persist and corrupt predictions. Log but continue -- better to attempt
+          // recalibration than to block initialization entirely.
+          console.warn('Failed to clear old webgazer calibration data:', e)
         }
+        // Always update the version key and clear localStorage calibration state,
+        // regardless of whether localforage clear succeeded, to prevent infinite
+        // migration retries that would block every init.
+        localStorage.removeItem(STORAGE_KEYS.ADAPTIVE_CALIBRATION)
+        localStorage.setItem(
+          STORAGE_KEYS.WEBGAZER_REGRESSION_VERSION,
+          WEBGAZER_REGRESSION_MODEL
+        )
       }
 
       try {
@@ -261,7 +263,6 @@ export function useWebGazer({
         webgazerRef.current = webgazer
         globalWebgazerInstance = webgazer
 
-        // Configure before starting
         // weightedRidge provides better accuracy than default ridge regression
         // saveDataAcrossSessions(true) so recalibration builds on previous data
         webgazer
@@ -279,8 +280,7 @@ export function useWebGazer({
         // triggering "Maximum update depth exceeded" errors.
         setupGazeListener(webgazer)
 
-        // Start WebGazer (this requests camera permission)
-        // Add a timeout to prevent hanging forever
+        // Add a timeout to prevent hanging forever if camera permission is not granted
         const beginWithTimeout = () =>
           new Promise<void>((resolve, reject) => {
             const timeout = setTimeout(() => {
@@ -421,7 +421,6 @@ export function useWebGazer({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- showPreview/showPredictionPoints are only needed for initial config; separate effects handle updates
   }, [enabled])
 
-  // Update preview visibility when prop changes
   useEffect(() => {
     if (webgazerRef.current && isInitializedRef.current) {
       webgazerRef.current.showVideoPreview(showPreview)

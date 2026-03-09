@@ -7,11 +7,12 @@ const MAX_CONTENT_LENGTH = 15_000
 // Retries for model outputs that are not valid JSON or don't match the expected
 // response shape. A value of 2 means: initial attempt + 2 retries = 3 attempts.
 const INVALID_OUTPUT_RETRIES = 2
+const LOG_PREVIEW_LENGTH = 500
 
-// Rate limiting: 20 requests per minute per IP
 const RATE_LIMIT = {
-  maxRequests: 20,
-  windowMs: 60 * 1000,
+  MAX_REQUESTS: 20,
+  WINDOW_MS: 60 * 1000,
+  STORE_CLEANUP_THRESHOLD: 100,
 }
 
 // In-memory rate limit store (per edge function instance)
@@ -33,13 +34,11 @@ function checkRateLimit(clientIp: string): {
   const now = Date.now()
   const record = rateLimitStore.get(clientIp)
 
-  // Clean expired entry for this IP if it exists
   if (record && now > record.resetTime) {
     rateLimitStore.delete(clientIp)
   }
 
-  // Periodic cleanup: remove all expired entries when store grows large
-  if (rateLimitStore.size > 100) {
+  if (rateLimitStore.size > RATE_LIMIT.STORE_CLEANUP_THRESHOLD) {
     for (const [ip, data] of rateLimitStore) {
       if (now > data.resetTime) {
         rateLimitStore.delete(ip)
@@ -50,19 +49,19 @@ function checkRateLimit(clientIp: string): {
   const currentRecord = rateLimitStore.get(clientIp)
 
   if (!currentRecord) {
-    const resetTime = now + RATE_LIMIT.windowMs
+    const resetTime = now + RATE_LIMIT.WINDOW_MS
     rateLimitStore.set(clientIp, { count: 1, resetTime })
-    return { allowed: true, remaining: RATE_LIMIT.maxRequests - 1, resetTime }
+    return { allowed: true, remaining: RATE_LIMIT.MAX_REQUESTS - 1, resetTime }
   }
 
-  if (currentRecord.count >= RATE_LIMIT.maxRequests) {
+  if (currentRecord.count >= RATE_LIMIT.MAX_REQUESTS) {
     return { allowed: false, remaining: 0, resetTime: currentRecord.resetTime }
   }
 
   currentRecord.count++
   return {
     allowed: true,
-    remaining: RATE_LIMIT.maxRequests - currentRecord.count,
+    remaining: RATE_LIMIT.MAX_REQUESTS - currentRecord.count,
     resetTime: currentRecord.resetTime,
   }
 }
@@ -282,10 +281,12 @@ generateTitle: {generate_title}
 
 Output valid JSON only:`
 
+const LLM_MAX_TOKENS = 12_000
+
 const config = {
   model: 'openai/gpt-oss-120b',
   temperature: 0.3,
-  max_tokens: 12000,
+  max_tokens: LLM_MAX_TOKENS,
   top_p: 1,
   // "Respond with valid JSON" retained as belt-and-suspenders alongside
   // json_schema: the model has been observed ignoring the schema directive.
@@ -351,6 +352,8 @@ const MAX_QUESTIONS = 7
 const MIN_QUESTIONS_SECTIONAL = 3
 const MAX_QUESTIONS_SECTIONAL = 7
 const NUM_OPTIONS_PER_QUESTION = 4
+// Must match frontend/src/constants/textUpload.ts MAX_SECTIONS
+const MAX_SECTIONS = 50
 
 function isErrorResponse(data: unknown): data is ErrorResponse {
   if (!data || typeof data !== 'object') return false
@@ -505,8 +508,7 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    // Must match frontend/src/constants/textUpload.ts MAX_SECTIONS
-    if (sectional && sectionalArray!.length > 50) {
+    if (sectional && sectionalArray!.length > MAX_SECTIONS) {
       return jsonResponse(
         { error: 'Sectional texts cannot have more than 50 sections' },
         400
@@ -541,11 +543,9 @@ Deno.serve(async (req: Request) => {
     const groqClient = new Groq({ apiKey: groqApiKey })
     const truncatedContent = content.trim().slice(0, MAX_CONTENT_LENGTH)
 
-    // When admin has approved flagged content, skip TOS check on reprocessing
     let systemMessage: string
     let userMessage: string
 
-    // Format sections for processing if this is a sectional text
     const sectionsText =
       sectional && sectionalArray
         ? sectionalArray
@@ -653,7 +653,7 @@ Deno.serve(async (req: Request) => {
         console.error(
           `Attempt ${attempt + 1}/${INVALID_OUTPUT_RETRIES + 1} - ${lastInvalidOutputError.message}. ` +
             'Raw (first 500 chars):',
-          responseContent.slice(0, 500)
+          responseContent.slice(0, LOG_PREVIEW_LENGTH)
         )
 
         if (attempt < INVALID_OUTPUT_RETRIES) {
@@ -704,7 +704,7 @@ Deno.serve(async (req: Request) => {
         console.error(
           `Attempt ${attempt + 1}/${INVALID_OUTPUT_RETRIES + 1} - ${lastInvalidOutputError.message}. ` +
             'Parsed (first 500 chars):',
-          JSON.stringify(parsed).slice(0, 500)
+          JSON.stringify(parsed).slice(0, LOG_PREVIEW_LENGTH)
         )
 
         if (attempt < INVALID_OUTPUT_RETRIES) {
@@ -736,7 +736,7 @@ Deno.serve(async (req: Request) => {
         console.error(
           `Attempt ${attempt + 1}/${INVALID_OUTPUT_RETRIES + 1} - ${lastInvalidOutputError.message}. ` +
             'Parsed (first 500 chars):',
-          JSON.stringify(parsed).slice(0, 500)
+          JSON.stringify(parsed).slice(0, LOG_PREVIEW_LENGTH)
         )
 
         if (attempt < INVALID_OUTPUT_RETRIES) {

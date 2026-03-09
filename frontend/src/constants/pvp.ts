@@ -28,7 +28,7 @@ export const PVP_TICK_INTERVAL_MS = 1000
 export const PVP_QUIZ_QUESTION_TIMER_S = 20
 export const PVP_VS_SCREEN_MIN_DURATION_MS = 3000
 export const PVP_COUNTDOWN_S = 5
-export const PVP_LONG_WAIT_THRESHOLD_S = 60
+export const PVP_LONG_WAIT_THRESHOLD_MS = 60_000
 export const PVP_MILESTONE_TOAST_DISPLAY_MS = 3000
 export const PVP_ANSWER_STAGGER_MS = 100
 
@@ -53,6 +53,8 @@ export const PVP_ELO_ANIMATION_DURATION_MS = 1500
 export const PVP_ELO_ANIMATION_FRAME_MS = 16
 export const PVP_ELO_REFETCH_DELAY_MS = 1000
 export const PVP_ELO_MAX_REFETCH_ATTEMPTS = 5
+
+export const PVP_HALFWAY_PROGRESS_THRESHOLD = 50
 
 export const MILESTONE_TYPES = ['halfway', 'started_quiz', 'finished'] as const
 export type MilestoneType = (typeof MILESTONE_TYPES)[number]
@@ -91,7 +93,7 @@ const ELO_TIER_START = 0
 const ELO_TIER_WIDTH = 100
 const ELO_FIRST_TIER_WIDTH = 1100
 
-export type RankLevel = (typeof RANK_LEVELS)[number]
+type RankLevel = (typeof RANK_LEVELS)[number]
 
 function buildRankTiers() {
   const tiers: {

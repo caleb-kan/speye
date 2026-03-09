@@ -105,7 +105,6 @@ export function AdminMetricsWidget({
   const [activeIndex, setActiveIndex] = useState(0)
   const activeMetric = metrics[activeIndex]
 
-  // Handlers for manual arrows
   const handleNext = () => setActiveIndex((prev) => (prev + 1) % metrics.length)
   const handlePrev = () =>
     setActiveIndex((prev) => (prev - 1 + metrics.length) % metrics.length)
@@ -117,7 +116,6 @@ export function AdminMetricsWidget({
       className={`group relative bg-bg-secondary/30 border border-text-secondary/10 rounded-2xl flex flex-col transition-colors duration-500 ${className}`}
       style={{ height: '160px' }}
     >
-      {/* Title + Icon (Top Left) */}
       <div className="absolute top-4 left-4 z-10 flex items-center gap-2 pointer-events-none">
         <div
           className="p-1.5 rounded-md backdrop-blur-sm transition-colors duration-500"
@@ -133,7 +131,6 @@ export function AdminMetricsWidget({
         </span>
       </div>
 
-      {/* Pagination Controls (Top Centre) */}
       {metrics.length > 1 && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 bg-bg/40 backdrop-blur-sm px-2.5 py-1 rounded-full border border-white/5 shadow-sm opacity-30 group-hover:opacity-100 group-hover:bg-bg/70 transition-all duration-300">
           <button
@@ -175,7 +172,6 @@ export function AdminMetricsWidget({
         </div>
       )}
 
-      {/* Total + Context (Top Right) */}
       <div className="absolute top-0 right-0 z-10 pt-4 pr-8 pb-10 pl-12 text-right bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-bg via-bg/70 to-transparent pointer-events-none rounded-tr-2xl">
         <h3 className="text-3xl font-bold text-text tracking-tight leading-none drop-shadow-md">
           {activeMetric.total}
@@ -185,7 +181,6 @@ export function AdminMetricsWidget({
         </p>
       </div>
 
-      {/* Chart */}
       <div className="absolute inset-0 w-full h-full pt-2">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart

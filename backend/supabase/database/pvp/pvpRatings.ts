@@ -153,7 +153,6 @@ export async function getEloHistory(
 
   if (error) throw error
 
-  // Get the current elo rating for the user
   const rating = await getPvpRating(userId)
   if (!rating) {
     return []
@@ -164,7 +163,6 @@ export async function getEloHistory(
     return []
   }
 
-  // Build the elo history by working backwards from the current elo
   let currentElo = rating.elo_rating
   const historyPoints: EloHistoryPoint[] = []
 
@@ -186,7 +184,6 @@ export async function getEloHistory(
     }
   }
 
-  // Add the final current elo as a point at the current timestamp
   if (historyPoints.length > 0) {
     historyPoints.push({
       game_date: new Date().toISOString(),

@@ -116,7 +116,6 @@ export const useOptionsBarSliders = (
     const slider = complexitySliderRef.current.noUiSlider
 
     if (slider) {
-      // Slider already exists, update its values
       slider.set([complexityMin, complexityMax])
       return
     }

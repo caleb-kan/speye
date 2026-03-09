@@ -12,7 +12,7 @@ import { pruneByTime } from '../utils/arrayUtils'
 import {
   END_OF_LINE_THRESHOLD,
   END_ZONE_EARLY_DETECTION,
-  MIN_READING_TIME_FOR_WPM,
+  MIN_READING_TIME_FOR_WPM_MS,
   CHUNK_IGNORE_PERIOD_MS,
   RETURN_SWEEP_THRESHOLD,
   RETURN_SWEEP_VELOCITY_THRESHOLD,
@@ -180,42 +180,43 @@ export function useHorizontalReader({
     }
   }, [textFillRatio])
 
-  // Start reading timer when gaze tracking becomes active
   useEffect(() => {
     if (!disabled && isGazeReliable && readingStartTimeRef.current === null) {
       readingStartTimeRef.current = Date.now()
     }
   }, [disabled, isGazeReliable])
 
-  // Calculate WPM from actual reading speed
   useEffect(() => {
     if (readingStartTimeRef.current === null || wordsRead === 0) {
       return
     }
     const elapsedMs = Date.now() - readingStartTimeRef.current
-    if (elapsedMs < MIN_READING_TIME_FOR_WPM * 1000) {
+    if (elapsedMs < MIN_READING_TIME_FOR_WPM_MS) {
       return
     }
     setCalculatedWpm(calculateWpmFromReading(wordsRead, elapsedMs))
   }, [wordsRead])
 
-  // Reset tracking state when chunk changes
+  const [prevChunk, setPrevChunk] = useState(currentChunk)
+  if (currentChunk !== prevChunk) {
+    setPrevChunk(currentChunk)
+    setIsSweepDetected(false)
+  }
+
   useEffect(() => {
     chunkStartTimeRef.current = Date.now()
     reachedEndZoneRef.current = false
     gazePositionHistoryRef.current = []
     previousHorizontalVelocityRef.current = 0
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset derived state on chunk change
-    setIsSweepDetected(false)
   }, [currentChunk])
 
-  // Ensure sweep indicator is cleared when reading completes
-  useEffect(() => {
+  const [prevIsComplete, setPrevIsComplete] = useState(isComplete)
+  if (isComplete !== prevIsComplete) {
+    setPrevIsComplete(isComplete)
     if (isComplete) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- clear UI indicator on completion
       setIsSweepDetected(false)
     }
-  }, [isComplete])
+  }
 
   // Main gaze processing with velocity transition detection
   useEffect(() => {
@@ -419,7 +420,6 @@ export function useHorizontalReader({
     })
   }, [totalChunksRef, resetTrackingState])
 
-  // Reset when text changes
   const prevText = usePrevious(text)
   useEffect(() => {
     if (prevText !== undefined && prevText !== text) {

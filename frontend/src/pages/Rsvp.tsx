@@ -87,7 +87,6 @@ export function Rsvp() {
       userId: user?.id,
     })
 
-  // Sync text complexity when text changes (adjust state during render)
   const derivedComplexity = currentText?.complexity ?? null
   if (derivedComplexity !== currentTextComplexity) {
     setCurrentTextComplexity(derivedComplexity)

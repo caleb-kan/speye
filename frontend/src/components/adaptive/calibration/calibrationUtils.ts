@@ -42,12 +42,10 @@ export function calculateCalibrationPoints(
     return []
   }
 
-  // Main points: horizontal positions at vertical center (y=0.5)
   const mainPoints = CALIBRATION_HORIZONTAL_POSITIONS.map((xPercent) =>
     getPositionInTextArea(textAreaBounds, xPercent, 0.5)
   )
 
-  // Supplemental points: top and bottom offsets for vertical coverage
   const supplementalPoints = CALIBRATION_SUPPLEMENTAL_X_POSITIONS.flatMap(
     (xPercent) => [
       getPositionInTextArea(

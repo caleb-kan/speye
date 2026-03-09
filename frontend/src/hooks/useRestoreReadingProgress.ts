@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Text } from '../types/database'
 import { getLastReadingPosition } from '../services/readingHistory'
 import { splitTextToWords } from '../utils/textParsing'
@@ -7,20 +7,19 @@ export function useRestoreReadingProgress(
   currentText: Text | null,
   setReadingPosition: (index: number) => void
 ) {
-  // Normalise incoming ID (if missing, treat as null)
   const newTextId = currentText?.id ?? null
-
-  // Track the ID we are currently displaying/restoring
   const [restoringId, setRestoringId] = useState<string | null>(null)
-
-  // Initialise based on whether we start with text or not
   const [isRestoring, setIsRestoring] = useState(!!currentText?.id)
+
+  // Keep a ref to currentText so the effect can read content without
+  // re-running when the text object reference changes (e.g. realtime update)
+  const currentTextRef = useRef(currentText)
+  useEffect(() => {
+    currentTextRef.current = currentText
+  }, [currentText])
 
   if (newTextId !== restoringId) {
     setRestoringId(newTextId)
-
-    // If we have a text, start restoring (true).
-    // If no text, we are done immediately (false).
     setIsRestoring(!!newTextId)
   }
 
@@ -33,9 +32,8 @@ export function useRestoreReadingProgress(
       const lastIndex = await getLastReadingPosition(newTextId)
 
       if (isMounted) {
-        const totalWords = currentText
-          ? splitTextToWords(currentText.content).length
-          : 0
+        const text = currentTextRef.current
+        const totalWords = text ? splitTextToWords(text.content).length : 0
         if (lastIndex !== null && lastIndex > 0 && lastIndex < totalWords - 1) {
           setReadingPosition(lastIndex)
         }
@@ -50,7 +48,7 @@ export function useRestoreReadingProgress(
     return () => {
       isMounted = false
     }
-  }, [currentText, newTextId, restoringId, setReadingPosition])
+  }, [newTextId, setReadingPosition])
 
   return isRestoring
 }

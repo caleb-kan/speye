@@ -1,6 +1,6 @@
 import { supabase } from '../../../../lib/supabase'
 import { logDbQuery } from '../logger'
-import type { NotificationType } from '../../../../frontend/src/types/database'
+import type { NotificationType } from './types'
 
 export async function createNotification(
   userId: string,

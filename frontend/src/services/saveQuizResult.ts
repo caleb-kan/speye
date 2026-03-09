@@ -29,7 +29,6 @@ export async function saveQuizResult(params: QuizResultParams) {
     })
     await enqueueOperation('saveQuizResult', params)
 
-    // Update cached best scores optimistically
     const user = await getCurrentUser()
     if (user) {
       const cached = (await getCachedBestScores(user.id)) ?? {}
@@ -40,7 +39,6 @@ export async function saveQuizResult(params: QuizResultParams) {
       }
     }
 
-    // Return mock response so UI still works
     return {
       user_id: user?.id ?? null,
       text_id: params.text_id,
@@ -57,18 +55,31 @@ export async function saveQuizResult(params: QuizResultParams) {
     }
 
     return data
-  } catch {
-    // The network may have dropped mid-request after the offline check passed.
-    // Queue for retry rather than silently losing the quiz result.
-    pwaLogger.warn(TAG, 'Network failure — queuing quiz result for retry', {
-      textId: params.text_id,
-    })
-    await enqueueOperation('saveQuizResult', params)
-    const user = await getCurrentUser()
-    return {
-      user_id: user?.id ?? null,
-      text_id: params.text_id,
-      score: params.score,
+  } catch (err) {
+    // Only queue for retry on network-like errors. Non-retryable errors
+    // (e.g. RLS violations, constraint errors) should propagate so the
+    // caller can show feedback rather than silently retrying until dropped.
+    const message =
+      err instanceof Error ? err.message.toLowerCase() : String(err)
+    const isNetworkError =
+      message.includes('failed to fetch') ||
+      message.includes('network') ||
+      message.includes('timeout') ||
+      message.includes('aborted')
+
+    if (isNetworkError) {
+      pwaLogger.warn(TAG, 'Network failure — queuing quiz result for retry', {
+        textId: params.text_id,
+      })
+      await enqueueOperation('saveQuizResult', params)
+      const user = await getCurrentUser()
+      return {
+        user_id: user?.id ?? null,
+        text_id: params.text_id,
+        score: params.score,
+      }
     }
+
+    throw err
   }
 }

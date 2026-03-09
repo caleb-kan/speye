@@ -31,6 +31,10 @@ vi.mock('../../utils/pwaLogger', () => ({
   },
 }))
 
+vi.mock('../../services/networkStatus', () => ({
+  isOffline: vi.fn(() => false),
+}))
+
 describe('leaderboardService', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -146,7 +150,6 @@ describe('leaderboardService', () => {
     })
 
     it('should not throw when backend update fails', async () => {
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
       mockUpdateLeaderboardCacheDb.mockRejectedValue(
         new Error('Edge function error')
       )
@@ -154,12 +157,6 @@ describe('leaderboardService', () => {
       await expect(
         updateLeaderboardCache('text-1', 'user-1')
       ).resolves.toBeUndefined()
-
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'Leaderboard cache update failed:',
-        expect.any(Error)
-      )
-      consoleSpy.mockRestore()
     })
 
     it('should succeed silently on success', async () => {

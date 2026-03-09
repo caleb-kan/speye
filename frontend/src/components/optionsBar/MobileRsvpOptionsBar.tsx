@@ -97,7 +97,6 @@ export function MobileRsvpOptionsBar({
 
   return (
     <div className="bg-bg text-sm divide-y divide-text-secondary/10 overflow-visible">
-      {/* Genre */}
       <OptionRow label="genre">
         {fixedText ? (
           <span className="text-xs text-primary font-medium whitespace-nowrap px-2 py-2 bg-primary/10 rounded">
@@ -133,7 +132,6 @@ export function MobileRsvpOptionsBar({
         )}
       </OptionRow>
 
-      {/* Complexity */}
       <OptionRow label="complexity">
         {fixedText ? (
           <span className="text-primary text-xs">
@@ -169,7 +167,6 @@ export function MobileRsvpOptionsBar({
         )}
       </OptionRow>
 
-      {/* Line width */}
       <OptionRow label="line width">
         <div
           className="flex items-center gap-2"
@@ -182,7 +179,6 @@ export function MobileRsvpOptionsBar({
         </div>
       </OptionRow>
 
-      {/* WPM */}
       <OptionRow label="wpm">
         <div className="flex items-center gap-1 flex-wrap justify-end -my-1">
           {RSVP_WPM_PRESETS.map((preset) => (
@@ -249,7 +245,6 @@ export function MobileRsvpOptionsBar({
         </div>
       </OptionRow>
 
-      {/* Visible lines */}
       <OptionRow label="visible lines">
         <div
           className="flex items-center gap-2"

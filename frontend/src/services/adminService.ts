@@ -12,7 +12,6 @@ import {
   type AdminStats,
   type UserTrendData,
   type AdminQuizStats,
-  type QuizTrendPoint,
   type WpmStats,
 } from '../../../backend/supabase/database/admin/adminService.ts'
 import { retryProcessing } from '../../../backend/supabase/database/texts/retryProcessing'
@@ -27,7 +26,6 @@ export type {
   AdminStats,
   UserTrendData,
   AdminQuizStats,
-  QuizTrendPoint,
   WpmStats,
 }
 

@@ -12,13 +12,14 @@ import {
   markNotificationToastShown,
 } from '../services/notificationService'
 import { useNotificationSubscription } from '../hooks/useNotificationSubscription'
+import { TOAST_AUTO_CLOSE_MS, TOAST_EXIT_ANIMATION_MS } from '../constants/ui'
+import { pwaLogger } from '../utils/pwaLogger'
 
-const AUTO_CLOSE_MS = 5000
-const EXIT_ANIMATION_MS = 220
+const TAG = 'NotificationsProvider'
 
 const persistToastShown = (notificationId: string) => {
   markNotificationToastShown(notificationId).catch((error) =>
-    console.error('Failed to mark notification toast shown', error)
+    pwaLogger.error(TAG, 'Failed to mark notification toast shown', error)
   )
 }
 
@@ -94,7 +95,7 @@ export function NotificationsProvider({
       const removalTimeout = setTimeout(() => {
         removeToast(notificationId)
         persistToastShown(notificationId)
-      }, EXIT_ANIMATION_MS)
+      }, TOAST_EXIT_ANIMATION_MS)
 
       toastExitTimeoutsRef.current.set(notificationId, removalTimeout)
     },
@@ -103,45 +104,55 @@ export function NotificationsProvider({
 
   const upsertToast = useCallback(
     (notification: Notification) => {
-      setToasts((prev) => {
-        const existing = prev.find(
-          (toast) => toast.notification.id === notification.id
-        )
-
-        if (existing) {
-          return prev.map((toast) =>
+      // If a timeout is already tracked for this notification, the toast exists
+      // (or is being added). Just update the notification data in-place.
+      if (toastTimeoutsRef.current.has(notification.id)) {
+        setToasts((prev) =>
+          prev.map((toast) =>
             toast.notification.id === notification.id
               ? { ...toast, notification }
               : toast
           )
-        }
+        )
+        return
+      }
 
-        const nextToast: ToastNotification = {
-          notification,
-          isExiting: false,
-        }
+      // Clear any leftover exit timeouts from a previous dismissal
+      const oldExitTimeout = toastExitTimeoutsRef.current.get(notification.id)
+      if (oldExitTimeout) {
+        clearTimeout(oldExitTimeout)
+        toastExitTimeoutsRef.current.delete(notification.id)
+      }
 
-        const exitDelay = Math.max(AUTO_CLOSE_MS - EXIT_ANIMATION_MS, 0)
-        const exitTimeout = setTimeout(() => {
-          setToasts((current) =>
-            current.map((toast) =>
-              toast.notification.id === notification.id
-                ? { ...toast, isExiting: true }
-                : toast
-            )
+      // Schedule timeouts outside setState to keep updaters pure
+      const exitDelay = Math.max(
+        TOAST_AUTO_CLOSE_MS - TOAST_EXIT_ANIMATION_MS,
+        0
+      )
+      const exitTimeout = setTimeout(() => {
+        setToasts((current) =>
+          current.map((toast) =>
+            toast.notification.id === notification.id
+              ? { ...toast, isExiting: true }
+              : toast
           )
-        }, exitDelay)
+        )
+      }, exitDelay)
 
-        const timeout = setTimeout(() => {
-          removeToast(notification.id)
-          persistToastShown(notification.id)
-        }, AUTO_CLOSE_MS)
+      const timeout = setTimeout(() => {
+        removeToast(notification.id)
+        persistToastShown(notification.id)
+      }, TOAST_AUTO_CLOSE_MS)
 
-        toastTimeoutsRef.current.set(notification.id, timeout)
-        toastExitTimeoutsRef.current.set(notification.id, exitTimeout)
+      toastTimeoutsRef.current.set(notification.id, timeout)
+      toastExitTimeoutsRef.current.set(notification.id, exitTimeout)
 
-        return [nextToast, ...prev]
-      })
+      // Add the new toast with a pure updater (no side effects)
+      const nextToast: ToastNotification = {
+        notification,
+        isExiting: false,
+      }
+      setToasts((prev) => [nextToast, ...prev])
     },
     [removeToast]
   )
@@ -167,6 +178,8 @@ export function NotificationsProvider({
           (notification) => !notification.toast_shown && !notification.seen
         )
         .forEach((notification) => upsertToast(notification))
+    } catch (err) {
+      pwaLogger.error(TAG, 'Failed to load notifications', err)
     } finally {
       setLoading(false)
     }
@@ -189,16 +202,19 @@ export function NotificationsProvider({
   }, [])
 
   const markAsSeen = useCallback(async (notificationId: string) => {
-    setNotifications((prev) =>
-      prev.map((item) =>
+    let prevNotifications: Notification[] = []
+    setNotifications((prev) => {
+      prevNotifications = prev
+      return prev.map((item) =>
         item.id === notificationId ? { ...item, seen: true } : item
       )
-    )
+    })
 
     try {
       await markNotificationSeen(notificationId)
     } catch (error) {
-      console.error('Failed to mark notification as seen', error)
+      pwaLogger.error(TAG, 'Failed to mark notification as seen', error)
+      setNotifications(prevNotifications)
     }
   }, [])
 
@@ -214,7 +230,7 @@ export function NotificationsProvider({
     try {
       await markAllNotificationsSeen(userId)
     } catch (error) {
-      console.error('Failed to mark all notifications as seen', error)
+      pwaLogger.error(TAG, 'Failed to mark all notifications as seen', error)
       setNotifications(prevNotifications)
     }
   }, [userId])

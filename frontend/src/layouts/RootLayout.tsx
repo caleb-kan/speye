@@ -42,7 +42,6 @@ export function RootLayout() {
 
   return (
     <div className="flex h-dvh overflow-hidden bg-bg text-text">
-      {/* Fixed overlays */}
       <Navbar />
       <Header />
       <NotificationsMailButton />
@@ -50,9 +49,7 @@ export function RootLayout() {
       <OfflineIndicator />
       {showBanner && <PwaInstallBanner onDismiss={handleBannerDismiss} />}
 
-      {/* Right content shell */}
       <div className="flex-1 min-w-0 flex flex-col">
-        {/* Page content */}
         <main
           className={`relative flex-1 flex flex-col min-h-0 overflow-y-auto overflow-x-hidden ${
             isMobile ? 'pt-11' : 'pt-12'

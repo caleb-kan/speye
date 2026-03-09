@@ -51,7 +51,6 @@ export function ApprovalItem({
 
   return (
     <div className="group flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border border-transparent hover:bg-text-secondary/10 transition-all gap-4">
-      {/* Left: Info */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-3 mb-1">
           <h3 className="font-semibold text-text text-sm truncate">
@@ -90,7 +89,6 @@ export function ApprovalItem({
         </p>
       </div>
 
-      {/* Right: Actions */}
       <div
         className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
         aria-busy={isProcessing}

@@ -1,6 +1,6 @@
 import type { LeaderboardEntry } from '../services/leaderboardService'
 
-export type MergedLeaderboard = {
+type MergedLeaderboard = {
   top: LeaderboardEntry[]
   currentUser: LeaderboardEntry | null
 }
@@ -16,10 +16,8 @@ export function mergeLocalEntry(
 ): MergedLeaderboard {
   const userId = localEntry.userId
 
-  // Remove existing entry for this user from top entries
   const others = topEntries.filter((e) => e.userId !== userId)
 
-  // Merge, sort by overall score descending, and assign ranks immutably
   const ranked = [...others, localEntry]
     .sort((a, b) => b.overallScore - a.overallScore)
     .map((e, i) => ({ ...e, rank: i + 1 }))

@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom'
 import { useEffect, useState } from 'react'
-import { MODAL_Z_INDEX } from '../../constants/quiz'
+import { OVERLAY_EXIT_ANIMATION_MS, Z_INDEX } from '../../constants/ui'
 import { useEscapeKey } from '../../hooks/useEscapeKey'
 
 type QuizOverlayProps = {
@@ -12,10 +12,7 @@ type QuizOverlayProps = {
 export function QuizOverlay({ isOpen, onClose, children }: QuizOverlayProps) {
   const modalRoot = document.getElementById('modal-root')
 
-  // Controls if the component is actually in the DOM
   const [isMounted, setIsMounted] = useState(false)
-
-  // Controls the visual opacity/scale styles
   const [isVisible, setIsVisible] = useState(false)
 
   useEffect(() => {
@@ -32,13 +29,14 @@ export function QuizOverlay({ isOpen, onClose, children }: QuizOverlayProps) {
         setIsVisible(false)
       })
 
-      // Wait for the exit animation (500ms) to finish before removing from DOM
-      const timer = setTimeout(() => setIsMounted(false), 500)
+      const timer = setTimeout(
+        () => setIsMounted(false),
+        OVERLAY_EXIT_ANIMATION_MS
+      )
       return () => clearTimeout(timer)
     }
   }, [isOpen])
 
-  // Lock body scroll
   useEffect(() => {
     if (!isOpen) return
     document.body.style.overflow = 'hidden'
@@ -47,16 +45,14 @@ export function QuizOverlay({ isOpen, onClose, children }: QuizOverlayProps) {
     }
   }, [isOpen])
 
-  // Escape key
   useEscapeKey(onClose, isOpen)
 
-  // Don't render anything until we are mounted
   if (!isMounted || !modalRoot) return null
 
   return createPortal(
     <div
       className="fixed inset-0 flex items-center justify-center p-4"
-      style={{ zIndex: MODAL_Z_INDEX }}
+      style={{ zIndex: Z_INDEX.QUIZ_OVERLAY }}
     >
       <div
         className={`
@@ -69,7 +65,7 @@ export function QuizOverlay({ isOpen, onClose, children }: QuizOverlayProps) {
 
       <div
         className={`
-          relative w-full max-w-6xl rounded-3xl bg-bg shadow-2xl p-4 sm-p-8
+          relative w-full max-w-6xl rounded-3xl bg-bg shadow-2xl p-4 sm:p-8
           transform transition-all duration-500 cubic-bezier(0.16, 1, 0.3, 1)
           
           ${

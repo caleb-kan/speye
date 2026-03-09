@@ -41,7 +41,6 @@ export function useCalibrationDriftDetection({
   const readingStartRef = useRef<number | null>(null)
   const dismissedRef = useRef(false)
 
-  // Sync reliability ref and track state transitions
   useEffect(() => {
     const wasReliable = isReliableRef.current
     isReliableRef.current = isReliable
@@ -58,7 +57,6 @@ export function useCalibrationDriftDetection({
     }
   }, [isReliable])
 
-  // Track reading session
   useEffect(() => {
     if (isReadingActive && isCalibrated) {
       if (readingStartRef.current === null) {
@@ -71,7 +69,6 @@ export function useCalibrationDriftDetection({
     }
   }, [isReadingActive, isCalibrated])
 
-  // Poll for drift status
   useEffect(() => {
     if (!isReadingActive || !isCalibrated) return
 
@@ -80,7 +77,6 @@ export function useCalibrationDriftDetection({
       const readingStart = readingStartRef.current
       if (readingStart === null) return
 
-      // Skip warmup period
       if (now - readingStart < DRIFT_WARMUP_PERIOD_MS) return
 
       if (isReliableRef.current) {

@@ -16,7 +16,6 @@ export async function updateText(
     .update({
       content: data.content,
       complexity: complexity,
-      // Optional fields - only include if provided
       ...(data.title !== undefined && { title: data.title }),
       ...(data.fiction !== undefined && { fiction: data.fiction }),
       ...(data.quiz !== undefined && { quiz: data.quiz }),

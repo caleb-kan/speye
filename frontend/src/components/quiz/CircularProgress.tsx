@@ -40,7 +40,6 @@ export function CircularProgress({
   return (
     <div className="relative flex items-center justify-center">
       <svg width={size} height={size} className="transform -rotate-90">
-        {/* Background Circle */}
         <circle
           cx={size / 2}
           cy={size / 2}
@@ -50,7 +49,6 @@ export function CircularProgress({
           fill="transparent"
           className="text-text-secondary/10"
         />
-        {/* Progress Circle */}
         <circle
           cx={size / 2}
           cy={size / 2}
@@ -65,7 +63,6 @@ export function CircularProgress({
         />
       </svg>
 
-      {/* Center Text */}
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span
           className={`${percentClass} font-bold tracking-tighter text-text animate-in fade-in zoom-in duration-500 delay-100`}

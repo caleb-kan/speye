@@ -39,7 +39,7 @@ export async function getLastReadingPosition(
       return await getCachedLastPosition(textId)
     }
   } catch (err) {
-    console.error('Failed to restore reading position:', err)
+    pwaLogger.error(TAG, 'Failed to restore reading position', err)
     return null
   }
 }

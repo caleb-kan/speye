@@ -57,7 +57,6 @@ export function getAccuracyTargetPosition(
   }
 }
 
-/** Get screen coordinates for a position within the text area. */
 export function getPositionInTextArea(
   textAreaBounds: TextAreaBounds,
   xPercent: number,

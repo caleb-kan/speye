@@ -112,7 +112,6 @@ export function ActivityMetricsWidget({
           </p>
         </div>
 
-        {/* Dynamic Legend */}
         <div className="flex items-center gap-4 bg-bg-secondary/50 backdrop-blur-md border border-text-secondary/10 px-3 py-1.5 rounded-xl shadow-sm">
           <div className="flex flex-col items-end">
             <div className="flex items-center gap-1.5">
@@ -148,7 +147,6 @@ export function ActivityMetricsWidget({
         </div>
       </div>
 
-      {/* Dual-Axis Chart Area */}
       <div className="flex-1 w-full min-h-0 relative">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart

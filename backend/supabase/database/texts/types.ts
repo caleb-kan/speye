@@ -81,6 +81,34 @@ export type PvpTextData = {
 }
 
 /**
+ * Subset of text fields used for library listings.
+ * Has `preview` instead of full `content`, and `has_summary` flag.
+ */
+export interface TextPreview {
+  id: string
+  title: string | null
+  preview: string
+  uploaded_at: string
+  owner_id: string | null
+  quiz: Quiz | null
+  fiction: boolean | null
+  complexity: number | null
+  source: string | null
+  processing_status: ProcessingStatus
+  quiz_valid: boolean | null
+  has_summary: boolean
+  llm_decision: LlmDecision | null
+  llm_violation_type: string | null
+  admin_decision: AdminDecision | null
+  rejection_reason: string | null
+  rejection_stage: FailureStage | null
+  admin_reviewed_by: string | null
+  admin_reviewed_at: string | null
+  sectional?: boolean
+  section_content?: SectionData[] | null
+}
+
+/**
  * Full text record as stored in the database.
  */
 export interface TextRecord {

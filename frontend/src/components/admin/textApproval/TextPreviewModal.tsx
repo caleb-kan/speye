@@ -3,6 +3,7 @@ import { X, RefreshCw, Trash2 } from 'lucide-react'
 import type { AdminReviewText } from '../../../services/adminService.ts'
 import { formatDate } from '../../../utils/formatDate.ts'
 import { getReviewStatus } from '../../../utils/adminReviewStatus.ts'
+import { useEscapeKey } from '../../../hooks/useEscapeKey.ts'
 import { StatusBadge } from './StatusBadge.tsx'
 import { UNTITLED_TEXT_FALLBACK } from '../../../constants/admin.ts'
 
@@ -47,18 +48,7 @@ export function TextPreviewModal({
     }
   }, [text, initialShowReject])
 
-  useEffect(() => {
-    if (!text) return
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose()
-      }
-    }
-
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [text, onClose])
+  useEscapeKey(onClose, !!text)
 
   if (!text) return null
 

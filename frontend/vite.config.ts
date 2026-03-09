@@ -4,7 +4,22 @@ import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
 
-// https://vite.dev/config/
+const SECONDS_PER_DAY = 24 * 60 * 60
+const SECONDS_PER_YEAR = 365 * SECONDS_PER_DAY
+
+const CACHE_TTL = {
+  TF_MODELS: 90 * SECONDS_PER_DAY,
+  GOOGLE_FONTS: SECONDS_PER_YEAR,
+  SUPABASE_STORAGE: 7 * SECONDS_PER_DAY,
+  IMAGES: 30 * SECONDS_PER_DAY,
+} as const
+
+const CACHE_MAX_ENTRIES = {
+  SUPABASE_STORAGE: 100,
+  IMAGES: 60,
+} as const
+
+const SUPABASE_STORAGE_NETWORK_TIMEOUT_S = 5
 export default defineConfig({
   plugins: [
     react(),
@@ -53,7 +68,7 @@ export default defineConfig({
             handler: 'CacheFirst',
             options: {
               cacheName: 'tf-models',
-              expiration: { maxAgeSeconds: 90 * 24 * 60 * 60 },
+              expiration: { maxAgeSeconds: CACHE_TTL.TF_MODELS },
             },
           },
           {
@@ -61,7 +76,7 @@ export default defineConfig({
             handler: 'CacheFirst',
             options: {
               cacheName: 'google-fonts-stylesheets',
-              expiration: { maxAgeSeconds: 365 * 24 * 60 * 60 },
+              expiration: { maxAgeSeconds: CACHE_TTL.GOOGLE_FONTS },
             },
           },
           {
@@ -69,7 +84,7 @@ export default defineConfig({
             handler: 'CacheFirst',
             options: {
               cacheName: 'google-fonts-webfonts',
-              expiration: { maxAgeSeconds: 365 * 24 * 60 * 60 },
+              expiration: { maxAgeSeconds: CACHE_TTL.GOOGLE_FONTS },
             },
           },
           // Supabase Storage (avatars, user uploads) — NetworkFirst so updates are reflected promptly; falls back to cache when offline.
@@ -78,8 +93,11 @@ export default defineConfig({
             handler: 'NetworkFirst',
             options: {
               cacheName: 'supabase-storage',
-              networkTimeoutSeconds: 5,
-              expiration: { maxAgeSeconds: 7 * 24 * 60 * 60, maxEntries: 100 },
+              networkTimeoutSeconds: SUPABASE_STORAGE_NETWORK_TIMEOUT_S,
+              expiration: {
+                maxAgeSeconds: CACHE_TTL.SUPABASE_STORAGE,
+                maxEntries: CACHE_MAX_ENTRIES.SUPABASE_STORAGE,
+              },
             },
           },
           {
@@ -87,7 +105,10 @@ export default defineConfig({
             handler: 'CacheFirst',
             options: {
               cacheName: 'images',
-              expiration: { maxAgeSeconds: 30 * 24 * 60 * 60, maxEntries: 60 },
+              expiration: {
+                maxAgeSeconds: CACHE_TTL.IMAGES,
+                maxEntries: CACHE_MAX_ENTRIES.IMAGES,
+              },
             },
           },
           {

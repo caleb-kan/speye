@@ -3,16 +3,20 @@ import { Button } from '../ui/Button'
 import { ConfirmDialog } from '../ConfirmDialog'
 import { useOfflineCacheSection } from '../../hooks/useOfflineCacheSection'
 
+const BYTES_PER_KB = 1024
+const MS_PER_MINUTE = 60_000
+
 function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `~${(bytes / 1024).toFixed(1)} KB`
-  return `~${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  if (bytes < BYTES_PER_KB) return `${bytes} B`
+  if (bytes < BYTES_PER_KB * BYTES_PER_KB)
+    return `~${(bytes / BYTES_PER_KB).toFixed(1)} KB`
+  return `~${(bytes / (BYTES_PER_KB * BYTES_PER_KB)).toFixed(1)} MB`
 }
 
 function formatTimeAgo(timestamp: number | null): string {
   if (!timestamp) return 'Never'
   const diff = Date.now() - timestamp
-  const minutes = Math.floor(diff / 60_000)
+  const minutes = Math.floor(diff / MS_PER_MINUTE)
   if (minutes < 1) return 'Just now'
   if (minutes < 60) return `${minutes} min ago`
   const hours = Math.floor(minutes / 60)

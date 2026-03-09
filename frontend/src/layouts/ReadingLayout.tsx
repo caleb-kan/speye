@@ -20,12 +20,10 @@ export function ReadingLayout() {
   const initialReadingPosition = state?.readingPosition ?? 0
   const modeTimestamp = state?._ts
 
-  // Create fixed text info if reading from library
   const fixedText: FixedTextInfo | undefined = libraryText
     ? { fiction: libraryText.fiction, complexity: libraryText.complexity }
     : undefined
 
-  // Get preferences from context (persisted to localStorage)
   const {
     preferences,
     setWpm,
@@ -122,7 +120,6 @@ export function ReadingLayout() {
       />
 
       <div className="flex-1 flex flex-col items-center px-4 sm:px-8">
-        {/* Nested page content */}
         <Outlet
           context={
             {

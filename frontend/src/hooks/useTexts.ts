@@ -21,7 +21,6 @@ export function useTexts({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Track previous values to detect changes
   const prevFictionRef = useRef<boolean | null>(null)
   const initialFetchDoneRef = useRef(false)
   // Track fetch request ID to handle race conditions
@@ -62,13 +61,11 @@ export function useTexts({
     []
   )
 
-  // Public refetch function that can be called externally
   const refetch = useCallback(() => {
     const requestId = ++fetchIdRef.current
     doFetch(requestId, fiction, complexityMin, complexityMax, excludeTextIds)
   }, [doFetch, fiction, complexityMin, complexityMax, excludeTextIds])
 
-  // Single effect for all fetch logic
   useEffect(() => {
     const isFirstRun = prevFictionRef.current === null
     const fictionChanged = !isFirstRun && prevFictionRef.current !== fiction

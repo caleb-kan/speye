@@ -49,7 +49,6 @@ export function AdminPromotion() {
           status.
         </p>
 
-        {/* Status Messages */}
         {successMessage && (
           <div className="p-2 bg-success/10 border border-success/20 rounded-lg text-xs text-success flex items-center gap-2">
             <ShieldCheck size={14} /> {successMessage}
@@ -75,7 +74,6 @@ export function AdminPromotion() {
         onSelect={handleSelect}
       />
 
-      {/* Selection Logic */}
       {selectedUserId && !showConfirm && (
         <SelectionCard
           selectedUsername={selectedUserLabel}
@@ -83,7 +81,6 @@ export function AdminPromotion() {
         />
       )}
 
-      {/* Confirmation Logic */}
       {showConfirm && selectedUserId && (
         <ConfirmPromotion
           selectedUsername={selectedUserLabel}

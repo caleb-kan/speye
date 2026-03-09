@@ -31,9 +31,7 @@ export function loadReadingActivitySession(): ReadingActivitySession | null {
   }
 }
 
-export function saveReadingActivitySession(
-  session: ReadingActivitySession
-): boolean {
+function saveReadingActivitySession(session: ReadingActivitySession): boolean {
   try {
     sessionStorage.setItem(
       STORAGE_KEYS.READING_ACTIVITY_SESSION,

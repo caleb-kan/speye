@@ -59,7 +59,6 @@ export function useResizeObserver<T extends HTMLElement = HTMLElement>(
   const ref = useRef<T | null>(null)
   const callbackRef = useRef(callback)
 
-  // Keep callback ref updated to avoid stale closures
   useLayoutEffect(() => {
     callbackRef.current = callback
   }, [callback])

@@ -23,13 +23,11 @@ export function Resizable({
 }: ResizableProps) {
   const containerRef = useRef<HTMLDivElement>(null)
 
-  // Store current props in ref for use in event handlers
   const propsRef = useRef({ minWidthPercent, maxWidthPercent, onWidthChange })
   useEffect(() => {
     propsRef.current = { minWidthPercent, maxWidthPercent, onWidthChange }
   }, [minWidthPercent, maxWidthPercent, onWidthChange])
 
-  // Setup pointer event handlers
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
@@ -73,7 +71,6 @@ export function Resizable({
       document.body.style.userSelect = 'none'
     }
 
-    // Find the separator element (the handle)
     const separator = container.querySelector('[role="separator"]')
     if (separator) {
       separator.addEventListener(
@@ -96,7 +93,6 @@ export function Resizable({
     }
   }, [])
 
-  // Handle keyboard navigation for accessibility
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>) => {
       let newPercent: number | null = null

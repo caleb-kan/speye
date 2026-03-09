@@ -50,7 +50,6 @@ export function RecipientSelect({
             </option>
           ))}
         </select>
-        {/* Custom Chevron */}
         <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-text-secondary">
           <svg
             width="10"

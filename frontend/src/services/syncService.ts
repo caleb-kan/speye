@@ -19,39 +19,30 @@ import { updateLeaderboardCache } from './leaderboardService'
 import { setLastSyncTime } from './offlineCache'
 import { SYNC } from '../constants/offline'
 import { pwaLogger } from '../utils/pwaLogger'
-import type { UserActivityLogParams } from './logUserActivity'
-import type { QuizResultParams } from './saveQuizResult'
 
 const TAG = 'syncService'
 
 async function executeOperation(op: QueuedOperation): Promise<void> {
   switch (op.type) {
     case 'logUserActivity':
-      await logUserActivityDb(op.payload as UserActivityLogParams)
+      await logUserActivityDb(op.payload)
       break
     case 'saveQuizResult': {
-      const params = op.payload as QuizResultParams
-      const data = await saveQuizResultDb(params)
+      const data = await saveQuizResultDb(op.payload)
       if (data?.user_id) {
-        await updateLeaderboardCache(params.text_id, data.user_id)
+        await updateLeaderboardCache(op.payload.text_id, data.user_id)
       }
       break
     }
-    case 'markNotificationSeen': {
-      const { id } = op.payload as { id: string }
-      await markNotificationSeenDb(id)
+    case 'markNotificationSeen':
+      await markNotificationSeenDb(op.payload.id)
       break
-    }
-    case 'markAllNotificationsSeen': {
-      const { userId } = op.payload as { userId: string }
-      await markAllNotificationsSeenDb(userId)
+    case 'markAllNotificationsSeen':
+      await markAllNotificationsSeenDb(op.payload.userId)
       break
-    }
-    case 'markNotificationToastShown': {
-      const { id } = op.payload as { id: string }
-      await markNotificationToastShownDb(id)
+    case 'markNotificationToastShown':
+      await markNotificationToastShownDb(op.payload.id)
       break
-    }
   }
 }
 

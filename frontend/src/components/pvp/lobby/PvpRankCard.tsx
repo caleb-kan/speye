@@ -13,14 +13,14 @@ type PvpRankCardProps = {
   rating: PvpRating | null
   loading: boolean
   ratingError?: boolean
-  onPlayRanked: () => void
+  onPlayPvp: () => void
 }
 
 export function PvpRankCard({
   rating,
   loading,
   ratingError,
-  onPlayRanked,
+  onPlayPvp,
 }: PvpRankCardProps) {
   const elo = rating?.elo_rating ?? PVP_STARTING_ELO
   const gamesPlayed = rating?.games_played ?? 0
@@ -82,7 +82,7 @@ export function PvpRankCard({
       )}
 
       <button
-        onClick={onPlayRanked}
+        onClick={onPlayPvp}
         disabled={loading || ratingError}
         className="
           mt-8
@@ -97,7 +97,7 @@ export function PvpRankCard({
         "
       >
         <Swords size={20} />
-        Play Ranked
+        Play PvP
       </button>
     </div>
   )

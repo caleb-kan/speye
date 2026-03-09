@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useCallback, useEffect, useState, useMemo } from 'react'
 import { AuthContext } from './authContext'
 import { supabase } from '../../../lib/supabase'
 import type { Session } from '@supabase/supabase-js'
@@ -9,21 +9,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
 
-  // Derive user from session to avoid redundant state
   const user = useMemo(() => session?.user ?? null, [session])
 
   useEffect(() => {
-    // Get initial session
     supabase.auth
       .getSession()
       .then(({ data: { session } }) => {
         setSession(session)
       })
+      .catch((err) => {
+        console.error('Failed to load auth session:', err)
+      })
       .finally(() => {
         setLoading(false)
       })
 
-    // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -34,16 +34,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe()
   }, [])
 
-  const signOut = async () => {
-    await clearQueue()
-    await clearAllCaches()
+  const signOut = useCallback(async () => {
+    try {
+      await clearQueue()
+    } catch (err) {
+      console.error('Failed to clear operation queue during sign-out:', err)
+    }
+    try {
+      await clearAllCaches()
+    } catch (err) {
+      console.error('Failed to clear caches during sign-out:', err)
+    }
     await supabase.auth.signOut({ scope: 'global' })
-    // State is automatically updated via onAuthStateChange listener
-  }
+  }, [])
 
   const value = useMemo(
     () => ({ user, session, loading, signOut }),
-    [user, session, loading]
+    [user, session, loading, signOut]
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

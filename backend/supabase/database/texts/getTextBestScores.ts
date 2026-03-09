@@ -20,7 +20,6 @@ export async function getTextBestScores(
     return {}
   }
 
-  // Reduce to find the max score per text_id
   const bestScores: Record<string, number> = {}
 
   data.forEach((quiz) => {

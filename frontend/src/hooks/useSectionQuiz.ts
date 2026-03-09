@@ -23,18 +23,13 @@ export function useSectionQuiz(currentText: Text) {
     number | null
   >(null)
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0)
-  // Sections where the quiz has been finished OR dismissed (prevents overlay re-show)
   const [quizzedSections, setQuizzedSections] = useState<Set<number>>(new Set())
-  // Sections where the quiz was actually answered (controls dot colour + IndexedDB)
   const [completedSectionQuizzes, setCompletedSectionQuizzes] = useState<
     Set<number>
   >(new Set())
-  // Accumulated (correct, total) per section for aggregate scoring
   const sectionResultsRef = useRef<
     ({ correct: number; total: number } | null)[]
   >([])
-  // Sections whose quiz has been triggered at least once -- prevents re-showing
-  // the quiz when the reader loops back through an already-triggered section.
   const triggeredSectionsRef = useRef(new Set<number>())
 
   const isSectional = currentText.sectional
@@ -43,7 +38,6 @@ export function useSectionQuiz(currentText: Text) {
     [currentText.quiz]
   )
 
-  // Load persisted section quiz progress from IndexedDB on mount
   useEffect(() => {
     if (!isSectional) return
     getSectionQuizProgress(currentText.id)
@@ -67,7 +61,6 @@ export function useSectionQuiz(currentText: Text) {
     }).catch(console.error)
   }
 
-  // Save aggregate score once all sections with quizzes have been answered.
   const saveAggregateIfAllDone = (
     results: typeof sectionResultsRef.current,
     nextCompleted: Set<number>
@@ -86,7 +79,6 @@ export function useSectionQuiz(currentText: Text) {
     }
   }
 
-  // Called when the reader reaches the end of a section
   const handleSectionComplete = useCallback(
     (sectionIndex: number) => {
       if (
@@ -101,7 +93,6 @@ export function useSectionQuiz(currentText: Text) {
     [questionSets, quizzedSections]
   )
 
-  // Called by QuizModal (via onFinish) after a section quiz is answered
   const handleSectionQuizFinish = (correct: number, total: number) => {
     if (pendingSectionQuizIndex === null) return
     const idx = pendingSectionQuizIndex
@@ -111,20 +102,16 @@ export function useSectionQuiz(currentText: Text) {
 
     const nextCompleted = new Set(completedSectionQuizzes).add(idx)
     setCompletedSectionQuizzes(nextCompleted)
-    setQuizzedSections(new Set(quizzedSections).add(idx))
+    setQuizzedSections((prev) => new Set(prev).add(idx))
     persistProgress(updatedResults, nextCompleted)
     saveAggregateIfAllDone(updatedResults, nextCompleted)
   }
 
-  // Called when user dismisses the section quiz overlay -- does not count
-  // as completed; just prevents the overlay re-showing.
   const handleSectionQuizDismiss = () => {
     if (pendingSectionQuizIndex === null) return
-    setQuizzedSections(new Set(quizzedSections).add(pendingSectionQuizIndex))
+    setQuizzedSections((prev) => new Set(prev).add(pendingSectionQuizIndex))
   }
 
-  // Quiz overlay is active when there's a pending quiz that hasn't been
-  // quizzed yet, and the user is currently in that section.
   const hasUnfinishedSectionQuiz =
     pendingSectionQuizIndex !== null &&
     !quizzedSections.has(pendingSectionQuizIndex)
@@ -137,8 +124,6 @@ export function useSectionQuiz(currentText: Text) {
       ? (questionSets[pendingSectionQuizIndex] ?? null)
       : null
 
-  // Show mini quiz button when a section quiz was dismissed (not completed)
-  // for the current section.
   const showSectionMiniQuiz =
     isSectional &&
     pendingSectionQuizIndex !== null &&

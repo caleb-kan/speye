@@ -187,7 +187,6 @@ export function Admin() {
   return (
     <div className="p-4 sm:p-6 pb-4 bg-bg flex flex-col h-full min-h-0">
       <div className="max-w-7xl mx-auto w-full flex flex-col flex-1 min-h-0 gap-3">
-        {/* Header */}
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 pt-1 pb-1 shrink-0">
           <div className="mt-1">
             <h1 className="text-2xl font-bold text-text mb-1 tracking-tight">
@@ -261,7 +260,6 @@ export function Admin() {
           </div>
         )}
 
-        {/* Widgets Grid */}
         <div className="relative w-full z-10 shrink-0">
           <div className="grid grid-cols-1">
             <div

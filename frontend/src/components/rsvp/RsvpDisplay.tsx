@@ -36,14 +36,12 @@ export function RsvpDisplay({
       }`}
       style={isMobile ? undefined : { aspectRatio: '3 / 5' }}
     >
-      {/* Title pinned to top */}
       {title && (
         <div className="px-4 pt-6 shrink-0">
           <TextTitle title={title} source={source} isSummary={isSummary} />
         </div>
       )}
 
-      {/* Phrases centered in remaining space */}
       <div className="flex-1 flex flex-col items-center justify-center gap-6 px-2 w-full min-h-0 min-w-0 overflow-hidden">
         {Array.from({ length: visibleLines }, (_, i) => {
           const offset = i - half
@@ -78,7 +76,6 @@ export function RsvpDisplay({
         })}
       </div>
 
-      {/* Controls pinned to bottom */}
       {children && <div className="px-4 pb-4">{children}</div>}
     </div>
   )

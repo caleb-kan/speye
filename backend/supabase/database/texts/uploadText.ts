@@ -34,7 +34,6 @@ export async function uploadText(
         owner_id: data.isPublic ? null : userId,
         content: data.content,
         complexity: complexity,
-        // Optional fields - only include if provided
         ...(data.title !== undefined && { title: data.title }),
         ...(data.fiction !== undefined && { fiction: data.fiction }),
         ...(data.quiz !== undefined && { quiz: data.quiz }),

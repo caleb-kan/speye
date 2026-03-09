@@ -37,7 +37,6 @@ export const ReadingControls = memo(function ReadingControls({
 
   return (
     <div className="w-full flex flex-col items-center gap-4">
-      {/* Progress Bar */}
       {!hideProgress && (
         <ProgressBar
           progress={progress}
@@ -48,9 +47,7 @@ export const ReadingControls = memo(function ReadingControls({
         />
       )}
 
-      {/* Control Buttons Container */}
       <div className="relative w-full max-w-md flex items-center justify-center h-14">
-        {/* CENTER GROUP: Main Controls */}
         <div className="flex items-center gap-4 z-10">
           <IconButton
             onClick={onRestart}
@@ -90,8 +87,6 @@ export const ReadingControls = memo(function ReadingControls({
           />
         </div>
 
-        {/* RIGHT GROUP: Divider & Quiz Button */}
-        {/* Absolutely positioned to the right edge of the max-w-md container */}
         <div
           className={`
             absolute right-0 top-1/2 -translate-y-1/2
@@ -100,10 +95,8 @@ export const ReadingControls = memo(function ReadingControls({
             ${showMiniQuiz ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-4 pointer-events-none'}
           `}
         >
-          {/* The Divider */}
           <div className="w-px h-8 bg-text-secondary/20" />
 
-          {/* Quiz Button */}
           <button
             onClick={onStartQuiz}
             className="
@@ -119,7 +112,6 @@ export const ReadingControls = memo(function ReadingControls({
         </div>
       </div>
 
-      {/* Keyboard Hint */}
       {!disabled && !isMobile && (
         <p className="text-xs text-text-secondary">
           press{' '}

@@ -39,7 +39,6 @@ export function NavItem({
       return
     }
 
-    // Log activity before navigating
     onBeforeNavigate?.(to)
 
     // When navigating away from adaptive mode, use React Router navigate

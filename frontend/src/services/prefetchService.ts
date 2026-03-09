@@ -13,6 +13,8 @@ import { PREFETCH } from '../constants/offline'
 const TAG = 'prefetchService'
 
 const BATCH_SIZE = 10
+const IDLE_CALLBACK_TIMEOUT_MS = 2000
+const IDLE_FALLBACK_DELAY_MS = 100
 
 // Module-level lock to prevent concurrent prefetch runs (e.g. auto-trigger
 // and manual "Save offline" button firing within the cooldown window).
@@ -51,7 +53,6 @@ export async function prefetchAllTexts(): Promise<void> {
     return
   }
 
-  // Check cooldown
   try {
     const lastPrefetch = localStorage.getItem(PREFETCH.COOLDOWN_KEY)
     if (
@@ -65,7 +66,6 @@ export async function prefetchAllTexts(): Promise<void> {
     // Ignore localStorage errors
   }
 
-  // Must be authenticated
   const user = await getCurrentUser()
   if (!user) {
     pwaLogger.debug(TAG, 'Skipping prefetch — not authenticated')
@@ -82,7 +82,6 @@ export async function prefetchAllTexts(): Promise<void> {
       fetchUserLibraryTexts(user.id),
     ])
 
-    // Collect all unique text IDs
     const allIds = new Set<string>()
     for (const t of publicTexts) allIds.add(t.id)
     for (const t of userTexts) allIds.add(t.id)
@@ -107,23 +106,28 @@ export async function prefetchAllTexts(): Promise<void> {
             () => {
               prefetchBatch(batch)
                 .then(resolve)
-                .catch(() => resolve())
+                .catch((err) => {
+                  pwaLogger.warn(TAG, 'Batch prefetch failed, continuing', err)
+                  resolve()
+                })
             },
-            { timeout: 2000 }
+            { timeout: IDLE_CALLBACK_TIMEOUT_MS }
           )
         } else {
           setTimeout(() => {
             prefetchBatch(batch)
               .then(resolve)
-              .catch(() => resolve())
-          }, 100)
+              .catch((err) => {
+                pwaLogger.warn(TAG, 'Batch prefetch failed, continuing', err)
+                resolve()
+              })
+          }, IDLE_FALLBACK_DELAY_MS)
         }
       })
     }
 
     pwaLogger.info(TAG, 'Prefetch complete')
 
-    // Mark cooldown
     try {
       localStorage.setItem(PREFETCH.COOLDOWN_KEY, String(Date.now()))
     } catch {

@@ -3,6 +3,10 @@ import { Zap, Clock, FileQuestion, ChevronDown, Activity } from 'lucide-react'
 import type { CollapsedActivitySession } from '../../services/getUserActivity'
 import { TimelineGraph } from './TimelineGraph'
 import { useIsMobile } from '../../hooks/useIsMobile'
+import {
+  EXPAND_OVERFLOW_DELAY_MS,
+  SESSION_ITEM_STAGGER_MS,
+} from '../../constants/ui'
 
 const HIGH_SCORE_THRESHOLD = 80
 
@@ -25,7 +29,10 @@ export function SessionItem({ session, index }: Props) {
 
   useEffect(() => {
     if (isExpanded) {
-      const timeout = setTimeout(() => setOverflowVisible(true), 550)
+      const timeout = setTimeout(
+        () => setOverflowVisible(true),
+        EXPAND_OVERFLOW_DELAY_MS
+      )
       return () => clearTimeout(timeout)
     }
   }, [isExpanded])
@@ -38,7 +45,7 @@ export function SessionItem({ session, index }: Props) {
         group flex flex-col sm:p-4 sm:rounded-2xl sm:hover:bg-text-secondary/10 transition-all duration-300 sm:border sm:border-transparent sm:hover:border-text-secondary/10 animate-in slide-in-from-bottom-4 fade-in fill-mode-backwards cursor-pointer
         ${isExpanded ? 'sm:bg-text-secondary/10 sm:border-text-secondary/10 z-20 relative' : 'z-0'}
       `}
-      style={{ animationDelay: `${index * 50}ms` }}
+      style={{ animationDelay: `${index * SESSION_ITEM_STAGGER_MS}ms` }}
       onClick={() => {
         if (hasSegments) {
           setIsExpanded((prev) => {
@@ -48,7 +55,6 @@ export function SessionItem({ session, index }: Props) {
         }
       }}
     >
-      {/* --- Top Header (Key Information) --- */}
       <div className="relative z-10 flex items-center gap-3 sm:gap-4 w-full">
         {!isMobile && (
           <div className="flex flex-col items-center justify-center w-10 h-10 sm:w-14 sm:h-14 rounded-xl bg-bg-secondary border border-text-secondary/10 text-text-secondary shrink-0 transition-colors group-hover:bg-text-secondary/10">
@@ -148,7 +154,6 @@ export function SessionItem({ session, index }: Props) {
         </div>
       </div>
 
-      {/* --- Expandable --- */}
       <div
         className={`
           grid transition-[grid-template-rows] duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] relative min-w-0

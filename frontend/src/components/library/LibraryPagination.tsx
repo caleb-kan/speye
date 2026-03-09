@@ -46,11 +46,14 @@ export function LibraryPagination({
     const container = document.querySelector('main')
     if (!container) return
 
+    const SCROLL_BOTTOM_THRESHOLD_PX = 20
+
     const handleScroll = () => {
       const { scrollTop, scrollHeight, clientHeight } = container
       const isScrollable = scrollHeight > clientHeight + 1
       setIsAtBottom(
-        isScrollable && scrollHeight - scrollTop - clientHeight < 20
+        isScrollable &&
+          scrollHeight - scrollTop - clientHeight < SCROLL_BOTTOM_THRESHOLD_PX
       )
     }
 

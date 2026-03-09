@@ -29,7 +29,6 @@ export function GazeStatusIndicator({
   isSweepDetected = false,
   variant = 'detailed',
 }: GazeStatusIndicatorProps) {
-  // Minimal variant - colored dot with text
   if (variant === 'minimal') {
     if (isSweepDetected) {
       return <span className="text-success font-medium">● Advancing...</span>
@@ -43,7 +42,6 @@ export function GazeStatusIndicator({
     return <span className="text-text-secondary/50">○ Not tracking</span>
   }
 
-  // Detailed variant - icon + text with tooltip
   const Icon = isReliable ? Eye : webgazerReady ? EyeOff : AlertTriangle
   const iconClass = isReliable
     ? 'text-success'

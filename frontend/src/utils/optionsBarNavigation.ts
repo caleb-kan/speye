@@ -1,7 +1,7 @@
 import type { LocationState } from '../types'
 import type { Text } from '../types/database'
 
-export type BuildModeNavigationStateParams = {
+type BuildModeNavigationStateParams = {
   includeTimestamp: boolean
   readingPosition: number
   libraryText?: Text | null

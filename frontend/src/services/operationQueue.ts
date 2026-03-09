@@ -10,36 +10,46 @@ const queueStore = localforage.createInstance({
   storeName: 'operation-queue',
 })
 
-export type OperationType =
+type OperationType =
   | 'logUserActivity'
   | 'saveQuizResult'
   | 'markNotificationSeen'
   | 'markAllNotificationsSeen'
   | 'markNotificationToastShown'
 
-export interface QueuedOperation {
+interface BaseOperation {
   id: string
-  type: OperationType
-  payload:
-    | UserActivityLogParams
-    | QuizResultParams
-    | { id: string }
-    | { userId: string }
   timestamp: number
   retryCount: number
 }
 
-export async function enqueueOperation(
-  type: OperationType,
-  payload: QueuedOperation['payload']
+export type QueuedOperation =
+  | (BaseOperation & {
+      type: 'logUserActivity'
+      payload: UserActivityLogParams
+    })
+  | (BaseOperation & { type: 'saveQuizResult'; payload: QuizResultParams })
+  | (BaseOperation & { type: 'markNotificationSeen'; payload: { id: string } })
+  | (BaseOperation & {
+      type: 'markAllNotificationsSeen'
+      payload: { userId: string }
+    })
+  | (BaseOperation & {
+      type: 'markNotificationToastShown'
+      payload: { id: string }
+    })
+
+export async function enqueueOperation<T extends OperationType>(
+  type: T,
+  payload: Extract<QueuedOperation, { type: T }>['payload']
 ): Promise<void> {
-  const op: QueuedOperation = {
+  const op = {
     id: `${type}-${Date.now()}-${crypto.randomUUID()}`,
     type,
     payload,
     timestamp: Date.now(),
     retryCount: 0,
-  }
+  } as QueuedOperation
   pwaLogger.debug(TAG, `Enqueued operation: ${type}`, { id: op.id })
   await queueStore.setItem(op.id, op)
   notifyListeners()

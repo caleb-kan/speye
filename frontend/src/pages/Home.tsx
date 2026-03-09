@@ -39,7 +39,6 @@ export function Home() {
 
   useReadingContextSync(currentText, context)
 
-  // Capture loading state from hook alongside external loading
   const isRestoring = useRestoreReadingProgress(
     currentText,
     context.setReadingPosition

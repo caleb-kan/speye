@@ -5,16 +5,12 @@ import { AnswerOption } from './AnswerOption'
 import { QuizResults } from './QuizResults'
 import { saveQuizResult } from '../../services/saveQuizResult'
 import { useAuth } from '../../hooks/useAuth'
+import type {
+  QuizQuestion as Question,
+  QuestionSet,
+} from '../../types/database'
 
-export type Question = {
-  question: string
-  options: string[]
-  correctAnswer: number
-}
-
-export type QuestionSet = {
-  questions: Question[]
-}
+export type { Question, QuestionSet }
 
 type QuizModalProps = {
   isOpen: boolean
@@ -42,14 +38,13 @@ export function QuizModal({
   const [isFinished, setIsFinished] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [savedWpm, setSavedWpm] = useState<number | null>(null)
+  const [saveError, setSaveError] = useState(false)
 
   if (!questionSet) return null
 
   const questions = questionSet.questions
   const currentQuestion = questions[currentIndex]
   const selectedAnswer = answers[currentIndex]
-
-  // --- Handlers ---
 
   function selectAnswer(index: number) {
     const updated = [...answers]
@@ -77,6 +72,7 @@ export function QuizModal({
     if (!user) return
 
     setIsSaving(true)
+    setSaveError(false)
     try {
       const result = await saveQuizResult({
         text_id: textId,
@@ -87,6 +83,7 @@ export function QuizModal({
       }
     } catch (err) {
       console.error('Failed to save quiz result:', err)
+      setSaveError(true)
     } finally {
       setIsSaving(false)
     }
@@ -119,24 +116,23 @@ export function QuizModal({
             onClose={onClose}
             isSaving={isSaving}
             savedWpm={savedWpm}
+            saveError={saveError}
           />
         </div>
       ) : (
         <>
-          <div className="mb-4 sm-mb-8">
+          <div className="mb-4 sm:mb-8">
             <QuizHeader current={currentIndex} total={questions.length} />
           </div>
 
           {/* Re-trigger CSS animations (re-mounting with key) */}
           <div key={currentIndex} className="flex flex-col">
-            {/* Question Text */}
             <div className="mb-10 animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out">
-              <h3 className="text-xl sm-text-3xl font-medium leading-tight text-text tracking-tight">
+              <h3 className="text-xl sm:text-3xl font-medium leading-tight text-text tracking-tight">
                 {currentQuestion.question}
               </h3>
             </div>
 
-            {/* Options Staggered */}
             <div className="space-y-3 flex flex-col">
               {currentQuestion.options.map((option, i) => (
                 <div
@@ -156,7 +152,6 @@ export function QuizModal({
               ))}
             </div>
 
-            {/* Next Button Container */}
             <div className="flex justify-end pt-4 mt-4 border-t border-text-secondary/10 h-16">
               {selectedAnswer !== undefined && (
                 <button

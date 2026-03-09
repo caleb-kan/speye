@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { getAvatarUrl } from '../utils/getAvatarUrl'
@@ -11,13 +12,16 @@ export function Profile() {
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
   const defaultRoute = useDefaultReadingRoute()
+  const [signOutError, setSignOutError] = useState<string | null>(null)
 
   const handleSignOut = async () => {
+    setSignOutError(null)
     try {
       await signOut()
       navigate(defaultRoute)
     } catch (error) {
       console.error('Sign out failed:', error)
+      setSignOutError('Sign out failed. Please try again.')
     }
   }
 
@@ -30,6 +34,9 @@ export function Profile() {
               user={user}
               avatarUrl={getAvatarUrl(user) ?? null}
             />
+            {signOutError && (
+              <p className="text-error text-sm mb-4">{signOutError}</p>
+            )}
             <AccountSection onSignOut={handleSignOut} />
           </>
         ) : (

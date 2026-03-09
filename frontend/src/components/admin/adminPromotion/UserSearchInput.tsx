@@ -35,15 +35,13 @@ export function UserSearchInput({
   const [activeIndex, setActiveIndex] = useState<number>(-1)
   const itemRefs = useRef<Array<HTMLButtonElement | null>>([])
 
-  useEffect(() => {
-    if (!dropdownOpen || loadingUsers || filteredUsers.length === 0) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setActiveIndex(-1)
-      return
-    }
-
-    setActiveIndex(0)
-  }, [dropdownOpen, loadingUsers, filteredUsers.length])
+  const dropdownReady =
+    dropdownOpen && !loadingUsers && filteredUsers.length > 0
+  const [prevDropdownReady, setPrevDropdownReady] = useState(dropdownReady)
+  if (dropdownReady !== prevDropdownReady) {
+    setPrevDropdownReady(dropdownReady)
+    setActiveIndex(dropdownReady ? 0 : -1)
+  }
 
   useEffect(() => {
     if (activeIndex < 0) return
@@ -104,7 +102,6 @@ export function UserSearchInput({
               setIsFocused(false)
             }
           }}
-          // Delay blur slightly or rely on click handling to not close dropdown immediately
           onChange={(e) => {
             setIsFocused(true)
             setSearchQuery(e.target.value)
@@ -128,7 +125,6 @@ export function UserSearchInput({
         )}
       </div>
 
-      {/* Dropdown Results */}
       {dropdownOpen && (
         <div className="absolute top-full left-0 right-0 mt-1 bg-bg-secondary border border-text-secondary/20 rounded-lg shadow-2xl z-20 max-h-40 overflow-y-auto">
           {loadingUsers ? (

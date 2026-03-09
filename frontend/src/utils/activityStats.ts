@@ -61,7 +61,6 @@ export const computeActivityStats = (
     b.localeCompare(a)
   )
 
-  // Current Streak
   let currentStreak = 0
 
   const today = now.toISOString().split('T')[0]
@@ -85,7 +84,6 @@ export const computeActivityStats = (
     }
   }
 
-  // Best Streak
   let bestStreak = 0
   let tempStreak = 0
 

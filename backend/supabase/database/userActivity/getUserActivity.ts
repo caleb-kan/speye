@@ -1,6 +1,6 @@
 import { supabase } from '../../../../lib/supabase'
 import { logDbQuery } from '../logger'
-import type { Mode } from '../../../../frontend/src/types/reading'
+import type { Mode } from './types'
 
 export interface ActivitySession {
   id: string
@@ -11,9 +11,9 @@ export interface ActivitySession {
   start_time: string | null
   end_time: string | null
   text: {
-    title: string
-    fiction: boolean
-    complexity: number
+    title: string | null
+    fiction: boolean | null
+    complexity: number | null
   } | null
 }
 

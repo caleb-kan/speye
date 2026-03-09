@@ -78,17 +78,14 @@ export function useStaticPagination({
     const containerRect = container.getBoundingClientRect()
     const wordRect = currentWordEl.getBoundingClientRect()
 
-    // Check if word is outside visible area
     const isOutside =
       wordRect.bottom > containerRect.bottom || wordRect.top < containerRect.top
 
-    // Check if word is near bottom edge (for early page flip)
     const isNearBottom =
       nearBottomThreshold > 0 &&
       wordRect.bottom > containerRect.bottom - nearBottomThreshold
 
     if (isOutside || isNearBottom) {
-      // Determine next page start - either current word or next word
       const nextStartIndex =
         isNearBottom && currentWordIndex + 1 < totalWords
           ? currentWordIndex + 1
@@ -109,7 +106,6 @@ export function useStaticPagination({
     totalWords,
   ])
 
-  // Create a ref callback for word spans
   const setWordRef = useCallback(
     (globalIndex: number) => (el: HTMLSpanElement | null) => {
       if (el) {

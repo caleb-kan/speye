@@ -127,11 +127,11 @@ export function Navbar() {
       <NavItem
         to={ROUTES.PVP}
         icon={<Swords size={22} />}
-        label="Ranked"
+        label="PvP"
         isMobile={isMobile}
         onBeforeNavigate={handleBeforeNavigate}
         disabled={!user}
-        disabledLabel="Sign in to play Ranked"
+        disabledLabel="Sign in to play PvP"
       />
       <NavItem
         to={ROUTES.SETTINGS}
@@ -141,7 +141,6 @@ export function Navbar() {
         onBeforeNavigate={handleBeforeNavigate}
       />
 
-      {/* Separator between nav and admin/auth */}
       <div
         className={
           isMobile
@@ -161,7 +160,6 @@ export function Navbar() {
         />
       )}
 
-      {/* Auth Section */}
       {loading ? (
         <div
           className="w-8 h-8 rounded-full bg-text-secondary/20 animate-pulse"

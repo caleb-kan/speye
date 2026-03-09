@@ -92,7 +92,7 @@ function LeaderboardContent({
     return (
       <div className="flex justify-center items-center h-full">
         <div className="text-sm text-text-secondary">
-          No ranked players yet. Be the first!
+          No PvP players yet. Be the first!
         </div>
       </div>
     )

@@ -60,7 +60,6 @@ export function NotificationCreator() {
         </div>
       )}
 
-      {/* (shrink-0) for static components on resize */}
       <div className="shrink-0">
         <RecipientSelect
           users={users}

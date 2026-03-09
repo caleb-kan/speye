@@ -27,17 +27,14 @@ export function PvpLobby() {
   } | null>(null)
   const [hoveredMatchId, setHoveredMatchId] = useState<string | null>(null)
 
-  // Initialize selected user to current user when nothing is selected
   const selectedUserIdOrDefault = selectedUserId ?? user?.id ?? null
 
-  // Get current user's rating (for the rank card - should always be the logged in user)
   const {
     rating: currentUserRating,
     loading: currentUserRatingLoading,
     error: currentUserRatingError,
   } = usePvpRating()
 
-  // Get selected user's rating (for Elo History and Match History)
   const { rating } = usePvpRating(selectedUserIdOrDefault)
   const {
     top: lbTop,
@@ -100,7 +97,6 @@ export function PvpLobby() {
     }
   }
 
-  // Find the username for the selected user
   const selectedUsername = selectedUserIdOrDefault
     ? ((searchedUser?.id === selectedUserIdOrDefault
         ? searchedUser.username
@@ -140,16 +136,13 @@ export function PvpLobby() {
         )}
 
         <div className="flex h-full items-center justify-between gap-6">
-          {/* Left side - Search Bar, Elo History, Match History */}
           <div className="hidden xl:flex flex-col items-start py-6 ml-20 gap-5">
             <div className="w-[380px]">
-              {/* User Search Bar */}
               <UserSearchBar onUserFound={handleSelectUser} />
             </div>
 
             {selectedUserIdOrDefault && (
               <div className="w-[380px] h-[600px] bg-bg-secondary/50 border border-text-secondary/10 rounded-2xl overflow-hidden flex flex-col">
-                {/* Elo History */}
                 <div className="p-4 pb-0">
                   <EloHistory
                     matches={matches}
@@ -162,7 +155,6 @@ export function PvpLobby() {
                   />
                 </div>
 
-                {/* Recent Matches */}
                 <div className="border-t border-text-secondary/10 flex-1 overflow-hidden flex flex-col mt-4">
                   <PvpMatchHistory
                     matches={matches}
@@ -177,20 +169,17 @@ export function PvpLobby() {
             )}
           </div>
 
-          {/* Center - Rank Card */}
           <div className="flex-1 flex items-center justify-center">
             <PvpRankCard
               rating={currentUserRating}
               loading={currentUserRatingLoading}
               ratingError={!!currentUserRatingError}
-              onPlayRanked={joinQueue}
+              onPlayPvp={joinQueue}
             />
           </div>
 
-          {/* Right side - Leaderboard */}
           <div className="hidden xl:flex items-start py-6">
             <div className="w-[380px]">
-              {/* Elo Leaderboard */}
               <PvpLeaderboard
                 top={lbTop}
                 currentUser={lbCurrentUser}

@@ -6,8 +6,6 @@ import { pwaLogger } from '../utils/pwaLogger'
 
 const TAG = 'offlineCache'
 
-// --- Store instances ---
-
 const textsStore = localforage.createInstance({
   name: 'speye-offline',
   storeName: 'texts',
@@ -37,8 +35,6 @@ const sectionQuizStore = localforage.createInstance({
   name: 'speye-offline',
   storeName: 'sectionQuiz',
 })
-
-// --- Generic cache helpers ---
 
 interface CacheEntry<T> {
   data: T
@@ -80,8 +76,6 @@ async function setCached<T>(
     )
   }
 }
-
-// --- Typed wrappers ---
 
 export async function getCachedText(textId: string): Promise<Text | null> {
   return getCached<Text>(textsStore, textId, CACHE_TTL.TEXT_CONTENT)
@@ -230,9 +224,7 @@ export async function setCachedNotifications(
   await setCached(notificationsStore, userId, notifications)
 }
 
-// --- Section quiz progress (sectional texts) ---
-
-export interface SectionQuizProgress {
+interface SectionQuizProgress {
   results: ({ correct: number; total: number } | null)[]
   quizzedSectionIds: number[]
 }
@@ -268,8 +260,6 @@ export async function getCachedQuiz(
   const text = await getCachedText(textId)
   return text?.quiz ?? null
 }
-
-// --- Cache management ---
 
 export async function getCacheStats(): Promise<{
   textCount: number

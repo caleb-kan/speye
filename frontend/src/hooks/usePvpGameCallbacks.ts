@@ -29,6 +29,7 @@ import {
   PVP_SUBMIT_MAX_ATTEMPTS,
   PVP_SUBMIT_RETRY_DELAY_MS,
   PVP_TICK_INTERVAL_MS,
+  PVP_HALFWAY_PROGRESS_THRESHOLD,
 } from '../constants/pvp'
 import { ROUTES } from '../utils/routes'
 import {
@@ -88,8 +89,6 @@ export function usePvpGameCallbacks({
   const [forfeitError, setForfeitError] = useState<string | null>(null)
   const [saveWarning, setSaveWarning] = useState<string | null>(null)
 
-  // Short form when appending to existing warnings to avoid long banner text;
-  // full form when this is the first warning for additional context.
   const appendSaveWarning = useCallback((shortMsg: string, fullMsg: string) => {
     setSaveWarning((prev) => (prev ? `${prev} ${shortMsg}` : fullMsg))
   }, [])
@@ -142,8 +141,6 @@ export function usePvpGameCallbacks({
   )
   const totalWordsRef = useRefSync(totalWords)
 
-  // Tracks elapsed reading+quiz time (not including pregame/countdown).
-  // Uses wall-clock measurement to avoid setInterval drift over long games.
   useEffect(() => {
     if (phase !== 'reading' && phase !== 'quiz') return
     if (!gameStartRef.current) gameStartRef.current = Date.now()
@@ -201,10 +198,6 @@ export function usePvpGameCallbacks({
     enabled: phase === 'reading' || phase === 'quiz' || phase === 'waiting',
   })
 
-  // Syncs recordHeartbeat to ref so the onHeartbeat callback (passed to
-  // usePvpGameChannel above) can call it without a circular hook dependency.
-  // Uses useLayoutEffect (matching useRefSync convention) to eliminate the
-  // timing gap between render and effect where the ref could be stale.
   useLayoutEffect(() => {
     recordHeartbeatRef.current = recordHeartbeat
   }, [recordHeartbeat])
@@ -251,7 +244,11 @@ export function usePvpGameCallbacks({
       setMyProgress(percent)
       updateProgress(wordIndex, percent)
 
-      if (percent >= 50 && !halfwaySentRef.current && userId) {
+      if (
+        percent >= PVP_HALFWAY_PROGRESS_THRESHOLD &&
+        !halfwaySentRef.current &&
+        userId
+      ) {
         halfwaySentRef.current = true
         sendMilestone({ userId, type: 'halfway' })
       }

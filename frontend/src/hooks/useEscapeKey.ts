@@ -1,6 +1,5 @@
 import { useEffect } from 'react'
 
-// Hook to handle Escape key press.
 export function useEscapeKey(onEscape: () => void, enabled = true) {
   useEffect(() => {
     if (!enabled) return

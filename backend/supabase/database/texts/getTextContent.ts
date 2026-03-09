@@ -16,8 +16,9 @@ export async function getTextContent(
     errors: error ? error.message : undefined,
   })
 
-  if (error || typeof data.content !== 'string') {
-    throw error
+  if (error) throw error
+  if (!data || typeof data.content !== 'string') {
+    throw new Error('Text not found or content is invalid')
   }
 
   return {

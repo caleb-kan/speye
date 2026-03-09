@@ -39,6 +39,7 @@ export async function saveQuizResult(params: QuizResultParams) {
     .from('user_activity')
     .update({ score: params.score })
     .eq('id', latestId)
+    .eq('user_id', user.id)
     .select()
     .single()
 

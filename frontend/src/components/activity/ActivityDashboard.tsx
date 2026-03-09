@@ -15,17 +15,14 @@ export function ActivityDashboard({ sessions, isVerifiedMode }: Props) {
   const { stats, chartData } = useMemo(() => {
     if (!sessions) return { stats: computeActivityStats([]), chartData: [] }
 
-    // Filter sessions based on the active mode
     const activeSessions = isVerifiedMode
       ? sessions.filter(
           (s) => s.score !== null && s.score >= VERIFIED_SCORE_THRESHOLD
         )
       : sessions
 
-    // Compute the static card stats
     const currentStats = computeActivityStats(activeSessions)
 
-    // Aggregate daily data for the chart
     const daily = new Map<
       string,
       { wpmSum: number; wpmCount: number; scoreSum: number; scoreCount: number }
@@ -68,9 +65,7 @@ export function ActivityDashboard({ sessions, isVerifiedMode }: Props) {
 
   return (
     <div className="w-full relative animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out">
-      {/* Grid Layout */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:grid-rows-2">
-        {/* Graph (Centre) */}
         <div className="col-span-2 lg:col-span-2 lg:col-start-2 lg:row-start-1 lg:row-span-2 h-full min-h-[260px] lg:min-h-[300px] order-first lg:order-none z-10">
           <ActivityMetricsWidget
             data={chartData}
@@ -80,7 +75,6 @@ export function ActivityDashboard({ sessions, isVerifiedMode }: Props) {
           />
         </div>
 
-        {/* Speed (Top Left) */}
         <StatWidget
           label="Avg Speed"
           value={stats.avgWpm}
@@ -89,7 +83,6 @@ export function ActivityDashboard({ sessions, isVerifiedMode }: Props) {
           className="col-span-1 lg:col-start-1 lg:row-start-1 order-2 lg:order-none"
         />
 
-        {/* Score (Top Right) */}
         <StatWidget
           label="Avg Score"
           value={stats.avgScore}
@@ -98,7 +91,6 @@ export function ActivityDashboard({ sessions, isVerifiedMode }: Props) {
           className="col-span-1 lg:col-start-4 lg:row-start-1 order-3 lg:order-none"
         />
 
-        {/* Texts Read (Bottom Left) */}
         <StatWidget
           label={isVerifiedMode ? 'Verified Texts' : 'Texts Read'}
           value={stats.totalTexts}
@@ -106,7 +98,6 @@ export function ActivityDashboard({ sessions, isVerifiedMode }: Props) {
           className="col-span-1 lg:col-start-1 lg:row-start-2 order-4 lg:order-none"
         />
 
-        {/* Streak (Bottom Right) */}
         <StatWidget
           label="Current Streak"
           value={stats.currentStreak}

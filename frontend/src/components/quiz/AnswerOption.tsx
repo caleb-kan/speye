@@ -33,7 +33,6 @@ export const AnswerOption = memo(function AnswerOption({
       <div className="flex items-center justify-between">
         <span className="block text-lg leading-relaxed">{text}</span>
 
-        {/* Indicator dot for selected state */}
         {!isMobile && selected && (
           <div className="w-2 h-2 rounded-full bg-bg/60 animate-in fade-in zoom-in" />
         )}

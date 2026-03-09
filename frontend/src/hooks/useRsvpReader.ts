@@ -70,7 +70,6 @@ export function useRsvpReader({
   const [isPlaying, setIsPlaying] = useState(false)
   const intervalRef = useRef<number | null>(null)
 
-  // adjust state when a prop changes during render
   const [prevForcePause, setPrevForcePause] = useState(forcePause)
   if (forcePause !== prevForcePause) {
     setPrevForcePause(forcePause)
@@ -79,17 +78,8 @@ export function useRsvpReader({
     }
   }
 
-  // initialWordIndexRef captures the position at mount so that restart() and
-  // play()-at-end return to the starting point.  Text/mode changes are handled
-  // by the component key (currentText.id + modeTimestamp), which remounts the
-  // hook with a fresh initialWordIndex — no effect-driven reset is needed and
-  // adding one would pause the reader on every phrase advance (because
-  // readingPosition, which is passed as initialWordIndex, updates continuously).
   const initialWordIndexRef = useRef(initialWordIndex)
 
-  // Derive phrase index from word index — automatically correct when
-  // phraseSize changes because cumulativeWordCounts recalculates while
-  // currentWordIndex (the true reading position) stays the same.
   const currentPhraseIndex = useMemo(
     () =>
       hasText
@@ -174,7 +164,6 @@ export function useRsvpReader({
           setIsPlaying(false)
           return
         }
-        // Advance to the start of the next phrase
         const nextWordIndex = cumulativeWordCounts[currentPhraseIndex + 1]
         if (nextWordIndex !== undefined) {
           setCurrentWordIndex(nextWordIndex)

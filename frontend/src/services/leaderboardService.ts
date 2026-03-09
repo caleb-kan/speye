@@ -38,6 +38,6 @@ export async function updateLeaderboardCache(
     await updateLeaderboardCacheDb(textId, userId)
   } catch (err) {
     // Don't throw - cache update failure shouldn't block the user
-    console.error('Leaderboard cache update failed:', err)
+    pwaLogger.error(TAG, 'Leaderboard cache update failed', err)
   }
 }

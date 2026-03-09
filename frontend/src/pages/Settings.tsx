@@ -13,7 +13,6 @@ export function Settings() {
   const { user } = useAuth()
   const { hash } = useLocation()
 
-  // Scroll to hash fragment (e.g. #offline-cache) after mount
   useEffect(() => {
     if (!hash) return
     const el = document.getElementById(hash.slice(1))

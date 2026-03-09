@@ -5,6 +5,7 @@ import Groq from 'npm:groq-sdk@0.37.0'
 const MAX_CONTENT_LENGTH = 15_000
 // Truncation limit for summary excerpt sent to the validation LLM
 const MAX_SUMMARY_LENGTH = 5_000
+const LLM_MAX_TOKENS = 1_000
 
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
@@ -52,7 +53,7 @@ const config = {
   // structured output, but json_object guarantees valid JSON syntax.
   model: 'llama-3.3-70b-versatile',
   temperature: 0.1,
-  max_tokens: 1000,
+  max_tokens: LLM_MAX_TOKENS,
   // "Respond with valid JSON" retained as belt-and-suspenders alongside
   // json_object: ensures the model prioritizes JSON even if the mode fails.
   system_message: `You are a quiz quality validator. Your job is to evaluate if a quiz accurately tests reading comprehension of a given text. You respond with valid JSON only - no markdown code blocks, no explanations.`,
@@ -129,7 +130,6 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ error: 'Quiz with questionSets is required' }, 400)
     }
 
-    // Use first question set as sample for validation
     const quizSample = quiz.questionSets[0]
     if (!quizSample || !quizSample.questions) {
       return jsonResponse({ error: 'Quiz has no questions' }, 400)
@@ -196,7 +196,6 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    // Validate response structure
     if (typeof parsed.isValid !== 'boolean') {
       console.error(
         'Unexpected validation response:',

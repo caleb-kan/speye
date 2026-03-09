@@ -6,6 +6,7 @@ import {
   PVP_TICK_INTERVAL_MS,
 } from '../constants/pvp'
 import type { HeartbeatPayload } from './usePvpGameChannel'
+import { useRefSync } from './useRefSync'
 
 type HeartbeatOptions = {
   userId: string | null
@@ -20,27 +21,32 @@ export function usePvpHeartbeat({
 }: HeartbeatOptions) {
   const [opponentDisconnected, setOpponentDisconnected] = useState(false)
   const lastHeartbeatRef = useRef(0)
+  const sendHeartbeatRef = useRefSync(sendHeartbeat)
 
   useEffect(() => {
     if (!enabled || !userId) return
 
     const send = () => {
-      sendHeartbeat({ userId, ts: Date.now() })
+      sendHeartbeatRef.current({ userId, ts: Date.now() })
     }
 
     send()
     const interval = setInterval(send, PVP_HEARTBEAT_INTERVAL_MS)
 
     return () => clearInterval(interval)
-  }, [enabled, userId, sendHeartbeat])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- sendHeartbeatRef is a stable ref (useRefSync)
+  }, [enabled, userId])
+
+  const [prevEnabled, setPrevEnabled] = useState(enabled)
+  if (enabled !== prevEnabled) {
+    setPrevEnabled(enabled)
+    if (!enabled) {
+      setOpponentDisconnected(false)
+    }
+  }
 
   useEffect(() => {
-    if (!enabled) {
-      // Derived state reset: clear disconnect status when heartbeat monitoring is disabled
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setOpponentDisconnected(false)
-      return
-    }
+    if (!enabled) return
 
     lastHeartbeatRef.current = Date.now()
 

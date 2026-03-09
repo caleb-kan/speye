@@ -7,17 +7,11 @@ export const CALIBRATION_ACCURACY_THRESHOLD = 50
 /** Number of gaze samples to collect for accuracy measurement. */
 export const ACCURACY_SAMPLE_COUNT = 50
 
-/** Time in ms to collect accuracy samples. */
-export const ACCURACY_COLLECTION_MS = 5000
-
 /** Maximum time (ms) to wait for accuracy samples before using available data. */
 export const ACCURACY_MAX_WAIT_MS = 10000
 
 /** Minimum samples required for accuracy calculation when timeout is reached. */
 export const MIN_ACCURACY_SAMPLES = 20
-
-/** Calibration expiry time in ms (7 days). */
-export const CALIBRATION_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000
 
 // Calibration Point Positions
 /** Horizontal positions (0-1) for main calibration points. */

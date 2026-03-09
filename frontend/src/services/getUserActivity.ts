@@ -26,9 +26,9 @@ export interface CollapsedActivitySession {
   id: string
   text_id: string
   text: {
-    title: string
-    fiction: boolean
-    complexity: number
+    title: string | null
+    fiction: boolean | null
+    complexity: number | null
   } | null
   score: number | null
   end_time: string
@@ -47,7 +47,6 @@ function collapseSessions(
 
   const collapsed: CollapsedActivitySession[] = []
 
-  // Filter out sessions with null end_time before processing
   const validSessions = rawSessions.filter(
     (s): s is ActivitySession & { end_time: string } => s.end_time !== null
   )
@@ -93,14 +92,12 @@ function collapseSessions(
     collapsed.push(createCollapsedSession(currentGroup))
   }
 
-  // Reverse back to Newest -> Oldest for the UI feed
   return collapsed.reverse()
 }
 
 function createCollapsedSession(
   group: (ActivitySession & { end_time: string })[]
 ): CollapsedActivitySession {
-  // Group is currently Oldest -> Newest (Timeline order)
   const firstEntry = group[0]
   const lastEntry = group[group.length - 1]
 

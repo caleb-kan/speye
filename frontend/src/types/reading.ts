@@ -1,6 +1,7 @@
 import type { Text } from './database'
+import type { Mode } from '../../../backend/supabase/database/userActivity/types'
 
-export type Mode = 'standard' | 'adaptive' | 'rsvp'
+export type { Mode }
 export type Scrolling = 'dynamic' | 'static'
 
 export interface FixedTextInfo {

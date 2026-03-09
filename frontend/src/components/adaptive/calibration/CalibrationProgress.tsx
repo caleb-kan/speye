@@ -30,7 +30,6 @@ export function CalibrationProgress({
 
   return (
     <>
-      {/* Fixed overlay to cover navbar and header */}
       <div
         className="fixed inset-0 bg-bg pointer-events-none"
         style={{ zIndex: Z_INDEX.CALIBRATION_OVERLAY }}
@@ -40,7 +39,6 @@ export function CalibrationProgress({
         className="flex flex-col flex-1 min-h-0 overflow-x-visible overflow-y-hidden relative"
         style={{ zIndex: Z_INDEX.CALIBRATION_CONTENT }}
       >
-        {/* Title section */}
         <div className="pt-8 shrink-0">
           <h2 className="text-2xl font-semibold text-center text-text">
             Horizontal Calibration
@@ -54,7 +52,6 @@ export function CalibrationProgress({
           </p>
         </div>
 
-        {/* Reading area - uses shared container for consistent positioning */}
         <ReadingAreaContainer ref={readingAreaRef} variant="calibration">
           <p
             className="text-text-secondary/40 text-center font-medium select-none"
@@ -64,7 +61,6 @@ export function CalibrationProgress({
           </p>
         </ReadingAreaContainer>
 
-        {/* Calibration points - use fixed positioning */}
         {points.length > 0 &&
           points.map((point, index) => (
             <CalibrationPoint
@@ -78,7 +74,6 @@ export function CalibrationProgress({
             />
           ))}
 
-        {/* Progress indicator */}
         <div className="py-4 px-8 shrink-0">
           <div className="flex items-center justify-center gap-6">
             <div className="text-center">
@@ -97,7 +92,6 @@ export function CalibrationProgress({
                 )}
               </p>
             </div>
-            {/* Progress bar */}
             <div className="w-32">
               <div className="h-1.5 bg-bg-secondary rounded-full overflow-hidden">
                 <div
@@ -108,7 +102,6 @@ export function CalibrationProgress({
                 />
               </div>
             </div>
-            {/* Cancel button */}
             <button
               onClick={onCancel}
               className="text-text-secondary hover:text-text text-sm"

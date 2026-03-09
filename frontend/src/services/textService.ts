@@ -7,7 +7,7 @@ import { isOffline } from './networkStatus'
 
 const TAG = 'textService'
 
-export type GetRandomTextFilters = {
+type GetRandomTextFilters = {
   fiction: boolean
   complexityMin: number
   complexityMax: number

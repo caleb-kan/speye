@@ -107,8 +107,8 @@ export const MIN_TEXT_FILL_RATIO = 0.1
  * Used as the anchor point for dynamic threshold adjustments.
  */
 export const CONTAINER_CENTER = 0.5
-/** Minimum seconds of reading before calculating WPM (avoids noisy early estimates) */
-export const MIN_READING_TIME_FOR_WPM = 3
+/** Minimum reading time (ms) before calculating WPM (avoids noisy early estimates) */
+export const MIN_READING_TIME_FOR_WPM_MS = 3000
 /**
  * Grace period (ms) after chunk change where gaze is ignored.
  * Matches TRANSITION_DURATION_MS to prevent false triggers during
@@ -123,18 +123,6 @@ export const CHUNK_IGNORE_PERIOD_MS = 50
  * Must stay in sync with CSS variable --adaptive-transition-duration in index.css.
  */
 export const TRANSITION_DURATION_MS = 50
-
-/**
- * Fallback value used when CSS variable is unavailable (SSR, tests).
- * Should match TRANSITION_DURATION_MS.
- */
-export const TRANSITION_DURATION_MS_FALLBACK = 50
-
-/**
- * CSS variable name for transition duration.
- * Single source of truth is in index.css; JS uses this for inline styles.
- */
-export const CSS_VAR_TRANSITION_DURATION = '--adaptive-transition-duration'
 
 /** Border transition duration - MUST match TRANSITION_DURATION_MS for consistency */
 export const BORDER_TRANSITION_MS = TRANSITION_DURATION_MS

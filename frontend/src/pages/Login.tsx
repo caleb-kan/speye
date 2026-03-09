@@ -46,7 +46,6 @@ export function Login() {
           onGoogleSignIn={handleGoogleSignIn}
         />
 
-        {/* Divider */}
         <div className="flex items-center my-4">
           <div className="flex-1 h-px bg-text-secondary/20" />
           <span className="px-3 text-xs text-text-secondary">or</span>

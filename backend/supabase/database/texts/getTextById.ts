@@ -1,6 +1,6 @@
 import { supabase } from '../../../../lib/supabase'
 import { logDbQuery } from '../logger'
-import type { Text } from '../../../../frontend/src/types/database'
+import type { TextRecord as Text } from './types'
 
 export async function getTextById(textId: string): Promise<Text | null> {
   const { data, error } = await supabase

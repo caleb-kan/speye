@@ -33,7 +33,6 @@ export function UserSearchBar({ onUserFound }: UserSearchBarProps) {
       setSearchInput(value)
       setSelectedUserId(null)
       setIsFocused(true)
-      // Always search, even with empty string to show all players
       search(value)
     },
     [search]
@@ -42,7 +41,6 @@ export function UserSearchBar({ onUserFound }: UserSearchBarProps) {
   const handleInputFocus = useCallback(() => {
     setIsFocused(true)
     if (selectedUserId) setSelectedUserId(null)
-    // Trigger search if we don't have results yet
     if (results.length === 0) {
       search(searchInput)
     }
@@ -124,7 +122,6 @@ export function UserSearchBar({ onUserFound }: UserSearchBarProps) {
         )}
       </div>
 
-      {/* Dropdown Results */}
       {dropdownOpen && (
         <div className="absolute top-full left-0 right-0 mt-1 bg-bg-secondary border border-text-secondary/20 rounded-lg shadow-2xl z-20 max-h-40 overflow-y-auto">
           {loading ? (

@@ -1,6 +1,6 @@
-import { useEffect } from 'react'
 import { X, Check } from 'lucide-react'
 import type { Quiz } from '../../../types/database.ts'
+import { useEscapeKey } from '../../../hooks/useEscapeKey.ts'
 import { UNTITLED_TEXT_FALLBACK } from '../../../constants/admin.ts'
 
 interface QuizPreviewModalProps {
@@ -14,18 +14,7 @@ export function QuizPreviewModal({
   title,
   onClose,
 }: QuizPreviewModalProps) {
-  useEffect(() => {
-    if (!quiz) return
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose()
-      }
-    }
-
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [quiz, onClose])
+  useEscapeKey(onClose, !!quiz)
 
   if (!quiz) return null
 

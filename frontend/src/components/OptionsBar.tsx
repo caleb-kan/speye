@@ -75,7 +75,6 @@ export function OptionsBar({
   const { user } = useAuth()
   const isMobile = useIsMobile()
 
-  // Get library text and summary flag from location state
   const locationState = location.state as LocationState | null
   const libraryText = locationState?.libraryText
   const isSummary = locationState?.isSummary
@@ -174,7 +173,6 @@ export function OptionsBar({
               }}
             />
 
-            {/* Divider */}
             <div className="w-px h-6 bg-text-secondary opacity-30" />
           </>
         )}
@@ -185,7 +183,6 @@ export function OptionsBar({
           onFictionChange={onFictionChange}
         />
 
-        {/* Divider */}
         <div className="w-px h-6 bg-text-secondary opacity-30" />
 
         <ComplexitySelector

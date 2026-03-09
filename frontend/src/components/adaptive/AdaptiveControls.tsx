@@ -82,7 +82,6 @@ export function AdaptiveControls({
         aria-label="Restart reading"
       />
 
-      {/* Group New Text & Quiz Button to maintain layout stability */}
       <div className="flex items-center gap-4">
         <IconButton
           onClick={onNewText}
@@ -92,7 +91,6 @@ export function AdaptiveControls({
           className={hideNewText ? 'invisible' : ''}
         />
 
-        {/* Mini Quiz Button - Animates width/opacity */}
         <div
           className={`
             transition-all duration-500 ease-out overflow-hidden

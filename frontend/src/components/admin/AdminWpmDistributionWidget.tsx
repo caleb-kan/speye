@@ -69,7 +69,6 @@ const CustomXAxisTick = ({
 
   return (
     <g>
-      {/* Standard Left-Edge Pip */}
       <g transform={`translate(${trueLeftEdge},${cy})`}>
         <line
           x1={0}
@@ -93,7 +92,6 @@ const CustomXAxisTick = ({
         </text>
       </g>
 
-      {/* Closing Right-Edge Pip (for 2000) */}
       {isLast && (
         <g transform={`translate(${trueRightEdge},${cy})`}>
           <line
@@ -140,9 +138,7 @@ export function AdminWpmDistributionWidget({
       className={`relative bg-bg-secondary/20 border border-text-secondary/10 rounded-2xl flex flex-col transition-all duration-500 hover:bg-bg-secondary/30 shadow-sm ${className}`}
       style={{ height: '160px' }}
     >
-      {/* Header */}
       <div className="flex items-start justify-between p-4 z-10 pointer-events-none">
-        {/* Title + Icon */}
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-xl bg-primary/10 text-primary backdrop-blur-sm shadow-[0_0_10px_var(--color-primary)_inset] opacity-90">
             <Timer size={16} strokeWidth={2.5} />
@@ -159,7 +155,6 @@ export function AdminWpmDistributionWidget({
           </div>
         </div>
 
-        {/* Toggle Pill */}
         <div className="pointer-events-auto flex items-center bg-bg-secondary/40 backdrop-blur-xl p-1.5 rounded-xl border border-text-secondary/10 shadow-sm ring-1 ring-white/5">
           {(
             [
@@ -183,7 +178,6 @@ export function AdminWpmDistributionWidget({
         </div>
       </div>
 
-      {/* Chart */}
       <div className="absolute inset-0 w-full h-full pt-16 pb-1">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart

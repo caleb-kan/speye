@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Loader2 } from 'lucide-react'
-import { PVP_LONG_WAIT_THRESHOLD_S } from '../../../constants/pvp'
+import { PVP_LONG_WAIT_THRESHOLD_MS } from '../../../constants/pvp'
 
 type PvpWaitingScreenProps = {
   myWpm: number
@@ -22,7 +22,7 @@ export function PvpWaitingScreen({
   useEffect(() => {
     const timeout = setTimeout(
       () => setWaitingLong(true),
-      PVP_LONG_WAIT_THRESHOLD_S * 1000
+      PVP_LONG_WAIT_THRESHOLD_MS
     )
     return () => clearTimeout(timeout)
   }, [])

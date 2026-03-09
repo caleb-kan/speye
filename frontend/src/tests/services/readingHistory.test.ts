@@ -108,18 +108,12 @@ describe('getLastReadingPosition', () => {
     expect(result).toBeNull()
   })
 
-  it('returns null and logs error when getSession throws', async () => {
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+  it('returns null when getSession throws', async () => {
     mockSupabase.auth.getSession.mockRejectedValue(new Error('Network error'))
 
     const result = await getLastReadingPosition('text-123')
 
     expect(result).toBeNull()
-    expect(consoleSpy).toHaveBeenCalledWith(
-      'Failed to restore reading position:',
-      expect.any(Error)
-    )
-    consoleSpy.mockRestore()
   })
 
   it('returns null when backend function throws (falls back to cache)', async () => {

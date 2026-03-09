@@ -4,6 +4,10 @@ import { useNetworkStatus } from './useNetworkStatus'
 import { getQueuedOperations } from '../services/operationQueue'
 import { getCachedText } from '../services/offlineCache'
 import type { QueuedOperation } from '../services/operationQueue'
+import {
+  SYNCED_BANNER_DISPLAY_MS,
+  SYNCING_FALLBACK_TIMEOUT_MS,
+} from '../constants/ui'
 
 export interface QueueSummaryItem {
   id: string
@@ -86,24 +90,23 @@ export function useOfflineIndicator() {
     }
   }, [isSyncing])
 
-  // Auto-hide "All synced" message after 2 seconds
-  // Add fallback timeout to ensure indicator doesn't get stuck
   useEffect(() => {
     if (indicatorState === 'synced') {
-      const timer = setTimeout(() => dispatch({ type: 'SYNCED_TIMEOUT' }), 2000)
+      const timer = setTimeout(
+        () => dispatch({ type: 'SYNCED_TIMEOUT' }),
+        SYNCED_BANNER_DISPLAY_MS
+      )
       return () => clearTimeout(timer)
     }
-    // Fallback: force hide after 5 seconds if stuck in syncing or syncing-online state
     if (indicatorState === 'syncing' || indicatorState === 'syncing-online') {
       const fallbackTimer = setTimeout(
         () => dispatch({ type: 'SYNCED_TIMEOUT' }),
-        5000
+        SYNCING_FALLBACK_TIMEOUT_MS
       )
       return () => clearTimeout(fallbackTimer)
     }
   }, [indicatorState])
 
-  // Fetch queue details on hover (only when hovered becomes true)
   useEffect(() => {
     if (!hovered || indicatorState === 'synced') return
 

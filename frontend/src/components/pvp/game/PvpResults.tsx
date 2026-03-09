@@ -307,7 +307,6 @@ function EloProgressBar({
 
   return (
     <div className="mb-6 w-80 mx-auto">
-      {/* Label row with roll animation on rank change */}
       <div className="overflow-hidden mb-1.5">
         <div
           key={displayRank.tier}

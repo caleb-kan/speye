@@ -23,13 +23,27 @@ export async function logUserActivity(params: UserActivityLogParams) {
 
   try {
     return await logUserActivityDb(params)
-  } catch {
-    // The network may have dropped mid-request after the offline check passed.
-    // Queue for retry rather than silently losing the log.
-    pwaLogger.warn(TAG, 'Network failure — queuing activity log for retry', {
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message.toLowerCase() : String(err)
+    const isNetworkError =
+      message.includes('failed to fetch') ||
+      message.includes('network') ||
+      message.includes('timeout') ||
+      message.includes('aborted')
+
+    if (isNetworkError) {
+      pwaLogger.warn(TAG, 'Network failure — queuing activity log for retry', {
+        textId: params.textId,
+      })
+      await enqueueOperation('logUserActivity', params)
+      return null
+    }
+
+    pwaLogger.error(TAG, 'Non-retryable error logging activity', {
+      error: err,
       textId: params.textId,
     })
-    await enqueueOperation('logUserActivity', params)
     return null
   }
 }
@@ -53,8 +67,8 @@ export function logUserActivityOnUnload(
         retryCount: 0,
       })
       localStorage.setItem(SYNC.UNLOAD_QUEUE_KEY, JSON.stringify(queue))
-    } catch {
-      pwaLogger.warn(TAG, 'Failed to write unload queue to localStorage')
+    } catch (err) {
+      pwaLogger.warn(TAG, 'Failed to write unload queue to localStorage', err)
     }
     return
   }

@@ -127,23 +127,23 @@ describe('Navbar', () => {
       )
     })
 
-    it('shows Activity and Ranked links but they are disabled', () => {
+    it('shows Activity and PvP links but they are disabled', () => {
       renderNavbar()
       const activityLink = screen.getByRole('link', { name: 'Activity' })
-      const rankedLink = screen.getByRole('link', { name: 'Ranked' })
+      const pvpLink = screen.getByRole('link', { name: 'PvP' })
 
       expect(activityLink).toBeInTheDocument()
-      expect(rankedLink).toBeInTheDocument()
+      expect(pvpLink).toBeInTheDocument()
       expect(activityLink).toHaveAttribute('aria-disabled', 'true')
-      expect(rankedLink).toHaveAttribute('aria-disabled', 'true')
+      expect(pvpLink).toHaveAttribute('aria-disabled', 'true')
     })
 
-    it('shows custom tooltips for disabled Activity and Ranked buttons', () => {
+    it('shows custom tooltips for disabled Activity and PvP buttons', () => {
       renderNavbar()
       expect(
         screen.getByText('Sign in to see your activity')
       ).toBeInTheDocument()
-      expect(screen.getByText('Sign in to play Ranked')).toBeInTheDocument()
+      expect(screen.getByText('Sign in to play PvP')).toBeInTheDocument()
     })
   })
 
@@ -221,15 +221,15 @@ describe('Navbar', () => {
       )
     })
 
-    it('shows Activity and Ranked links and they are enabled', () => {
+    it('shows Activity and PvP links and they are enabled', () => {
       renderNavbar()
       const activityLink = screen.getByRole('link', { name: 'Activity' })
-      const rankedLink = screen.getByRole('link', { name: 'Ranked' })
+      const pvpLink = screen.getByRole('link', { name: 'PvP' })
 
       expect(activityLink).toBeInTheDocument()
-      expect(rankedLink).toBeInTheDocument()
+      expect(pvpLink).toBeInTheDocument()
       expect(activityLink).not.toHaveAttribute('aria-disabled', 'true')
-      expect(rankedLink).not.toHaveAttribute('aria-disabled', 'true')
+      expect(pvpLink).not.toHaveAttribute('aria-disabled', 'true')
     })
   })
 })

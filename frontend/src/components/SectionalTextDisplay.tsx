@@ -134,7 +134,6 @@ export function SectionalTextDisplay({
 
   return (
     <div className="flex flex-col h-full w-full">
-      {/* Reading content */}
       <div className="flex-1 overflow-hidden">
         {children({
           sectionText: currentSection.content,
@@ -142,7 +141,6 @@ export function SectionalTextDisplay({
         })}
       </div>
 
-      {/* Section Navigation Header */}
       <div className="rounded-lg mx-60 min-w-3xl">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center space-x-2">
@@ -161,7 +159,6 @@ export function SectionalTextDisplay({
           <div className="flex items-center flex-1 gap-1">
             {sections.map((_, index) => (
               <Fragment key={index}>
-                {/* Section progress pill */}
                 {index === targetSectionIndex ? (
                   <div className="relative h-2 flex-1 rounded-full bg-text-secondary/20 overflow-hidden">
                     <div
@@ -205,7 +202,6 @@ export function SectionalTextDisplay({
           </div>
         </div>
 
-        {/* Section Navigation Buttons */}
         <div className="grid grid-cols-3 items-center">
           <button
             onClick={goToPreviousSection}

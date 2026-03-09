@@ -94,8 +94,6 @@ export function AdaptiveReader({
     onPositionChangeRef.current = onPositionChange
   }, [onPositionChange])
 
-  // gazeData state is ONLY used during calibration for AccuracyTest
-  // During reading, gaze data flows directly to addSample (no state updates)
   const [calibrationGazeData, setCalibrationGazeData] =
     useState<GazeData | null>(null)
   const [showCalibration, setShowCalibration] = useState(false)
@@ -103,21 +101,14 @@ export function AdaptiveReader({
 
   const calibration = useCalibration()
 
-  // Derived state for clearer conditional logic
   const isCalibrated = calibration.state.isCalibrated
   const isReadingActive = isCalibrated && !showCalibration
 
   const webgazerEnabled = showCalibration || isCalibrated
-  // Only show gaze dot during active calibration (not during reading, not when disabled)
   const showGazeDot = showCalibration
 
-  // Gaze smoothing - applies temporal averaging with velocity-based outlier rejection
-  // Must be declared before useWebGazer so addSample is available for the callback
   const { smoothedGaze, confidence, isReliable, addSample } = useGazeSmoothing()
 
-  // Unified gaze handler that routes data appropriately:
-  // - During calibration: updates state for AccuracyTest (throttled to ~20fps)
-  // - During reading: passes directly to smoothing (no state update)
   const handleGaze = useCallback(
     (data: GazeData | null) => {
       if (!data) return
@@ -141,7 +132,6 @@ export function AdaptiveReader({
     [showCalibration, addSample]
   )
 
-  // WebGazer initialization
   const {
     status: webgazerStatus,
     isReady: webgazerReady,
@@ -155,7 +145,6 @@ export function AdaptiveReader({
     onGaze: handleGaze,
   })
 
-  // Drift detection - warns when tracking quality degrades over time
   const {
     shouldRecalibrate: driftWarning,
     dismissSuggestion: dismissDriftWarning,
@@ -166,11 +155,9 @@ export function AdaptiveReader({
     isCalibrated,
   })
 
-  // --- Sectional state (computed before useHorizontalReader) ---
   const isSectional =
     sectional && !!section_content && section_content.length > 0
 
-  // Memoize sections to provide stable dependency for sectionWordOffsets
   const sections = useMemo(
     () => (isSectional ? section_content! : []),
     [isSectional, section_content]
@@ -348,7 +335,6 @@ export function AdaptiveReader({
     onSectionComplete,
   ])
 
-  // Keyboard navigation with arrow keys
   useArrowNavigation({
     enabled: isReadingActive,
     onBack: goBack,
@@ -414,13 +400,11 @@ export function AdaptiveReader({
         }
       }
       setCurrentSectionIndex(newSectionIdx)
-      // New section always starts from chunk 0
       setHookInitialWordIndex(0)
     },
     [sections.length, sectionWordOffsets]
   )
 
-  // Memoize to prevent AdaptiveControls re-renders
   const trackingStatus = useMemo(
     () => ({
       isReliable,
@@ -431,7 +415,7 @@ export function AdaptiveReader({
     [isReliable, confidence, webgazerReady, handleRetryCalibration]
   )
 
-  // Shared props for AdaptiveControls (used in both calibration prompt and main view)
+  // Used in both calibration prompt and main view
   const sharedControlsProps = useMemo(
     () => ({
       onRestart: restart,
@@ -453,7 +437,6 @@ export function AdaptiveReader({
     ]
   )
 
-  // Render calibration overlay
   if (showCalibration) {
     return (
       <CalibrationOverlay
@@ -467,7 +450,6 @@ export function AdaptiveReader({
     )
   }
 
-  // Render calibration prompt if not calibrated
   if (!isCalibrated) {
     return (
       <CalibrationPrompt
@@ -480,7 +462,6 @@ export function AdaptiveReader({
     )
   }
 
-  // Main reading interface
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <div className="pt-8 pb-4 shrink-0">
@@ -493,7 +474,6 @@ export function AdaptiveReader({
         )}
       </div>
 
-      {/* Drift warning banner */}
       {driftWarning && (
         <DriftWarningBanner
           onRecalibrate={handleRetryCalibration}
@@ -538,7 +518,6 @@ export function AdaptiveReader({
           </div>
         </div>
       ) : (
-        /* Main text display - centered */
         <div className="flex-1 flex items-center justify-center px-4 min-h-0">
           <div className="w-full max-w-5xl">
             <SingleLineTextDisplay

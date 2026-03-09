@@ -8,6 +8,7 @@ import {
 } from '../constants/pvp'
 import type { RankTier } from '../constants/pvp'
 import { getRankFromElo, getPlayerPrefix, getPlayerData } from '../utils/pvp'
+import { CUBIC_EASE_OUT_EXPONENT } from '../constants/ui'
 import type { PvpGame } from '../types/database'
 
 type EloAnimationResult = {
@@ -46,7 +47,6 @@ export function useEloAnimation(
     const propHasElo =
       propData.elo_before != null && propData.elo_change != null
     if (propHasElo && !eloReady) {
-      // Derived: syncing local game state with parent prop when parent has elo data we lack
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setGame(initialGame)
     }
@@ -60,7 +60,6 @@ export function useEloAnimation(
   // counts from a previous game don't block fetching elo for the new one.
   useEffect(() => {
     refetchCountRef.current = 0
-    // Derived: resetting retry state machine for new game ID
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setEloFetchFailed(false)
     setRetryTrigger(0)
@@ -69,7 +68,6 @@ export function useEloAnimation(
   useEffect(() => {
     if (eloReady) return
     if (refetchCountRef.current >= PVP_ELO_MAX_REFETCH_ATTEMPTS) {
-      // Derived: state machine transition when max retry attempts exhausted
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setEloFetchFailed(true)
       return
@@ -107,7 +105,6 @@ export function useEloAnimation(
   const [displayElo, setDisplayElo] = useState(eloReady ? eloBefore : null)
   useEffect(() => {
     if (eloBefore == null || eloAfter == null) return
-    // Derived: initializes animation start value from computed elo data
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setDisplayElo(eloBefore)
 
@@ -118,7 +115,7 @@ export function useEloAnimation(
     const interval = setInterval(() => {
       const elapsed = Date.now() - startTime
       const progress = Math.min(1, elapsed / PVP_ELO_ANIMATION_DURATION_MS)
-      const eased = 1 - Math.pow(1 - progress, 3) // cubic ease-out
+      const eased = 1 - Math.pow(1 - progress, CUBIC_EASE_OUT_EXPONENT)
       setDisplayElo(Math.round(eloBefore + diff * eased))
       if (progress >= 1) clearInterval(interval)
     }, PVP_ELO_ANIMATION_FRAME_MS)

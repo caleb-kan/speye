@@ -119,7 +119,6 @@ export function HistoryGraph<T extends Record<string, unknown>>({
   const handleMouseLeave = () => {
     onHoverDataPoint?.(null)
   }
-  // Calculate min and max values for the Y-axis domain
   const values = data.map((item) => {
     const value = item[valueKey]
     return typeof value === 'number' ? value : 0
@@ -128,7 +127,6 @@ export function HistoryGraph<T extends Record<string, unknown>>({
   const minValue = values.length > 0 ? Math.min(...values) : 0
   const maxValue = values.length > 0 ? Math.max(...values) : 100
 
-  // Add some padding to the domain
   const padding = (maxValue - minValue) * 0.1
   const yDomain = [
     Math.max(0, Math.floor(minValue - padding)),

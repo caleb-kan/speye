@@ -1,6 +1,6 @@
 import { supabase } from '../../../../lib/supabase'
 import { logDbQuery } from '../logger'
-import type { TextPreview } from '../../../../frontend/src/types/database'
+import type { TextPreview } from './types'
 
 export type OwnerFilter = { type: 'user'; userId: string } | { type: 'public' }
 

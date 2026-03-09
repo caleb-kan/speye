@@ -6,7 +6,7 @@ import type {
 } from '@supabase/supabase-js'
 import { buildRedirectUrl } from '../utils/authRedirect'
 
-export type EmailPasswordCredentials = {
+type EmailPasswordCredentials = {
   email: string
   password: string
   username?: string

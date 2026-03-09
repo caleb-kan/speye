@@ -87,7 +87,6 @@ export function StartQuizButton({
           `}
         >
           <div className="relative group">
-            {/* Dismiss Button (The 'X') */}
             <button
               onClick={(e) => {
                 e.stopPropagation()
@@ -111,7 +110,6 @@ export function StartQuizButton({
               <X size={14} />
             </button>
 
-            {/* Main CTA Button */}
             <button
               onClick={handleLoadQuiz}
               disabled={quizLoading || !showOverlay}

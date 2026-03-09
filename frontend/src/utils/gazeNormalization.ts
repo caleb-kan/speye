@@ -1,10 +1,3 @@
-/**
- * Gaze coordinate normalization utilities.
- *
- * These functions provide consistent coordinate transformations
- * for gaze tracking across the adaptive reading system.
- */
-
 import { CONTAINER_CENTER } from '../constants/adaptive'
 
 /**
@@ -24,22 +17,11 @@ export function normalizeGazeX(
   return (gazeX - containerLeft) / containerWidth
 }
 
-/**
- * Clamp a value to the 0-1 range.
- *
- * @param value - Value to clamp
- * @returns Value clamped to [0, 1], or 0 if NaN
- */
 export function clampNormalized(value: number): number {
   if (Number.isNaN(value)) return 0
   return Math.max(0, Math.min(1, value))
 }
 
-/**
- * Get viewport center coordinates.
- *
- * @returns Object with x and y coordinates of viewport center
- */
 export function getViewportCenter(): { x: number; y: number } {
   return {
     x: window.innerWidth / 2,

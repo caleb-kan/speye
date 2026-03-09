@@ -139,20 +139,22 @@ export function useCalibrationPhase({
     }
   }, [phase])
 
-  useEffect(() => {
-    if (phase !== 'intro' && phase !== 'requesting-camera') return
-
-    if (webgazerStatus === 'ready') {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- sync with external status
-      setPhase('calibrating')
-    } else if (
-      webgazerStatus === 'permission-denied' ||
-      webgazerStatus === 'error' ||
-      webgazerStatus === 'not-supported'
-    ) {
-      setPhase('failed')
+  const [prevWebgazerStatus, setPrevWebgazerStatus] =
+    useState<WebGazerStatus | null>(null)
+  if (webgazerStatus !== prevWebgazerStatus) {
+    setPrevWebgazerStatus(webgazerStatus)
+    if (phase === 'intro' || phase === 'requesting-camera') {
+      if (webgazerStatus === 'ready') {
+        setPhase('calibrating')
+      } else if (
+        webgazerStatus === 'permission-denied' ||
+        webgazerStatus === 'error' ||
+        webgazerStatus === 'not-supported'
+      ) {
+        setPhase('failed')
+      }
     }
-  }, [webgazerStatus, phase])
+  }
 
   const handleStartCalibration = useCallback(() => {
     if (webgazerStatus === 'ready') {

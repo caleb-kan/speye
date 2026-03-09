@@ -5,9 +5,9 @@ Adaptive speed reading web platform with eye-tracking technology, featuring PvP 
 ## Tech Stack
 
 - **Frontend**: React 19 + TypeScript + Vite + Tailwind CSS v4
-- **Backend**: Supabase (Postgres + Edge Functions + Auth + Realtime)
-- **LLM**: Groq (title/summary generation, quiz validation)
-- **Caching**: Upstash Redis (leaderboard)
+- **Backend**: Supabase
+- **LLM**: Groq
+- **Caching**: Upstash Redis
 
 ## Getting Started
 

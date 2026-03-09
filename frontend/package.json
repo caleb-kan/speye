@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "npm run license:gen && vite",
     "build": "npm run license:gen && tsc -b && vite build",
-    "license:gen": "npx generate-license-file --input package.json --output public/license.txt --overwrite",
+    "license:gen": "bash scripts/generate-licenses.sh",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest",

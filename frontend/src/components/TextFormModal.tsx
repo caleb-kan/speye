@@ -283,6 +283,13 @@ export function TextFormModal({
         </div>
       )}
 
+      {mode === 'upload' && (
+        <p className="text-xs text-text-secondary ml-1">
+          By uploading, you confirm that you own the copyright of this text or
+          have permission to use it.
+        </p>
+      )}
+
       <div className="flex justify-end gap-3 pt-2">
         {!embedded && (
           <button

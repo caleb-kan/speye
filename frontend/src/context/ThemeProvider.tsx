@@ -19,7 +19,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }
 
   useEffect(() => {
-    const applyTheme = async () => {
+    const applyTheme = () => {
       setLoading(true)
       const root = document.documentElement
       root.style.setProperty('--color-bg', theme.colors.bg)
@@ -33,9 +33,22 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       root.style.setProperty('--color-error', theme.colors.error)
       root.style.setProperty('--color-warning', theme.colors.warning)
       root.style.setProperty('--color-success', theme.colors.success)
+
+      const oldFavicon =
+        document.querySelector<HTMLLinkElement>('link[rel="icon"]')
+      if (oldFavicon) {
+        oldFavicon.remove()
+      }
+      const newFavicon = document.createElement('link')
+      newFavicon.rel = 'icon'
+      newFavicon.type = 'image/png'
+      newFavicon.href = `/favicons/${theme.id}.png`
+      document.head.appendChild(newFavicon)
+
       document
         .querySelector('meta[name="theme-color"]')
         ?.setAttribute('content', theme.colors.bg)
+
       setLoading(false)
     }
     applyTheme()

@@ -24,7 +24,7 @@ export function OfflineIndicator() {
     <div
       role="status"
       data-testid="offline-indicator"
-      className="fixed top-2 left-4 md:left-2 z-50 md:top-5 md:left-32"
+      className="fixed top-2 left-4 md:left-2 z-50 md:top-3 md:left-26"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >

@@ -1,20 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
-import { BrowserRouter, MemoryRouter } from 'react-router-dom'
+import { render } from '@testing-library/react'
+import { BrowserRouter } from 'react-router-dom'
 import { Header } from '../../components/Header'
 import '@testing-library/jest-dom'
-import type { Mode } from '../../types/reading'
 
 let mockIsMobile = false
-let mockMode: Mode = 'standard'
 
 vi.mock('../../hooks/useIsMobile', () => ({
   useIsMobile: () => mockIsMobile,
 }))
 
-vi.mock('../../hooks/useReadingPreferences', () => ({
-  useReadingPreferences: () => ({
-    preferences: { mode: mockMode },
+vi.mock('../../hooks/useTheme', () => ({
+  useTheme: () => ({
+    theme: { id: 'midnight', name: 'Midnight', colors: {} },
+    themes: [],
+    setTheme: vi.fn(),
+    loading: false,
   }),
 }))
 
@@ -26,33 +27,10 @@ const renderHeader = () => {
   )
 }
 
-const renderHeaderWithRoute = (route: string) => {
-  return render(
-    <MemoryRouter initialEntries={[route]}>
-      <Header />
-    </MemoryRouter>
-  )
-}
-
 describe('Header', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockIsMobile = false
-    mockMode = 'standard'
-  })
-
-  describe('Logo', () => {
-    it('renders the logo text', () => {
-      renderHeader()
-
-      expect(screen.getByTestId('header-logo')).toHaveTextContent('sp(eye)')
-    })
-
-    it('logo links to home page', () => {
-      renderHeader()
-
-      expect(screen.getByTestId('header-logo')).toHaveAttribute('href', '/home')
-    })
   })
 
   describe('Styling', () => {
@@ -72,69 +50,11 @@ describe('Header', () => {
     })
   })
 
-  describe('Accessibility', () => {
-    it('logo has focus-visible ring styling', () => {
-      renderHeader()
-
-      const logo = screen.getByTestId('header-logo')
-      expect(logo).toHaveClass('focus-visible:ring-2')
-    })
-  })
-
   describe('Mobile', () => {
     it('returns null when useIsMobile returns true', () => {
       mockIsMobile = true
       const { container } = renderHeader()
       expect(container.firstChild).toBeNull()
-    })
-  })
-
-  describe('Mode routing', () => {
-    it('logo links to /home for standard mode', () => {
-      mockMode = 'standard'
-      renderHeader()
-      expect(screen.getByTestId('header-logo')).toHaveAttribute('href', '/home')
-    })
-
-    it('logo links to /adaptive for adaptive mode', () => {
-      mockMode = 'adaptive'
-      renderHeader()
-      expect(screen.getByTestId('header-logo')).toHaveAttribute(
-        'href',
-        '/adaptive'
-      )
-    })
-
-    it('logo links to /rsvp for rsvp mode', () => {
-      mockMode = 'rsvp'
-      renderHeader()
-      expect(screen.getByTestId('header-logo')).toHaveAttribute('href', '/rsvp')
-    })
-  })
-
-  describe('Navigation prevention', () => {
-    it('prevents click when already on target route', async () => {
-      mockMode = 'standard'
-      renderHeaderWithRoute('/home')
-
-      const link = screen.getByTestId('header-logo')
-      const clickEvent = new MouseEvent('click', {
-        bubbles: true,
-        cancelable: true,
-      })
-      const preventDefaultSpy = vi.spyOn(clickEvent, 'preventDefault')
-
-      link.dispatchEvent(clickEvent)
-      expect(preventDefaultSpy).toHaveBeenCalled()
-    })
-
-    it('does not prevent click when on different route', async () => {
-      mockMode = 'standard'
-      renderHeaderWithRoute('/library')
-
-      const link = screen.getByTestId('header-logo')
-      // When on /library with standard mode, target is /home — should not prevent
-      expect(link).toHaveAttribute('href', '/home')
     })
   })
 })

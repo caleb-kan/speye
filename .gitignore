@@ -34,3 +34,11 @@ test-results
 
 # Automatically generated license file
 frontend/public/license.txt
+
+# Claude Code (local-only)
+CLAUDE.md
+.claude/
+.mcp.json
+
+# Wrangler / Cloudflare local dev
+.wrangler/

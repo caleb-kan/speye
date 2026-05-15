@@ -48,8 +48,11 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
           cache-dependency-path: |
+            package-lock.json
             frontend/package-lock.json
             backend/package-lock.json
+      - name: Install root deps
+        run: npm ci
       - name: Install frontend deps
         run: npm ci --prefix frontend
       - name: Install backend deps

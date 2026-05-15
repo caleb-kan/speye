@@ -1,0 +1,76 @@
+version: 2
+updates:
+  # Root package.json (Prettier, shared @supabase/supabase-js)
+  - package-ecosystem: npm
+    directory: '/'
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: Europe/London
+    groups:
+      root-deps:
+        patterns: ['*']
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore(deps)
+      include: scope
+
+  # Frontend (React, Vite, Tailwind, Playwright, etc.)
+  - package-ecosystem: npm
+    directory: '/frontend'
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: Europe/London
+    groups:
+      frontend-deps:
+        patterns: ['*']
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore(deps)
+      include: scope
+    ignore:
+      # ESLint 10 introduces major changes — opt out of major bumps
+      - dependency-name: 'eslint'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@eslint/js'
+        update-types: ['version-update:semver-major']
+
+  # Backend (Supabase edge function tooling, vitest, etc.)
+  - package-ecosystem: npm
+    directory: '/backend'
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: Europe/London
+    groups:
+      backend-deps:
+        patterns: ['*']
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore(deps)
+      include: scope
+    ignore:
+      - dependency-name: 'eslint'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@eslint/js'
+        update-types: ['version-update:semver-major']
+
+  # GitHub Actions workflow versions (actions/checkout, etc.)
+  - package-ecosystem: github-actions
+    directory: '/'
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: Europe/London
+    groups:
+      gha-deps:
+        patterns: ['*']
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: chore(deps)
+      include: scope

@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
@@ -20,7 +20,20 @@ const CACHE_MAX_ENTRIES = {
 } as const
 
 const SUPABASE_STORAGE_NETWORK_TIMEOUT_S = 5
-export default defineConfig({
+
+// Resolve `base` at config-load time. Read from .env files (envDir '../') AND
+// shell env (process.env wins via loadEnv merge). Default '/' for sub-path
+// portability on Imperial; Cloudflare Pages sets VITE_BASE_PATH=/ so absolute
+// asset URLs work with SPA fallback at deep URLs. Normalize to ensure a
+// trailing slash so values like '/foo' don't produce '/fooassets/...'.
+function resolveBase(mode: string): string {
+  const env = loadEnv(mode, '../', 'VITE_')
+  const raw = (env.VITE_BASE_PATH ?? '').trim()
+  if (raw === '') return './'
+  return raw.endsWith('/') ? raw : raw + '/'
+}
+
+export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     tailwindcss(),
@@ -119,7 +132,7 @@ export default defineConfig({
       },
     }),
   ],
-  base: process.env.VITE_BASE_PATH ?? './',
+  base: resolveBase(mode),
   envDir: '../',
   resolve: {
     alias: {
@@ -134,4 +147,4 @@ export default defineConfig({
       'regression',
     ],
   },
-})
+}))

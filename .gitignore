@@ -42,3 +42,6 @@ CLAUDE.md
 
 # Wrangler / Cloudflare local dev
 .wrangler/
+
+# Playwright MCP browser session artifacts (local-only)
+.playwright-mcp/

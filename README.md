@@ -1,6 +1,6 @@
-# [sp(eye)](https://speye.pages.dev/)
+# [sp(eye)](https://speye.uk/)
 
-**Live at <https://speye.pages.dev/>**
+**Live at <https://speye.uk/>**
 
 Adaptive speed reading web platform with eye-tracking technology, featuring PvP competitive mode with Elo matchmaking, multiple reading modes (normal, adaptive, RSVP), admin text management, and user analytics.
 

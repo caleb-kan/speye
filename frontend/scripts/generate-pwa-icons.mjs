@@ -41,19 +41,23 @@ const BG_COLOR_RGB = { r: 0x1a, g: 0x1a, b: 0x2e }
 // See: https://web.dev/articles/maskable-icon
 const MASKABLE_SAFE_ZONE_RATIO = 0.8
 
-const STANDARD_ICONS = [
-  { size: 192, filename: 'pwa-192x192.png' },
-  { size: 512, filename: 'pwa-512x512.png' },
-]
-const MASKABLE_ICON = { size: 512, filename: 'pwa-maskable-512x512.png' }
+// Filename templates — derive from size so a config change in one place
+// cascades into the actual output filename without manual updating.
+const standardFilename = (size) => `pwa-${size}x${size}.png`
+const maskableFilename = (size) => `pwa-maskable-${size}x${size}.png`
 
-async function renderStandard(svg, { size, filename }) {
+const STANDARD_SIZES = [192, 512]
+const MASKABLE_SIZE = 512
+
+async function renderStandard(svg, size) {
+  const filename = standardFilename(size)
   const outPath = resolve(OUT_DIR, filename)
   await sharp(svg).resize(size, size).png().toFile(outPath)
   return { filename, size }
 }
 
-async function renderMaskable(svg, { size, filename }) {
+async function renderMaskable(svg, size) {
+  const filename = maskableFilename(size)
   const contentSize = Math.round(size * MASKABLE_SAFE_ZONE_RATIO)
   const innerPng = await sharp(svg)
     .resize(contentSize, contentSize)
@@ -61,12 +65,14 @@ async function renderMaskable(svg, { size, filename }) {
     .toBuffer()
 
   const outPath = resolve(OUT_DIR, filename)
+  // RGBA canvas (channels: 4) — maskable PNGs are conventionally RGBA even
+  // when fully opaque; some PWA validators warn on RGB-only maskables.
   await sharp({
     create: {
       width: size,
       height: size,
-      channels: 3,
-      background: BG_COLOR_RGB,
+      channels: 4,
+      background: { ...BG_COLOR_RGB, alpha: 1 },
     },
   })
     .composite([{ input: innerPng, gravity: 'center' }])
@@ -80,11 +86,10 @@ async function main() {
   const svg = await readFile(SOURCE_SVG)
   await mkdir(OUT_DIR, { recursive: true })
 
-  const results = []
-  for (const spec of STANDARD_ICONS) {
-    results.push(await renderStandard(svg, spec))
-  }
-  results.push(await renderMaskable(svg, MASKABLE_ICON))
+  const results = await Promise.all([
+    ...STANDARD_SIZES.map((size) => renderStandard(svg, size)),
+    renderMaskable(svg, MASKABLE_SIZE),
+  ])
 
   for (const r of results) {
     const safeZone = r.safeZone

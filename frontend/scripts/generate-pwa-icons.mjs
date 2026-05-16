@@ -16,8 +16,8 @@
  * as a named constant (MASKABLE_SAFE_ZONE_RATIO) rather than a magic number
  * baked into a forked copy of the SVG.
  *
- * Runs as part of `npm run build` (prebuild step in package.json) so the
- * generated PNGs are always in sync with the SVG.
+ * Wired into the npm `prebuild` lifecycle hook so it fires automatically
+ * before `npm run build` (no explicit chaining in the `build` script).
  */
 
 import { readFile, mkdir } from 'node:fs/promises'
@@ -31,9 +31,9 @@ const SOURCE_SVG = resolve(FRONTEND_DIR, 'favicons/svg/pwa_icon.svg')
 const OUT_DIR = resolve(FRONTEND_DIR, 'public')
 
 // Brand background — matches `--color-bg` in src/index.css and theme_color
-// in the manifest. Kept as RGB triple here because sharp.composite needs that
-// format for solid-fill canvases.
-const BG_COLOR_RGB = { r: 0x1a, g: 0x1a, b: 0x2e }
+// in the manifest. Spread into sharp's RGBA background for the maskable
+// canvas; standard icons inherit their bg from the SVG itself.
+const BG_COLOR = { r: 0x1a, g: 0x1a, b: 0x2e }
 
 // Android adaptive-icon spec: the system masks the icon into a circle /
 // squircle / teardrop / etc. The "safe zone" is the inner 80% of the canvas
@@ -41,60 +41,97 @@ const BG_COLOR_RGB = { r: 0x1a, g: 0x1a, b: 0x2e }
 // See: https://web.dev/articles/maskable-icon
 const MASKABLE_SAFE_ZONE_RATIO = 0.8
 
-const STANDARD_ICONS = [
-  { size: 192, filename: 'pwa-192x192.png' },
-  { size: 512, filename: 'pwa-512x512.png' },
-]
-const MASKABLE_ICON = { size: 512, filename: 'pwa-maskable-512x512.png' }
+// Filename templates — derive from size so a config change in one place
+// cascades into the actual output filename without manual updating.
+const standardFilename = (size) => `pwa-${size}x${size}.png`
+const maskableFilename = (size) => `pwa-maskable-${size}x${size}.png`
 
-async function renderStandard(svg, { size, filename }) {
-  const outPath = resolve(OUT_DIR, filename)
-  await sharp(svg).resize(size, size).png().toFile(outPath)
-  return { filename, size }
+const STANDARD_SIZES = [192, 512]
+const MASKABLE_SIZE = 512
+
+// Wrap async work so a failure carries the target filename in its message —
+// keeps CI logs immediately actionable without having to correlate a generic
+// libvips error back to the icon it was rendering.
+async function withContext(filename, fn) {
+  try {
+    return await fn()
+  } catch (err) {
+    err.message = `[${filename}] ${err.message}`
+    throw err
+  }
 }
 
-async function renderMaskable(svg, { size, filename }) {
-  const contentSize = Math.round(size * MASKABLE_SAFE_ZONE_RATIO)
-  const innerPng = await sharp(svg)
-    .resize(contentSize, contentSize)
-    .png()
-    .toBuffer()
-
-  const outPath = resolve(OUT_DIR, filename)
-  await sharp({
-    create: {
-      width: size,
-      height: size,
-      channels: 3,
-      background: BG_COLOR_RGB,
-    },
+async function renderStandard(svg, size) {
+  const filename = standardFilename(size)
+  return withContext(filename, async () => {
+    const outPath = resolve(OUT_DIR, filename)
+    await sharp(svg).resize(size, size).png().toFile(outPath)
+    return { filename, size }
   })
-    .composite([{ input: innerPng, gravity: 'center' }])
-    .png()
-    .toFile(outPath)
+}
 
-  return { filename, size, safeZone: MASKABLE_SAFE_ZONE_RATIO }
+async function renderMaskable(svg, size) {
+  const filename = maskableFilename(size)
+  return withContext(filename, async () => {
+    const contentSize = Math.round(size * MASKABLE_SAFE_ZONE_RATIO)
+    const innerPng = await sharp(svg)
+      .resize(contentSize, contentSize)
+      .png()
+      .toBuffer()
+
+    const outPath = resolve(OUT_DIR, filename)
+    // RGBA canvas (channels: 4) — maskable PNGs are conventionally RGBA even
+    // when fully opaque; some PWA validators warn on RGB-only maskables.
+    await sharp({
+      create: {
+        width: size,
+        height: size,
+        channels: 4,
+        background: { ...BG_COLOR, alpha: 1 },
+      },
+    })
+      .composite([{ input: innerPng, gravity: 'center' }])
+      .png()
+      .toFile(outPath)
+
+    return { filename, size, safeZone: MASKABLE_SAFE_ZONE_RATIO }
+  })
 }
 
 async function main() {
   const svg = await readFile(SOURCE_SVG)
   await mkdir(OUT_DIR, { recursive: true })
 
-  const results = []
-  for (const spec of STANDARD_ICONS) {
-    results.push(await renderStandard(svg, spec))
-  }
-  results.push(await renderMaskable(svg, MASKABLE_ICON))
+  // Promise.allSettled (not Promise.all) so every failure is captured, not
+  // just the first. Three independent sharp pipelines can fail independently
+  // (disk full, EACCES, libvips error); plain Promise.all would drop the 2nd
+  // and 3rd rejections as unhandled.
+  const settled = await Promise.allSettled([
+    ...STANDARD_SIZES.map((size) => renderStandard(svg, size)),
+    renderMaskable(svg, MASKABLE_SIZE),
+  ])
 
-  for (const r of results) {
-    const safeZone = r.safeZone
-      ? ` (maskable, ${r.safeZone * 100}% safe zone)`
+  const failures = settled.filter((r) => r.status === 'rejected')
+  if (failures.length > 0) {
+    console.error(`Failed to generate ${failures.length} icon(s):`)
+    for (const f of failures) {
+      console.error(`  ${f.reason.message}`)
+    }
+    process.exit(1)
+  }
+
+  for (const r of settled) {
+    const v = r.value
+    const safeZone = v.safeZone
+      ? ` (maskable, ${v.safeZone * 100}% safe zone)`
       : ''
-    console.log(`  generated ${r.filename} ${r.size}x${r.size}${safeZone}`)
+    console.log(`  generated ${v.filename} ${v.size}x${v.size}${safeZone}`)
   }
 }
 
 main().catch((err) => {
+  // Synchronous-path failures inside main() before Promise.allSettled —
+  // e.g., readFile() rejecting if the source SVG is missing or unreadable.
   console.error('Failed to generate PWA icons:', err)
   process.exit(1)
 })

@@ -2,8 +2,13 @@ import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import Groq from 'npm:groq-sdk@0.37.0'
 
 // Must match frontend/src/constants/textUpload.ts MAX_CONTENT_CHARACTERS
-const MAX_CONTENT_LENGTH = 15_000
-// Truncation limit for summary excerpt sent to the validation LLM
+const MAX_CONTENT_LENGTH = 8_000
+// Truncation limit for summary excerpt sent to the validation LLM.
+// The model below (llama-3.3-70b-versatile) has a 6_000 TPM cap on the
+// Groq on_demand tier. Worst-case prompt: ~2_000 tokens (8k-char content)
+// + ~1_250 tokens (5k-char summary) + ~350 (quiz sample) + ~150 (skeleton)
+// + LLM_MAX_TOKENS (1_000) ~= 4_750 tokens. Do not raise MAX_SUMMARY_LENGTH
+// or MAX_CONTENT_LENGTH without rechecking that budget.
 const MAX_SUMMARY_LENGTH = 5_000
 const LLM_MAX_TOKENS = 1_000
 

@@ -519,8 +519,13 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    // For sectional texts, validate each section
+    // For sectional texts, validate each section and the total content budget.
+    // The frontend caps the sum of section content at MAX_CONTENT_CHARACTERS, but
+    // the backend must enforce the same budget so non-browser callers (and
+    // worker-reprocessing of legacy rows) cannot push an oversized prompt at
+    // the LLM and trip Groq's TPM cap.
     if (sectional && sectionalArray) {
+      let totalSectionContent = 0
       for (const section of sectionalArray) {
         if (!section.title || typeof section.title !== 'string') {
           return jsonResponse(
@@ -534,6 +539,16 @@ Deno.serve(async (req: Request) => {
             400
           )
         }
+        totalSectionContent += section.content.length
+      }
+
+      if (totalSectionContent > MAX_CONTENT_LENGTH) {
+        return jsonResponse(
+          {
+            error: `Sectional content cannot exceed ${MAX_CONTENT_LENGTH} characters in total`,
+          },
+          400
+        )
       }
     }
 

@@ -17,7 +17,6 @@
     "jsx": "react-jsx",
 
     /* Path aliases (must match vite.config.ts) */
-    "baseUrl": ".",
     "paths": {
       "webgazer": ["./src/lib/webgazer-local/webgazer.d.ts"],
       "@supabase/supabase-js": ["./node_modules/@supabase/supabase-js"]

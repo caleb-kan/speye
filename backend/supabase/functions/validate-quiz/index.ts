@@ -2,7 +2,7 @@ import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import Groq from 'npm:groq-sdk@0.37.0'
 
 // Must match frontend/src/constants/textUpload.ts MAX_CONTENT_CHARACTERS
-const MAX_CONTENT_LENGTH = 15_000
+const MAX_CONTENT_LENGTH = 8_000
 // Truncation limit for summary excerpt sent to the validation LLM
 const MAX_SUMMARY_LENGTH = 5_000
 const LLM_MAX_TOKENS = 1_000

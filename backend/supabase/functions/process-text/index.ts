@@ -2,7 +2,7 @@ import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import Groq from 'npm:groq-sdk@0.37.0'
 
 // Must match frontend/src/constants/textUpload.ts MAX_CONTENT_CHARACTERS
-const MAX_CONTENT_LENGTH = 15_000
+const MAX_CONTENT_LENGTH = 8_000
 
 // Retries for model outputs that are not valid JSON or don't match the expected
 // response shape. A value of 2 means: initial attempt + 2 retries = 3 attempts.
@@ -281,7 +281,11 @@ generateTitle: {generate_title}
 
 Output valid JSON only:`
 
-const LLM_MAX_TOKENS = 12_000
+// Per-request reservation is prompt_tokens + max_tokens, and the Groq
+// on_demand tier caps gpt-oss-120b at 8000 TPM. Keep this small enough
+// that even a max-length text (~2000 prompt tokens) plus a ~700-token
+// prompt skeleton still leaves ~5000 tokens for the model to respond.
+const LLM_MAX_TOKENS = 5_000
 
 const config = {
   model: 'openai/gpt-oss-120b',

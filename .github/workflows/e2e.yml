@@ -15,7 +15,7 @@ jobs:
     name: Playwright e2e
     runs-on: ubuntu-latest
     container:
-      image: mcr.microsoft.com/playwright:v1.58.2-jammy
+      image: mcr.microsoft.com/playwright:v1.60.0-jammy
       options: --user 1001
     env:
       VITE_SUPABASE_URL: http://localhost:54321

@@ -71,10 +71,12 @@ describe('OptionsBar', () => {
       )
     })
 
-    it('adaptive mode is disabled', () => {
+    it('adaptive mode is available without signing in', () => {
       renderWithReadingLayout()
 
-      expect(screen.getByRole('button', { name: /adaptive/i })).toBeDisabled()
+      expect(
+        screen.getByRole('button', { name: /adaptive/i })
+      ).not.toBeDisabled()
     })
   })
 

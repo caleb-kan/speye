@@ -3,7 +3,6 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import type { LocationState } from '../types'
 import type { Mode, Scrolling, FixedTextInfo } from '../types'
 import type { Text } from '../types/database'
-import { useAuth } from '../hooks/useAuth'
 import { useOptionsBarSliders } from '../hooks/useOptionsBarSliders'
 import { useCustomWpm } from '../hooks/useCustomWpm'
 import { useIsMobile } from '../hooks/useIsMobile'
@@ -72,7 +71,6 @@ export function OptionsBar({
 }: OptionsBarProps) {
   const navigate = useNavigate()
   const location = useLocation()
-  const { user } = useAuth()
   const isMobile = useIsMobile()
 
   const locationState = location.state as LocationState | null
@@ -116,7 +114,6 @@ export function OptionsBar({
           <>
             <ModeSelector
               mode={mode}
-              user={user}
               onStandardClick={() => {
                 if (mode !== 'standard') {
                   onModeNavigate?.('standard')
@@ -155,7 +152,7 @@ export function OptionsBar({
                 }
               }}
               onAdaptiveClick={() => {
-                if (mode !== 'adaptive' && user) {
+                if (mode !== 'adaptive') {
                   onModeNavigate?.('adaptive')
                   onModeChange('adaptive')
                   if (!preventModeNavigation) {

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 import { AdaptiveReadingSession } from '../components/adaptive/AdaptiveReadingSession'
 import { useAuth } from '../hooks/useAuth'
 import { useReadingPreferences } from '../hooks/useReadingPreferences'
@@ -8,10 +8,8 @@ import { useReadingPositionSync } from '../hooks/useReadingPositionSync'
 import type { LocationState, FixedTextInfo } from '../types'
 import { useAdaptiveActivitySession } from '../hooks/useAdaptiveActivitySession'
 import { useAdaptiveTextSync } from '../hooks/useAdaptiveTextSync'
-import { useAuthRedirect } from '../hooks/useAuthRedirect'
 import { useNewTextWithReset } from '../hooks/useNewTextWithReset'
 import { useClearLocationState } from '../hooks/useClearLocationState'
-import { AdaptiveAuthLoading } from '../components/adaptive/AdaptiveAuthLoading'
 import { AdaptiveTextLoadingSkeleton } from '../components/adaptive/AdaptiveTextLoadingSkeleton'
 import { AdaptiveErrorState } from '../components/adaptive/AdaptiveErrorState'
 import { AdaptiveReaderLayout } from '../components/adaptive/AdaptiveReaderLayout'
@@ -19,12 +17,11 @@ import { AdaptiveReaderLayout } from '../components/adaptive/AdaptiveReaderLayou
 /**
  * Adaptive reading mode page
  *
- * Requires authentication. If not logged in, redirects to login page.
- * Uses WebGazer eye tracking for gaze-based reading.
+ * Open to everyone — no account required, matching the normal and RSVP
+ * reading modes. Uses WebGazer eye tracking for gaze-based reading.
  * Supports reading library texts via navigation state.
  */
 export function Adaptive() {
-  const navigate = useNavigate()
   const location = useLocation()
   const state = location.state as LocationState | null
   const libraryText = state?.libraryText
@@ -33,7 +30,7 @@ export function Adaptive() {
   const modeTimestamp = state?._ts
   const isSummary = state?.isSummary ?? false
 
-  const { user, loading: authLoading } = useAuth()
+  const { user } = useAuth()
   const [currentTextComplexity, setCurrentTextComplexity] = useState<
     number | null
   >(null)
@@ -108,13 +105,6 @@ export function Adaptive() {
     ? { fiction: libraryText.fiction, complexity: libraryText.complexity }
     : undefined
 
-  useAuthRedirect({
-    user,
-    authLoading,
-    navigate,
-    returnTo: '/adaptive',
-  })
-
   // Blur is always off in adaptive mode
   const optionsBarProps = {
     wpm,
@@ -140,14 +130,6 @@ export function Adaptive() {
     currentText: currentText,
     fixedText,
     readingPosition,
-  }
-
-  if (authLoading) {
-    return <AdaptiveAuthLoading />
-  }
-
-  if (!user) {
-    return null
   }
 
   if (loading) {

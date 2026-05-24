@@ -31,13 +31,23 @@ function isMode(value: unknown): value is Mode {
   )
 }
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
 function readRawPreferences(): Partial<ReadingPreferences> | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.READING_PREFERENCES)
     if (!raw) return null
-    const parsed = JSON.parse(raw)
-    return parsed && typeof parsed === 'object' ? parsed : null
-  } catch {
+    const parsed: unknown = JSON.parse(raw)
+    return isPlainObject(parsed)
+      ? (parsed as Partial<ReadingPreferences>)
+      : null
+  } catch (e) {
+    console.warn(
+      'Failed to read reading preferences, falling back to defaults:',
+      e
+    )
     return null
   }
 }

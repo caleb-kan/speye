@@ -76,6 +76,35 @@ describe('dedupePromise', () => {
     expect(fn).toHaveBeenCalledTimes(2)
   })
 
+  it('deduplicates across React StrictMode-style sequential calls (camera-fix invariant)', async () => {
+    // Mirrors the camera-orphan-stream race the gate is designed to prevent:
+    // React StrictMode runs effect setup → cleanup → setup synchronously.
+    // Setup #1 starts an async operation (e.g. webgazer.resume). Cleanup
+    // runs. Setup #2 calls the same gate immediately. Without dedupe both
+    // setups would invoke the underlying call concurrently, race
+    // getUserMedia, and orphan a MediaStream.
+    const gate = dedupePromise<string>()
+    let resolveInner: ((value: string) => void) | null = null
+    const fn = vi.fn(
+      () =>
+        new Promise<string>((resolve) => {
+          resolveInner = resolve
+        })
+    )
+
+    const first = gate(fn) // setup #1 starts the call
+    // (StrictMode cleanup happens here — gate state unaffected)
+    const second = gate(fn) // setup #2 reuses the in-flight promise
+
+    expect(fn).toHaveBeenCalledTimes(1)
+    expect(first).toBe(second)
+
+    resolveInner!('settled')
+    expect(await first).toBe('settled')
+    expect(await second).toBe('settled')
+    expect(fn).toHaveBeenCalledTimes(1)
+  })
+
   it('produces independent gates per dedupePromise() call', async () => {
     const gateA = dedupePromise<number>()
     const gateB = dedupePromise<number>()

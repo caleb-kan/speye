@@ -50,7 +50,8 @@ export function ComplexitySelector({
             }}
             aria-hidden={!hasCurrent}
           >
-            current: {hasCurrent ? currentTextComplexity : 0}
+            current:{' '}
+            {hasCurrent ? formatComplexityDisplay(currentTextComplexity) : 0}
           </span>
         </div>
       )}

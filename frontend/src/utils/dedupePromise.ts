@@ -16,13 +16,12 @@
  * await resumeOnce(() => webgazer.resume())
  * ```
  *
- * Callers should `await` the returned promise. The internal `pending`
- * slot is nulled in a `.finally` callback that runs as a microtask
- * AFTER waiting callers resume from their await, so a fire-and-forget
- * caller followed by an immediate second call could see the gate as
- * still-pending and incorrectly share with the already-settled prior
- * call. Both callers in this codebase await; if you add a new one, do
- * the same.
+ * Callers should `await` the returned promise. A fire-and-forget caller
+ * who then synchronously triggers a second `gate(fn)` call before the
+ * `.finally` microtask has flushed will see `pending` still set to the
+ * already-settled prior promise and incorrectly share its (stale) result
+ * instead of starting a fresh call. Both callers in this codebase await
+ * the gate; if you add a new one, do the same.
  */
 export function dedupePromise<T>(): (fn: () => Promise<T>) => Promise<T> {
   let pending: Promise<T> | null = null

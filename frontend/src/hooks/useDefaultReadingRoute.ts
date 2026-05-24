@@ -1,6 +1,6 @@
 import { useIsMobile } from './useIsMobile'
 import { useReadingPreferences } from './useReadingPreferences'
-import { resolveDefaultReadingRoute } from '../utils/routes'
+import { resolveDefaultReadingRoute, type ReadingRoute } from '../utils/routes'
 
 /**
  * Reactive hook that returns the default reading route.
@@ -8,7 +8,7 @@ import { resolveDefaultReadingRoute } from '../utils/routes'
  * Re-evaluates when the viewport crosses the mobile breakpoint or when
  * the mode preference changes.
  */
-export function useDefaultReadingRoute(): string {
+export function useDefaultReadingRoute(): ReadingRoute {
   const isMobile = useIsMobile()
   const { preferences } = useReadingPreferences()
   return resolveDefaultReadingRoute(preferences.mode, isMobile)

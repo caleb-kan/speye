@@ -111,36 +111,27 @@ describe('useSyncReadingMode', () => {
   })
 
   it('syncs once under React StrictMode double-invoke', () => {
-    // React 18+ StrictMode runs effect setup -> cleanup -> setup. The needsSyncRef
-    // guard must survive this and prevent setMode from being called a second time.
+    // React 18+ StrictMode runs effect setup → cleanup → setup. The needsSyncRef
+    // guard must survive this so the hook syncs exactly once on mount AND
+    // doesn't re-fire on the second setup. We verify both: final state matches
+    // target, and a subsequent external mode change is left alone.
     setStoredMode('adaptive')
-
-    const setModeCalls: Mode[] = []
 
     const { result } = renderHook(
       () => {
-        const ctx = useReadingPreferences()
-        const trackedSetMode = (mode: Mode) => {
-          setModeCalls.push(mode)
-          ctx.setMode(mode)
-        }
         useSyncReadingMode('standard')
-        return { mode: ctx.preferences.mode, trackedSetMode }
+        return useReadingPreferences()
       },
       { wrapper: strictWrap }
     )
 
-    expect(result.current.mode).toBe('standard')
-    // setMode is called via context, not via tracked wrapper, so we can't observe
-    // it directly. Instead verify the final state and that no oscillation
-    // occurred by tracking that subsequent renders are stable.
-    const finalMode = result.current.mode
+    expect(result.current.preferences.mode).toBe('standard')
+
     act(() => {
-      // Trigger a re-render via context to confirm the hook doesn't re-sync.
-      result.current.trackedSetMode('adaptive')
+      result.current.setMode('adaptive')
     })
-    expect(result.current.mode).toBe('adaptive')
-    expect(finalMode).toBe('standard')
+
+    expect(result.current.preferences.mode).toBe('adaptive')
   })
 
   it('does not re-sync under StrictMode when click handler changes mode', () => {

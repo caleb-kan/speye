@@ -24,11 +24,17 @@ export const ROUTES = {
 } as const
 
 /** Route for each reading mode */
-export const MODE_ROUTES: Record<Mode, string> = {
+export const MODE_ROUTES: Record<Mode, ReadingRoute> = {
   standard: ROUTES.HOME,
   adaptive: ROUTES.ADAPTIVE,
   rsvp: ROUTES.RSVP,
 }
+
+/** The subset of routes that render a reading mode. */
+export type ReadingRoute =
+  | typeof ROUTES.HOME
+  | typeof ROUTES.ADAPTIVE
+  | typeof ROUTES.RSVP
 
 /**
  * Resolves the default reading route given the device context and known
@@ -41,7 +47,7 @@ export const MODE_ROUTES: Record<Mode, string> = {
 export function resolveDefaultReadingRoute(
   mode: Mode | null,
   isMobile: boolean
-): string {
+): ReadingRoute {
   if (isMobile) return ROUTES.RSVP
   return mode ? MODE_ROUTES[mode] : ROUTES.HOME
 }
@@ -54,6 +60,6 @@ export function resolveDefaultReadingRoute(
  * Use this for non-reactive contexts (callbacks, redirects).
  * For reactive use inside components, use the useDefaultReadingRoute hook.
  */
-export function getDefaultReadingRoute(): string {
+export function getDefaultReadingRoute(): ReadingRoute {
   return resolveDefaultReadingRoute(loadStoredMode(), isMobileDevice())
 }

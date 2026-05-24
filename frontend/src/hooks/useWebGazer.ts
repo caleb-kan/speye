@@ -209,9 +209,7 @@ export function useWebGazer({
         return true
       } catch (err) {
         // Resume failed - clean up and clear global state so initWebGazer runs fresh
-        if (import.meta.env.DEV) {
-          console.warn('WebGazer resume failed, will reinitialize:', err)
-        }
+        console.warn('WebGazer resume failed, will reinitialize:', err)
         // Call end() to remove DOM elements before reinitializing
         // This prevents duplicate elements when begin() creates new ones
         // Calibration data is preserved in localforage storage

@@ -75,6 +75,19 @@ describe('readingPreferencesStorage', () => {
       localStorage.setItem(STORAGE_KEYS.READING_PREFERENCES, '{not json')
       expect(loadReadingPreferences()).toEqual(DEFAULT_READING_PREFERENCES)
     })
+
+    it('rejects arrays (typeof [] === "object" but spreading them corrupts shape)', () => {
+      localStorage.setItem(
+        STORAGE_KEYS.READING_PREFERENCES,
+        JSON.stringify(['adaptive', 500])
+      )
+      expect(loadReadingPreferences()).toEqual(DEFAULT_READING_PREFERENCES)
+    })
+
+    it('rejects null stored as JSON', () => {
+      localStorage.setItem(STORAGE_KEYS.READING_PREFERENCES, 'null')
+      expect(loadReadingPreferences()).toEqual(DEFAULT_READING_PREFERENCES)
+    })
   })
 
   describe('saveReadingPreferences', () => {

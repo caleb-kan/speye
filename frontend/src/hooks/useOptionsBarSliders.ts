@@ -1,7 +1,11 @@
-import type { MutableRefObject, RefObject } from 'react'
+import type { RefObject } from 'react'
 import { useEffect, useRef } from 'react'
 import noUiSlider, { type API } from 'nouislider'
-import { MAX_COMPLEXITY, MIN_COMPLEXITY } from '../constants/complexity'
+import {
+  MAX_COMPLEXITY,
+  MIN_COMPLEXITY,
+  formatComplexityDisplay,
+} from '../constants/complexity'
 import { MAX_VISIBLE_LINES, MIN_VISIBLE_LINES } from '../constants/visibleLines'
 import { MAX_PHRASE_SIZE, MIN_PHRASE_SIZE } from '../constants/rsvp'
 import type { FixedTextInfo } from '../types'
@@ -16,7 +20,7 @@ function syncSingleValueSlider(
   value: number,
   range: { min: number; max: number },
   showTooltips: boolean,
-  onChangeRef: MutableRefObject<(value: number) => void>
+  onChangeRef: RefObject<(value: number) => void>
 ): (() => void) | undefined {
   if (!ref.current) return
 
@@ -133,13 +137,7 @@ export const useOptionsBarSliders = (
       tooltips: showTooltips,
       step: 1,
       format: {
-        to: (value) => {
-          const intValue = Math.round(value)
-          if (intValue === MAX_COMPLEXITY) {
-            return `${MAX_COMPLEXITY}+`
-          }
-          return intValue.toString()
-        },
+        to: (value) => formatComplexityDisplay(Math.round(value)),
         from: (value) => Number(value),
       },
     })

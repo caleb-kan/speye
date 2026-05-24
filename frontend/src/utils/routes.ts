@@ -1,5 +1,6 @@
 import type { Mode } from '../types/reading'
 import { isMobileDevice } from './isMobileDevice'
+import { loadStoredMode } from './readingPreferencesStorage'
 
 /** All app route paths */
 export const ROUTES = {
@@ -30,12 +31,29 @@ export const MODE_ROUTES: Record<Mode, string> = {
 }
 
 /**
- * Returns the default reading route based on device type.
- * Mobile devices always get RSVP mode; desktop gets standard (home).
+ * Resolves the default reading route given the device context and known
+ * mode. Mobile always routes to RSVP; desktop routes to the mode-specific
+ * page, falling back to /home when the mode is unknown.
+ *
+ * Pure function — accepts inputs rather than reading them, so it can be
+ * reused from both the reactive hook and non-reactive callers.
+ */
+export function resolveDefaultReadingRoute(
+  mode: Mode | null,
+  isMobile: boolean
+): string {
+  if (isMobile) return ROUTES.RSVP
+  return mode ? MODE_ROUTES[mode] : ROUTES.HOME
+}
+
+/**
+ * Returns the default reading route based on device type and the user's
+ * last-used mode persisted in localStorage. Mobile devices always get
+ * RSVP; desktop returns to the last-used mode.
  *
  * Use this for non-reactive contexts (callbacks, redirects).
  * For reactive use inside components, use the useDefaultReadingRoute hook.
  */
 export function getDefaultReadingRoute(): string {
-  return isMobileDevice() ? ROUTES.RSVP : ROUTES.HOME
+  return resolveDefaultReadingRoute(loadStoredMode(), isMobileDevice())
 }

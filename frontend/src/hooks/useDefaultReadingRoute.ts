@@ -1,12 +1,15 @@
 import { useIsMobile } from './useIsMobile'
-import { ROUTES } from '../utils/routes'
+import { useReadingPreferences } from './useReadingPreferences'
+import { resolveDefaultReadingRoute } from '../utils/routes'
 
 /**
  * Reactive hook that returns the default reading route.
- * Mobile → /rsvp, Desktop → /home.
- * Re-evaluates when the viewport crosses the mobile breakpoint.
+ * Mobile → /rsvp; desktop → the user's last-used mode page.
+ * Re-evaluates when the viewport crosses the mobile breakpoint or when
+ * the mode preference changes.
  */
 export function useDefaultReadingRoute(): string {
   const isMobile = useIsMobile()
-  return isMobile ? ROUTES.RSVP : ROUTES.HOME
+  const { preferences } = useReadingPreferences()
+  return resolveDefaultReadingRoute(preferences.mode, isMobile)
 }

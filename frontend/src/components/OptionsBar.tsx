@@ -109,7 +109,13 @@ export function OptionsBar({
 
   return (
     <div className="z-40 bg-bg">
-      <div className="flex flex-wrap items-center justify-center gap-6 py-4 text-sm">
+      {/*
+        min-h-[175px] / xl:min-h-[120px] match
+        OPTIONS_BAR_MIN_HEIGHT_NARROW_PX / OPTIONS_BAR_MIN_HEIGHT_WIDE_PX in
+        constants/ui.ts (kept as literals here so Tailwind's JIT compiler
+        actually emits the classes).
+      */}
+      <div className="flex flex-wrap items-center content-center justify-center gap-6 py-4 text-sm min-h-[175px] xl:min-h-[120px]">
         {!isMobile && (
           <>
             <ModeSelector

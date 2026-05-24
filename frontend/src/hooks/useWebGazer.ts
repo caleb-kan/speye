@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import type { GazeData } from '../types/webgazer'
 import type { WebGazerStatus, WebGazerError } from '../types/adaptive'
 import { STORAGE_KEYS } from '../constants/storage'
+import { dedupePromise } from '../utils/dedupePromise'
 import {
   WEBGAZER_INIT_TIMEOUT_MS,
   WEBGAZER_READY_MAX_ATTEMPTS,
@@ -22,10 +23,26 @@ import {
  */
 let globalWebgazerInstance: WebGazerAPI | null = null
 let isGloballyInitialized = false
-// Pending cleanup timeout. Used to delay stopCamera() so React StrictMode's
+
+// React StrictMode's effect double-invoke (setup → cleanup → setup) can
+// run two webgazer setups concurrently. Without dedupe, both pass the
+// `if (!paused) return` guard inside webgazer's resume() and both call
+// getUserMedia(). Each creates a MediaStream; only the last is tracked
+// in webgazer's module-level `videoStream`, and stopCamera() only
+// releases that one. The orphaned stream keeps the camera on after the
+// user leaves adaptive mode. The same race exists for the cold-start
+// begin() path. Module-level gates share a single in-flight Promise
+// across concurrent callers.
+const beginOnce = dedupePromise<void>()
+const resumeOnce = dedupePromise<unknown>()
+// Pending cleanup state. Used to delay stopCamera() so React StrictMode's
 // double-invoke (effect1 -> cleanup -> effect2) doesn't interrupt the camera.
-// If effect2 starts before the timeout fires, we cancel it.
-let pendingCleanupTimeout: ReturnType<typeof setTimeout> | null = null
+// Cleanup schedules a microtask; if effect2 starts before the microtask
+// fires, it flips this flag so the camera is preserved. Microtask runs
+// before the next paint, so on a real unmount the camera releases in the
+// same tick (much faster than setTimeout(0) which sits behind React's
+// commit + render of the incoming route).
+let pendingCleanupRequested = false
 
 /** CSS rule to hide the WebGazer gaze prediction dot */
 const HIDE_GAZE_DOT_CSS = `#${WEBGAZER_GAZE_DOT_ID} { display: none !important; }`
@@ -121,10 +138,7 @@ export function useWebGazer({
 
     // Cancel any pending cleanup from a previous effect (React StrictMode double-invoke)
     // Only cancel when we're about to reinitialize - not when disabling
-    if (pendingCleanupTimeout) {
-      clearTimeout(pendingCleanupTimeout)
-      pendingCleanupTimeout = null
-    }
+    pendingCleanupRequested = false
 
     // Prevent double initialization within this component instance
     if (isInitializedRef.current) {
@@ -180,7 +194,7 @@ export function useWebGazer({
           .showPredictionPoints(showPredictionPoints)
           .showFaceFeedbackBox(showPreview)
 
-        await globalWebgazerInstance.resume()
+        await resumeOnce(() => globalWebgazerInstance!.resume())
 
         // Check if component unmounted during async resume
         // If so, just return false - do NOT call stopCamera() here!
@@ -299,7 +313,7 @@ export function useWebGazer({
               })
           })
 
-        await beginWithTimeout()
+        await beginOnce(() => beginWithTimeout())
 
         // WebGazer is now running - mark as globally initialized immediately
         // so remounting components can reattach even if we return early below
@@ -401,17 +415,35 @@ export function useWebGazer({
       // it stays undefined when enabled becomes true again, breaking the
       // gaze listener callback.
 
-      // Delay stopping the camera to handle React StrictMode double-invoke.
+      // Defer stopping the camera to handle React StrictMode double-invoke.
       // StrictMode runs: effect1 -> cleanup -> effect2 (synchronously)
-      // If effect2 starts, it will cancel this timeout and keep the camera running.
-      // If no effect2 starts (real unmount), the timeout fires and stops the camera.
+      // If effect2 starts, it sets pendingCleanupRequested = false to keep
+      // the camera running.
+      // If no effect2 starts (real unmount), the microtask fires and stops
+      // the camera.
+      // queueMicrotask runs after the current synchronous block but before
+      // the next macrotask, so the camera releases in the same tick — much
+      // faster than setTimeout(0), which sits behind React's commit and
+      // render of the incoming route in dev.
+      //
+      // Assumption: cleanup and the immediate next setup (if any) are
+      // synchronous siblings within the same task. This holds for
+      // StrictMode's mount-cleanup-mount and for normal route transitions.
+      // It would NOT hold if `useWebGazer`'s host component were wrapped
+      // in a `<Suspense>` boundary that suspends after cleanup — the
+      // microtask would fire stopCamera before setup runs. The resume
+      // path (reattachWebGazer → webgazer.resume()) would still recover
+      // when setup eventually runs, so the worst case is a brief camera
+      // off-on flash, not a broken state. Don't add Suspense around
+      // AdaptiveReader without revisiting this contract.
       if (globalWebgazerInstance) {
-        pendingCleanupTimeout = setTimeout(() => {
-          pendingCleanupTimeout = null
-          if (globalWebgazerInstance) {
+        pendingCleanupRequested = true
+        queueMicrotask(() => {
+          if (pendingCleanupRequested && globalWebgazerInstance) {
+            pendingCleanupRequested = false
             globalWebgazerInstance.stopCamera()
           }
-        }, 0) // setTimeout(..., 0) runs after the current synchronous block
+        })
       }
 
       webgazerRef.current = null

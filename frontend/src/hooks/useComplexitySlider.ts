@@ -1,7 +1,11 @@
 import type { RefObject } from 'react'
 import { useEffect, useRef } from 'react'
 import noUiSlider, { type API } from 'nouislider'
-import { MAX_COMPLEXITY, MIN_COMPLEXITY } from '../constants/complexity'
+import {
+  MAX_COMPLEXITY,
+  MIN_COMPLEXITY,
+  formatComplexityDisplay,
+} from '../constants/complexity'
 import type { FilterOptions } from './useLibraryFilters'
 
 export type UseComplexitySliderParams = {
@@ -44,13 +48,7 @@ export const useComplexitySlider = (
       tooltips: true,
       step: 1,
       format: {
-        to: (value) => {
-          const intValue = Math.round(value)
-          if (intValue === MAX_COMPLEXITY) {
-            return `${MAX_COMPLEXITY}+`
-          }
-          return intValue.toString()
-        },
+        to: (value) => formatComplexityDisplay(Math.round(value)),
         from: (value) => {
           return Number(value)
         },

@@ -3,6 +3,8 @@ import { render, screen, waitFor, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { BrowserRouter } from 'react-router-dom'
 import { Login } from '../../pages/Login'
+import { ReadingPreferencesProvider } from '../../context/ReadingPreferencesProvider'
+import { installMockLocalStorage } from '../helpers/mockLocalStorage'
 import * as useAuthModule from '../../hooks/useAuth'
 import * as supabaseModule from '../../../../lib/supabase'
 import {
@@ -73,10 +75,14 @@ vi.mocked(supabaseModule).supabase =
 import * as userServiceModule from '../../services/userService'
 const mockUserService = vi.mocked(userServiceModule)
 
+installMockLocalStorage()
+
 const renderLogin = () => {
   return render(
     <BrowserRouter>
-      <Login />
+      <ReadingPreferencesProvider>
+        <Login />
+      </ReadingPreferencesProvider>
     </BrowserRouter>
   )
 }

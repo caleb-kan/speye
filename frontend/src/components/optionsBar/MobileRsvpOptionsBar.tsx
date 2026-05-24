@@ -4,7 +4,8 @@ import type { Text } from '../../types/database'
 import { useSliderDisplayValues } from '../../hooks/useSliderDisplayValues'
 import { useCustomWpm } from '../../hooks/useCustomWpm'
 import { RSVP_WPM_PRESETS, MIN_WPM, MAX_WPM } from '../../constants/wpm'
-import { MAX_COMPLEXITY } from '../../constants/complexity'
+import { formatComplexityDisplay } from '../../constants/complexity'
+import { SLIDER_RENDERED_HEIGHT_PX } from '../../constants/ui'
 
 type MobileRsvpOptionsBarProps = {
   wpm: number
@@ -136,31 +137,28 @@ export function MobileRsvpOptionsBar({
         {fixedText ? (
           <span className="text-primary text-xs">
             {fixedText.complexity !== null
-              ? fixedText.complexity >= MAX_COMPLEXITY
-                ? `${MAX_COMPLEXITY}+`
-                : fixedText.complexity
+              ? formatComplexityDisplay(fixedText.complexity)
               : 'N/A'}
           </span>
         ) : (
           <>
             {currentText?.complexity != null && (
               <span className="text-xs font-medium whitespace-nowrap px-1.5 py-0.5 rounded bg-primary/15 text-primary">
-                {'current: ' +
-                  (currentText.complexity >= MAX_COMPLEXITY
-                    ? `${MAX_COMPLEXITY}+`
-                    : currentText.complexity)}
+                current: {formatComplexityDisplay(currentText.complexity)}
               </span>
             )}
             <div
               className="flex items-center gap-2"
               style={{ width: 'calc(50vw - 12px)' }}
             >
-              <div ref={complexitySliderRef} className="flex-1 my-1" />
+              <div
+                ref={complexitySliderRef}
+                className="flex-1 my-1"
+                style={{ height: SLIDER_RENDERED_HEIGHT_PX }}
+              />
               <span className="text-xs text-text-secondary font-medium whitespace-nowrap px-2 py-0.5 bg-text-secondary/10 rounded">
                 {displayComplexityMin}–
-                {displayComplexityMax >= MAX_COMPLEXITY
-                  ? `${MAX_COMPLEXITY}+`
-                  : displayComplexityMax}
+                {formatComplexityDisplay(displayComplexityMax)}
               </span>
             </div>
           </>
@@ -172,7 +170,11 @@ export function MobileRsvpOptionsBar({
           className="flex items-center gap-2"
           style={{ width: 'calc(50vw - 12px)' }}
         >
-          <div ref={phraseSizeSliderRef} className="flex-1 my-1" />
+          <div
+            ref={phraseSizeSliderRef}
+            className="flex-1 my-1"
+            style={{ height: SLIDER_RENDERED_HEIGHT_PX }}
+          />
           <span className="text-xs text-text-secondary font-medium whitespace-nowrap px-2 py-0.5 bg-text-secondary/10 rounded">
             {displayPhraseSize}
           </span>
@@ -250,7 +252,11 @@ export function MobileRsvpOptionsBar({
           className="flex items-center gap-2"
           style={{ width: 'calc(50vw - 12px)' }}
         >
-          <div ref={visibleLinesSliderRef} className="flex-1 my-1" />
+          <div
+            ref={visibleLinesSliderRef}
+            className="flex-1 my-1"
+            style={{ height: SLIDER_RENDERED_HEIGHT_PX }}
+          />
           <span className="text-xs text-text-secondary font-medium whitespace-nowrap px-2 py-0.5 bg-text-secondary/10 rounded">
             {displayVisibleLines}
           </span>

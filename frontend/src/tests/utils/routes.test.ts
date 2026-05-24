@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { installMockLocalStorage } from '../helpers/mockLocalStorage'
 
 vi.mock('../../utils/isMobileDevice', () => ({
   isMobileDevice: vi.fn(),
@@ -6,12 +7,22 @@ vi.mock('../../utils/isMobileDevice', () => ({
 
 import { ROUTES, MODE_ROUTES, getDefaultReadingRoute } from '../../utils/routes'
 import { isMobileDevice } from '../../utils/isMobileDevice'
+import { STORAGE_KEYS } from '../../constants/storage'
 
+const { reset: resetLocalStorage } = installMockLocalStorage()
 const mockIsMobileDevice = vi.mocked(isMobileDevice)
+
+function setStoredMode(mode: string) {
+  localStorage.setItem(
+    STORAGE_KEYS.READING_PREFERENCES,
+    JSON.stringify({ mode })
+  )
+}
 
 describe('routes', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    resetLocalStorage()
   })
 
   describe('ROUTES constants', () => {
@@ -42,16 +53,45 @@ describe('routes', () => {
   })
 
   describe('getDefaultReadingRoute', () => {
-    it('returns /rsvp when on mobile device', () => {
+    it('returns /rsvp on mobile regardless of stored mode', () => {
       mockIsMobileDevice.mockReturnValue(true)
+      setStoredMode('adaptive')
 
-      expect(getDefaultReadingRoute()).toBe('/rsvp')
+      expect(getDefaultReadingRoute()).toBe(ROUTES.RSVP)
     })
 
-    it('returns /home when on desktop device', () => {
+    it('returns the stored mode route on desktop', () => {
+      mockIsMobileDevice.mockReturnValue(false)
+      setStoredMode('adaptive')
+
+      expect(getDefaultReadingRoute()).toBe(ROUTES.ADAPTIVE)
+    })
+
+    it('returns /rsvp on desktop when stored mode is rsvp', () => {
+      mockIsMobileDevice.mockReturnValue(false)
+      setStoredMode('rsvp')
+
+      expect(getDefaultReadingRoute()).toBe(ROUTES.RSVP)
+    })
+
+    it('returns /home on desktop when stored mode is standard', () => {
+      mockIsMobileDevice.mockReturnValue(false)
+      setStoredMode('standard')
+
+      expect(getDefaultReadingRoute()).toBe(ROUTES.HOME)
+    })
+
+    it('returns /home on desktop when nothing is stored', () => {
       mockIsMobileDevice.mockReturnValue(false)
 
-      expect(getDefaultReadingRoute()).toBe('/home')
+      expect(getDefaultReadingRoute()).toBe(ROUTES.HOME)
+    })
+
+    it('returns /home on desktop when stored mode is invalid', () => {
+      mockIsMobileDevice.mockReturnValue(false)
+      setStoredMode('garbage')
+
+      expect(getDefaultReadingRoute()).toBe(ROUTES.HOME)
     })
   })
 })

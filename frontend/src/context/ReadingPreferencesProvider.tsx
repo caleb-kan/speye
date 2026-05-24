@@ -4,84 +4,29 @@ import {
   type ReadingPreferences,
 } from './readingPreferencesContext'
 import type { Mode, Scrolling } from '../types'
-import { DEFAULT_WPM } from '../constants/wpm'
 import {
-  DEFAULT_MIN_COMPLEXITY,
-  DEFAULT_MAX_COMPLEXITY,
-} from '../constants/complexity'
-import { DEFAULT_WIDTH_PERCENT } from '../constants/resize'
-import { DEFAULT_VISIBLE_LINES } from '../constants/visibleLines'
-import { DEFAULT_PHRASE_SIZE } from '../constants/rsvp'
-import { STORAGE_KEYS } from '../constants/storage'
-import { DEFAULT_MODE } from '../constants/modes'
-import { isMobileDevice } from '../utils/isMobileDevice'
-
-function loadPreferences(): ReadingPreferences {
-  const mobile = isMobileDevice()
-  try {
-    const stored = localStorage.getItem(STORAGE_KEYS.READING_PREFERENCES)
-    if (stored) {
-      const parsed = JSON.parse(stored)
-      return {
-        wpm: parsed.wpm ?? DEFAULT_WPM,
-        mode: mobile
-          ? 'rsvp'
-          : parsed.mode === 'standard' ||
-              parsed.mode === 'adaptive' ||
-              parsed.mode === 'rsvp'
-            ? parsed.mode
-            : DEFAULT_MODE,
-        scrolling: parsed.scrolling ?? 'dynamic',
-        blurEnabled: parsed.blurEnabled ?? false,
-        fiction: parsed.fiction ?? false,
-        complexityMin: parsed.complexityMin ?? DEFAULT_MIN_COMPLEXITY,
-        complexityMax: parsed.complexityMax ?? DEFAULT_MAX_COMPLEXITY,
-        textWidthPercent: parsed.textWidthPercent ?? DEFAULT_WIDTH_PERCENT,
-        visibleLines: parsed.visibleLines ?? DEFAULT_VISIBLE_LINES,
-        phraseSize: parsed.phraseSize ?? DEFAULT_PHRASE_SIZE,
-      }
-    }
-  } catch (e) {
-    console.warn('Failed to load reading preferences:', e)
-  }
-  return {
-    wpm: DEFAULT_WPM,
-    mode: mobile ? 'rsvp' : DEFAULT_MODE,
-    scrolling: 'dynamic',
-    blurEnabled: false,
-    fiction: false,
-    complexityMin: DEFAULT_MIN_COMPLEXITY,
-    complexityMax: DEFAULT_MAX_COMPLEXITY,
-    textWidthPercent: DEFAULT_WIDTH_PERCENT,
-    visibleLines: DEFAULT_VISIBLE_LINES,
-    phraseSize: DEFAULT_PHRASE_SIZE,
-  }
-}
-
-function savePreferences(prefs: ReadingPreferences): void {
-  try {
-    localStorage.setItem(
-      STORAGE_KEYS.READING_PREFERENCES,
-      JSON.stringify(prefs)
-    )
-  } catch (e) {
-    console.warn('Failed to save reading preferences:', e)
-  }
-}
+  loadReadingPreferences,
+  saveReadingPreferences,
+} from '../utils/readingPreferencesStorage'
 
 export function ReadingPreferencesProvider({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const [preferences, setPreferences] =
-    useState<ReadingPreferences>(loadPreferences)
+  const [preferences, setPreferences] = useState<ReadingPreferences>(
+    loadReadingPreferences
+  )
 
   const updatePreferences = useCallback(
     (update: Partial<ReadingPreferences>) => {
       setPreferences((prev) => {
+        const hasChange = (
+          Object.keys(update) as Array<keyof typeof update>
+        ).some((key) => prev[key] !== update[key])
+        if (!hasChange) return prev
         const next = { ...prev, ...update }
-        savePreferences(next)
+        saveReadingPreferences(next)
         return next
       })
     },

@@ -6,6 +6,7 @@ import type { Mode } from '../types/reading'
 import type { Text } from '../types/database'
 import { useReadingPreferences } from '../hooks/useReadingPreferences'
 import { useReadingPositionSync } from '../hooks/useReadingPositionSync'
+import { useSyncReadingMode } from '../hooks/useSyncReadingMode'
 import { logUserActivity } from '../services/logUserActivity'
 import {
   clearReadingActivitySession,
@@ -13,7 +14,13 @@ import {
   upsertReadingActivitySession,
 } from '../utils/readingActivityStorage'
 
+/**
+ * Layout for the standard (`/home`) reading page. Locks `preferences.mode`
+ * to `'standard'` while mounted so the OptionsBar and persisted mode
+ * never drift from the active route.
+ */
 export function ReadingLayout() {
+  useSyncReadingMode('standard')
   const location = useLocation()
   const state = location.state as LocationState | null
   const libraryText = state?.libraryText

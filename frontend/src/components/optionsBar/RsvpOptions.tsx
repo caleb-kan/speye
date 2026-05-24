@@ -1,5 +1,6 @@
 import type { ChangeEvent, KeyboardEvent, RefObject } from 'react'
 import { RSVP_WPM_PRESETS, MIN_WPM, MAX_WPM } from '../../constants/wpm'
+import { SLIDER_RENDERED_HEIGHT_PX } from '../../constants/ui'
 import type { SliderElement } from '../../hooks/useOptionsBarSliders'
 
 export type RsvpOptionsProps = {
@@ -38,7 +39,10 @@ export function RsvpOptions({
       <div className="w-px h-6 bg-text-secondary opacity-30" />
       <div className="flex items-center gap-2">
         <span className="text-text-secondary mr-1">line width:</span>
-        <div ref={phraseSizeSliderRef} style={{ width: '120px' }} />
+        <div
+          ref={phraseSizeSliderRef}
+          style={{ width: '120px', height: SLIDER_RENDERED_HEIGHT_PX }}
+        />
       </div>
 
       <div className="w-px h-6 bg-text-secondary opacity-30" />
@@ -111,7 +115,10 @@ export function RsvpOptions({
       <div className="w-px h-6 bg-text-secondary opacity-30" />
       <div className="flex items-center gap-2">
         <span className="text-text-secondary mr-1">visible lines:</span>
-        <div ref={visibleLinesSliderRef} style={{ width: '120px' }} />
+        <div
+          ref={visibleLinesSliderRef}
+          style={{ width: '120px', height: SLIDER_RENDERED_HEIGHT_PX }}
+        />
       </div>
     </>
   )

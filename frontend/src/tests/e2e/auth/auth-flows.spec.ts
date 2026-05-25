@@ -49,9 +49,12 @@ test.describe('Sign Up Flow', () => {
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-          id: 'new-user-1',
-          email: 'new@example.com',
-          confirmation_sent_at: new Date().toISOString(),
+          user: {
+            id: 'new-user-1',
+            email: 'new@example.com',
+            confirmation_sent_at: new Date().toISOString(),
+          },
+          session: null,
         }),
       })
     })

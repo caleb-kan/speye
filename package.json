@@ -13,10 +13,10 @@
     "format:check": "prettier --check ."
   },
   "devDependencies": {
-    "generate-license-file": "^4.2.4",
+    "generate-license-file": "^4.2.5",
     "prettier": "^3.9.6"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.112.4"
+    "@supabase/supabase-js": "^2.116.0"
   }
 }

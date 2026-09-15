@@ -67,9 +67,9 @@ test.describe('Sign Up Flow', () => {
     await page.getByLabel(/password/i).fill('password123')
     await page.getByRole('button', { name: 'Create Account' }).click()
 
-    await expect(page.getByRole('status')).toBeVisible({
-      timeout: 5000,
-    })
+    await expect(
+      page.getByRole('status').filter({ hasText: 'Sign up successful!' })
+    ).toBeVisible({ timeout: 5000 })
   })
 })
 
@@ -94,6 +94,8 @@ test.describe('Forgot Password', () => {
     await page.getByLabel(/email/i).fill('user@example.com')
     await page.getByRole('button', { name: /send reset link/i }).click()
 
-    await expect(page.getByRole('status')).toBeVisible()
+    await expect(
+      page.getByRole('status').filter({ hasText: 'Password reset email sent!' })
+    ).toBeVisible()
   })
 })

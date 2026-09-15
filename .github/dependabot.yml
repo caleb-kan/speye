@@ -37,6 +37,9 @@ updates:
         update-types: ['version-update:semver-major']
       - dependency-name: '@eslint/js'
         update-types: ['version-update:semver-major']
+      # typescript-eslint currently supports TypeScript versions below 6.1.
+      - dependency-name: 'typescript'
+        update-types: ['version-update:semver-major']
 
   # Backend (Supabase edge function tooling, vitest, etc.)
   - package-ecosystem: npm
@@ -57,6 +60,9 @@ updates:
       - dependency-name: 'eslint'
         update-types: ['version-update:semver-major']
       - dependency-name: '@eslint/js'
+        update-types: ['version-update:semver-major']
+      # textstat-ts requires TypeScript 5.
+      - dependency-name: 'typescript'
         update-types: ['version-update:semver-major']
 
   # GitHub Actions workflow versions (actions/checkout, etc.)

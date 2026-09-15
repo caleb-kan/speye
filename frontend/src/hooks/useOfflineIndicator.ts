@@ -26,11 +26,7 @@ export const TYPE_LABELS: Record<QueuedOperation['type'], string> = {
 // 'syncing'        — sync started after being offline; resolves to 'synced'
 // 'syncing-online' — sync started while always online; resolves to 'online' (no banner)
 export type IndicatorState =
-  | 'online'
-  | 'offline'
-  | 'syncing'
-  | 'syncing-online'
-  | 'synced'
+  'online' | 'offline' | 'syncing' | 'syncing-online' | 'synced'
 
 type IndicatorAction =
   | { type: 'WENT_OFFLINE' }

@@ -32,9 +32,7 @@ export const MODE_ROUTES: Record<Mode, ReadingRoute> = {
 
 /** The subset of routes that render a reading mode. */
 export type ReadingRoute =
-  | typeof ROUTES.HOME
-  | typeof ROUTES.ADAPTIVE
-  | typeof ROUTES.RSVP
+  typeof ROUTES.HOME | typeof ROUTES.ADAPTIVE | typeof ROUTES.RSVP
 
 /**
  * Resolves the default reading route given the device context and known

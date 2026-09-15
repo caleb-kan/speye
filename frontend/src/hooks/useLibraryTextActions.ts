@@ -18,8 +18,7 @@ import {
 } from '../services/libraryService'
 
 export type DeleteConfirmState =
-  | { isOpen: false }
-  | { isOpen: true; textId: string }
+  { isOpen: false } | { isOpen: true; textId: string }
 
 export type EditModalState = { isOpen: false } | { isOpen: true; text: Text }
 

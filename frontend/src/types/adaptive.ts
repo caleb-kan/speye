@@ -15,10 +15,7 @@ export interface CalibrationState {
  * Represents the overall calibration state persisted across sessions.
  */
 export type CalibrationStatus =
-  | 'not-started'
-  | 'in-progress'
-  | 'passed'
-  | 'failed'
+  'not-started' | 'in-progress' | 'passed' | 'failed'
 
 /**
  * Phase of the calibration UI flow in useCalibrationPhase.
@@ -77,10 +74,7 @@ export type WebGazerStatus =
  * Error types for WebGazer initialization
  */
 export type WebGazerError =
-  | 'permission-denied'
-  | 'not-supported'
-  | 'initialization-failed'
-  | 'unknown'
+  'permission-denied' | 'not-supported' | 'initialization-failed' | 'unknown'
 
 /**
  * Eye tracking data (pure data, no callbacks)
@@ -102,8 +96,4 @@ export interface TrackingStatus extends TrackingData {
  * State of the accuracy test during calibration.
  */
 export type AccuracyTestState =
-  | 'waiting'
-  | 'collecting'
-  | 'calculating'
-  | 'complete'
-  | 'insufficient-samples'
+  'waiting' | 'collecting' | 'calculating' | 'complete' | 'insufficient-samples'

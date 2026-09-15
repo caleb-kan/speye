@@ -3,8 +3,7 @@ import { MAX_CONTENT_CHARACTERS } from '../constants/textUpload'
 import { formatNumberWithCommas } from './textUtils'
 
 type ValidationResult =
-  | { isValid: true; error: null }
-  | { isValid: false; error: string }
+  { isValid: true; error: null } | { isValid: false; error: string }
 
 export function validateSectionalContent(
   sections: SectionData[]

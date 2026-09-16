@@ -74,7 +74,7 @@ export function logUserActivityOnUnload(
       const raw = localStorage.getItem(SYNC.UNLOAD_QUEUE_KEY)
       const queue = raw ? JSON.parse(raw) : []
       queue.push({
-        id: `logUserActivity-unload-${Date.now()}`,
+        id: `logUserActivity-unload-${Date.now()}-${crypto.randomUUID()}`,
         type: 'logUserActivity' as const,
         userId,
         payload: params,

@@ -2,7 +2,6 @@ import {
   getQueuedOperations,
   removeOperation,
   updateOperation,
-  enqueueOperation,
   type QueuedOperation,
 } from './operationQueue'
 // syncService calls DB functions directly (bypassing service wrappers) to avoid
@@ -27,8 +26,7 @@ const TAG = 'syncService'
 // critical section so reconnecting tabs cannot submit the same operation twice.
 export async function syncPendingOperations(): Promise<void> {
   const sync = async () => {
-    await recoverUnloadQueue()
-    await processQueue()
+    if (await recoverUnloadQueue()) await processQueue()
   }
   if (navigator.locks) {
     await navigator.locks.request('speye-operation-sync', sync)
@@ -66,8 +64,10 @@ export async function processQueue(): Promise<void> {
   pwaLogger.info(TAG, `Processing queue: ${operations.length} operations`)
 
   let anySucceeded = false
+  const discardedQuizzes = new Set<string>()
 
-  for (const op of operations) {
+  for (const [index, op] of operations.entries()) {
+    if (discardedQuizzes.has(op.id)) continue
     const {
       data: { session },
     } = await supabase.auth.getSession()
@@ -83,6 +83,25 @@ export async function processQueue(): Promise<void> {
         id: op.id,
         type: op.type,
       })
+      if (op.type === 'logUserActivity') {
+        // Remove dependent quizzes before abandoning their activity, including
+        // when a later operation fails and replay resumes in a different run.
+        for (const next of operations.slice(index + 1)) {
+          if (next.userId !== op.userId) continue
+          if (
+            next.type === 'logUserActivity' &&
+            next.payload.textId === op.payload.textId
+          )
+            break
+          if (
+            next.type === 'saveQuizResult' &&
+            next.payload.text_id === op.payload.textId
+          ) {
+            await removeOperation(next.id)
+            discardedQuizzes.add(next.id)
+          }
+        }
+      }
       await removeOperation(op.id)
       continue
     }
@@ -101,6 +120,9 @@ export async function processQueue(): Promise<void> {
         err
       )
       await updateOperation(updated)
+      // Later operations can depend on this write, especially quiz scores.
+      // Resume in order on the next sync instead of applying them prematurely.
+      break
     }
   }
 
@@ -115,29 +137,42 @@ export async function processQueue(): Promise<void> {
   pwaLogger.info(TAG, 'Queue processing complete')
 }
 
-export async function recoverUnloadQueue(): Promise<void> {
+export async function recoverUnloadQueue(): Promise<boolean> {
   try {
     const {
       data: { session },
     } = await supabase.auth.getSession()
-    if (!session?.user) return
+    if (!session?.user) return false
     const raw = localStorage.getItem(SYNC.UNLOAD_QUEUE_KEY)
-    if (!raw) return
+    if (!raw) return true
 
-    const entries: QueuedOperation[] = JSON.parse(raw)
+    let entries: QueuedOperation[]
+    try {
+      entries = JSON.parse(raw)
+      if (!Array.isArray(entries)) throw new Error('Invalid unload queue')
+    } catch (err) {
+      pwaLogger.error(TAG, 'Invalid unload queue', err)
+      localStorage.removeItem(SYNC.UNLOAD_QUEUE_KEY)
+      return true
+    }
     pwaLogger.info(
       TAG,
       `Recovering ${entries.length} operations from unload queue`
     )
-    localStorage.removeItem(SYNC.UNLOAD_QUEUE_KEY)
-
     for (const entry of entries) {
-      if (entry.userId) {
-        await enqueueOperation(entry.type, entry.payload, entry.userId)
+      if (entry.userId === session.user.id) {
+        // Preserve chronology and identity. Retrying a partial transfer writes
+        // the same keys, so it cannot duplicate previously persisted entries.
+        await updateOperation(entry)
       }
     }
+    // Another tab can append synchronously while the IndexedDB writes await.
+    // Keep that newer queue intact and finish recovery before replaying it.
+    if (localStorage.getItem(SYNC.UNLOAD_QUEUE_KEY) !== raw) return false
+    localStorage.removeItem(SYNC.UNLOAD_QUEUE_KEY)
+    return true
   } catch (err) {
     pwaLogger.error(TAG, 'Failed to recover unload queue', err)
-    localStorage.removeItem(SYNC.UNLOAD_QUEUE_KEY)
+    return false
   }
 }

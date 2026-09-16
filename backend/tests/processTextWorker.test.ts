@@ -8,6 +8,10 @@ function setup({
   completeOnUpdateError = true,
   persistenceFails = false,
   processFails = true,
+  initialQuizValid = null as boolean | null,
+  sendFailure = null as 'error' | 'throw' | null,
+  failQuizFallback = false,
+  changeDuringSend = null as 'status' | 'owner' | 'validated' | null,
 } = {}) {
   const row: Record<string, unknown> = {
     id: 'text-1',
@@ -19,6 +23,7 @@ function setup({
     sectional: false,
     section_content: null,
     processing_status: initialStatus,
+    quiz_valid: initialQuizValid,
   }
   const notifications: unknown[] = []
   let updates = 0
@@ -28,6 +33,10 @@ function setup({
     const query = {
       select: () => query,
       eq: (column: string, value: unknown) => {
+        filters.push([column, value])
+        return query
+      },
+      is: (column: string, value: unknown) => {
         filters.push([column, value])
         return query
       },
@@ -42,7 +51,11 @@ function setup({
       },
       then: (resolve: (value: unknown) => unknown) => {
         updates++
-        if (persistenceFails || (failUpdate && updates === 1)) {
+        if (
+          persistenceFails ||
+          (failUpdate && updates === 1) ||
+          (failQuizFallback && values?.quiz_valid === false)
+        ) {
           if (failUpdate && completeOnUpdateError)
             row.processing_status = 'completed'
           return Promise.resolve({
@@ -61,11 +74,26 @@ function setup({
     }
     return query
   }
-  const rpc = vi.fn(async (name: string) => ({
-    data:
-      name === 'read' ? [{ msg_id: 1, message: { text_id: 'text-1' } }] : null,
-    error: null,
-  }))
+  let sends = 0
+  const rpc = vi.fn(async (name: string) => {
+    if (name === 'send') {
+      sends++
+      if (sends === 1 && sendFailure) {
+        if (changeDuringSend === 'status') row.processing_status = 'pending'
+        if (changeDuringSend === 'owner') row.owner_id = 'new-owner'
+        if (changeDuringSend === 'validated') row.quiz_valid = true
+        if (sendFailure === 'throw') throw new TypeError('Queue unavailable')
+        return { data: null, error: { message: 'Queue unavailable' } }
+      }
+    }
+    return {
+      data:
+        name === 'read'
+          ? [{ msg_id: 1, message: { text_id: 'text-1' } }]
+          : null,
+      error: null,
+    }
+  })
   const fetch = vi.fn(async () => {
     if (completeDuringFetch) row.processing_status = 'completed'
     return new Response(
@@ -161,6 +189,63 @@ describe('process-text worker idempotence', () => {
       expect(row.processing_status).toBe('pending')
       expect(rpc).not.toHaveBeenCalledWith('delete', expect.anything())
       expect(notifications).toEqual([])
+    }
+  )
+
+  it.each(['error', 'throw'] as const)(
+    'recovers a lost validation handoff after a queue %s without processing the text again',
+    async (sendFailure) => {
+      const { run, row, rpc, fetch } = setup({
+        processFails: false,
+        sendFailure,
+        failQuizFallback: true,
+      })
+      expect((await run()).status).toBe(500)
+      expect(row.processing_status).toBe('completed')
+      expect(row.quiz_valid).toBeNull()
+      expect(rpc).not.toHaveBeenCalledWith('delete', expect.anything())
+      expect((await run()).status).toBe(200)
+      expect(rpc.mock.calls.filter(([name]) => name === 'send')).toHaveLength(2)
+      expect(fetch).toHaveBeenCalledOnce()
+      expect(rpc).toHaveBeenCalledWith('delete', expect.anything())
+    }
+  )
+
+  it.each([true, false])(
+    'does not resubmit completed validation with result %s',
+    async (initialQuizValid) => {
+      const { run, rpc, fetch } = setup({
+        initialStatus: 'completed',
+        initialQuizValid,
+      })
+      expect((await run()).status).toBe(200)
+      expect(rpc).not.toHaveBeenCalledWith('send', expect.anything())
+      expect(fetch).not.toHaveBeenCalled()
+    }
+  )
+
+  it.each(['error', 'throw'] as const)(
+    'keeps the manual retry path after a queue %s when failure state can be persisted',
+    async (sendFailure) => {
+      const { run, row, rpc } = setup({ processFails: false, sendFailure })
+      expect((await run()).status).toBe(200)
+      expect(row.quiz_valid).toBe(false)
+      expect(rpc).toHaveBeenCalledWith('delete', expect.anything())
+    }
+  )
+
+  it.each(['status', 'owner', 'validated'] as const)(
+    'does not overwrite a newer text change during failed handoff (%s)',
+    async (changeDuringSend) => {
+      const { run, row } = setup({
+        processFails: false,
+        sendFailure: 'error',
+        changeDuringSend,
+      })
+      expect((await run()).status).toBe(200)
+      expect(row.quiz_valid).toBe(
+        changeDuringSend === 'validated' ? true : null
+      )
     }
   )
 })

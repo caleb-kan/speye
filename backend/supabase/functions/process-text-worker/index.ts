@@ -52,6 +52,37 @@ async function deleteQueueMessage(msgId: number): Promise<void> {
   }
 }
 
+/** Complete the validation handoff or persist the existing manual-retry state. */
+async function queueValidationOrRecordFailure(
+  textId: string,
+  text: { owner_id: string | null }
+): Promise<void> {
+  try {
+    const { error } = await queue.rpc('send', {
+      queue_name: 'validate_quiz',
+      message: { text_id: textId },
+    })
+    if (error) throw error
+    return
+  } catch (error) {
+    console.error('Error queuing validation job:', error)
+  }
+
+  // Do not overwrite validation, reprocessing, or an ownership change.
+  let fallback = supabase
+    .from('texts')
+    .update({ quiz_valid: false }, { count: 'exact' })
+    .eq('id', textId)
+    .eq('processing_status', 'completed')
+    .is('quiz_valid', null)
+  fallback =
+    text.owner_id === null
+      ? fallback.is('owner_id', null)
+      : fallback.eq('owner_id', text.owner_id)
+  const { error } = await fallback
+  if (error) throw error
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
@@ -129,7 +160,7 @@ Deno.serve(async (req: Request) => {
     const { data: text, error: fetchError } = await supabase
       .from('texts')
       .select(
-        'content, title, fiction, admin_decision, owner_id, sectional, section_content, processing_status'
+        'content, title, fiction, admin_decision, owner_id, sectional, section_content, processing_status, quiz_valid'
       )
       .eq('id', textId)
       .maybeSingle()
@@ -152,6 +183,11 @@ Deno.serve(async (req: Request) => {
     }
 
     if (text.processing_status !== 'pending') {
+      if (text.processing_status === 'completed' && text.quiz_valid === null) {
+        // Processing may have committed before the validation enqueue failed.
+        // Recover that handoff without paying for another processing request.
+        await queueValidationOrRecordFailure(textId, text)
+      }
       await deleteQueueMessage(job.msg_id)
       return new Response(
         JSON.stringify({ message: 'Text already processed or status changed' }),
@@ -302,6 +338,7 @@ Deno.serve(async (req: Request) => {
         {
           title: result.title ?? text.title,
           quiz: { questionSets: result.questionSets },
+          quiz_valid: null,
           fiction: text.fiction ?? result.fiction,
           summary: result.summary,
           processing_status: 'completed',
@@ -351,20 +388,7 @@ Deno.serve(async (req: Request) => {
     // on the texts table, which fires when admin_decision becomes 'pending'
 
     // 5. Queue validation job
-    const { error: queueError } = await queue.rpc('send', {
-      queue_name: 'validate_quiz',
-      message: { text_id: textId },
-    })
-
-    if (queueError) {
-      console.error('Error queuing validation job:', queueError)
-      // Set quiz_valid to false so retry button appears in UI
-      // (retry will reprocess and re-queue validation)
-      await supabase
-        .from('texts')
-        .update({ quiz_valid: false }, { count: 'exact' })
-        .eq('id', textId)
-    }
+    await queueValidationOrRecordFailure(textId, text)
 
     // 6. Delete the processed message from queue
     await deleteQueueMessage(job.msg_id)

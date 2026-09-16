@@ -2,6 +2,8 @@ import localforage from 'localforage'
 import type { UserActivityLogParams } from './logUserActivity'
 import type { QuizResultParams } from './saveQuizResult'
 import { pwaLogger } from '../utils/pwaLogger'
+import { supabase } from '../../../lib/supabase'
+import { SYNC } from '../constants/offline'
 
 const TAG = 'operationQueue'
 
@@ -19,6 +21,9 @@ type OperationType =
 
 interface BaseOperation {
   id: string
+  // Optional only for records persisted by older versions. Never replay an
+  // operation whose original account cannot be established.
+  userId?: string
   timestamp: number
   retryCount: number
 }
@@ -41,11 +46,18 @@ export type QueuedOperation =
 
 export async function enqueueOperation<T extends OperationType>(
   type: T,
-  payload: Extract<QueuedOperation, { type: T }>['payload']
+  payload: Extract<QueuedOperation, { type: T }>['payload'],
+  originalUserId?: string
 ): Promise<void> {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+  const userId = session?.user.id
+  if (!userId || (originalUserId && originalUserId !== userId)) return
   const op = {
     id: `${type}-${Date.now()}-${crypto.randomUUID()}`,
     type,
+    userId,
     payload,
     timestamp: Date.now(),
     retryCount: 0,
@@ -75,6 +87,7 @@ export async function updateOperation(op: QueuedOperation): Promise<void> {
 
 export async function clearQueue(): Promise<void> {
   pwaLogger.info(TAG, 'Clearing operation queue')
+  localStorage.removeItem(SYNC.UNLOAD_QUEUE_KEY)
   await queueStore.clear()
   notifyListeners()
 }

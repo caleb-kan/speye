@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
+const { mockGetSession } = vi.hoisted(() => ({ mockGetSession: vi.fn() }))
+vi.mock('../../../../lib/supabase', () => ({
+  supabase: { auth: { getSession: mockGetSession } },
+}))
+
 const { mockQueueStore } = vi.hoisted(() => ({
   mockQueueStore: {
     getItem: vi.fn(),
@@ -76,15 +81,62 @@ const mockLocalStorage = {
 describe('syncService', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockGetSession.mockResolvedValue({
+      data: { session: { user: { id: 'user-1' } } },
+    })
     vi.stubGlobal('localStorage', mockLocalStorage)
     mockLocalStorage.clear()
   })
 
   describe('processQueue', () => {
+    it('discards foreign and legacy operations without making a database write', async () => {
+      mockQueueStore.iterate.mockImplementation(async (callback) => {
+        callback({
+          id: 'foreign',
+          userId: 'other-user',
+          type: 'logUserActivity',
+          payload: {},
+          retryCount: 0,
+          timestamp: 1,
+        })
+        callback({
+          id: 'legacy',
+          type: 'logUserActivity',
+          payload: {},
+          retryCount: 0,
+          timestamp: 2,
+        })
+      })
+      await processQueue()
+      expect(logUserActivity).not.toHaveBeenCalled()
+      expect(mockQueueStore.removeItem.mock.calls).toEqual([
+        ['foreign'],
+        ['legacy'],
+      ])
+    })
+
+    it('retains queued work while no account is signed in', async () => {
+      mockGetSession.mockResolvedValue({ data: { session: null } })
+      mockQueueStore.iterate.mockImplementation(async (callback) => {
+        callback({
+          id: 'pending',
+          userId: 'user-1',
+          type: 'logUserActivity',
+          payload: {},
+          retryCount: 0,
+          timestamp: 1,
+        })
+      })
+      await processQueue()
+      expect(logUserActivity).not.toHaveBeenCalled()
+      expect(mockQueueStore.removeItem).not.toHaveBeenCalled()
+    })
+
     it('should dispatch each queued operation type to the correct handler', async () => {
       const ops: QueuedOperation[] = [
         {
           id: 'op-1',
+          userId: 'user-1',
           type: 'logUserActivity',
           payload: {
             textId: 'text-1',
@@ -98,6 +150,7 @@ describe('syncService', () => {
         },
         {
           id: 'op-2',
+          userId: 'user-1',
           type: 'saveQuizResult',
           payload: { text_id: 'text-1', score: 85 },
           timestamp: 2000,
@@ -105,6 +158,7 @@ describe('syncService', () => {
         },
         {
           id: 'op-3',
+          userId: 'user-1',
           type: 'markNotificationSeen',
           payload: { id: 'notif-1' },
           timestamp: 3000,
@@ -112,6 +166,7 @@ describe('syncService', () => {
         },
         {
           id: 'op-4',
+          userId: 'user-1',
           type: 'markAllNotificationsSeen',
           payload: { userId: 'user-1' },
           timestamp: 4000,
@@ -136,9 +191,9 @@ describe('syncService', () => {
 
       await processQueue()
 
-      expect(logUserActivity).toHaveBeenCalledWith(ops[0].payload)
+      expect(logUserActivity).toHaveBeenCalledWith(ops[0].payload, 'user-1')
       expect(mockQueueStore.removeItem).toHaveBeenCalledWith('op-1')
-      expect(saveQuizResult).toHaveBeenCalledWith(ops[1].payload)
+      expect(saveQuizResult).toHaveBeenCalledWith(ops[1].payload, 'user-1')
       expect(markNotificationSeen).toHaveBeenCalledWith('notif-1')
       expect(markAllNotificationsSeen).toHaveBeenCalledWith('user-1')
     })
@@ -146,6 +201,7 @@ describe('syncService', () => {
     it('should increment retry count on failure', async () => {
       const op: QueuedOperation = {
         id: 'op-1',
+        userId: 'user-1',
         type: 'logUserActivity',
         payload: {
           textId: 'text-1',
@@ -177,6 +233,7 @@ describe('syncService', () => {
     it('should remove operations that exceed max retries', async () => {
       const op: QueuedOperation = {
         id: 'op-1',
+        userId: 'user-1',
         type: 'logUserActivity',
         payload: {
           textId: 'text-1',
@@ -207,6 +264,7 @@ describe('syncService', () => {
 
       const op1: QueuedOperation = {
         id: 'op-1',
+        userId: 'user-1',
         type: 'logUserActivity',
         payload: {
           textId: 'text-1',
@@ -220,6 +278,7 @@ describe('syncService', () => {
       }
       const op2: QueuedOperation = {
         id: 'op-2',
+        userId: 'user-1',
         type: 'saveQuizResult',
         payload: { text_id: 'text-1', score: 85 },
         timestamp: 1000,
@@ -251,10 +310,35 @@ describe('syncService', () => {
   })
 
   describe('recoverUnloadQueue', () => {
+    it('keeps the unload queue until the original account can be established', async () => {
+      mockGetSession.mockResolvedValue({ data: { session: null } })
+      const saved = JSON.stringify([
+        { userId: 'user-1', type: 'logUserActivity', payload: {} },
+      ])
+      localStorage.setItem('speye-unload-queue', saved)
+      await recoverUnloadQueue()
+      expect(localStorage.getItem('speye-unload-queue')).toBe(saved)
+      expect(mockQueueStore.setItem).not.toHaveBeenCalled()
+    })
+
+    it('does not recover another account or a legacy unload record', async () => {
+      localStorage.setItem(
+        'speye-unload-queue',
+        JSON.stringify([
+          { type: 'logUserActivity', userId: 'different-user', payload: {} },
+          { type: 'logUserActivity', payload: {} },
+        ])
+      )
+      await recoverUnloadQueue()
+      expect(mockQueueStore.setItem).not.toHaveBeenCalled()
+      expect(localStorage.getItem('speye-unload-queue')).toBeNull()
+    })
+
     it('should move localStorage entries to operation queue', async () => {
       const entries = [
         {
           id: 'unload-1',
+          userId: 'user-1',
           type: 'logUserActivity',
           payload: {
             textId: 'text-1',

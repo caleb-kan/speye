@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { NetworkStatusContext } from './networkStatusContext'
-import { processQueue, recoverUnloadQueue } from '../services/syncService'
+import { syncPendingOperations } from '../services/syncService'
 import { getQueueLength, onQueueChange } from '../services/operationQueue'
 import { prefetchAllTexts } from '../services/prefetchService'
 import { PREFETCH } from '../constants/offline'
@@ -44,8 +44,7 @@ export function NetworkStatusProvider({
     pwaLogger.info(TAG, 'Starting sync')
     setIsSyncing(true)
     try {
-      await recoverUnloadQueue()
-      await processQueue()
+      await syncPendingOperations()
       pwaLogger.info(TAG, 'Sync complete')
     } catch (err) {
       pwaLogger.error(TAG, 'Sync failed', err)

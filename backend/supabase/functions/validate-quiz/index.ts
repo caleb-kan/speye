@@ -125,7 +125,15 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ error: 'Invalid JSON body' }, 400)
     }
 
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      return jsonResponse({ error: 'JSON body must be an object' }, 400)
+    }
+
     const { content, quiz, summary } = body
+
+    if (summary != null && typeof summary !== 'string') {
+      return jsonResponse({ error: 'Summary must be a string' }, 400)
+    }
 
     if (!content || typeof content !== 'string' || !content.trim()) {
       return jsonResponse({ error: 'Content is required' }, 400)
@@ -136,7 +144,11 @@ Deno.serve(async (req: Request) => {
     }
 
     const quizSample = quiz.questionSets[0]
-    if (!quizSample || !quizSample.questions) {
+    if (
+      !quizSample ||
+      !Array.isArray(quizSample.questions) ||
+      quizSample.questions.length === 0
+    ) {
       return jsonResponse({ error: 'Quiz has no questions' }, 400)
     }
 

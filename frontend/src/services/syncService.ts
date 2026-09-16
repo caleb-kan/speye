@@ -19,16 +19,31 @@ import { updateLeaderboardCache } from './leaderboardService'
 import { setLastSyncTime } from './offlineCache'
 import { SYNC } from '../constants/offline'
 import { pwaLogger } from '../utils/pwaLogger'
+import { supabase } from '../../../lib/supabase'
 
 const TAG = 'syncService'
+
+// IndexedDB is shared by every tab. Keep recovery and replay in one origin-wide
+// critical section so reconnecting tabs cannot submit the same operation twice.
+export async function syncPendingOperations(): Promise<void> {
+  const sync = async () => {
+    await recoverUnloadQueue()
+    await processQueue()
+  }
+  if (navigator.locks) {
+    await navigator.locks.request('speye-operation-sync', sync)
+  } else {
+    await sync()
+  }
+}
 
 async function executeOperation(op: QueuedOperation): Promise<void> {
   switch (op.type) {
     case 'logUserActivity':
-      await logUserActivityDb(op.payload)
+      await logUserActivityDb(op.payload, op.userId)
       break
     case 'saveQuizResult': {
-      const data = await saveQuizResultDb(op.payload)
+      const data = await saveQuizResultDb(op.payload, op.userId)
       if (data?.user_id) {
         await updateLeaderboardCache(op.payload.text_id, data.user_id)
       }
@@ -53,6 +68,16 @@ export async function processQueue(): Promise<void> {
   let anySucceeded = false
 
   for (const op of operations) {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+    // Leave work queued while signed out. On account changes, discard records
+    // that belong to someone else, including legacy records with no owner.
+    if (!session?.user) break
+    if (!op.userId || op.userId !== session.user.id) {
+      await removeOperation(op.id)
+      continue
+    }
     if (op.retryCount >= SYNC.MAX_RETRY_COUNT) {
       pwaLogger.warn(TAG, `Dropping operation after ${op.retryCount} retries`, {
         id: op.id,
@@ -92,6 +117,10 @@ export async function processQueue(): Promise<void> {
 
 export async function recoverUnloadQueue(): Promise<void> {
   try {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+    if (!session?.user) return
     const raw = localStorage.getItem(SYNC.UNLOAD_QUEUE_KEY)
     if (!raw) return
 
@@ -103,7 +132,9 @@ export async function recoverUnloadQueue(): Promise<void> {
     localStorage.removeItem(SYNC.UNLOAD_QUEUE_KEY)
 
     for (const entry of entries) {
-      await enqueueOperation(entry.type, entry.payload)
+      if (entry.userId) {
+        await enqueueOperation(entry.type, entry.payload, entry.userId)
+      }
     }
   } catch (err) {
     pwaLogger.error(TAG, 'Failed to recover unload queue', err)

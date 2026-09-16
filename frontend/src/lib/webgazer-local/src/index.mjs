@@ -46,6 +46,57 @@ var clockStart = performance.now()
 var latestEyeFeatures = null
 var latestGazeData = null
 var paused = false
+var cameraController = null
+var loopGeneration = 0
+
+function stopStream(stream) {
+  stream?.getTracks?.().forEach((track) => track.stop())
+}
+
+function cameraCanceled() {
+  return new DOMException('Camera request was canceled', 'AbortError')
+}
+
+function checkCameraSession(signal) {
+  if (signal.aborted) throw cameraCanceled()
+}
+
+function startCameraSession() {
+  cameraController?.abort()
+  cameraController = new AbortController()
+  loopGeneration++
+  return cameraController.signal
+}
+
+// Cancel our wait immediately, even when browser permission or model loading
+// cannot be canceled. The original operation still has rejection handlers.
+function whileCameraActive(operation, signal) {
+  return new Promise((resolve, reject) => {
+    const canceled = () => reject(cameraCanceled())
+    signal.addEventListener('abort', canceled, { once: true })
+    Promise.resolve(operation)
+      .then(resolve, reject)
+      .finally(() => {
+        signal.removeEventListener('abort', canceled)
+      })
+    if (signal.aborted) canceled()
+  })
+}
+
+function requestCamera(signal) {
+  return whileCameraActive(
+    navigator.mediaDevices
+      .getUserMedia(webgazer.params.camConstraints)
+      .then((stream) => {
+        if (signal.aborted) {
+          stopStream(stream)
+          throw cameraCanceled()
+        }
+        return stream
+      }),
+    signal
+  )
+}
 //registered callback for loop
 var nopCallback = function (data, time) {}
 var callback = nopCallback
@@ -247,14 +298,16 @@ function paintCurrentFrame(canvas, width, height) {
  * @param {Number|undefined} regModelIndex - The prediction index we're looking for
  * @returns {*}
  */
-async function getPrediction(regModelIndex) {
+async function getPrediction(regModelIndex, generation = loopGeneration) {
   var predictions = []
   // [20200617 xk] TODO: this call should be made async somehow. will take some work.
-  latestEyeFeatures = await getPupilFeatures(
+  const eyeFeatures = await getPupilFeatures(
     videoElementCanvas,
     videoElementCanvas.width,
     videoElementCanvas.height
   )
+  if (generation !== loopGeneration) return null
+  latestEyeFeatures = eyeFeatures
 
   if (regs.length === 0) {
     console.log('regression not set, call setRegression()')
@@ -289,8 +342,8 @@ async function getPrediction(regModelIndex) {
 var smoothingVals = new util.DataWindow(4)
 var k = 0
 
-async function loop() {
-  if (!paused) {
+async function loop(generation = loopGeneration) {
+  if (!paused && generation === loopGeneration) {
     // [20200617 XK] TODO: there is currently lag between the camera input and the face overlay. This behavior
     // is not seen in the facemesh demo. probably need to optimize async implementation. I think the issue lies
     // in the implementation of getPrediction().
@@ -305,7 +358,7 @@ async function loop() {
     )
 
     // Get gaze prediction (ask clm to track; pass the data to the regressor; get back a prediction)
-    latestGazeData = getPrediction()
+    const prediction = getPrediction(undefined, generation)
     // Count time
     var elapsedTime = performance.now() - clockStart
 
@@ -326,10 +379,13 @@ async function loop() {
     // Check that the eyes are inside of the validation box
     if (webgazer.params.showFaceFeedbackBox) checkEyesInValidationBox()
 
-    latestGazeData = await latestGazeData
+    const gazeData = await prediction
+    if (paused || generation !== loopGeneration) return
+    latestGazeData = gazeData
 
     // [20200623 xk] callback to function passed into setGazeListener(fn)
     callback(latestGazeData, elapsedTime)
+    if (paused || generation !== loopGeneration) return
 
     if (latestGazeData) {
       // [20200608 XK] Smoothing across the most recent 4 predictions, do we need this with Kalman filter?
@@ -363,7 +419,7 @@ async function loop() {
       gazeDot.style.display = 'none'
     }
 
-    requestAnimationFrame(loop)
+    requestAnimationFrame(() => loop(generation))
   }
 }
 
@@ -499,7 +555,8 @@ function clearData() {
  * Initializes all needed dom elements and begins the loop
  * @param {URL} stream - The video stream to use
  */
-async function init(stream) {
+async function init(stream, signal) {
+  checkCameraSession(signal)
   //////////////////////////
   // Video and video preview
   //////////////////////////
@@ -587,8 +644,11 @@ async function init(stream) {
   // Add other preview/feedback elements to the screen once the video has shown and its parameters are initialized
   videoContainerElement.appendChild(videoElement)
   document.body.appendChild(videoContainerElement)
+  const previewVideo = videoElement
+  let setupPreviewVideo
   const videoPreviewSetup = new Promise((res) => {
-    function setupPreviewVideo(e) {
+    setupPreviewVideo = function (e) {
+      if (signal.aborted) return
       // All video preview parts have now been added, so set the size both internally and in the preview window.
       setInternalVideoBufferSizes(
         videoElement.videoWidth,
@@ -617,12 +677,15 @@ async function init(stream) {
     addMouseEventListeners()
   }
 
-  //BEGIN CALLBACK LOOP
-  paused = false
-  clockStart = performance.now()
-
-  await videoPreviewSetup
-  await loop()
+  try {
+    await whileCameraActive(videoPreviewSetup, signal)
+    checkCameraSession(signal)
+    paused = false
+    clockStart = performance.now()
+    await whileCameraActive(loop(), signal)
+  } finally {
+    previewVideo.removeEventListener('loadeddata', setupPreviewVideo)
+  }
 }
 
 /**
@@ -678,6 +741,9 @@ webgazer.begin = async function (onFail) {
     )
   }
 
+  webgazer.end()
+  const signal = startCameraSession()
+
   // Reset the face tracker to ensure it doesn't hold stale references
   // from a previous session. This is necessary when begin() is called
   // after end() (e.g., when navigating away and back to the page).
@@ -686,8 +752,9 @@ webgazer.begin = async function (onFail) {
   // Load model data stored in localforage.
   // MUST await to ensure calibration data is loaded before predictions start
   if (webgazer.params.saveDataAcrossSessions) {
-    await loadGlobalData()
+    await whileCameraActive(loadGlobalData(), signal)
   }
+  checkCameraSession(signal)
 
   onFail =
     onFail ||
@@ -696,7 +763,7 @@ webgazer.begin = async function (onFail) {
     }
 
   if (debugVideoLoc) {
-    init(debugVideoLoc)
+    await init(debugVideoLoc, signal)
     return webgazer
   }
 
@@ -705,23 +772,18 @@ webgazer.begin = async function (onFail) {
   // Sets .mediaDevices.getUserMedia depending on browser
   setUserMediaVariable()
 
-  // Request webcam access under specific constraints
-  // WAIT for access
-  return new Promise(async (resolve, reject) => {
-    let stream
-    try {
-      stream = await navigator.mediaDevices.getUserMedia(
-        webgazer.params.camConstraints
-      )
-      await init(stream)
-      resolve(webgazer)
-    } catch (err) {
-      onFail()
-      videoElement = null
-      stream = null
-      reject(err)
-    }
-  })
+  let stream
+  try {
+    stream = await requestCamera(signal)
+    checkCameraSession(signal)
+    await init(stream, signal)
+    return webgazer
+  } catch (err) {
+    stopStream(stream)
+    if (cameraController?.signal === signal) webgazer.end()
+    if (err.name !== 'AbortError') onFail()
+    throw err
+  }
 }
 
 /**
@@ -742,6 +804,7 @@ webgazer.isReady = function () {
  */
 webgazer.pause = function () {
   paused = true
+  loopGeneration++
   return webgazer
 }
 
@@ -751,57 +814,57 @@ webgazer.pause = function () {
  * @returns {webgazer} this
  */
 webgazer.resume = async function () {
-  if (!paused) {
-    return webgazer
-  }
+  if (!paused) return webgazer
+  if (!videoElement) return webgazer.begin()
 
-  // Check if camera stream needs to be restarted
-  // (tracks are 'ended' after stopCamera() is called)
-  const needsRestart =
-    !videoStream ||
-    videoStream.getTracks().some((track) => track.readyState === 'ended')
+  const signal = startCameraSession()
+  let stream
+  try {
+    const needsRestart =
+      !videoStream ||
+      videoStream.getTracks().some((track) => track.readyState === 'ended')
 
-  if (needsRestart && videoElement) {
-    const stream = await navigator.mediaDevices.getUserMedia(
-      webgazer.params.camConstraints
-    )
-    videoStream = stream
-    videoElement.srcObject = stream
+    if (needsRestart) {
+      stream = await requestCamera(signal)
+      checkCameraSession(signal)
+      videoStream = stream
+      videoElement.srcObject = stream
 
-    // Wait for video to be ready before starting the loop
-    // This ensures the video has loaded the new stream
-    // Check if already ready (readyState >= 2 means HAVE_CURRENT_DATA)
-    if (videoElement.readyState < 2) {
-      await new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          videoElement.removeEventListener('loadeddata', onLoadedData)
-          reject(new Error('Video load timeout'))
-        }, 10000) // 10 second timeout
-
-        function onLoadedData(e) {
+      if (videoElement.readyState < 2) {
+        const video = videoElement
+        let onLoadedData
+        let timeout
+        const loaded = new Promise((resolve, reject) => {
+          timeout = setTimeout(
+            () => reject(new Error('Video load timeout')),
+            10000
+          )
+          onLoadedData = resolve
+          video.addEventListener('loadeddata', onLoadedData)
+        })
+        try {
+          await whileCameraActive(loaded, signal)
+        } finally {
           clearTimeout(timeout)
-          e.target.removeEventListener('loadeddata', onLoadedData)
-          resolve()
+          video.removeEventListener('loadeddata', onLoadedData)
         }
-        videoElement.addEventListener('loadeddata', onLoadedData)
-      })
+      }
+      checkCameraSession(signal)
+      setInternalVideoBufferSizes(
+        videoElement.videoWidth,
+        videoElement.videoHeight
+      )
+      smoothingVals.clear()
     }
 
-    // Re-sync internal canvas sizes with the new video dimensions
-    // This is critical for accurate face detection and gaze prediction
-    setInternalVideoBufferSizes(
-      videoElement.videoWidth,
-      videoElement.videoHeight
-    )
-
-    // Clear stale smoothing data from before the camera was stopped
-    // This prevents old predictions from affecting new ones
-    smoothingVals.clear()
+    paused = false
+    await whileCameraActive(loop(), signal)
+    return webgazer
+  } catch (err) {
+    stopStream(stream)
+    if (cameraController?.signal === signal) webgazer.stopCamera()
+    throw err
   }
-
-  paused = false
-  await loop()
-  return webgazer
 }
 
 /**
@@ -809,19 +872,8 @@ webgazer.resume = async function () {
  * @return {webgazer} this
  */
 webgazer.end = function () {
-  //loop may run an extra time and fail due to removed elements
-  paused = true
-
-  // Stop video stream to allow proper restart when begin() is called again.
-  // Without this, the old camera stream may conflict with the new one,
-  // causing face detection to fail and return null predictions.
-  if (videoStream) {
-    try {
-      videoStream.getTracks().forEach((track) => track.stop())
-    } catch (e) {
-      // Ignore errors if stream is already stopped
-    }
-  }
+  webgazer.stopCamera()
+  removeMouseEventListeners()
 
   //remove video element and canvas
   if (videoContainerElement) {
@@ -830,6 +882,13 @@ webgazer.end = function () {
   if (gazeDot) {
     gazeDot.remove()
   }
+  videoStream = null
+  videoElement = null
+  videoElementCanvas = null
+  videoContainerElement = null
+  faceOverlay = null
+  faceFeedbackBox = null
+  gazeDot = null
 
   return webgazer
 }
@@ -842,13 +901,10 @@ webgazer.end = function () {
  */
 webgazer.stopCamera = function () {
   paused = true
-  if (videoStream) {
-    try {
-      videoStream.getTracks().forEach((track) => track.stop())
-    } catch (e) {
-      // Ignore errors if stream is already stopped
-    }
-  }
+  loopGeneration++
+  cameraController?.abort()
+  cameraController = null
+  stopStream(videoStream)
   return webgazer
 }
 

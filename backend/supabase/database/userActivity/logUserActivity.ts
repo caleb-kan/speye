@@ -11,13 +11,16 @@ export type UserActivityLogParams = {
   progressIndex: number
 }
 
-export async function logUserActivity(params: UserActivityLogParams) {
+export async function logUserActivity(
+  params: UserActivityLogParams,
+  expectedUserId?: string
+) {
   if (params.progressIndex <= 0) return null
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (!user) return null
+  if (!user || (expectedUserId && user.id !== expectedUserId)) return null
 
   const { data, error } = await supabase
     .from('user_activity')

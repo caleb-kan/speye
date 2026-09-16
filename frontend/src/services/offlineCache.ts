@@ -3,8 +3,20 @@ import type { Text, TextPreview, Notification } from '../types/database'
 import type { CollapsedActivitySession } from './getUserActivity'
 import { CACHE_TTL, PREFETCH } from '../constants/offline'
 import { pwaLogger } from '../utils/pwaLogger'
+import { supabase } from '../../../lib/supabase'
 
 const TAG = 'offlineCache'
+
+async function currentUserId(): Promise<string | null> {
+  try {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+    return session?.user.id ?? null
+  } catch {
+    return null
+  }
+}
 
 const textsStore = localforage.createInstance({
   name: 'speye-offline',
@@ -78,7 +90,9 @@ async function setCached<T>(
 }
 
 export async function getCachedText(textId: string): Promise<Text | null> {
-  return getCached<Text>(textsStore, textId, CACHE_TTL.TEXT_CONTENT)
+  const text = await getCached<Text>(textsStore, textId, CACHE_TTL.TEXT_CONTENT)
+  if (!text || text.owner_id === null) return text
+  return text.owner_id === (await currentUserId()) ? text : null
 }
 
 export async function setCachedText(text: Text): Promise<void> {
@@ -86,6 +100,7 @@ export async function setCachedText(text: Text): Promise<void> {
 }
 
 export async function getAllCachedTexts(): Promise<Text[]> {
+  const userId = await currentUserId()
   const texts: Text[] = []
   const expiredKeys: string[] = []
   try {
@@ -96,7 +111,10 @@ export async function getAllCachedTexts(): Promise<Text[]> {
         Date.now() - entry.timestamp > CACHE_TTL.TEXT_CONTENT
       if (expired) {
         expiredKeys.push(key)
-      } else {
+      } else if (
+        entry.data.owner_id === null ||
+        (userId && entry.data.owner_id === userId)
+      ) {
         texts.push(entry.data)
       }
     })
@@ -191,20 +209,26 @@ export async function setCachedRecentlyQuizzedTextIds(
 }
 
 export async function getCachedLastPosition(
-  textId: string
+  textId: string,
+  userId?: string
 ): Promise<number | null> {
+  const owner = userId ?? (await currentUserId())
+  if (!owner) return null
   return getCached<number>(
     metadataStore,
-    `lastPosition:${textId}`,
+    `lastPosition:${owner}:${textId}`,
     CACHE_TTL.LAST_POSITION
   )
 }
 
 export async function setCachedLastPosition(
   textId: string,
-  position: number
+  position: number,
+  userId?: string
 ): Promise<void> {
-  await setCached(metadataStore, `lastPosition:${textId}`, position)
+  const owner = userId ?? (await currentUserId())
+  if (owner)
+    await setCached(metadataStore, `lastPosition:${owner}:${textId}`, position)
 }
 
 export async function getCachedNotifications(
@@ -232,19 +256,30 @@ interface SectionQuizProgress {
 export async function getSectionQuizProgress(
   textId: string
 ): Promise<SectionQuizProgress | null> {
-  return getCached<SectionQuizProgress>(sectionQuizStore, textId, Infinity)
+  const userId = await currentUserId()
+  return getCached<SectionQuizProgress>(
+    sectionQuizStore,
+    `${userId ?? 'anonymous'}:${textId}`,
+    Infinity
+  )
 }
 
 export async function setSectionQuizProgress(
   textId: string,
   progress: SectionQuizProgress
 ): Promise<void> {
-  await setCached(sectionQuizStore, textId, progress)
+  const userId = await currentUserId()
+  await setCached(
+    sectionQuizStore,
+    `${userId ?? 'anonymous'}:${textId}`,
+    progress
+  )
 }
 
 export async function clearSectionQuizProgress(textId: string): Promise<void> {
   try {
-    await sectionQuizStore.removeItem(textId)
+    const userId = await currentUserId()
+    await sectionQuizStore.removeItem(`${userId ?? 'anonymous'}:${textId}`)
   } catch (err) {
     pwaLogger.warn(
       TAG,

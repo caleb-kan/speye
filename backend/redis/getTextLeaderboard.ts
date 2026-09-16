@@ -6,26 +6,34 @@ const UPSTASH_READ_TOKEN = import.meta.env
   .VITE_UPSTASH_REDIS_REST_READ_TOKEN as string
 
 const LEADERBOARD_TOP_COUNT = 5
+const REDIS_REQUEST_TIMEOUT_MS = 3000
 
 /**
  * Execute Upstash REST pipeline commands using the read-only token.
  */
 async function redisPipeline<T>(commands: string[][]): Promise<T[]> {
-  const res = await fetch(`${UPSTASH_REST_URL}/pipeline`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${UPSTASH_READ_TOKEN}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(commands),
-  })
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), REDIS_REQUEST_TIMEOUT_MS)
+  try {
+    const res = await fetch(`${UPSTASH_REST_URL}/pipeline`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${UPSTASH_READ_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(commands),
+      signal: controller.signal,
+    })
 
-  if (!res.ok) {
-    throw new Error(`Redis request failed: ${res.status}`)
+    if (!res.ok) {
+      throw new Error(`Redis request failed: ${res.status}`)
+    }
+
+    const data = (await res.json()) as { result: T }[]
+    return data.map((d) => d.result)
+  } finally {
+    clearTimeout(timeout)
   }
-
-  const data = (await res.json()) as { result: T }[]
-  return data.map((d) => d.result)
 }
 
 /**

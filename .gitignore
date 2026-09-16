@@ -45,3 +45,6 @@ CLAUDE.md
 
 # Playwright MCP browser session artifacts (local-only)
 .playwright-mcp/
+# Production PWA browser-test artifacts
+frontend/pwa-report/
+frontend/pwa-test-results/

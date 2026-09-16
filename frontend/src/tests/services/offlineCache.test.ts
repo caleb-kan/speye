@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
+const { mockGetSession } = vi.hoisted(() => ({ mockGetSession: vi.fn() }))
+vi.mock('../../../../lib/supabase', () => ({
+  supabase: { auth: { getSession: mockGetSession } },
+}))
+
 // Each call to localforage.createInstance() returns a fresh mock store so that
 // reads/writes to the wrong store are detectable (T5 fix).
 const { mockStores } = vi.hoisted(() => {
@@ -52,6 +57,9 @@ import {
   setCachedLastPosition,
   getCacheStats,
   clearAllCaches,
+  getSectionQuizProgress,
+  setSectionQuizProgress,
+  getCachedQuiz,
 } from '../../services/offlineCache'
 import type { Text } from '../../types/database'
 
@@ -95,6 +103,49 @@ function getMetadataStore() {
 describe('offlineCache', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockGetSession.mockResolvedValue({
+      data: { session: { user: { id: 'user-1' } } },
+    })
+  })
+
+  it('does not expose a cached private text or its quiz to another account', async () => {
+    getTextsStore().getItem.mockResolvedValue({
+      data: { ...mockText, quiz: { questionSets: [] } },
+      timestamp: Date.now(),
+    })
+    expect(await getCachedQuiz(mockText.id)).toEqual({ questionSets: [] })
+    mockGetSession.mockResolvedValue({
+      data: { session: { user: { id: 'user-2' } } },
+    })
+    expect(await getCachedText(mockText.id)).toBeNull()
+    expect(await getCachedQuiz(mockText.id)).toBeNull()
+    mockGetSession.mockResolvedValue({ data: { session: null } })
+    expect(await getCachedText(mockText.id)).toBeNull()
+  })
+
+  it('keeps reading and sectional quiz progress separate after an account change', async () => {
+    const stores = [getMetadataStore(), mockStores[5]]
+    for (const store of stores) {
+      const entries = new Map<string, unknown>()
+      store.getItem.mockImplementation(
+        async (key: string) => entries.get(key) ?? null
+      )
+      store.setItem.mockImplementation(async (key: string, value: unknown) =>
+        entries.set(key, value)
+      )
+    }
+    await setCachedLastPosition('public-text', 42)
+    await setSectionQuizProgress('public-text', {
+      results: [{ correct: 1, total: 2 }],
+      quizzedSectionIds: [0],
+    })
+    expect(await getCachedLastPosition('public-text')).toBe(42)
+    expect(await getSectionQuizProgress('public-text')).not.toBeNull()
+    mockGetSession.mockResolvedValue({
+      data: { session: { user: { id: 'user-2' } } },
+    })
+    expect(await getCachedLastPosition('public-text')).toBeNull()
+    expect(await getSectionQuizProgress('public-text')).toBeNull()
   })
 
   describe('getCachedText', () => {
@@ -273,7 +324,7 @@ describe('offlineCache', () => {
 
       await setCachedLastPosition('text-1', 42)
       expect(getMetadataStore().setItem).toHaveBeenCalledWith(
-        'lastPosition:text-1',
+        'lastPosition:user-1:text-1',
         expect.objectContaining({ data: 42 })
       )
     })

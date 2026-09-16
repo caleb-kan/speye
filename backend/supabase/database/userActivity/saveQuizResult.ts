@@ -6,12 +6,15 @@ export type QuizResultParams = {
   score: number
 }
 
-export async function saveQuizResult(params: QuizResultParams) {
+export async function saveQuizResult(
+  params: QuizResultParams,
+  expectedUserId?: string
+) {
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (!user) return null
+  if (!user || (expectedUserId && user.id !== expectedUserId)) return null
 
   const { data: latestActivity, error: fetchError } = await supabase
     .from('user_activity')

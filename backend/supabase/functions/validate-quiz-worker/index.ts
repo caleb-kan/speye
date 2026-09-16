@@ -40,11 +40,45 @@ async function deleteQueueMessage(msgId: number): Promise<void> {
 
 const QUIZ_QUALITY_REJECTION_REASON = 'Quiz quality insufficient'
 
-Deno.serve(async () => {
-  // Note: This worker is called by pg_cron. Security is handled by:
-  // 1. verify_jwt = false in config.toml (Supabase doesn't enforce JWT)
-  // 2. The URL is not publicly documented
-  // 3. The worker only processes jobs from the internal queue
+Deno.serve(async (req: Request) => {
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      status: 405,
+      headers: { 'Content-Type': 'application/json', Allow: 'POST' },
+    })
+  }
+  // Cron reads its dedicated credential from Vault. Only this service-role
+  // client can call the verifier, which returns only a boolean.
+  let authorized =
+    !!supabaseServiceKey &&
+    req.headers.get('Authorization') === `Bearer ${supabaseServiceKey}`
+  if (!authorized) {
+    const workerToken = req.headers.get('X-Worker-Token') ?? ''
+    if (/^[a-f0-9]{64}$/i.test(workerToken)) {
+      try {
+        const { data, error } = await supabase.rpc('verify_worker_token', {
+          p_token: workerToken,
+        })
+        if (error) throw error
+        authorized = data === true
+      } catch {
+        console.error('Worker credential verification unavailable')
+        return new Response(
+          JSON.stringify({ error: 'Authorization unavailable' }),
+          {
+            status: 503,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        )
+      }
+    }
+    if (!authorized) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+  }
 
   let job: QueueMessage | null = null
 

@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
+const { mockGetSession } = vi.hoisted(() => ({ mockGetSession: vi.fn() }))
+vi.mock('../../../../lib/supabase', () => ({
+  supabase: { auth: { getSession: mockGetSession } },
+}))
+
 const { mockStore } = vi.hoisted(() => ({
   mockStore: {
     getItem: vi.fn(),
@@ -31,6 +36,9 @@ import type { QueuedOperation } from '../../services/operationQueue'
 describe('operationQueue', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockGetSession.mockResolvedValue({
+      data: { session: { user: { id: 'user-1' } } },
+    })
   })
 
   describe('enqueueOperation', () => {
@@ -49,6 +57,7 @@ describe('operationQueue', () => {
         expect.stringContaining('logUserActivity-'),
         expect.objectContaining({
           type: 'logUserActivity',
+          userId: 'user-1',
           payload: expect.objectContaining({ textId: 'text-1' }),
           retryCount: 0,
           timestamp: expect.any(Number),
@@ -120,6 +129,20 @@ describe('operationQueue', () => {
       await clearQueue()
       expect(mockStore.clear).toHaveBeenCalled()
     })
+
+    it('also removes activity saved during page unload', async () => {
+      localStorage.setItem('speye-unload-queue', '[{"id":"old-account"}]')
+      await clearQueue()
+      expect(localStorage.getItem('speye-unload-queue')).toBeNull()
+    })
+  })
+
+  it('does not queue anonymous work or reassign recovered work', async () => {
+    const payload = { id: 'notification-1' }
+    mockGetSession.mockResolvedValueOnce({ data: { session: null } })
+    await enqueueOperation('markNotificationSeen', payload)
+    await enqueueOperation('markNotificationSeen', payload, 'different-user')
+    expect(mockStore.setItem).not.toHaveBeenCalled()
   })
 
   describe('getQueueLength', () => {

@@ -51,6 +51,14 @@ describe('useRsvpReader', () => {
       )
       expect(result.current.currentWordIndex).toBe(8) // 9 words, max index 8
     })
+
+    it('clamps a negative restored position to the beginning', () => {
+      const { result } = renderHook(() =>
+        useRsvpReader({ ...defaultOpts, initialWordIndex: -5 })
+      )
+
+      expect(result.current.currentWordIndex).toBe(0)
+    })
   })
 
   describe('phrase building', () => {
@@ -169,6 +177,36 @@ describe('useRsvpReader', () => {
   })
 
   describe('controls', () => {
+    it('restarts a restored reading session from the beginning', () => {
+      const { result } = renderHook(() =>
+        useRsvpReader({ ...defaultOpts, initialWordIndex: 5 })
+      )
+
+      expect(result.current.currentWordIndex).toBe(5)
+      act(() => result.current.restart())
+
+      expect(result.current.currentWordIndex).toBe(0)
+      expect(result.current.isPlaying).toBe(false)
+      expect(result.current.isComplete).toBe(false)
+    })
+
+    it('replays from the beginning after restoring the last phrase', () => {
+      const { result } = renderHook(() =>
+        useRsvpReader({
+          ...defaultOpts,
+          phraseSize: 10,
+          initialWordIndex: 8,
+        })
+      )
+
+      expect(result.current.isComplete).toBe(true)
+      act(() => result.current.togglePlayPause())
+
+      expect(result.current.currentWordIndex).toBe(0)
+      expect(result.current.isPlaying).toBe(true)
+      expect(result.current.isComplete).toBe(false)
+    })
+
     it('restart() resets to word 0 and stops playing', () => {
       const { result } = renderHook(() =>
         useRsvpReader({ ...defaultOpts, phraseSize: 10 })

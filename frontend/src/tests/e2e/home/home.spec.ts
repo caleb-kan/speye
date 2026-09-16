@@ -47,6 +47,40 @@ test.describe('Home Page', () => {
     await expect(page.locator('[class*="animate-pulse"]').first()).toBeVisible()
   })
 
+  test('restarts RSVP from the beginning after preserving a standard-mode position', async ({
+    page,
+  }) => {
+    await mockRandomText(page, {
+      title: 'Mode Switch Passage',
+      content: 'A passage with enough words for reading. '.repeat(20),
+    })
+    await page.goto('/home')
+    await expect(page.getByText('Mode Switch Passage')).toBeVisible()
+    const progress = page.getByRole('progressbar')
+    const initialProgress = await progress.getAttribute('aria-valuenow')
+    await page.getByRole('button', { name: 'Play', exact: true }).click()
+    await expect
+      .poll(async () => Number(await progress.getAttribute('aria-valuenow')))
+      .toBeGreaterThan(Number(initialProgress))
+    await page.getByRole('button', { name: 'Pause', exact: true }).click()
+    const wordCount = page.getByTestId('progress-word-count-text')
+    const pausedPosition = await wordCount.textContent()
+
+    await page.getByRole('button', { name: 'RSVP mode', exact: true }).click()
+    await expect(page).toHaveURL(/\/rsvp$/)
+    await expect(wordCount).toHaveText(pausedPosition ?? '')
+    await page.getByRole('button', { name: 'Restart', exact: true }).click()
+
+    await expect(progress).toHaveAttribute(
+      'aria-valuenow',
+      initialProgress ?? ''
+    )
+    await expect(wordCount).toHaveText(/^1\s*\//)
+    await expect(
+      page.getByRole('button', { name: 'Play', exact: true })
+    ).toBeVisible()
+  })
+
   test('shows error with retry button on failure', async ({ page }) => {
     await page.route('**/rest/v1/rpc/get_random_text**', async (route) => {
       await route.fulfill({

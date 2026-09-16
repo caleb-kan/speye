@@ -50,13 +50,35 @@ type UseTextNavigationReturn = {
  */
 export function useTextNavigation({
   filters,
-  libraryText,
-  preservedText,
+  libraryText: providedLibraryText,
+  preservedText: providedPreservedText,
   onClearLibraryText,
   currentTextComplexity,
   onFiltersChanged,
   userId,
 }: UseTextNavigationOptions): UseTextNavigationReturn {
+  // Browser history can retain a previous account's private reading text even
+  // after its offline cache has been cleared. Validate both navigation sources.
+  const canRead = (text: Text | null | undefined) =>
+    text && (text.owner_id === null || text.owner_id === userId)
+  const libraryText = canRead(providedLibraryText) ? providedLibraryText : null
+  const preservedText = canRead(providedPreservedText)
+    ? providedPreservedText
+    : null
+  useEffect(() => {
+    if (
+      (providedLibraryText && !libraryText) ||
+      (providedPreservedText && !preservedText)
+    ) {
+      onClearLibraryText()
+    }
+  }, [
+    providedLibraryText,
+    libraryText,
+    providedPreservedText,
+    preservedText,
+    onClearLibraryText,
+  ])
   const recentlyQuizzedTextIds = useRecentlyQuizzedTextIds(userId ?? null)
   const [filtersChanged, setFiltersChanged] = useState(false)
   const initialFiltersRef = useRef<typeof filters | null>(null)

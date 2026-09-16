@@ -53,6 +53,7 @@ export function logUserActivityOnUnload(
   accessToken: string | null | undefined,
   userId: string | null | undefined
 ) {
+  if (params.progressIndex <= 0 || !accessToken || !userId) return
   if (isOffline()) {
     pwaLogger.debug(TAG, 'Offline unload — writing to localStorage queue')
     // Synchronously write to localStorage (localforage is async, may not complete during unload)
@@ -62,6 +63,7 @@ export function logUserActivityOnUnload(
       queue.push({
         id: `logUserActivity-unload-${Date.now()}`,
         type: 'logUserActivity' as const,
+        userId,
         payload: params,
         timestamp: Date.now(),
         retryCount: 0,

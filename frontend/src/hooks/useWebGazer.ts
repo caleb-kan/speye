@@ -35,14 +35,22 @@ let isGloballyInitialized = false
 // across concurrent callers.
 const beginOnce = dedupePromise<void>()
 const resumeOnce = dedupePromise<unknown>()
-// Pending cleanup state. Used to delay stopCamera() so React StrictMode's
-// double-invoke (effect1 -> cleanup -> effect2) doesn't interrupt the camera.
-// Cleanup schedules a microtask; if effect2 starts before the microtask
-// fires, it flips this flag so the camera is preserved. Microtask runs
-// before the next paint, so on a real unmount the camera releases in the
-// same tick (much faster than setTimeout(0) which sits behind React's
-// commit + render of the incoming route).
-let pendingCleanupRequested = false
+// A pending camera request can outlive its reader. Track active effects so
+// a late result is released unless another reader has adopted the request.
+const activeCameraOwners = new Set<object>()
+
+function stopCameraIfUnused(webgazer: WebGazerAPI | null) {
+  if (activeCameraOwners.size === 0) webgazer?.stopCamera()
+}
+
+function hasErrorName(error: unknown, name: string) {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'name' in error &&
+    error.name === name
+  )
+}
 
 /** CSS rule to hide the WebGazer gaze prediction dot */
 const HIDE_GAZE_DOT_CSS = `#${WEBGAZER_GAZE_DOT_ID} { display: none !important; }`
@@ -102,8 +110,7 @@ interface WebGazerAPI {
 /**
  * Hook to manage WebGazer eye-tracking lifecycle
  *
- * Uses local WebGazer source with TFJS runtime for reliable model loading
- * (no external CDN dependencies)
+ * Uses the local WebGazer source and its MediaPipe face detector.
  *
  * Handles:
  * - Dynamic import of webgazer module
@@ -131,14 +138,9 @@ export function useWebGazer({
   }, [onGaze])
 
   useEffect(() => {
-    // When disabled, let any pending cleanup (stopCamera) proceed
     if (!enabled) {
       return
     }
-
-    // Cancel any pending cleanup from a previous effect (React StrictMode double-invoke)
-    // Only cancel when we're about to reinitialize - not when disabling
-    pendingCleanupRequested = false
 
     // Prevent double initialization within this component instance
     if (isInitializedRef.current) {
@@ -154,6 +156,9 @@ export function useWebGazer({
       return
     }
 
+    const owner = {}
+    activeCameraOwners.add(owner)
+    let ownedWebgazer: WebGazerAPI | null = null
     let mounted = true
     // Ref to track mounted state for gaze listener (closure captures this)
     const mountedRef = { current: true }
@@ -184,22 +189,23 @@ export function useWebGazer({
       setStatus('initializing')
 
       try {
-        webgazerRef.current = globalWebgazerInstance
+        const webgazer = globalWebgazerInstance
+        ownedWebgazer = webgazer
+        webgazerRef.current = webgazer
 
         // Set up gaze listener BEFORE resuming so the loop has a valid callback
-        setupGazeListener(globalWebgazerInstance)
+        setupGazeListener(webgazer)
 
-        globalWebgazerInstance
+        webgazer
           .showVideoPreview(showPreview)
           .showPredictionPoints(showPredictionPoints)
           .showFaceFeedbackBox(showPreview)
 
-        await resumeOnce(() => globalWebgazerInstance!.resume())
+        await resumeOnce(() =>
+          webgazer.resume().finally(() => stopCameraIfUnused(webgazer))
+        )
 
-        // Check if component unmounted during async resume
-        // If so, just return false - do NOT call stopCamera() here!
-        // React StrictMode may have started another effect that's now using the camera.
-        // The cleanup timeout mechanism will handle stopping the camera if needed.
+        // Completion releases the camera only when no reader still owns it.
         if (!mounted) {
           return false
         }
@@ -208,6 +214,7 @@ export function useWebGazer({
         setStatus('ready')
         return true
       } catch (err) {
+        if (!mounted) return false
         // Resume failed - clean up and clear global state so initWebGazer runs fresh
         console.warn('WebGazer resume failed, will reinitialize:', err)
         // Call end() to remove DOM elements before reinitializing
@@ -228,7 +235,7 @@ export function useWebGazer({
       // Reattach to existing WebGazer if already initialized globally
       if (isGloballyInitialized && globalWebgazerInstance) {
         const reattached = await reattachWebGazer()
-        if (reattached) return
+        if (reattached || !mounted) return
       }
 
       setStatus('initializing')
@@ -265,14 +272,22 @@ export function useWebGazer({
       }
 
       try {
-        // Dynamic import of local webgazer source (uses TFJS runtime, no CDN deps)
+        // Dynamic import of local webgazer source.
         // 'webgazer' is aliased to local source in vite.config.ts
         const webgazerModule = await import('webgazer')
         const webgazer = webgazerModule.default as WebGazerAPI
 
         if (!mounted) return
 
+        // An earlier reader can finish starting while this import is pending.
+        // Reuse that camera instead of beginning a second stream.
+        if (isGloballyInitialized && globalWebgazerInstance) {
+          const reattached = await reattachWebGazer()
+          if (reattached || !mounted) return
+        }
+
         webgazerRef.current = webgazer
+        ownedWebgazer = webgazer
         globalWebgazerInstance = webgazer
 
         // weightedRidge provides better accuracy than default ridge regression
@@ -299,8 +314,28 @@ export function useWebGazer({
               reject(new Error('WebGazer initialization timed out'))
             }, WEBGAZER_INIT_TIMEOUT_MS)
 
-            webgazer
-              .begin()
+            // Keep the underlying request deduplicated even if a caller times
+            // out. A retry can adopt it instead of opening a second stream.
+            const start = () =>
+              beginOnce(async () => {
+                try {
+                  await webgazer.begin()
+                } finally {
+                  stopCameraIfUnused(webgazer)
+                }
+              })
+            start()
+              .catch((err: unknown) => {
+                // A previous reader may have canceled the shared request just
+                // before this reader mounted. Retry once for the current owner.
+                if (
+                  activeCameraOwners.has(owner) &&
+                  hasErrorName(err, 'AbortError')
+                ) {
+                  return start()
+                }
+                throw err
+              })
               .then(() => {
                 clearTimeout(timeout)
                 resolve()
@@ -311,16 +346,13 @@ export function useWebGazer({
               })
           })
 
-        await beginOnce(() => beginWithTimeout())
+        await beginWithTimeout()
 
         // WebGazer is now running - mark as globally initialized immediately
         // so remounting components can reattach even if we return early below
         isGloballyInitialized = true
 
-        // Check if component unmounted during async begin()
-        // If so, just return - do NOT call stopCamera() here!
-        // React StrictMode may have started another effect that's now using the camera.
-        // The cleanup timeout mechanism will handle stopping the camera if needed.
+        // Completion releases the camera only when no reader still owns it.
         if (!mounted) {
           return
         }
@@ -351,10 +383,7 @@ export function useWebGazer({
 
         await checkReady()
 
-        // Check if component unmounted during async checkReady()
-        // If so, just return - do NOT call stopCamera() here!
-        // React StrictMode may have started another effect that's now using the camera.
-        // The cleanup timeout mechanism will handle stopping the camera if needed.
+        // A replacement reader may still own the camera after this unmounts.
         if (!mounted) {
           return
         }
@@ -374,9 +403,12 @@ export function useWebGazer({
       } catch (err) {
         if (!mounted) return
 
-        // Clear global state on failure
-        globalWebgazerInstance = null
-        isGloballyInitialized = false
+        activeCameraOwners.delete(owner)
+        if (activeCameraOwners.size === 0) {
+          ownedWebgazer?.end()
+          globalWebgazerInstance = null
+          isGloballyInitialized = false
+        }
 
         const errorMessage =
           err instanceof Error
@@ -385,6 +417,7 @@ export function useWebGazer({
 
         // Check for permission errors
         if (
+          hasErrorName(err, 'NotAllowedError') ||
           errorMessage.includes('Permission') ||
           errorMessage.includes('NotAllowedError')
         ) {
@@ -413,36 +446,10 @@ export function useWebGazer({
       // it stays undefined when enabled becomes true again, breaking the
       // gaze listener callback.
 
-      // Defer stopping the camera to handle React StrictMode double-invoke.
-      // StrictMode runs: effect1 -> cleanup -> effect2 (synchronously)
-      // If effect2 starts, it sets pendingCleanupRequested = false to keep
-      // the camera running.
-      // If no effect2 starts (real unmount), the microtask fires and stops
-      // the camera.
-      // queueMicrotask runs after the current synchronous block but before
-      // the next macrotask, so the camera releases in the same tick — much
-      // faster than setTimeout(0), which sits behind React's commit and
-      // render of the incoming route in dev.
-      //
-      // Assumption: cleanup and the immediate next setup (if any) are
-      // synchronous siblings within the same task. This holds for
-      // StrictMode's mount-cleanup-mount and for normal route transitions.
-      // It would NOT hold if `useWebGazer`'s host component were wrapped
-      // in a `<Suspense>` boundary that suspends after cleanup — the
-      // microtask would fire stopCamera before setup runs. The resume
-      // path (reattachWebGazer → webgazer.resume()) would still recover
-      // when setup eventually runs, so the worst case is a brief camera
-      // off-on flash, not a broken state. Don't add Suspense around
-      // AdaptiveReader without revisiting this contract.
-      if (globalWebgazerInstance) {
-        pendingCleanupRequested = true
-        queueMicrotask(() => {
-          if (pendingCleanupRequested && globalWebgazerInstance) {
-            pendingCleanupRequested = false
-            globalWebgazerInstance.stopCamera()
-          }
-        })
-      }
+      // StrictMode's replacement effect claims ownership before this microtask.
+      // The start/resume completion also checks ownership for late streams.
+      activeCameraOwners.delete(owner)
+      queueMicrotask(() => stopCameraIfUnused(ownedWebgazer))
 
       webgazerRef.current = null
       isInitializedRef.current = false

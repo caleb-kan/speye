@@ -229,10 +229,13 @@ describe('usePvpGameCallbacks', () => {
         await result.current.handleQuizFinish(75)
       })
 
-      expect(mockSaveQuizResult).toHaveBeenCalledWith({
-        text_id: 'text-789',
-        score: 75,
-      })
+      expect(mockSaveQuizResult).toHaveBeenCalledWith(
+        {
+          text_id: 'text-789',
+          score: 75,
+        },
+        USER_ID
+      )
     })
 
     it('does not submit twice (guard against double-call)', async () => {
@@ -622,7 +625,8 @@ describe('usePvpGameCallbacks', () => {
       })
 
       expect(logUserActivity).toHaveBeenCalledWith(
-        expect.objectContaining({ mode: 'adaptive' })
+        expect.objectContaining({ mode: 'adaptive' }),
+        USER_ID
       )
     })
 
@@ -640,7 +644,8 @@ describe('usePvpGameCallbacks', () => {
       })
 
       expect(logUserActivity).toHaveBeenCalledWith(
-        expect.objectContaining({ mode: 'rsvp' })
+        expect.objectContaining({ mode: 'rsvp' }),
+        USER_ID
       )
     })
   })
@@ -792,7 +797,8 @@ describe('usePvpGameCallbacks', () => {
       simulateReading(result, 6000)
 
       expect(logUserActivity).toHaveBeenCalledWith(
-        expect.objectContaining({ wpm: 100 })
+        expect.objectContaining({ wpm: 100 }),
+        USER_ID
       )
     })
 

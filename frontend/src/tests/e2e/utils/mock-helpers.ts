@@ -11,6 +11,7 @@ export async function mockAdminAuthSession(page: Page) {
     sub: 'admin-1',
     email: 'admin@example.com',
     userMetadata: { username: 'admin', role: 'admin' },
+    appMetadata: { role: 'admin' },
   })
 }
 

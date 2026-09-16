@@ -55,7 +55,7 @@ async function deleteQueueMessage(msgId: number): Promise<void> {
 /** Complete the validation handoff or persist the existing manual-retry state. */
 async function queueValidationOrRecordFailure(
   textId: string,
-  text: { owner_id: string | null }
+  text: { owner_id: string | null; worker_revision: string }
 ): Promise<void> {
   try {
     const { error } = await queue.rpc('send', {
@@ -73,14 +73,16 @@ async function queueValidationOrRecordFailure(
     .from('texts')
     .update({ quiz_valid: false }, { count: 'exact' })
     .eq('id', textId)
+    .eq('worker_revision', text.worker_revision)
     .eq('processing_status', 'completed')
     .is('quiz_valid', null)
   fallback =
     text.owner_id === null
       ? fallback.is('owner_id', null)
       : fallback.eq('owner_id', text.owner_id)
-  const { error } = await fallback
+  const { error, count } = await fallback
   if (error) throw error
+  if (count === 0) throw new Error('Text changed during validation handoff')
 }
 
 Deno.serve(async (req: Request) => {
@@ -160,7 +162,7 @@ Deno.serve(async (req: Request) => {
     const { data: text, error: fetchError } = await supabase
       .from('texts')
       .select(
-        'content, title, fiction, admin_decision, owner_id, sectional, section_content, processing_status, quiz_valid'
+        'content, title, fiction, admin_decision, owner_id, sectional, section_content, processing_status, quiz_valid, worker_revision'
       )
       .eq('id', textId)
       .maybeSingle()
@@ -262,6 +264,7 @@ Deno.serve(async (req: Request) => {
         )
         .eq('id', textId)
         .eq('processing_status', 'pending')
+        .eq('worker_revision', text.worker_revision)
 
       if (updateError) {
         console.error(
@@ -282,7 +285,7 @@ Deno.serve(async (req: Request) => {
       // A different attempt may have completed while this LLM call failed.
       // Only the attempt that changed the row should notify its owner.
       if (count === 0) {
-        await deleteQueueMessage(job.msg_id)
+        // Retry from a fresh snapshot instead of dropping a newer pending edit.
         return new Response(
           JSON.stringify({
             message: 'Text already processed or status changed',
@@ -332,7 +335,11 @@ Deno.serve(async (req: Request) => {
     // Use idempotent update - only update if still in pending status
     // IMPORTANT: Must specify count: 'exact' to get affected row count
     // Only set fiction from LLM if not already set (preserves user's explicit setting when editing)
-    const { error: updateError, count } = await supabase
+    const {
+      data: updated,
+      error: updateError,
+      count,
+    } = await supabase
       .from('texts')
       .update(
         {
@@ -350,22 +357,25 @@ Deno.serve(async (req: Request) => {
       )
       .eq('id', textId)
       .eq('processing_status', 'pending')
+      .eq('worker_revision', text.worker_revision)
+      .select('worker_revision')
 
     if (updateError) {
       console.error('Error updating text:', updateError)
       // A persisted failure enables the user's retry button. If that write
       // also fails, retain the queue message so pending work is not lost.
-      const { error: fallbackError } = await supabase
+      const { error: fallbackError, count: fallbackCount } = await supabase
         .from('texts')
-        .update({ processing_status: 'failed' })
+        .update({ processing_status: 'failed' }, { count: 'exact' })
         .eq('id', textId)
         .eq('processing_status', 'pending')
+        .eq('worker_revision', text.worker_revision)
       if (fallbackError) {
         console.error(
           'Failed to set processing_status to failed:',
           fallbackError
         )
-      } else {
+      } else if (fallbackCount === 1) {
         await deleteQueueMessage(job.msg_id)
       }
       return new Response(JSON.stringify({ error: updateError.message }), {
@@ -374,10 +384,10 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    // Check if update was actually applied (row was in pending status)
+    // A revision change can leave the text pending with no other queue message.
+    // Retain this job to process that current revision after its visibility timeout.
     if (count === 0) {
       console.log(`Text ${textId} was not in pending status, skipping`)
-      await deleteQueueMessage(job.msg_id)
       return new Response(
         JSON.stringify({ message: 'Text already processed or status changed' }),
         { status: 200, headers: { 'Content-Type': 'application/json' } }
@@ -388,7 +398,10 @@ Deno.serve(async (req: Request) => {
     // on the texts table, which fires when admin_decision becomes 'pending'
 
     // 5. Queue validation job
-    await queueValidationOrRecordFailure(textId, text)
+    await queueValidationOrRecordFailure(textId, {
+      owner_id: text.owner_id,
+      worker_revision: updated![0].worker_revision,
+    })
 
     // 6. Delete the processed message from queue
     await deleteQueueMessage(job.msg_id)

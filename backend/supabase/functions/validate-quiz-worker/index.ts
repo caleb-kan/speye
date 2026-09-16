@@ -115,7 +115,7 @@ Deno.serve(async (req: Request) => {
     const { data: text, error: fetchError } = await supabase
       .from('texts')
       .select(
-        'content, quiz, processing_status, summary, fiction, admin_decision, sectional, section_content'
+        'content, quiz, quiz_valid, processing_status, summary, fiction, admin_decision, sectional, section_content, worker_revision'
       )
       .eq('id', textId)
       .maybeSingle()
@@ -146,6 +146,18 @@ Deno.serve(async (req: Request) => {
       return new Response(
         JSON.stringify({ message: 'Text status changed, skipping validation' }),
         { status: 200, headers: { 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // A user may have corrected the quiz while an older validation was queued.
+    if (text.quiz_valid === true) {
+      await deleteQueueMessage(job.msg_id)
+      return new Response(
+        JSON.stringify({ message: 'Quiz already validated' }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }
       )
     }
 
@@ -198,11 +210,12 @@ Deno.serve(async (req: Request) => {
 
       // Update quiz_valid to false to indicate validation failed (shows retry button)
       // Only update if text is still in 'completed' status (not being reprocessed)
-      const { error: failureUpdateError } = await supabase
+      const { error: failureUpdateError, count: failureCount } = await supabase
         .from('texts')
         .update({ quiz_valid: false }, { count: 'exact' })
         .eq('id', textId)
         .eq('processing_status', 'completed')
+        .eq('worker_revision', text.worker_revision)
 
       if (failureUpdateError) {
         console.error('Error recording validation failure:', failureUpdateError)
@@ -210,6 +223,16 @@ Deno.serve(async (req: Request) => {
           JSON.stringify({ error: 'Failed to record validation failure' }),
           {
             status: 500,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        )
+      }
+
+      if (failureCount === 0) {
+        return new Response(
+          JSON.stringify({ message: 'Text changed, retrying validation' }),
+          {
+            status: 200,
             headers: { 'Content-Type': 'application/json' },
           }
         )
@@ -229,11 +252,17 @@ Deno.serve(async (req: Request) => {
     // 4. Update the database with validation result
     // Only update if text is still in 'completed' status (not being reprocessed)
     // IMPORTANT: Must specify count: 'exact' to enable count-based idempotency checks
-    const { error: updateError, count } = await supabase
+    const {
+      data: updated,
+      error: updateError,
+      count,
+    } = await supabase
       .from('texts')
       .update({ quiz_valid: result.isValid }, { count: 'exact' })
       .eq('id', textId)
       .eq('processing_status', 'completed')
+      .eq('worker_revision', text.worker_revision)
+      .select('worker_revision')
 
     if (updateError) {
       console.error('Error updating text:', updateError)
@@ -244,12 +273,12 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    // Check if update was actually applied (text was still in completed status)
+    // A concurrent edit or regeneration invalidates this validation snapshot.
     if (count === 0) {
       console.log(
         `Text ${textId} status changed during validation, skipping update`
       )
-      await deleteQueueMessage(job.msg_id)
+      // Keep this job so a newer quiz is validated from a fresh snapshot.
       return new Response(
         JSON.stringify({ message: 'Text status changed, validation skipped' }),
         { status: 200, headers: { 'Content-Type': 'application/json' } }
@@ -261,16 +290,20 @@ Deno.serve(async (req: Request) => {
     // content moderation, not quiz quality
     // Do NOT overwrite admin_decision if admin already approved this text
     if (!result.isValid && text.admin_decision !== 'approved') {
-      const { error: rejectionError } = await supabase
+      const { error: rejectionError, count: rejectionCount } = await supabase
         .from('texts')
-        .update({
-          admin_decision: 'pending',
-          rejection_reason: QUIZ_QUALITY_REJECTION_REASON,
-          rejection_stage: 'validate_quiz',
-        })
+        .update(
+          {
+            admin_decision: 'pending',
+            rejection_reason: QUIZ_QUALITY_REJECTION_REASON,
+            rejection_stage: 'validate_quiz',
+          },
+          { count: 'exact' }
+        )
         .eq('id', textId)
         .eq('processing_status', 'completed')
-        .neq('admin_decision', 'approved')
+        // The revision also protects an administrator's intervening approval.
+        .eq('worker_revision', updated![0].worker_revision)
 
       if (rejectionError) {
         console.error('Error updating rejection metadata:', rejectionError)
@@ -278,6 +311,14 @@ Deno.serve(async (req: Request) => {
           JSON.stringify({ error: 'Failed to record quiz review metadata' }),
           {
             status: 500,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        )
+      } else if (rejectionCount === 0) {
+        return new Response(
+          JSON.stringify({ message: 'Text changed, retrying validation' }),
+          {
+            status: 200,
             headers: { 'Content-Type': 'application/json' },
           }
         )

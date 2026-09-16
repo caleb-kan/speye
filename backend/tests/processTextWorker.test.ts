@@ -11,7 +11,8 @@ function setup({
   initialQuizValid = null as boolean | null,
   sendFailure = null as 'error' | 'throw' | null,
   failQuizFallback = false,
-  changeDuringSend = null as 'status' | 'owner' | 'validated' | null,
+  changeDuringSend = null as
+    'status' | 'owner' | 'validated' | 'revision' | null,
 } = {}) {
   const row: Record<string, unknown> = {
     id: 'text-1',
@@ -24,6 +25,7 @@ function setup({
     section_content: null,
     processing_status: initialStatus,
     quiz_valid: initialQuizValid,
+    worker_revision: 'revision-1',
   }
   const notifications: unknown[] = []
   let updates = 0
@@ -66,10 +68,15 @@ function setup({
         const matches = filters.every(
           ([column, value]) => row[column] === value
         )
-        if (table === 'texts' && matches) Object.assign(row, values)
-        return Promise.resolve({ error: null, count: matches ? 1 : 0 }).then(
-          resolve
-        )
+        if (table === 'texts' && matches) {
+          Object.assign(row, values)
+          row.worker_revision = `revision-${updates + 1}`
+        }
+        return Promise.resolve({
+          error: null,
+          count: matches ? 1 : 0,
+          data: matches ? [{ worker_revision: row.worker_revision }] : [],
+        }).then(resolve)
       },
     }
     return query
@@ -82,6 +89,7 @@ function setup({
         if (changeDuringSend === 'status') row.processing_status = 'pending'
         if (changeDuringSend === 'owner') row.owner_id = 'new-owner'
         if (changeDuringSend === 'validated') row.quiz_valid = true
+        if (changeDuringSend) row.worker_revision = 'new-revision'
         if (sendFailure === 'throw') throw new TypeError('Queue unavailable')
         return { data: null, error: { message: 'Queue unavailable' } }
       }
@@ -234,18 +242,19 @@ describe('process-text worker idempotence', () => {
     }
   )
 
-  it.each(['status', 'owner', 'validated'] as const)(
+  it.each(['status', 'owner', 'validated', 'revision'] as const)(
     'does not overwrite a newer text change during failed handoff (%s)',
     async (changeDuringSend) => {
-      const { run, row } = setup({
+      const { run, row, rpc } = setup({
         processFails: false,
         sendFailure: 'error',
         changeDuringSend,
       })
-      expect((await run()).status).toBe(200)
+      expect((await run()).status).toBe(500)
       expect(row.quiz_valid).toBe(
         changeDuringSend === 'validated' ? true : null
       )
+      expect(rpc).not.toHaveBeenCalledWith('delete', expect.anything())
     }
   )
 })

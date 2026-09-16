@@ -24,6 +24,7 @@ function setup(
     admin_decision: 'pending',
     sectional: false,
     section_content: null,
+    worker_revision: 'revision-1',
   }
   const read = async () => {
     if (options.readThrows) throw new TypeError('Connection unavailable')
@@ -54,7 +55,7 @@ function setup(
             reject
           )
         return Promise.resolve({
-          data: null,
+          data: [{ worker_revision: 'revision-2' }],
           count: 1,
           error:
             options.writeError ||

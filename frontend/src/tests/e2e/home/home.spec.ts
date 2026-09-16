@@ -101,6 +101,20 @@ test.describe('Home Page', () => {
       title: 'Round Trip Passage',
       content: 'A passage with enough words for reading. '.repeat(20),
     })
+    // The save made during navigation can lag behind the history read.
+    await page.route('**/rest/v1/user_activity**', async (route) => {
+      const url = new URL(route.request().url())
+      if (
+        route.request().method() === 'GET' &&
+        url.searchParams.get('select') === 'progress_index'
+      ) {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ progress_index: 2 }),
+        })
+      } else await route.fallback()
+    })
     await page.goto('/rsvp')
     await expect(page.getByText('Round Trip Passage')).toBeVisible()
     const wordCount = page.getByTestId('progress-word-count-text')

@@ -7,5 +7,5 @@ import { ROLE_ADMIN } from '../constants/roles'
  */
 export function useIsAdmin(): boolean {
   const { user } = useAuth()
-  return user?.user_metadata?.role === ROLE_ADMIN
+  return user?.app_metadata?.role === ROLE_ADMIN
 }

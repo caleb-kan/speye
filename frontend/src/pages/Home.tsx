@@ -39,9 +39,14 @@ export function Home() {
 
   useReadingContextSync(currentText, context)
 
+  const hasNavigationPosition =
+    state?.readingPosition !== undefined &&
+    (libraryText?.id === currentText?.id ||
+      preservedText?.id === currentText?.id)
   const isRestoring = useRestoreReadingProgress(
     currentText,
-    context.setReadingPosition
+    context.setReadingPosition,
+    !hasNavigationPosition
   )
 
   const handleNewTextWithReset = useNewTextWithReset(

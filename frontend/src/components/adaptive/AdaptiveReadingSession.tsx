@@ -75,6 +75,7 @@ export function AdaptiveReadingSession({
   } = useSectionQuiz(currentText)
 
   useEffect(() => {
+    if (readingComplete && hasLoggedCompleteRef.current) return
     const existing = loadReadingActivitySession(ownerId)
     if (existing?.textId === currentText.id) {
       if (existing.mode !== 'adaptive') {
@@ -130,7 +131,7 @@ export function AdaptiveReadingSession({
         ownerId
       )
     }
-  }, [ownerId, currentText.id, initialWordIndex, wpm])
+  }, [ownerId, readingComplete, currentText.id, initialWordIndex, wpm])
 
   useEffect(() => {
     const handlePageLeave = () => {
@@ -173,12 +174,11 @@ export function AdaptiveReadingSession({
   }, [ownerId, wpm, adaptiveSessionWpm, initialWordIndex])
 
   useEffect(() => {
-    if (
-      !readingComplete ||
-      hasLoggedCompleteRef.current ||
-      !isReadingActivityOwner(ownerId)
-    )
+    if (!readingComplete) {
+      hasLoggedCompleteRef.current = false
       return
+    }
+    if (hasLoggedCompleteRef.current || !isReadingActivityOwner(ownerId)) return
     hasLoggedCompleteRef.current = true
 
     const activitySession = loadReadingActivitySession(ownerId)

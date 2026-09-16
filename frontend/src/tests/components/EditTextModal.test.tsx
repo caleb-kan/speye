@@ -190,7 +190,7 @@ describe('EditTextModal', () => {
     const mockAdminUser = {
       id: 'admin-123',
       email: 'admin@example.com',
-      user_metadata: { role: ROLE_ADMIN },
+      app_metadata: { role: ROLE_ADMIN },
     } as unknown as User
 
     const privateText: Text = {

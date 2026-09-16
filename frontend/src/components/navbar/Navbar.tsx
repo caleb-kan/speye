@@ -30,6 +30,7 @@ export function Navbar() {
   const location = useLocation()
   const navigate = useNavigate()
   const { user, loading } = useAuth()
+  const ownerId = user?.id ?? null
   const { preferences } = useReadingPreferences()
   const isMobile = useIsMobile()
 
@@ -52,7 +53,7 @@ export function Navbar() {
     // triggers beforeunload/pagehide which logs via keepalive fetch.
     if (isInAdaptiveMode) return
 
-    const activitySession = loadReadingActivitySession()
+    const activitySession = loadReadingActivitySession(ownerId)
     if (
       !activitySession?.started ||
       !activitySession.textId ||
@@ -60,16 +61,19 @@ export function Navbar() {
     )
       return
 
-    void logUserActivity({
-      textId: activitySession.textId,
-      wpm: activitySession.wpm ?? 0,
-      startTime: activitySession.startTime,
-      endTime: new Date().toISOString(),
-      mode: activitySession.mode ?? DEFAULT_MODE,
-      progressIndex: activitySession.progressIndex ?? 0,
-    })
+    void logUserActivity(
+      {
+        textId: activitySession.textId,
+        wpm: activitySession.wpm ?? 0,
+        startTime: activitySession.startTime,
+        endTime: new Date().toISOString(),
+        mode: activitySession.mode ?? DEFAULT_MODE,
+        progressIndex: activitySession.progressIndex ?? 0,
+      },
+      ownerId
+    )
 
-    clearReadingActivitySession()
+    clearReadingActivitySession(ownerId)
   }
 
   // Handles navigation for the login link (which doesn't use NavItem).

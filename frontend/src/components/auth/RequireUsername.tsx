@@ -1,10 +1,17 @@
+import { useLayoutEffect } from 'react'
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { getUsername } from '../../utils/getUsername'
+import { setReadingActivityOwner } from '../../utils/readingActivityStorage'
 
 export function RequireUsername() {
   const { user, loading } = useAuth()
   const location = useLocation()
+  const userId = user?.id ?? null
+
+  useLayoutEffect(() => {
+    if (!loading) setReadingActivityOwner(userId)
+  }, [loading, userId])
 
   if (loading) return null
 

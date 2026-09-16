@@ -1,3 +1,4 @@
+import { useAuth } from '../hooks/useAuth'
 import { useCallback, useState } from 'react'
 import { OptionsBar } from '../components/OptionsBar'
 import { Outlet, useLocation } from 'react-router-dom'
@@ -20,6 +21,8 @@ import {
  * never drift from the active route.
  */
 export function ReadingLayout() {
+  const { user } = useAuth()
+  const ownerId = user?.id ?? null
   useSyncReadingMode('standard')
   const location = useLocation()
   const state = location.state as LocationState | null
@@ -62,7 +65,7 @@ export function ReadingLayout() {
   const handleModeSwitch = useCallback(
     (targetMode: Mode) => {
       if (!currentText) return
-      const session = loadReadingActivitySession()
+      const session = loadReadingActivitySession(ownerId)
       if (!session?.started || session.textId !== currentText.id) return
 
       const effectiveProgress = Math.max(
@@ -70,27 +73,33 @@ export function ReadingLayout() {
         readingPosition
       )
 
-      void logUserActivity({
-        textId: currentText.id,
-        wpm: session.wpm ?? preferences.wpm,
-        startTime: session.startTime ?? new Date().toISOString(),
-        endTime: new Date().toISOString(),
-        mode: session.mode ?? preferences.mode,
-        progressIndex: effectiveProgress,
-      })
+      void logUserActivity(
+        {
+          textId: currentText.id,
+          wpm: session.wpm ?? preferences.wpm,
+          startTime: session.startTime ?? new Date().toISOString(),
+          endTime: new Date().toISOString(),
+          mode: session.mode ?? preferences.mode,
+          progressIndex: effectiveProgress,
+        },
+        ownerId
+      )
 
       if (targetMode !== 'standard') {
-        clearReadingActivitySession()
-        upsertReadingActivitySession({
-          textId: currentText.id,
-          startTime: null,
-          started: false,
-          mode: targetMode,
-          progressIndex: effectiveProgress,
-        })
+        clearReadingActivitySession(ownerId)
+        upsertReadingActivitySession(
+          {
+            textId: currentText.id,
+            startTime: null,
+            started: false,
+            mode: targetMode,
+            progressIndex: effectiveProgress,
+          },
+          ownerId
+        )
       }
     },
-    [currentText, preferences.wpm, preferences.mode, readingPosition]
+    [ownerId, currentText, preferences.wpm, preferences.mode, readingPosition]
   )
 
   return (

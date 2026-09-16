@@ -109,6 +109,7 @@ export function useHorizontalReader({
   const containerLeftRef = useRefSync(containerLeft)
   const containerWidthRef = useRefSync(containerWidth)
   const totalChunksRef = useRefSync(totalChunks)
+  const canTimeReadingRef = useRefSync(!disabled && isGazeReliable)
 
   const initialPositionAppliedRef = useRef(false)
 
@@ -392,11 +393,11 @@ export function useHorizontalReader({
     setCalculatedWpm(0)
     resetTrackingState()
     chunkStartTimeRef.current = Date.now()
-    readingStartTimeRef.current = null
+    readingStartTimeRef.current = canTimeReadingRef.current ? Date.now() : null
     lastAdvanceTimeRef.current = 0
     completionTriggeredRef.current = false
     initialPositionAppliedRef.current = false
-  }, [resetTrackingState])
+  }, [resetTrackingState, canTimeReadingRef])
 
   const goBack = useCallback(() => {
     resetTrackingState()

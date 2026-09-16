@@ -1,4 +1,5 @@
 import { getTextLeaderboard as getTextLeaderboardDb } from '../../../backend/redis/getTextLeaderboard'
+import { getTextLeaderboard as getTextLeaderboardFallback } from '../../../backend/supabase/database/leaderboard/getTextLeaderboard'
 import type { LeaderboardEntry } from '../../../backend/redis/types'
 import { updateLeaderboardCache as updateLeaderboardCacheDb } from '../../../backend/supabase/database/leaderboard/updateLeaderboardCache'
 import { getErrorMessage } from '../utils/getErrorMessage'
@@ -19,7 +20,18 @@ export async function getTextLeaderboard(
   }
 
   try {
-    return await getTextLeaderboardDb(textId, currentUserId)
+    const cached = await getTextLeaderboardDb(textId, currentUserId)
+    if (cached.top.length > 0) return cached
+  } catch (err) {
+    pwaLogger.warn(
+      TAG,
+      'Leaderboard cache unavailable; loading saved results',
+      err
+    )
+  }
+
+  try {
+    return await getTextLeaderboardFallback(textId, currentUserId)
   } catch (err) {
     throw new Error(getErrorMessage(err, 'Failed to load leaderboard'))
   }

@@ -6,3 +6,5 @@ build
 *.md
 frontend/src/lib/webgazer-local
 .cache
+frontend/pwa-report
+frontend/pwa-test-results

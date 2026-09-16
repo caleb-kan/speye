@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import {
   NotificationsContext,
   type ToastNotification,
@@ -45,12 +52,22 @@ export function NotificationsProvider({
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [toasts, setToasts] = useState<ToastNotification[]>([])
   const [loading, setLoading] = useState(false)
+  const [accountId, setAccountId] = useState(userId)
+  const activeAccountRef = useRef(userId)
   const toastTimeoutsRef = useRef(
     new Map<string, ReturnType<typeof setTimeout>>()
   )
   const toastExitTimeoutsRef = useRef(
     new Map<string, ReturnType<typeof setTimeout>>()
   )
+
+  // Reset this provider's state without remounting auth callback routes below it.
+  if (accountId !== userId) {
+    setAccountId(userId)
+    setNotifications([])
+    setToasts([])
+    setLoading(false)
+  }
 
   const removeToast = useCallback((notificationId: string) => {
     const timeout = toastTimeoutsRef.current.get(notificationId)
@@ -104,6 +121,7 @@ export function NotificationsProvider({
 
   const upsertToast = useCallback(
     (notification: Notification) => {
+      if (notification.user_id !== activeAccountRef.current) return
       // If a timeout is already tracked for this notification, the toast exists
       // (or is being added). Just update the notification data in-place.
       if (toastTimeoutsRef.current.has(notification.id)) {
@@ -171,6 +189,7 @@ export function NotificationsProvider({
     setLoading(true)
     try {
       const data = await getNotifications(userId)
+      if (activeAccountRef.current !== userId) return
       setNotifications(data)
 
       data
@@ -181,7 +200,7 @@ export function NotificationsProvider({
     } catch (err) {
       pwaLogger.error(TAG, 'Failed to load notifications', err)
     } finally {
-      setLoading(false)
+      if (activeAccountRef.current === userId) setLoading(false)
     }
   }, [userId, upsertToast])
 
@@ -189,19 +208,22 @@ export function NotificationsProvider({
     void refresh()
   }, [refresh])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    activeAccountRef.current = userId
     const toastTimeouts = toastTimeoutsRef.current
     const toastExitTimeouts = toastExitTimeoutsRef.current
 
     return () => {
+      activeAccountRef.current = null
       toastTimeouts.forEach((timeout) => clearTimeout(timeout))
       toastExitTimeouts.forEach((timeout) => clearTimeout(timeout))
       toastTimeouts.clear()
       toastExitTimeouts.clear()
     }
-  }, [])
+  }, [userId])
 
   const markAsSeen = useCallback(async (notificationId: string) => {
+    const owner = activeAccountRef.current
     let prevNotifications: Notification[] = []
     setNotifications((prev) => {
       prevNotifications = prev
@@ -214,7 +236,8 @@ export function NotificationsProvider({
       await markNotificationSeen(notificationId)
     } catch (error) {
       pwaLogger.error(TAG, 'Failed to mark notification as seen', error)
-      setNotifications(prevNotifications)
+      if (activeAccountRef.current === owner)
+        setNotifications(prevNotifications)
     }
   }, [])
 
@@ -231,16 +254,19 @@ export function NotificationsProvider({
       await markAllNotificationsSeen(userId)
     } catch (error) {
       pwaLogger.error(TAG, 'Failed to mark all notifications as seen', error)
-      setNotifications(prevNotifications)
+      if (activeAccountRef.current === userId)
+        setNotifications(prevNotifications)
     }
   }, [userId])
 
   useNotificationSubscription(userId, {
     onInsert: (notification) => {
+      if (notification.user_id !== activeAccountRef.current) return
       setNotifications((prev) => upsertNotification(prev, notification))
       upsertToast(notification)
     },
     onUpdate: (notification) => {
+      if (notification.user_id !== activeAccountRef.current) return
       setNotifications((prev) => upsertNotification(prev, notification))
       if (notification.seen || notification.toast_shown) {
         removeToast(notification.id)

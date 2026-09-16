@@ -22,16 +22,16 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.process-text-worker]
-# Disable JWT verification - worker is called by pg_cron, not directly by users
-# Security: URL not publicly documented, only processes jobs from internal queue
+# The handler verifies X-Worker-Token through a service-role-only Vault RPC.
+# Configure the credential and cron headers in hosted Supabase before deployment.
 verify_jwt = false
 
 [functions.validate-quiz-worker]
-# Disable JWT verification - worker is called by pg_cron, not directly by users
-# Security: URL not publicly documented, only processes jobs from internal queue
+# The handler verifies X-Worker-Token through a service-role-only Vault RPC.
+# Configure the credential and cron headers in hosted Supabase before deployment.
 verify_jwt = false
 
 [functions.leaderboard]
 # Called by the frontend after quiz save to update Redis leaderboard cache.
-# JWT disabled because the function uses the service role key internally.
+# The handler verifies the user token with Supabase Auth before service-role use.
 verify_jwt = false

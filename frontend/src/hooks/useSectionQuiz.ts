@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import type { Text, QuestionSet } from '../types/database'
 import { saveQuizResult } from '../services/saveQuizResult'
+import { useAuth } from './useAuth'
 import {
   getSectionQuizProgress,
   setSectionQuizProgress,
@@ -19,6 +20,8 @@ import {
  * Used by both ReadingSession and AdaptiveReadingSession.
  */
 export function useSectionQuiz(currentText: Text) {
+  const { user } = useAuth()
+  const userId = user?.id ?? null
   const [pendingSectionQuizIndex, setPendingSectionQuizIndex] = useState<
     number | null
   >(null)
@@ -40,7 +43,7 @@ export function useSectionQuiz(currentText: Text) {
 
   useEffect(() => {
     if (!isSectional) return
-    getSectionQuizProgress(currentText.id)
+    getSectionQuizProgress(currentText.id, userId)
       .then((progress) => {
         if (!progress) return
         sectionResultsRef.current = progress.results
@@ -49,16 +52,20 @@ export function useSectionQuiz(currentText: Text) {
         setCompletedSectionQuizzes(completed)
       })
       .catch(console.error)
-  }, [currentText.id, isSectional])
+  }, [currentText.id, isSectional, userId])
 
   const persistProgress = (
     results: typeof sectionResultsRef.current,
     quizzed: Set<number>
   ) => {
-    setSectionQuizProgress(currentText.id, {
-      results,
-      quizzedSectionIds: [...quizzed],
-    }).catch(console.error)
+    setSectionQuizProgress(
+      currentText.id,
+      {
+        results,
+        quizzedSectionIds: [...quizzed],
+      },
+      userId
+    ).catch(console.error)
   }
 
   const saveAggregateIfAllDone = (
@@ -71,10 +78,12 @@ export function useSectionQuiz(currentText: Text) {
     const totalQuestions = results.reduce((sum, r) => sum + (r?.total ?? 0), 0)
     if (totalQuestions > 0) {
       const aggregateScore = Math.round((totalCorrect / totalQuestions) * 100)
-      saveQuizResult({ text_id: currentText.id, score: aggregateScore })
-        .then(() =>
-          clearSectionQuizProgress(currentText.id).catch(console.error)
-        )
+      saveQuizResult({ text_id: currentText.id, score: aggregateScore }, userId)
+        .then((result) => {
+          if (result?.user_id === userId) {
+            return clearSectionQuizProgress(currentText.id, userId)
+          }
+        })
         .catch(console.error)
     }
   }

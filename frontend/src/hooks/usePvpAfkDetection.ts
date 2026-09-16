@@ -8,7 +8,8 @@ import {
 } from '../constants/pvp'
 
 type AfkOptions = {
-  onForfeit: () => void | Promise<void>
+  // Returning false means the attempt was handled but did not succeed.
+  onForfeit: () => boolean | void | Promise<boolean | void>
   onForfeitFailed?: (message: string) => void
   enabled: boolean
 }
@@ -70,8 +71,10 @@ export function usePvpAfkDetection({
           return
         }
         Promise.resolve(result)
-          .then(() => {
-            forfeitSucceeded = true
+          .then((succeeded) => {
+            if (!mounted) return
+            if (succeeded === false) forfeitInFlight = false
+            else forfeitSucceeded = true
           })
           .catch((err) => {
             console.error(

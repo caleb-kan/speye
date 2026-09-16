@@ -52,11 +52,76 @@ async function deleteQueueMessage(msgId: number): Promise<void> {
   }
 }
 
-Deno.serve(async () => {
-  // Note: This worker is called by pg_cron. Security is handled by:
-  // 1. verify_jwt = false in config.toml (Supabase doesn't enforce JWT)
-  // 2. The URL is not publicly documented
-  // 3. The worker only processes jobs from the internal queue
+/** Complete the validation handoff or persist the existing manual-retry state. */
+async function queueValidationOrRecordFailure(
+  textId: string,
+  text: { owner_id: string | null }
+): Promise<void> {
+  try {
+    const { error } = await queue.rpc('send', {
+      queue_name: 'validate_quiz',
+      message: { text_id: textId },
+    })
+    if (error) throw error
+    return
+  } catch (error) {
+    console.error('Error queuing validation job:', error)
+  }
+
+  // Do not overwrite validation, reprocessing, or an ownership change.
+  let fallback = supabase
+    .from('texts')
+    .update({ quiz_valid: false }, { count: 'exact' })
+    .eq('id', textId)
+    .eq('processing_status', 'completed')
+    .is('quiz_valid', null)
+  fallback =
+    text.owner_id === null
+      ? fallback.is('owner_id', null)
+      : fallback.eq('owner_id', text.owner_id)
+  const { error } = await fallback
+  if (error) throw error
+}
+
+Deno.serve(async (req: Request) => {
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      status: 405,
+      headers: { 'Content-Type': 'application/json', Allow: 'POST' },
+    })
+  }
+  // Cron reads its dedicated credential from Vault. Only this service-role
+  // client can call the verifier, which returns only a boolean.
+  let authorized =
+    !!supabaseServiceKey &&
+    req.headers.get('Authorization') === `Bearer ${supabaseServiceKey}`
+  if (!authorized) {
+    const workerToken = req.headers.get('X-Worker-Token') ?? ''
+    if (/^[a-f0-9]{64}$/i.test(workerToken)) {
+      try {
+        const { data, error } = await supabase.rpc('verify_worker_token', {
+          p_token: workerToken,
+        })
+        if (error) throw error
+        authorized = data === true
+      } catch {
+        console.error('Worker credential verification unavailable')
+        return new Response(
+          JSON.stringify({ error: 'Authorization unavailable' }),
+          {
+            status: 503,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        )
+      }
+    }
+    if (!authorized) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+  }
 
   let job: QueueMessage | null = null
 
@@ -95,19 +160,39 @@ Deno.serve(async () => {
     const { data: text, error: fetchError } = await supabase
       .from('texts')
       .select(
-        'content, title, fiction, admin_decision, owner_id, sectional, section_content'
+        'content, title, fiction, admin_decision, owner_id, sectional, section_content, processing_status, quiz_valid'
       )
       .eq('id', textId)
-      .single()
+      .maybeSingle()
 
-    if (fetchError || !text) {
+    if (fetchError) {
       console.error('Error fetching text:', fetchError)
+      return new Response(JSON.stringify({ error: 'Failed to fetch text' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (!text) {
       // Delete the message since the text doesn't exist
       await deleteQueueMessage(job.msg_id)
       return new Response(JSON.stringify({ error: 'Text not found' }), {
         status: 404,
         headers: { 'Content-Type': 'application/json' },
       })
+    }
+
+    if (text.processing_status !== 'pending') {
+      if (text.processing_status === 'completed' && text.quiz_valid === null) {
+        // Processing may have committed before the validation enqueue failed.
+        // Recover that handoff without paying for another processing request.
+        await queueValidationOrRecordFailure(textId, text)
+      }
+      await deleteQueueMessage(job.msg_id)
+      return new Response(
+        JSON.stringify({ message: 'Text already processed or status changed' }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      )
     }
 
     // 3. Call the process-text edge function
@@ -161,27 +246,51 @@ Deno.serve(async () => {
       // TOS violations are shown read-only; other failures can be reprocessed.
       // If the text was previously admin-approved (e.g. reprocessing), preserve
       // that admin_decision value.
-      const { error: updateError } = await supabase
+      const { error: updateError, count } = await supabase
         .from('texts')
-        .update({
-          processing_status: 'failed',
-          llm_decision: 'rejected',
-          llm_violation_type: violationType,
-          admin_decision:
-            text.admin_decision === 'approved' ? 'approved' : 'pending',
-          rejection_reason: rejectionReason,
-          rejection_stage: 'process_text',
-        })
+        .update(
+          {
+            processing_status: 'failed',
+            llm_decision: 'rejected',
+            llm_violation_type: violationType,
+            admin_decision:
+              text.admin_decision === 'approved' ? 'approved' : 'pending',
+            rejection_reason: rejectionReason,
+            rejection_stage: 'process_text',
+          },
+          { count: 'exact' }
+        )
         .eq('id', textId)
+        .eq('processing_status', 'pending')
 
       if (updateError) {
         console.error(
           'Error updating text after process-text failure:',
           updateError
         )
-      } else {
-        console.log(`Rejected text after process-text failure: ${textId}`)
+        // Keep the message for retry after its visibility timeout. Otherwise
+        // a database outage leaves the text pending with no remaining job.
+        return new Response(
+          JSON.stringify({ error: 'Failed to record processing failure' }),
+          {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        )
       }
+
+      // A different attempt may have completed while this LLM call failed.
+      // Only the attempt that changed the row should notify its owner.
+      if (count === 0) {
+        await deleteQueueMessage(job.msg_id)
+        return new Response(
+          JSON.stringify({
+            message: 'Text already processed or status changed',
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } }
+        )
+      }
+      console.log(`Rejected text after process-text failure: ${textId}`)
 
       const title = text.title ?? 'Untitled text'
 
@@ -229,6 +338,7 @@ Deno.serve(async () => {
         {
           title: result.title ?? text.title,
           quiz: { questionSets: result.questionSets },
+          quiz_valid: null,
           fiction: text.fiction ?? result.fiction,
           summary: result.summary,
           processing_status: 'completed',
@@ -243,19 +353,21 @@ Deno.serve(async () => {
 
     if (updateError) {
       console.error('Error updating text:', updateError)
-      // Still delete the message to prevent retry loops
-      // User can manually retry via the retry button
+      // A persisted failure enables the user's retry button. If that write
+      // also fails, retain the queue message so pending work is not lost.
       const { error: fallbackError } = await supabase
         .from('texts')
         .update({ processing_status: 'failed' })
         .eq('id', textId)
+        .eq('processing_status', 'pending')
       if (fallbackError) {
         console.error(
           'Failed to set processing_status to failed:',
           fallbackError
         )
+      } else {
+        await deleteQueueMessage(job.msg_id)
       }
-      await deleteQueueMessage(job.msg_id)
       return new Response(JSON.stringify({ error: updateError.message }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' },
@@ -276,20 +388,7 @@ Deno.serve(async () => {
     // on the texts table, which fires when admin_decision becomes 'pending'
 
     // 5. Queue validation job
-    const { error: queueError } = await queue.rpc('send', {
-      queue_name: 'validate_quiz',
-      message: { text_id: textId },
-    })
-
-    if (queueError) {
-      console.error('Error queuing validation job:', queueError)
-      // Set quiz_valid to false so retry button appears in UI
-      // (retry will reprocess and re-queue validation)
-      await supabase
-        .from('texts')
-        .update({ quiz_valid: false }, { count: 'exact' })
-        .eq('id', textId)
-    }
+    await queueValidationOrRecordFailure(textId, text)
 
     // 6. Delete the processed message from queue
     await deleteQueueMessage(job.msg_id)
@@ -302,10 +401,8 @@ Deno.serve(async () => {
     })
   } catch (error) {
     console.error('Unexpected error:', error)
-    // Always try to delete the message on unexpected errors to prevent infinite retry loops
-    if (job) {
-      await deleteQueueMessage(job.msg_id)
-    }
+    // A thrown network/database failure does not acknowledge the job.
+    // The queue makes it available again after the visibility timeout.
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },

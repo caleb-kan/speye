@@ -52,9 +52,9 @@ function jsonResponse(data: Record<string, unknown>, status = 200): Response {
 }
 
 type RequestBody = {
-  text_id?: string
-  user_id?: string
-  action?: 'update'
+  text_id?: unknown
+  user_id?: unknown
+  action?: unknown
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -254,6 +254,22 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ error: 'Method not allowed' }, 405)
   }
 
+  const accessToken = req.headers
+    .get('Authorization')
+    ?.match(/^Bearer (.+)$/i)?.[1]
+  if (!accessToken) return jsonResponse({ error: 'Unauthorized' }, 401)
+
+  let authenticatedUserId: string
+  try {
+    const { data, error } = await supabase.auth.getUser(accessToken)
+    if (error || !data.user) {
+      return jsonResponse({ error: 'Unauthorized' }, 401)
+    }
+    authenticatedUserId = data.user.id
+  } catch {
+    return jsonResponse({ error: 'Failed to verify authorization' }, 500)
+  }
+
   let body: RequestBody | null = null
   try {
     body = await req.json()
@@ -261,19 +277,43 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ error: 'Invalid JSON body' }, 400)
   }
 
-  const textId = body?.text_id?.trim()
+  const textId = typeof body?.text_id === 'string' ? body.text_id.trim() : ''
   if (!textId) {
     return jsonResponse({ error: 'text_id is required' }, 400)
   }
 
   // UPDATE action: called after quiz save to update Redis cache
   if (body?.action === 'update') {
-    const userId = body.user_id?.trim()
+    const userId = typeof body.user_id === 'string' ? body.user_id.trim() : ''
     if (!userId) {
       return jsonResponse({ error: 'user_id is required for update' }, 400)
     }
+    if (userId !== authenticatedUserId) {
+      return jsonResponse({ error: 'Cannot update another user' }, 403)
+    }
 
     try {
+      // Redis is readable by anonymous clients. Never copy activity from
+      // private or unpublished texts through this service-role client.
+      const { data: publicText, error: textError } = await supabase
+        .from('texts')
+        .select('id, admin_decision, llm_decision, quiz_valid')
+        .eq('id', textId)
+        .is('owner_id', null)
+        .eq('processing_status', 'completed')
+        .maybeSingle()
+      if (textError) throw textError
+      // Match get_random_text visibility, including legacy and automatically
+      // approved texts that are already available to readers.
+      const isVisible =
+        publicText &&
+        (publicText.admin_decision === 'approved' ||
+          publicText.admin_decision === null ||
+          (publicText.admin_decision === 'pending' &&
+            publicText.llm_decision === 'approved' &&
+            publicText.quiz_valid === true))
+      if (!isVisible) return jsonResponse({ error: 'Text not found' }, 404)
+
       const result = await updateUserEntry(textId, userId)
       return jsonResponse(result)
     } catch (err) {

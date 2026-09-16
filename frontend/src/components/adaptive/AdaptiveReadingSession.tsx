@@ -9,6 +9,7 @@ import {
 import { useAuth } from '../../hooks/useAuth'
 import {
   clearReadingActivitySession,
+  isReadingActivityOwner,
   loadReadingActivitySession,
   upsertReadingActivitySession,
 } from '../../utils/readingActivityStorage'
@@ -46,6 +47,7 @@ export function AdaptiveReadingSession({
   const hasLoggedCompleteRef = useRef(false)
   const hasLoggedLeaveRef = useRef(false)
   const { session, user } = useAuth()
+  const ownerId = user?.id ?? null
   const accessTokenRef = useRef<string | null>(null)
   const userIdRef = useRef<string | null>(null)
 
@@ -57,7 +59,7 @@ export function AdaptiveReadingSession({
   useEffect(() => {
     hasLoggedCompleteRef.current = false
     hasLoggedLeaveRef.current = false
-  }, [currentText.id])
+  }, [ownerId, currentText.id])
 
   const {
     isSectional,
@@ -73,18 +75,21 @@ export function AdaptiveReadingSession({
   } = useSectionQuiz(currentText)
 
   useEffect(() => {
-    const existing = loadReadingActivitySession()
+    const existing = loadReadingActivitySession(ownerId)
     if (existing?.textId === currentText.id) {
       if (existing.mode !== 'adaptive') {
         startTimeRef.current = null
-        upsertReadingActivitySession({
-          textId: currentText.id,
-          startTime: null,
-          started: false,
-          wpm,
-          mode: 'adaptive',
-          progressIndex: initialWordIndex,
-        })
+        upsertReadingActivitySession(
+          {
+            textId: currentText.id,
+            startTime: null,
+            started: false,
+            wpm,
+            mode: 'adaptive',
+            progressIndex: initialWordIndex,
+          },
+          ownerId
+        )
       } else {
         startTimeRef.current = existing.startTime
         const updates: Partial<{ wpm: number; progressIndex: number }> = {}
@@ -92,39 +97,45 @@ export function AdaptiveReadingSession({
         if (existing.progressIndex !== initialWordIndex)
           updates.progressIndex = initialWordIndex
         if (Object.keys(updates).length > 0) {
-          upsertReadingActivitySession(updates)
+          upsertReadingActivitySession(updates, ownerId)
         }
       }
     } else {
       startTimeRef.current = null
-      upsertReadingActivitySession({
-        textId: currentText.id,
-        startTime: null,
-        started: false,
-        wpm,
-        mode: 'adaptive',
-        progressIndex: initialWordIndex,
-      })
+      upsertReadingActivitySession(
+        {
+          textId: currentText.id,
+          startTime: null,
+          started: false,
+          wpm,
+          mode: 'adaptive',
+          progressIndex: initialWordIndex,
+        },
+        ownerId
+      )
     }
 
     if (initialWordIndex > 0 && !startTimeRef.current) {
       const startTime = new Date().toISOString()
       startTimeRef.current = startTime
-      upsertReadingActivitySession({
-        textId: currentText.id,
-        startTime,
-        started: true,
-        wpm,
-        mode: 'adaptive',
-        progressIndex: initialWordIndex,
-      })
+      upsertReadingActivitySession(
+        {
+          textId: currentText.id,
+          startTime,
+          started: true,
+          wpm,
+          mode: 'adaptive',
+          progressIndex: initialWordIndex,
+        },
+        ownerId
+      )
     }
-  }, [currentText.id, initialWordIndex, wpm])
+  }, [ownerId, currentText.id, initialWordIndex, wpm])
 
   useEffect(() => {
     const handlePageLeave = () => {
       if (hasLoggedLeaveRef.current) return
-      const activitySession = loadReadingActivitySession()
+      const activitySession = loadReadingActivitySession(ownerId)
       if (
         !activitySession?.started ||
         !activitySession.textId ||
@@ -159,29 +170,38 @@ export function AdaptiveReadingSession({
       window.removeEventListener('beforeunload', handlePageLeave)
       window.removeEventListener('pagehide', handlePageLeave)
     }
-  }, [wpm, adaptiveSessionWpm, initialWordIndex])
+  }, [ownerId, wpm, adaptiveSessionWpm, initialWordIndex])
 
   useEffect(() => {
-    if (!readingComplete || hasLoggedCompleteRef.current) return
+    if (
+      !readingComplete ||
+      hasLoggedCompleteRef.current ||
+      !isReadingActivityOwner(ownerId)
+    )
+      return
     hasLoggedCompleteRef.current = true
 
-    const activitySession = loadReadingActivitySession()
+    const activitySession = loadReadingActivitySession(ownerId)
     // Clear session immediately to prevent double-logging from Navbar
-    clearReadingActivitySession()
+    clearReadingActivitySession(ownerId)
 
     const logWpm = adaptiveSessionWpm
       ? Math.round(adaptiveSessionWpm)
       : (activitySession?.wpm ?? wpm)
 
-    void logUserActivity({
-      textId: currentText.id,
-      wpm: logWpm,
-      startTime: startTimeRef.current ?? new Date().toISOString(),
-      endTime: new Date().toISOString(),
-      mode: 'adaptive',
-      progressIndex: activitySession?.progressIndex ?? initialWordIndex,
-    })
+    void logUserActivity(
+      {
+        textId: currentText.id,
+        wpm: logWpm,
+        startTime: startTimeRef.current ?? new Date().toISOString(),
+        endTime: new Date().toISOString(),
+        mode: 'adaptive',
+        progressIndex: activitySession?.progressIndex ?? initialWordIndex,
+      },
+      ownerId
+    )
   }, [
+    ownerId,
     readingComplete,
     currentText.id,
     wpm,
@@ -190,19 +210,23 @@ export function AdaptiveReadingSession({
   ])
 
   const handlePositionChange = (wordIndex: number) => {
+    if (!isReadingActivityOwner(ownerId)) return
     onPositionChange?.(wordIndex)
 
     if (wordIndex > 0 && !startTimeRef.current) {
       const startTime = new Date().toISOString()
       startTimeRef.current = startTime
-      upsertReadingActivitySession({
-        textId: currentText.id,
-        startTime,
-        started: true,
-        wpm,
-        mode: 'adaptive',
-        progressIndex: wordIndex,
-      })
+      upsertReadingActivitySession(
+        {
+          textId: currentText.id,
+          startTime,
+          started: true,
+          wpm,
+          mode: 'adaptive',
+          progressIndex: wordIndex,
+        },
+        ownerId
+      )
     }
   }
 

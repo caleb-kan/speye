@@ -21,13 +21,13 @@ export async function getLastReadingPosition(
       pwaLogger.debug(TAG, 'Offline — returning cached reading position', {
         textId,
       })
-      return await getCachedLastPosition(textId)
+      return await getCachedLastPosition(textId, user.id)
     }
 
     try {
       const position = await getLastReadingPositionDb(user.id, textId)
       if (position !== null) {
-        void setCachedLastPosition(textId, position)
+        void setCachedLastPosition(textId, position, user.id)
       }
       return position
     } catch (err) {
@@ -36,7 +36,7 @@ export async function getLastReadingPosition(
         'Network fetch failed for reading position, falling back to cache',
         err
       )
-      return await getCachedLastPosition(textId)
+      return await getCachedLastPosition(textId, user.id)
     }
   } catch (err) {
     pwaLogger.error(TAG, 'Failed to restore reading position', err)

@@ -7,22 +7,35 @@ import { enqueueOperation } from './operationQueue'
 import { SYNC } from '../constants/offline'
 import { pwaLogger } from '../utils/pwaLogger'
 import { isOffline } from './networkStatus'
+import { supabase } from '../../../lib/supabase'
 
 const TAG = 'logUserActivity'
 
 export type { UserActivityLogParams }
 
-export async function logUserActivity(params: UserActivityLogParams) {
+export async function logUserActivity(
+  params: UserActivityLogParams,
+  originalUserId?: string | null
+) {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+  const userId =
+    originalUserId === undefined ? session?.user.id : originalUserId
+  if (!userId || session?.user.id !== userId) return null
   if (isOffline()) {
     pwaLogger.debug(TAG, 'Offline — queuing activity log', {
       textId: params.textId,
     })
-    await enqueueOperation('logUserActivity', params)
+    await enqueueOperation('logUserActivity', params, userId)
     return null
   }
 
   try {
-    return await logUserActivityDb(params)
+    const data = await logUserActivityDb(params, userId)
+    return (await supabase.auth.getSession()).data.session?.user.id === userId
+      ? data
+      : null
   } catch (err) {
     const message =
       err instanceof Error ? err.message.toLowerCase() : String(err)
@@ -36,7 +49,7 @@ export async function logUserActivity(params: UserActivityLogParams) {
       pwaLogger.warn(TAG, 'Network failure — queuing activity log for retry', {
         textId: params.textId,
       })
-      await enqueueOperation('logUserActivity', params)
+      await enqueueOperation('logUserActivity', params, userId)
       return null
     }
 
@@ -53,6 +66,7 @@ export function logUserActivityOnUnload(
   accessToken: string | null | undefined,
   userId: string | null | undefined
 ) {
+  if (params.progressIndex <= 0 || !accessToken || !userId) return
   if (isOffline()) {
     pwaLogger.debug(TAG, 'Offline unload — writing to localStorage queue')
     // Synchronously write to localStorage (localforage is async, may not complete during unload)
@@ -62,6 +76,7 @@ export function logUserActivityOnUnload(
       queue.push({
         id: `logUserActivity-unload-${Date.now()}`,
         type: 'logUserActivity' as const,
+        userId,
         payload: params,
         timestamp: Date.now(),
         retryCount: 0,

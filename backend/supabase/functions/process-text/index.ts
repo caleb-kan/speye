@@ -477,6 +477,10 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ error: 'Invalid JSON body' }, 400)
     }
 
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      return jsonResponse({ error: 'JSON body must be an object' }, 400)
+    }
+
     const {
       content,
       generateTitle = true,
@@ -527,7 +531,7 @@ Deno.serve(async (req: Request) => {
     if (sectional && sectionalArray) {
       let totalSectionContent = 0
       for (const section of sectionalArray) {
-        if (!section.title || typeof section.title !== 'string') {
+        if (!section || !section.title || typeof section.title !== 'string') {
           return jsonResponse(
             { error: 'Each section must have a valid title' },
             400

@@ -40,11 +40,45 @@ async function deleteQueueMessage(msgId: number): Promise<void> {
 
 const QUIZ_QUALITY_REJECTION_REASON = 'Quiz quality insufficient'
 
-Deno.serve(async () => {
-  // Note: This worker is called by pg_cron. Security is handled by:
-  // 1. verify_jwt = false in config.toml (Supabase doesn't enforce JWT)
-  // 2. The URL is not publicly documented
-  // 3. The worker only processes jobs from the internal queue
+Deno.serve(async (req: Request) => {
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      status: 405,
+      headers: { 'Content-Type': 'application/json', Allow: 'POST' },
+    })
+  }
+  // Cron reads its dedicated credential from Vault. Only this service-role
+  // client can call the verifier, which returns only a boolean.
+  let authorized =
+    !!supabaseServiceKey &&
+    req.headers.get('Authorization') === `Bearer ${supabaseServiceKey}`
+  if (!authorized) {
+    const workerToken = req.headers.get('X-Worker-Token') ?? ''
+    if (/^[a-f0-9]{64}$/i.test(workerToken)) {
+      try {
+        const { data, error } = await supabase.rpc('verify_worker_token', {
+          p_token: workerToken,
+        })
+        if (error) throw error
+        authorized = data === true
+      } catch {
+        console.error('Worker credential verification unavailable')
+        return new Response(
+          JSON.stringify({ error: 'Authorization unavailable' }),
+          {
+            status: 503,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        )
+      }
+    }
+    if (!authorized) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+  }
 
   let job: QueueMessage | null = null
 
@@ -84,10 +118,17 @@ Deno.serve(async () => {
         'content, quiz, processing_status, summary, fiction, admin_decision, sectional, section_content'
       )
       .eq('id', textId)
-      .single()
+      .maybeSingle()
 
-    if (fetchError || !text) {
+    if (fetchError) {
       console.error('Error fetching text:', fetchError)
+      return new Response(JSON.stringify({ error: 'Failed to fetch text' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (!text) {
       // Delete the message since the text doesn't exist
       await deleteQueueMessage(job.msg_id)
       return new Response(JSON.stringify({ error: 'Text not found' }), {
@@ -157,11 +198,22 @@ Deno.serve(async () => {
 
       // Update quiz_valid to false to indicate validation failed (shows retry button)
       // Only update if text is still in 'completed' status (not being reprocessed)
-      await supabase
+      const { error: failureUpdateError } = await supabase
         .from('texts')
         .update({ quiz_valid: false }, { count: 'exact' })
         .eq('id', textId)
         .eq('processing_status', 'completed')
+
+      if (failureUpdateError) {
+        console.error('Error recording validation failure:', failureUpdateError)
+        return new Response(
+          JSON.stringify({ error: 'Failed to record validation failure' }),
+          {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        )
+      }
 
       // Delete message - validation failure won't benefit from retry
       await deleteQueueMessage(job.msg_id)
@@ -185,8 +237,7 @@ Deno.serve(async () => {
 
     if (updateError) {
       console.error('Error updating text:', updateError)
-      // Still delete the message to prevent retry loops
-      await deleteQueueMessage(job.msg_id)
+      // Retain the job until its validation result can be persisted.
       return new Response(JSON.stringify({ error: updateError.message }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' },
@@ -223,6 +274,13 @@ Deno.serve(async () => {
 
       if (rejectionError) {
         console.error('Error updating rejection metadata:', rejectionError)
+        return new Response(
+          JSON.stringify({ error: 'Failed to record quiz review metadata' }),
+          {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        )
       } else {
         // Note: admin notification is handled by the notify_admins_review_trigger
         // on the texts table, which fires when admin_decision becomes 'pending'
@@ -247,10 +305,8 @@ Deno.serve(async () => {
     )
   } catch (error) {
     console.error('Unexpected error:', error)
-    // Always try to delete the message on unexpected errors to prevent infinite retry loops
-    if (job) {
-      await deleteQueueMessage(job.msg_id)
-    }
+    // A thrown network/database failure does not acknowledge the job.
+    // The queue makes it available again after the visibility timeout.
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },

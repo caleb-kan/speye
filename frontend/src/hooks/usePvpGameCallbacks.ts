@@ -151,23 +151,28 @@ export function usePvpGameCallbacks({
     return () => clearInterval(interval)
   }, [phase])
 
-  const handleForfeit = useCallback(async () => {
+  const attemptForfeit = useCallback(async (): Promise<boolean> => {
     if (!gameId || !userId || forfeitingRef.current || submittedRef.current)
-      return
+      return false
     forfeitingRef.current = true
     setForfeitError(null)
     try {
       await forfeitPvpGame(gameId, userId)
       clearPendingSubmit(gameId, PVP_SUBMIT_STORAGE_PREFIX)
-      if (!mountedRef.current) return
-      navigate(ROUTES.PVP)
+      if (mountedRef.current) navigate(ROUTES.PVP)
+      return true
     } catch (err) {
       console.error('Failed to forfeit:', err)
-      if (!mountedRef.current) return
+      if (!mountedRef.current) return false
       forfeitingRef.current = false
       setForfeitError('Failed to forfeit. Please try again or refresh.')
+      return false
     }
   }, [gameId, userId, navigate])
+
+  const handleForfeit = useCallback(async () => {
+    await attemptForfeit()
+  }, [attemptForfeit])
 
   const { sendProgress, sendMilestone, sendHeartbeat, connectionLost } =
     usePvpGameChannel(gameId, userId, {
@@ -210,7 +215,7 @@ export function usePvpGameCallbacks({
   })
 
   const { afkWarning, recordActivity } = usePvpAfkDetection({
-    onForfeit: handleForfeit,
+    onForfeit: attemptForfeit,
     onForfeitFailed: setForfeitError,
     enabled: phase === 'reading',
   })

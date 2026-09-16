@@ -65,7 +65,7 @@ export function useRsvpReader({
   )
 
   const [currentWordIndex, setCurrentWordIndex] = useState(
-    totalWords > 0 ? Math.min(initialWordIndex, totalWords - 1) : 0
+    totalWords > 0 ? Math.max(0, Math.min(initialWordIndex, totalWords - 1)) : 0
   )
   const [isPlaying, setIsPlaying] = useState(false)
   const intervalRef = useRef<number | null>(null)
@@ -77,8 +77,6 @@ export function useRsvpReader({
       setIsPlaying(false)
     }
   }
-
-  const initialWordIndexRef = useRef(initialWordIndex)
 
   const currentPhraseIndex = useMemo(
     () =>
@@ -108,7 +106,7 @@ export function useRsvpReader({
   const play = useCallback(() => {
     onPlay?.()
     if (currentPhraseIndex >= totalPhrases - 1) {
-      setCurrentWordIndex(initialWordIndexRef.current)
+      setCurrentWordIndex(0)
     }
     setIsPlaying(true)
   }, [currentPhraseIndex, totalPhrases, onPlay])
@@ -127,7 +125,7 @@ export function useRsvpReader({
 
   const restart = useCallback(() => {
     clearTimer()
-    setCurrentWordIndex(initialWordIndexRef.current)
+    setCurrentWordIndex(0)
     setIsPlaying(false)
   }, [clearTimer])
 

@@ -94,6 +94,33 @@ test.describe('Home Page', () => {
     await expect(page.getByRole('button', { name: /try again/i })).toBeVisible()
   })
 
+  test('preserves the reading position through an RSVP and standard round trip', async ({
+    page,
+  }) => {
+    await mockRandomText(page, {
+      title: 'Round Trip Passage',
+      content: 'A passage with enough words for reading. '.repeat(20),
+    })
+    await page.goto('/rsvp')
+    await expect(page.getByText('Round Trip Passage')).toBeVisible()
+    const wordCount = page.getByTestId('progress-word-count-text')
+    await page.getByRole('button', { name: 'Play', exact: true }).click()
+    await expect
+      .poll(async () => Number((await wordCount.textContent())?.split('/')[0]))
+      .toBeGreaterThan(5)
+    await page.getByRole('button', { name: 'Pause', exact: true }).click()
+    const pausedPosition = await wordCount.textContent()
+
+    await page
+      .getByRole('button', { name: 'Standard mode', exact: true })
+      .click()
+    await expect(page).toHaveURL(/\/home$/)
+    await expect(wordCount).toHaveText(pausedPosition ?? '')
+    await page.getByRole('button', { name: 'RSVP mode', exact: true }).click()
+    await expect(page).toHaveURL(/\/rsvp$/)
+    await expect(wordCount).toHaveText(pausedPosition ?? '')
+  })
+
   test('shows empty state when no texts available', async ({ page }) => {
     // Unroute the mockAuthSession catch-all so this specific route is reached
     await page.unroute('**/rest/v1/**')

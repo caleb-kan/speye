@@ -47,7 +47,8 @@ export function useReadingPositionSync({
     }
 
     if (textId !== null && textId !== prevTextIdRef.current) {
-      setPosition(0)
+      // The first resolved text still owns the position from navigation.
+      if (prevTextIdRef.current !== null) setPosition(0)
       prevTextIdRef.current = textId
     }
   }, [textId, modeTimestamp, initialPosition])

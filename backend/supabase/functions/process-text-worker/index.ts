@@ -132,10 +132,17 @@ Deno.serve(async (req: Request) => {
         'content, title, fiction, admin_decision, owner_id, sectional, section_content, processing_status'
       )
       .eq('id', textId)
-      .single()
+      .maybeSingle()
 
-    if (fetchError || !text) {
+    if (fetchError) {
       console.error('Error fetching text:', fetchError)
+      return new Response(JSON.stringify({ error: 'Failed to fetch text' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (!text) {
       // Delete the message since the text doesn't exist
       await deleteQueueMessage(job.msg_id)
       return new Response(JSON.stringify({ error: 'Text not found' }), {
@@ -225,7 +232,8 @@ Deno.serve(async (req: Request) => {
           'Error updating text after process-text failure:',
           updateError
         )
-        await deleteQueueMessage(job.msg_id)
+        // Keep the message for retry after its visibility timeout. Otherwise
+        // a database outage leaves the text pending with no remaining job.
         return new Response(
           JSON.stringify({ error: 'Failed to record processing failure' }),
           {
@@ -308,8 +316,8 @@ Deno.serve(async (req: Request) => {
 
     if (updateError) {
       console.error('Error updating text:', updateError)
-      // Still delete the message to prevent retry loops
-      // User can manually retry via the retry button
+      // A persisted failure enables the user's retry button. If that write
+      // also fails, retain the queue message so pending work is not lost.
       const { error: fallbackError } = await supabase
         .from('texts')
         .update({ processing_status: 'failed' })
@@ -320,8 +328,9 @@ Deno.serve(async (req: Request) => {
           'Failed to set processing_status to failed:',
           fallbackError
         )
+      } else {
+        await deleteQueueMessage(job.msg_id)
       }
-      await deleteQueueMessage(job.msg_id)
       return new Response(JSON.stringify({ error: updateError.message }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' },
@@ -368,10 +377,8 @@ Deno.serve(async (req: Request) => {
     })
   } catch (error) {
     console.error('Unexpected error:', error)
-    // Always try to delete the message on unexpected errors to prevent infinite retry loops
-    if (job) {
-      await deleteQueueMessage(job.msg_id)
-    }
+    // A thrown network/database failure does not acknowledge the job.
+    // The queue makes it available again after the visibility timeout.
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },

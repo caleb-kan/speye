@@ -5,6 +5,8 @@ function setup({
   initialStatus = 'pending',
   completeDuringFetch = false,
   failUpdate = false,
+  completeOnUpdateError = true,
+  persistenceFails = false,
   processFails = true,
 } = {}) {
   const row: Record<string, unknown> = {
@@ -29,7 +31,7 @@ function setup({
         filters.push([column, value])
         return query
       },
-      single: async () => ({ data: { ...row }, error: null }),
+      maybeSingle: async () => ({ data: { ...row }, error: null }),
       update: (value: Record<string, unknown>) => {
         values = value
         return query
@@ -40,8 +42,9 @@ function setup({
       },
       then: (resolve: (value: unknown) => unknown) => {
         updates++
-        if (failUpdate && updates === 1) {
-          row.processing_status = 'completed'
+        if (persistenceFails || (failUpdate && updates === 1)) {
+          if (failUpdate && completeOnUpdateError)
+            row.processing_status = 'completed'
           return Promise.resolve({
             error: { message: 'write failed' },
             count: null,
@@ -135,4 +138,29 @@ describe('process-text worker idempotence', () => {
       message: { text_id: 'text-1' },
     })
   })
+
+  it('acknowledges a persisted fallback failure so manual retry remains available', async () => {
+    const { run, row, rpc } = setup({
+      failUpdate: true,
+      completeOnUpdateError: false,
+      processFails: false,
+    })
+    expect((await run()).status).toBe(500)
+    expect(row.processing_status).toBe('failed')
+    expect(rpc).toHaveBeenCalledWith('delete', expect.anything())
+  })
+
+  it.each([true, false])(
+    'retains the queue message if database persistence fails (process failure: %s)',
+    async (processFails) => {
+      const { run, row, rpc, notifications } = setup({
+        processFails,
+        persistenceFails: true,
+      })
+      expect((await run()).status).toBe(500)
+      expect(row.processing_status).toBe('pending')
+      expect(rpc).not.toHaveBeenCalledWith('delete', expect.anything())
+      expect(notifications).toEqual([])
+    }
+  )
 })

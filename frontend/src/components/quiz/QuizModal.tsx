@@ -74,10 +74,10 @@ export function QuizModal({
     setIsSaving(true)
     setSaveError(false)
     try {
-      const result = await saveQuizResult({
-        text_id: textId,
-        score: finalScore,
-      })
+      const result = await saveQuizResult(
+        { text_id: textId, score: finalScore },
+        user.id
+      )
       if (result?.wpm != null) {
         setSavedWpm(result.wpm)
       }

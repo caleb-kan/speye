@@ -5,11 +5,12 @@ import { splitTextToWords } from '../utils/textParsing'
 
 export function useRestoreReadingProgress(
   currentText: Text | null,
-  setReadingPosition: (index: number) => void
+  setReadingPosition: (index: number) => void,
+  enabled = true
 ) {
-  const newTextId = currentText?.id ?? null
+  const newTextId = enabled ? (currentText?.id ?? null) : null
   const [restoringId, setRestoringId] = useState<string | null>(null)
-  const [isRestoring, setIsRestoring] = useState(!!currentText?.id)
+  const [isRestoring, setIsRestoring] = useState(!!newTextId)
 
   // Keep a ref to currentText so the effect can read content without
   // re-running when the text object reference changes (e.g. realtime update)

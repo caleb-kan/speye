@@ -293,14 +293,17 @@ export function usePvpGameCallbacks({
 
         if (text && readingStartRef.current) {
           const effectiveWpm = getEffectiveWpm()
-          logUserActivity({
-            textId: text.id,
-            wpm: effectiveWpm,
-            startTime: readingStartRef.current,
-            endTime: new Date().toISOString(),
-            mode: preferences.mode,
-            progressIndex: totalWordsRef.current,
-          }).catch((err) => {
+          logUserActivity(
+            {
+              textId: text.id,
+              wpm: effectiveWpm,
+              startTime: readingStartRef.current,
+              endTime: new Date().toISOString(),
+              mode: preferences.mode,
+              progressIndex: totalWordsRef.current,
+            },
+            userId
+          ).catch((err) => {
             console.error('Failed to log PvP activity:', err)
             appendSaveWarning(
               'Reading activity could not be saved.',
@@ -405,7 +408,7 @@ export function usePvpGameCallbacks({
       finishQuiz()
 
       if (text) {
-        saveQuizResult({ text_id: text.id, score }).catch((err) => {
+        saveQuizResult({ text_id: text.id, score }, userId).catch((err) => {
           console.error('Failed to save quiz result:', err)
           appendSaveWarning(
             'Quiz score could not be saved.',

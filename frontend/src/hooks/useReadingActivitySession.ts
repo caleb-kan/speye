@@ -47,6 +47,7 @@ export const useReadingActivitySession = (
   }, [ownerId, currentText.id])
 
   useEffect(() => {
+    if (readingComplete && hasLoggedCompleteRef.current) return
     const existing = loadReadingActivitySession(ownerId)
     if (existing?.textId === currentText.id) {
       if (
@@ -128,6 +129,7 @@ export const useReadingActivitySession = (
     }
   }, [
     ownerId,
+    readingComplete,
     currentText.id,
     context.readingPosition,
     context.wpm,
@@ -172,12 +174,11 @@ export const useReadingActivitySession = (
   }, [ownerId, context.wpm, context.mode, context.readingPosition])
 
   useEffect(() => {
-    if (
-      !readingComplete ||
-      hasLoggedCompleteRef.current ||
-      !isReadingActivityOwner(ownerId)
-    )
+    if (!readingComplete) {
+      hasLoggedCompleteRef.current = false
       return
+    }
+    if (hasLoggedCompleteRef.current || !isReadingActivityOwner(ownerId)) return
     hasLoggedCompleteRef.current = true
 
     const activitySession = loadReadingActivitySession(ownerId)

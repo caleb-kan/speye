@@ -170,6 +170,7 @@ export interface MockSessionOptions {
   sub?: string
   email?: string
   userMetadata?: Record<string, string>
+  appMetadata?: Record<string, string>
 }
 
 /**
@@ -185,6 +186,7 @@ export async function mockAuthSession(
     sub = 'user-1',
     email = 'reader@example.com',
     userMetadata = { username: 'testuser' },
+    appMetadata = {},
   } = options
   const now = new Date().toISOString()
   const jwt = createMockJWT(sub, email, userMetadata)
@@ -196,7 +198,7 @@ export async function mockAuthSession(
     role: 'authenticated',
     email,
     email_confirmed_at: now,
-    app_metadata: {},
+    app_metadata: appMetadata,
     user_metadata: userMetadata,
     created_at: now,
     updated_at: now,

@@ -222,10 +222,12 @@ test('updates wait for existing tabs and activate after all old clients close', 
   await page.goto('/terms')
   await workerReady(page)
   expect(await activeWorkerVersion(page)).toBe(1)
+  const nextWorkerStarted = context.waitForEvent('serviceworker')
   await request.post(`${api}/__test/update-worker`)
   await page.evaluate(async () =>
     (await navigator.serviceWorker.ready).update()
   )
+  const nextWorker = await nextWorkerStarted
   await expect
     .poll(() =>
       page.evaluate(
@@ -237,6 +239,21 @@ test('updates wait for existing tabs and activate after all old clients close', 
   await page.reload()
   expect(await activeWorkerVersion(page)).toBe(1)
   await page.close()
+  // Closing a page and removing its service worker client are asynchronous.
+  // Keep zero page clients until activation completes, as a real app shutdown does.
+  await expect
+    .poll(() =>
+      nextWorker.evaluate(() => {
+        const { registration } = globalThis as typeof globalThis & {
+          registration: ServiceWorkerRegistration
+        }
+        return (
+          registration.waiting === null &&
+          registration.active?.state === 'activated'
+        )
+      })
+    )
+    .toBe(true)
   const replacement = await context.newPage()
   await replacement.goto('/terms')
   await expect.poll(() => activeWorkerVersion(replacement)).toBe(2)

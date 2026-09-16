@@ -12,8 +12,10 @@ export async function saveQuizResult(
 ) {
   const {
     data: { user },
+    error: authError,
   } = await supabase.auth.getUser()
 
+  if (authError) throw authError
   if (!user || (expectedUserId && user.id !== expectedUserId)) return null
 
   const { data: latestActivity, error: fetchError } = await supabase

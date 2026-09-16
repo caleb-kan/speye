@@ -254,9 +254,10 @@ interface SectionQuizProgress {
 }
 
 export async function getSectionQuizProgress(
-  textId: string
+  textId: string,
+  ownerId?: string | null
 ): Promise<SectionQuizProgress | null> {
-  const userId = await currentUserId()
+  const userId = ownerId === undefined ? await currentUserId() : ownerId
   return getCached<SectionQuizProgress>(
     sectionQuizStore,
     `${userId ?? 'anonymous'}:${textId}`,
@@ -266,9 +267,10 @@ export async function getSectionQuizProgress(
 
 export async function setSectionQuizProgress(
   textId: string,
-  progress: SectionQuizProgress
+  progress: SectionQuizProgress,
+  ownerId?: string | null
 ): Promise<void> {
-  const userId = await currentUserId()
+  const userId = ownerId === undefined ? await currentUserId() : ownerId
   await setCached(
     sectionQuizStore,
     `${userId ?? 'anonymous'}:${textId}`,
@@ -276,9 +278,12 @@ export async function setSectionQuizProgress(
   )
 }
 
-export async function clearSectionQuizProgress(textId: string): Promise<void> {
+export async function clearSectionQuizProgress(
+  textId: string,
+  ownerId?: string | null
+): Promise<void> {
   try {
-    const userId = await currentUserId()
+    const userId = ownerId === undefined ? await currentUserId() : ownerId
     await sectionQuizStore.removeItem(`${userId ?? 'anonymous'}:${textId}`)
   } catch (err) {
     pwaLogger.warn(

@@ -51,6 +51,9 @@ vi.mock('../../hooks/useReadingActivitySession', () => ({
 vi.mock('../../services/saveQuizResult', () => ({
   saveQuizResult: vi.fn().mockResolvedValue(undefined),
 }))
+vi.mock('../../hooks/useAuth', () => ({
+  useAuth: () => ({ user: { id: 'owner-1' } }),
+}))
 
 vi.mock('../../services/offlineCache', () => ({
   getSectionQuizProgress: vi.fn().mockResolvedValue(null),
@@ -332,7 +335,8 @@ describe('ReadingSession', () => {
       await waitFor(() => {
         expect(offlineCacheModule.setSectionQuizProgress).toHaveBeenCalledWith(
           'text-1',
-          expect.objectContaining({ quizzedSectionIds: [0] })
+          expect.objectContaining({ quizzedSectionIds: [0] }),
+          'owner-1'
         )
       })
     })
@@ -355,10 +359,13 @@ describe('ReadingSession', () => {
         capturedProps.quizButton.onFinish?.(4, 5)
       })
       await waitFor(() => {
-        expect(saveQuizResultModule.saveQuizResult).toHaveBeenCalledWith({
-          text_id: 'text-1',
-          score: expect.any(Number),
-        })
+        expect(saveQuizResultModule.saveQuizResult).toHaveBeenCalledWith(
+          {
+            text_id: 'text-1',
+            score: expect.any(Number),
+          },
+          'owner-1'
+        )
       })
     })
 
@@ -379,10 +386,13 @@ describe('ReadingSession', () => {
         capturedProps.quizButton.onFinish?.(4, 5)
       })
       await waitFor(() => {
-        expect(saveQuizResultModule.saveQuizResult).toHaveBeenCalledWith({
-          text_id: 'text-1',
-          score: 70,
-        })
+        expect(saveQuizResultModule.saveQuizResult).toHaveBeenCalledWith(
+          {
+            text_id: 'text-1',
+            score: 70,
+          },
+          'owner-1'
+        )
       })
     })
 
@@ -431,7 +441,8 @@ describe('ReadingSession', () => {
       renderSession()
       await waitFor(() => {
         expect(offlineCacheModule.getSectionQuizProgress).toHaveBeenCalledWith(
-          'text-1'
+          'text-1',
+          'owner-1'
         )
       })
     })

@@ -18,8 +18,10 @@ export async function logUserActivity(
   if (params.progressIndex <= 0) return null
   const {
     data: { user },
+    error: authError,
   } = await supabase.auth.getUser()
 
+  if (authError) throw authError
   if (!user || (expectedUserId && user.id !== expectedUserId)) return null
 
   const { data, error } = await supabase

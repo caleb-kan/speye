@@ -54,4 +54,14 @@ describe('queued activity account ownership', () => {
     ).resolves.toBeNull()
     expect(from).not.toHaveBeenCalled()
   })
+
+  it('propagates transient authentication failures so queued writes can retry', async () => {
+    const error = new Error('Failed to fetch')
+    getUser.mockResolvedValue({ data: { user: null }, error })
+    await expect(logUserActivity(params, 'original-user')).rejects.toBe(error)
+    await expect(
+      saveQuizResult({ text_id: 'text-1', score: 90 }, 'original-user')
+    ).rejects.toBe(error)
+    expect(from).not.toHaveBeenCalled()
+  })
 })

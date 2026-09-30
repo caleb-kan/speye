@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { EditTextModal } from '../../components/EditTextModal'
 import { AuthContext } from '../../context/authContext'
@@ -302,11 +302,11 @@ describe('EditTextModal', () => {
     })
 
     it('should show Creating Public Copy... when making public', async () => {
-      const mockOnMakePublicCopy = vi
-        .fn()
-        .mockImplementation(
-          () => new Promise((resolve) => setTimeout(resolve, 100))
-        )
+      let finishCopy!: () => void
+      const publicCopy = new Promise<void>((resolve) => {
+        finishCopy = resolve
+      })
+      const mockOnMakePublicCopy = vi.fn().mockReturnValue(publicCopy)
 
       renderWithAuth(
         <EditTextModal
@@ -326,14 +326,20 @@ describe('EditTextModal', () => {
       expect(
         screen.getByRole('button', { name: 'Creating Public Copy...' })
       ).toBeInTheDocument()
+
+      await act(async () => {
+        finishCopy()
+        await publicCopy
+      })
+      expect(screen.getByRole('button', { name: 'Make Public' })).toBeEnabled()
     })
 
     it('should disable save button while making public copy', async () => {
-      const mockOnMakePublicCopy = vi
-        .fn()
-        .mockImplementation(
-          () => new Promise((resolve) => setTimeout(resolve, 100))
-        )
+      let finishCopy!: () => void
+      const publicCopy = new Promise<void>((resolve) => {
+        finishCopy = resolve
+      })
+      const mockOnMakePublicCopy = vi.fn().mockReturnValue(publicCopy)
 
       renderWithAuth(
         <EditTextModal
@@ -345,15 +351,26 @@ describe('EditTextModal', () => {
         { user: mockAdminUser }
       )
 
+      fireEvent.change(screen.getByDisplayValue(privateText.title ?? ''), {
+        target: { value: 'Updated Title' },
+      })
+      const saveButton = screen.getByRole('button', {
+        name: /Save Changes/i,
+      })
+      expect(saveButton).toBeEnabled()
+
       const makePublicButton = screen.getByRole('button', {
         name: 'Make Public',
       })
       fireEvent.click(makePublicButton)
 
-      const saveButton = screen.getByRole('button', {
-        name: /Save Changes/i,
-      })
       expect(saveButton).toBeDisabled()
+
+      await act(async () => {
+        finishCopy()
+        await publicCopy
+      })
+      expect(saveButton).toBeEnabled()
     })
 
     it('should not show Make Public button when onMakePublicCopy is not provided', () => {

@@ -91,7 +91,9 @@ export function useRsvpReader({
   )
 
   const isComplete = hasText && currentPhraseIndex >= totalPhrases - 1
-  const progress = calculateProgressPercentage(currentWordIndex, totalWords)
+  const progress = isComplete
+    ? 100
+    : calculateProgressPercentage(currentWordIndex, totalWords)
 
   const currentPhraseWordCount = phraseWordCounts[currentPhraseIndex] ?? 1
   const msPerPhrase = wpmToMsPerWord(wpm) * currentPhraseWordCount

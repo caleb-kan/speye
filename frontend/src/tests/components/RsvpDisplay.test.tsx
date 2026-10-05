@@ -1,7 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { RsvpDisplay } from '../../components/rsvp/RsvpDisplay'
+import { RsvpReader } from '../../components/rsvp/RsvpReader'
 
 let mockIsMobile = false
 
@@ -159,5 +160,78 @@ describe('RsvpDisplay', () => {
       const wrapper = container.firstChild as HTMLElement
       expect(wrapper.style.aspectRatio).toBe('')
     })
+  })
+})
+
+describe('RsvpReader completion display', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+    mockIsMobile = false
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('counts every word in the final phrase and resets after navigation', () => {
+    const onComplete = vi.fn()
+    const onPositionChange = vi.fn()
+    render(
+      <RsvpReader
+        title={null}
+        text="first second final words"
+        source={null}
+        wpm={60000}
+        phraseSize={11}
+        visibleLines={1}
+        onNewText={vi.fn()}
+        onComplete={onComplete}
+        onPositionChange={onPositionChange}
+      />
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Play' }))
+    for (let i = 0; i < 3; i++) {
+      act(() => vi.advanceTimersToNextTimer())
+    }
+
+    expect(screen.getByText('final words')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Play' })).toBeInTheDocument()
+    expect(screen.getByTestId('progress-word-count-text')).toHaveTextContent(
+      '4 / 4 words'
+    )
+    expect(screen.getByTestId('progress-bar-fill')).toHaveStyle({
+      width: '100%',
+    })
+    expect(onComplete).toHaveBeenLastCalledWith(true)
+    expect(onPositionChange).toHaveBeenLastCalledWith(2)
+
+    fireEvent.keyDown(window, { key: 'ArrowLeft' })
+
+    expect(screen.getByText('second')).toBeInTheDocument()
+    expect(screen.getByTestId('progress-word-count-text')).toHaveTextContent(
+      '2 / 4 words'
+    )
+    expect(screen.getByTestId('progress-bar-fill')).toHaveStyle({
+      width: '50%',
+    })
+    expect(onComplete).toHaveBeenLastCalledWith(false)
+    expect(onPositionChange).toHaveBeenLastCalledWith(1)
+
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    expect(screen.getByTestId('progress-word-count-text')).toHaveTextContent(
+      '4 / 4 words'
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Restart' }))
+
+    expect(screen.getByText('first')).toBeInTheDocument()
+    expect(screen.getByTestId('progress-word-count-text')).toHaveTextContent(
+      '1 / 4 words'
+    )
+    expect(screen.getByTestId('progress-bar-fill')).toHaveStyle({
+      width: '25%',
+    })
+    expect(onComplete).toHaveBeenLastCalledWith(false)
+    expect(onPositionChange).toHaveBeenLastCalledWith(0)
   })
 })

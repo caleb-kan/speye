@@ -370,6 +370,72 @@ describe('useRsvpReader', () => {
   })
 
   describe('progress', () => {
+    it('reaches exactly 100% when playback ends on a multiword phrase', () => {
+      const { result } = renderHook(() =>
+        useRsvpReader({
+          text: 'first second final words',
+          wpm: 60000,
+          phraseSize: 11,
+        })
+      )
+
+      act(() => result.current.togglePlayPause())
+      for (let i = 0; i < 2; i++) {
+        act(() => vi.advanceTimersToNextTimer())
+      }
+
+      expect(result.current.phrases[result.current.currentPhraseIndex]).toBe(
+        'final words'
+      )
+      expect(result.current.isPlaying).toBe(true)
+      expect(result.current.isComplete).toBe(true)
+      expect(result.current.currentWordIndex).toBe(2)
+      expect(result.current.progress).toBe(100)
+
+      act(() => vi.advanceTimersToNextTimer())
+      expect(result.current.isPlaying).toBe(false)
+      expect(result.current.progress).toBe(100)
+    })
+
+    it('shows full progress for an initially complete single phrase without moving its cursor', () => {
+      const { result } = renderHook(() =>
+        useRsvpReader({ text: 'final words', wpm: 300, phraseSize: 11 })
+      )
+
+      expect(result.current.isComplete).toBe(true)
+      expect(result.current.isPlaying).toBe(false)
+      expect(result.current.currentWordIndex).toBe(0)
+      expect(result.current.progress).toBe(100)
+    })
+
+    it.each([
+      ['restart', 0, 25],
+      ['jumpBack', 1, 50],
+    ] as const)(
+      'clears completed progress after %s from a restored multiword final phrase',
+      (action, expectedIndex, expectedProgress) => {
+        const { result } = renderHook(() =>
+          useRsvpReader({
+            text: 'first second final words',
+            wpm: 300,
+            phraseSize: 11,
+            initialWordIndex: 2,
+          })
+        )
+
+        expect(result.current.isComplete).toBe(true)
+        expect(result.current.currentWordIndex).toBe(2)
+        expect(result.current.progress).toBe(100)
+
+        act(() => result.current[action]())
+
+        expect(result.current.isComplete).toBe(false)
+        expect(result.current.isPlaying).toBe(false)
+        expect(result.current.currentWordIndex).toBe(expectedIndex)
+        expect(result.current.progress).toBe(expectedProgress)
+      }
+    )
+
     it('calculates progress correctly', () => {
       const { result } = renderHook(() => useRsvpReader(defaultOpts))
       // At word 0 with 9 total words: (0 + 1) / 9 * 100 ≈ 11.11

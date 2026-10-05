@@ -145,7 +145,7 @@ export function RsvpReader({
           onRestart={restart}
           onNewText={onNewText}
           progress={progress}
-          currentWord={currentWordIndex + 1}
+          currentWord={isComplete ? totalWords : currentWordIndex + 1}
           totalWords={totalWords}
           disabled={disabled}
           showMiniQuiz={showMiniQuiz}

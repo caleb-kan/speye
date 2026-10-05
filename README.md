@@ -16,6 +16,7 @@ Adaptive speed reading web platform with eye-tracking technology, featuring PvP 
 ### Prerequisites
 
 - Node.js (v24 recommended)
+- Git (used during frontend installation to apply the MediaPipe compatibility patch)
 - npm
 
 ### Environment Variables

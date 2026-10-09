@@ -6,12 +6,14 @@ type PvpQueueOverlayProps = {
   visible: boolean
   queueTime: number
   onCancel: () => void
+  canceling?: boolean
 }
 
 export function PvpQueueOverlay({
   visible,
   queueTime,
   onCancel,
+  canceling = false,
 }: PvpQueueOverlayProps) {
   const overlayRef = useRef<HTMLDivElement>(null)
   const cancelRef = useRef<HTMLButtonElement>(null)
@@ -31,6 +33,10 @@ export function PvpQueueOverlay({
     }
   }, [visible])
 
+  useEffect(() => {
+    if (visible && canceling) overlayRef.current?.focus()
+  }, [visible, canceling])
+
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -44,9 +50,13 @@ export function PvpQueueOverlay({
       if (!overlay) return
 
       const focusable = overlay.querySelectorAll<HTMLElement>(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        'button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"]):not(:disabled)'
       )
-      if (focusable.length === 0) return
+      if (focusable.length === 0) {
+        e.preventDefault()
+        overlay.focus()
+        return
+      }
 
       const first = focusable[0]
       const last = focusable[focusable.length - 1]
@@ -73,6 +83,7 @@ export function PvpQueueOverlay({
   return (
     <div
       ref={overlayRef}
+      tabIndex={-1}
       role="dialog"
       aria-modal="true"
       aria-labelledby="pvp-queue-overlay-title"
@@ -105,7 +116,7 @@ export function PvpQueueOverlay({
             id="pvp-queue-overlay-title"
             className="text-lg font-medium text-text mb-1"
           >
-            Searching for opponent...
+            {canceling ? 'Leaving queue...' : 'Searching for opponent...'}
           </p>
           <p
             id="pvp-queue-timer"
@@ -119,6 +130,7 @@ export function PvpQueueOverlay({
         <button
           ref={cancelRef}
           onClick={onCancel}
+          disabled={canceling}
           className="
             flex items-center gap-2 px-6 py-2.5 rounded-xl
             border border-text-secondary/20 text-text-secondary

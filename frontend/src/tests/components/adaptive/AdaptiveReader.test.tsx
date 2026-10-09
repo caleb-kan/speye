@@ -19,6 +19,7 @@ vi.mock('../../../hooks/useGazeSmoothing', () => ({
     confidence: 0.9,
     isReliable: true,
     addSample: vi.fn(),
+    clearSamples: vi.fn(),
   }),
 }))
 

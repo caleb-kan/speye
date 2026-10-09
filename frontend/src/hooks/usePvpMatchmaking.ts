@@ -16,7 +16,8 @@ import {
 } from '../constants/pvp'
 import type { MatchmakeResult } from '../types/database'
 
-type MatchmakingState = 'idle' | 'queuing' | 'searching' | 'matched' | 'error'
+type MatchmakingState =
+  'idle' | 'queuing' | 'searching' | 'canceling' | 'matched' | 'error'
 
 function isMatchFound(
   result: MatchmakeResult
@@ -25,6 +26,33 @@ function isMatchFound(
   { status: 'matched' } | { status: 'already_in_game' }
 > {
   return result.status === 'matched' || result.status === 'already_in_game'
+}
+
+type QueueOwner = { userId: string; accessToken: string | null }
+const pendingQueueCleanups = new Map<string, Promise<string | null>>()
+
+function leaveAfterPendingRequest(
+  owner: QueueOwner,
+  pendingRequest: Promise<MatchmakeResult> | null
+): Promise<string | null> {
+  const previous = pendingQueueCleanups.get(owner.userId)
+  if (previous) return previous
+
+  const leaving = (async () => {
+    if (pendingRequest) {
+      const result = await pendingRequest.catch(() => null)
+      if (result && isMatchFound(result)) return result.game_id
+    }
+    return leaveQueue(owner.userId, owner.accessToken ?? undefined)
+  })()
+  pendingQueueCleanups.set(owner.userId, leaving)
+  const clear = () => {
+    if (pendingQueueCleanups.get(owner.userId) === leaving) {
+      pendingQueueCleanups.delete(owner.userId)
+    }
+  }
+  void leaving.then(clear, clear)
+  return leaving
 }
 
 export function usePvpMatchmaking(elo: number | null) {
@@ -44,6 +72,34 @@ export function usePvpMatchmaking(elo: number | null) {
   const eloRef = useRefSync(elo)
   const failureCountRef = useRef(0)
   const callIdRef = useRef(0)
+  const pendingMatchmakeRef = useRef<Promise<MatchmakeResult> | null>(null)
+  const queueOwnerRef = useRef<QueueOwner | null>(null)
+
+  const getQueueOwner = useCallback(() => {
+    const owner = queueOwnerRef.current
+    if (owner && userRef.current?.id === owner.userId) {
+      return {
+        ...owner,
+        accessToken: sessionRef.current?.access_token ?? owner.accessToken,
+      }
+    }
+    return owner
+  }, [userRef, sessionRef])
+
+  const requestMatchmake = useCallback(
+    async (userId: string, rating: number) => {
+      const request = matchmake(userId, rating)
+      pendingMatchmakeRef.current = request
+      try {
+        return await request
+      } finally {
+        if (pendingMatchmakeRef.current === request) {
+          pendingMatchmakeRef.current = null
+        }
+      }
+    },
+    []
+  )
 
   const cleanup = useCallback(() => {
     if (retryRef.current) {
@@ -64,6 +120,7 @@ export function usePvpMatchmaking(elo: number | null) {
     (foundGameId: string) => {
       if (stateRef.current !== 'searching') return
       cleanup()
+      stateRef.current = 'matched'
       setGameId(foundGameId)
       setState('matched')
     },
@@ -84,17 +141,28 @@ export function usePvpMatchmaking(elo: number | null) {
     failureCountRef.current = 0
     callIdRef.current += 1
     const callId = callIdRef.current
+    const isCurrentSearch = () => callIdRef.current === callId
 
     try {
       const playerElo = eloRef.current ?? PVP_STARTING_ELO
       const currentUser = userRef.current
       if (!currentUser) return
-      const result = await matchmake(currentUser.id, playerElo)
+      queueOwnerRef.current = {
+        userId: currentUser.id,
+        accessToken: sessionRef.current?.access_token ?? null,
+      }
+      // A previous lobby can still be removing its queue row after unmount.
+      // Its removal must finish before this instance creates a new search.
+      const previousCleanup = pendingQueueCleanups.get(currentUser.id)
+      if (previousCleanup) await previousCleanup.catch(() => null)
+      if (!isCurrentSearch() || stateRef.current !== 'queuing') return
+      const result = await requestMatchmake(currentUser.id, playerElo)
 
-      if (callIdRef.current !== callId || stateRef.current !== 'queuing') return
+      if (!isCurrentSearch() || stateRef.current !== 'queuing') return
 
       if (isMatchFound(result)) {
         cleanup()
+        stateRef.current = 'matched'
         setGameId(result.game_id)
         setState('matched')
         return
@@ -107,6 +175,7 @@ export function usePvpMatchmaking(elo: number | null) {
       }
 
       setState('searching')
+      stateRef.current = 'searching'
       setQueueTime(0)
 
       // Three parallel intervals run while searching:
@@ -121,7 +190,12 @@ export function usePvpMatchmaking(elo: number | null) {
 
       let retryInFlight = false
       retryRef.current = setInterval(async () => {
-        if (stateRef.current !== 'searching' || retryInFlight) return
+        if (
+          !isCurrentSearch() ||
+          stateRef.current !== 'searching' ||
+          retryInFlight
+        )
+          return
         retryInFlight = true
 
         try {
@@ -134,11 +208,12 @@ export function usePvpMatchmaking(elo: number | null) {
           }
           let retryResult: MatchmakeResult
           try {
-            retryResult = await matchmake(
+            retryResult = await requestMatchmake(
               retryUser.id,
               eloRef.current ?? PVP_STARTING_ELO
             )
           } catch (err) {
+            if (!isCurrentSearch() || stateRef.current !== 'searching') return
             console.error('Matchmake retry failed:', err)
             failureCountRef.current += 1
             if (failureCountRef.current >= PVP_MAX_POLL_FAILURES) {
@@ -149,7 +224,7 @@ export function usePvpMatchmaking(elo: number | null) {
             return
           }
 
-          if (stateRef.current !== 'searching') return
+          if (!isCurrentSearch() || stateRef.current !== 'searching') return
           failureCountRef.current = 0
           if (isMatchFound(retryResult)) {
             handleMatchFound(retryResult.game_id)
@@ -166,16 +241,22 @@ export function usePvpMatchmaking(elo: number | null) {
       let pollFailures = 0
       let pollInFlight = false
       pollRef.current = setInterval(async () => {
-        if (stateRef.current !== 'searching' || pollInFlight) return
+        if (
+          !isCurrentSearch() ||
+          stateRef.current !== 'searching' ||
+          pollInFlight
+        )
+          return
         pollInFlight = true
         try {
           const pollUser = userRef.current
           if (!pollUser) return
           const matchGameId = await getLatestMatchNotification(pollUser.id)
-          if (stateRef.current !== 'searching') return
+          if (!isCurrentSearch() || stateRef.current !== 'searching') return
           pollFailures = 0
           if (matchGameId) handleMatchFound(matchGameId)
         } catch (err) {
+          if (!isCurrentSearch() || stateRef.current !== 'searching') return
           console.error('Match notification poll failed:', err)
           pollFailures++
           if (pollFailures >= PVP_MAX_POLL_FAILURES) {
@@ -188,51 +269,79 @@ export function usePvpMatchmaking(elo: number | null) {
         }
       }, PVP_MATCH_NOTIFICATION_POLL_MS)
     } catch (err) {
+      if (!isCurrentSearch() || stateRef.current !== 'queuing') return
       console.error('Matchmaking error:', err)
       setError('Failed to join queue')
       setState('error')
     }
-  }, [handleMatchFound, cleanup, stateRef, userRef, eloRef])
+  }, [
+    handleMatchFound,
+    cleanup,
+    stateRef,
+    userRef,
+    sessionRef,
+    eloRef,
+    requestMatchmake,
+  ])
 
   const cancelQueue = useCallback(async () => {
+    if (stateRef.current === 'canceling') return
     cleanup()
-    // Set both ref and state synchronously before the await so in-flight
-    // interval callbacks see the updated state and bail out immediately.
-    // Setting setState alongside the ref write prevents useRefSync's
-    // useLayoutEffect from overwriting the ref on an intermediate re-render.
-    stateRef.current = 'idle'
-    setState('idle')
+    const callId = ++callIdRef.current
+    stateRef.current = 'canceling'
+    setState('canceling')
     setQueueTime(0)
     setError(null)
-    if (userRef.current) {
+    const owner = getQueueOwner()
+    let foundGameId: string | null = null
+    if (owner) {
       try {
-        await leaveQueue(userRef.current.id)
+        foundGameId = await leaveAfterPendingRequest(
+          owner,
+          pendingMatchmakeRef.current
+        )
       } catch (err) {
+        if (callIdRef.current !== callId) return
         console.error('Failed to leave queue:', err)
         stateRef.current = 'error'
         setError('Failed to leave queue. Please try again or refresh.')
         setState('error')
+        return
       }
     }
-  }, [cleanup, stateRef, userRef])
+    if (callIdRef.current !== callId) return
+    queueOwnerRef.current = null
+    if (foundGameId) {
+      stateRef.current = 'matched'
+      setGameId(foundGameId)
+      setState('matched')
+    } else {
+      stateRef.current = 'idle'
+      setState('idle')
+    }
+  }, [cleanup, stateRef, getQueueOwner])
 
-  // Queue cleanup strategy: on page unload, beforeunload fires a keepalive
-  // fetch (survives navigation). On unmount, the effect cleanup fires an SDK
-  // call (or keepalive fallback). A `leaveInitiated` guard prevents duplicates.
+  // SPA cleanup waits for pending joins and blocks a new same-user lobby.
+  // Document unload sends keepalive immediately: a promise may never settle
+  // while unloading, so stale-entry cron cleanup remains the fallback.
   useEffect(() => {
     let leaveInitiated = false
 
     const handleUnload = () => {
       if (
         leaveInitiated ||
-        !userRef.current ||
-        (stateRef.current !== 'searching' && stateRef.current !== 'queuing')
+        !queueOwnerRef.current ||
+        (stateRef.current !== 'searching' &&
+          stateRef.current !== 'queuing' &&
+          stateRef.current !== 'canceling')
       )
         return
-      const token = sessionRef.current?.access_token
+      const owner = getQueueOwner()
+      if (!owner) return
+      const token = owner.accessToken
       if (token) {
         leaveInitiated = true
-        leaveQueueOnUnload(userRef.current.id, token)
+        leaveQueueOnUnload(owner.userId, token)
       }
     }
 
@@ -241,35 +350,27 @@ export function usePvpMatchmaking(elo: number | null) {
     return () => {
       window.removeEventListener('beforeunload', handleUnload)
       cleanup()
+      callIdRef.current += 1
       // Mark idle so any in-flight matchmake() callbacks bail out
       // after cleanup, preventing intervals from being created post-unmount.
       const wasState = stateRef.current
       stateRef.current = 'idle'
-      // Only clean up the queue if the user is still searching/queuing.
-      // Skip cleanup if matched (matchmaking RPC already removed them).
-      // Intentionally reading latest ref values at cleanup time to get
-      // the current user/session, not the values captured at effect creation.
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      const currentUser = userRef.current
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      const currentSession = sessionRef.current
+      // A matched RPC already removed the queue entry.
+      const owner = getQueueOwner()
       if (
         !leaveInitiated &&
-        currentUser &&
-        (wasState === 'searching' || wasState === 'queuing')
+        owner &&
+        (wasState === 'searching' ||
+          wasState === 'queuing' ||
+          wasState === 'canceling')
       ) {
         leaveInitiated = true
-        const token = currentSession?.access_token
-        if (token) {
-          leaveQueueOnUnload(currentUser.id, token)
-        } else {
-          leaveQueue(currentUser.id).catch((err) =>
-            console.error('Failed to leave queue on unmount:', err)
-          )
-        }
+        void leaveAfterPendingRequest(owner, pendingMatchmakeRef.current).catch(
+          (err) => console.error('Failed to leave queue on unmount:', err)
+        )
       }
     }
-  }, [cleanup, sessionRef, stateRef, userRef])
+  }, [cleanup, stateRef, getQueueOwner])
 
   return {
     state,

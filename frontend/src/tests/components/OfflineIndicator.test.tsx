@@ -86,6 +86,38 @@ describe('OfflineIndicator', () => {
   })
 
   describe('offline → syncing → synced → hidden state machine', () => {
+    it('shows pending changes when replay finishes with unsynced operations', () => {
+      mockNetworkStatus.isOnline = false
+      mockNetworkStatus.pendingOperations = 2
+      const { rerender: rr } = renderIndicator()
+      rerender(rr, true, true)
+      rerender(rr, true, false)
+      expect(screen.queryByText('All synced')).not.toBeInTheDocument()
+      expect(screen.getByTestId('offline-indicator-status')).toHaveTextContent(
+        'Pending sync'
+      )
+      expect(screen.getByTestId('offline-indicator-badge')).toHaveTextContent(
+        '2'
+      )
+      act(() => {
+        vi.advanceTimersByTime(2100)
+      })
+      expect(screen.getByTestId('offline-indicator-status')).toHaveTextContent(
+        'Pending sync'
+      )
+    })
+
+    it('does not announce success on reconnect before pending writes are replayed', () => {
+      mockNetworkStatus.isOnline = false
+      mockNetworkStatus.pendingOperations = 2
+      const { rerender: rr } = renderIndicator()
+      rerender(rr, true, false)
+      expect(screen.queryByText('All synced')).not.toBeInTheDocument()
+      expect(screen.getByTestId('offline-indicator-status')).toHaveTextContent(
+        'Pending sync'
+      )
+    })
+
     it('should show "All synced" after going offline then back online and syncing completes', () => {
       mockNetworkStatus.isOnline = false
       const { rerender: rr } = renderIndicator()

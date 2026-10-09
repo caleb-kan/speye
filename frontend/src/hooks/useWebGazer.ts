@@ -242,36 +242,33 @@ export function useWebGazer({
       setError(null)
       setErrorType(null)
 
-      // One-time migration: clear old calibration data when regression
-      // model changes. Old data trained with 'ridge' is incompatible
-      // with 'weightedRidge' and corrupts predictions.
-      const storedRegression = localStorage.getItem(
-        STORAGE_KEYS.WEBGAZER_REGRESSION_VERSION
-      )
-      if (storedRegression !== WEBGAZER_REGRESSION_MODEL) {
-        try {
-          // Clear only the default localforage instance (where webgazer stores
-          // calibration data). The app's offline caches use named instances
-          // ('speye-offline') and are not affected by this clear.
-          const localforage = await import('localforage')
-          await localforage.default.clear()
-        } catch (e) {
-          // If localforage clear fails, calibration data from the old model may
-          // persist and corrupt predictions. Log but continue -- better to attempt
-          // recalibration than to block initialization entirely.
-          console.warn('Failed to clear old webgazer calibration data:', e)
-        }
-        // Always update the version key and clear localStorage calibration state,
-        // regardless of whether localforage clear succeeded, to prevent infinite
-        // migration retries that would block every init.
-        localStorage.removeItem(STORAGE_KEYS.ADAPTIVE_CALIBRATION)
-        localStorage.setItem(
-          STORAGE_KEYS.WEBGAZER_REGRESSION_VERSION,
-          WEBGAZER_REGRESSION_MODEL
-        )
-      }
-
       try {
+        // Clear older saved calibration when the configured regression model changes.
+        const storedRegression = localStorage.getItem(
+          STORAGE_KEYS.WEBGAZER_REGRESSION_VERSION
+        )
+        if (storedRegression !== WEBGAZER_REGRESSION_MODEL) {
+          try {
+            // Clear only the default localforage instance (where webgazer stores
+            // calibration data). The app's offline caches use named instances
+            // ('speye-offline') and are not affected by this clear.
+            const localforage = await import('localforage')
+            await localforage.default.clear()
+          } catch (e) {
+            // Continue if clearing older calibration fails so the user can
+            // recalibrate instead of blocking initialization entirely.
+            console.warn('Failed to clear old webgazer calibration data:', e)
+          }
+          // Always update the version key and clear localStorage calibration state,
+          // regardless of whether localforage clear succeeded, to prevent infinite
+          // migration retries that would block every init.
+          localStorage.removeItem(STORAGE_KEYS.ADAPTIVE_CALIBRATION)
+          localStorage.setItem(
+            STORAGE_KEYS.WEBGAZER_REGRESSION_VERSION,
+            WEBGAZER_REGRESSION_MODEL
+          )
+        }
+
         // Dynamic import of local webgazer source.
         // 'webgazer' is aliased to local source in vite.config.ts
         const webgazerModule = await import('webgazer')

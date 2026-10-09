@@ -84,6 +84,7 @@ export function SectionItem({
           </div>
           <input
             type="text"
+            aria-label={`Section ${index + 1} title`}
             value={section.title}
             onChange={(e) => onUpdateSection(index, 'title', e.target.value)}
             placeholder={`Section ${index + 1} Title`}
@@ -94,6 +95,7 @@ export function SectionItem({
           {!isOnlySection && (
             <button
               type="button"
+              aria-label={`Delete section ${index + 1}`}
               onClick={() => onRemoveSection(index)}
               disabled={isSubmitting}
               className="p-2 text-error hover:bg-error/10 rounded-lg transition-colors"
@@ -104,6 +106,7 @@ export function SectionItem({
         </div>
       </div>
       <textarea
+        aria-label={`Section ${index + 1} content`}
         value={section.content}
         onChange={(e) => onUpdateSection(index, 'content', e.target.value)}
         placeholder={`Section ${index + 1} Content...`}

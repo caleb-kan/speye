@@ -6,6 +6,10 @@ const mockMatchmake = vi.fn()
 const mockLeaveQueue = vi.fn()
 const mockLeaveQueueOnUnload = vi.fn()
 const mockGetLatestMatchNotification = vi.fn()
+const auth = vi.hoisted(() => ({
+  user: { id: 'user-1' },
+  session: { access_token: 'test-token' },
+}))
 
 vi.mock('../../services/pvpService', () => ({
   matchmake: (...args: unknown[]) => mockMatchmake(...args),
@@ -16,19 +20,18 @@ vi.mock('../../services/pvpService', () => ({
 }))
 
 vi.mock('../../hooks/useAuth', () => ({
-  useAuth: () => ({
-    user: { id: 'user-1' },
-    session: { access_token: 'test-token' },
-  }),
+  useAuth: () => auth,
 }))
 
 describe('usePvpMatchmaking', () => {
   beforeEach(() => {
     vi.useFakeTimers()
     mockMatchmake.mockReset()
-    mockLeaveQueue.mockReset().mockResolvedValue(undefined)
+    mockLeaveQueue.mockReset().mockResolvedValue(null)
     mockLeaveQueueOnUnload.mockReset()
     mockGetLatestMatchNotification.mockReset()
+    auth.user.id = 'user-1'
+    auth.session.access_token = 'test-token'
   })
 
   afterEach(() => {
@@ -41,6 +44,387 @@ describe('usePvpMatchmaking', () => {
     expect(result.current.gameId).toBeNull()
     expect(result.current.queueTime).toBe(0)
     expect(result.current.error).toBeNull()
+  })
+
+  it('ignores an old notification response after canceling and rejoining', async () => {
+    let resolveOld!: (gameId: string | null) => void
+    mockMatchmake.mockResolvedValue({ status: 'queued' })
+    mockGetLatestMatchNotification
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveOld = resolve
+          })
+      )
+      .mockResolvedValue(null)
+    const { result } = renderHook(() => usePvpMatchmaking(1200))
+    await act(async () => {
+      await result.current.joinQueue()
+    })
+    await act(async () => {
+      vi.advanceTimersByTime(2000)
+    })
+    await act(async () => {
+      await result.current.cancelQueue()
+    })
+    await act(async () => {
+      await result.current.joinQueue()
+    })
+    await act(async () => {
+      resolveOld('old-game')
+    })
+
+    expect(result.current.state).toBe('searching')
+    expect(result.current.gameId).toBeNull()
+  })
+
+  it('still leaves after a pending join fails and then allows rejoining', async () => {
+    let rejectOld!: (error: Error) => void
+    mockMatchmake
+      .mockImplementationOnce(
+        () =>
+          new Promise((_resolve, reject) => {
+            rejectOld = reject
+          })
+      )
+      .mockResolvedValue({ status: 'queued' })
+    const { result } = renderHook(() => usePvpMatchmaking(1200))
+    let oldJoin!: Promise<void>
+    act(() => {
+      oldJoin = result.current.joinQueue()
+    })
+    let cancellation!: Promise<void>
+    act(() => {
+      cancellation = result.current.cancelQueue()
+    })
+    expect(result.current.state).toBe('canceling')
+    await act(async () => {
+      rejectOld(new Error('Old request failed'))
+      await oldJoin
+      await cancellation
+    })
+    expect(mockLeaveQueue).toHaveBeenCalledWith('user-1', 'test-token')
+    await act(async () => {
+      await result.current.joinQueue()
+    })
+
+    expect(result.current.state).toBe('searching')
+    expect(result.current.error).toBeNull()
+  })
+
+  it('prevents rejoining until the previous queue deletion finishes', async () => {
+    let finishLeave!: () => void
+    mockMatchmake.mockResolvedValue({ status: 'queued' })
+    mockLeaveQueue.mockReturnValue(
+      new Promise<void>((resolve) => {
+        finishLeave = resolve
+      })
+    )
+    const { result } = renderHook(() => usePvpMatchmaking(1200))
+    await act(async () => {
+      await result.current.joinQueue()
+    })
+    let cancellation!: Promise<void>
+    act(() => {
+      cancellation = result.current.cancelQueue()
+    })
+    await act(async () => {
+      await result.current.joinQueue()
+    })
+    expect(mockMatchmake).toHaveBeenCalledTimes(1)
+    expect(result.current.state).toBe('canceling')
+    await act(async () => {
+      finishLeave()
+      await cancellation
+    })
+    expect(result.current.state).toBe('idle')
+  })
+
+  it('removes a late-arriving initial queue insertion before cancellation can finish', async () => {
+    let finishJoin!: (result: { status: 'queued' }) => void
+    let queued = false
+    const order: string[] = []
+    mockMatchmake.mockReturnValue(
+      new Promise<{ status: 'queued' }>((resolve) => {
+        finishJoin = resolve
+      }).then((value) => {
+        queued = true
+        order.push('join')
+        return value
+      })
+    )
+    mockLeaveQueue.mockImplementation(async () => {
+      queued = false
+      order.push('leave')
+    })
+    const { result } = renderHook(() => usePvpMatchmaking(1200))
+    let join!: Promise<void>
+    let cancellation!: Promise<void>
+    act(() => {
+      join = result.current.joinQueue()
+      cancellation = result.current.cancelQueue()
+    })
+    await act(async () => {})
+
+    expect(result.current.state).toBe('canceling')
+    expect(mockLeaveQueue).not.toHaveBeenCalled()
+    await act(async () => {
+      finishJoin({ status: 'queued' })
+      await join
+      await cancellation
+    })
+
+    expect(order).toEqual(['join', 'leave'])
+    expect(queued).toBe(false)
+    expect(result.current.state).toBe('idle')
+  })
+
+  it('waits for an in-flight matchmaking retry before removing its queue insertion', async () => {
+    let finishRetry!: (result: { status: 'queued' }) => void
+    let queued = true
+    const order: string[] = []
+    mockMatchmake
+      .mockResolvedValueOnce({ status: 'queued' })
+      .mockReturnValueOnce(
+        new Promise<{ status: 'queued' }>((resolve) => {
+          finishRetry = resolve
+        }).then((value) => {
+          queued = true
+          order.push('retry')
+          return value
+        })
+      )
+    mockGetLatestMatchNotification.mockResolvedValue(null)
+    mockLeaveQueue.mockImplementation(async () => {
+      queued = false
+      order.push('leave')
+      return null
+    })
+    const { result } = renderHook(() => usePvpMatchmaking(1200))
+    await act(async () => result.current.joinQueue())
+    await act(async () => vi.advanceTimersByTime(10_000))
+    expect(mockMatchmake).toHaveBeenCalledTimes(2)
+    let cancellation!: Promise<void>
+    act(() => {
+      cancellation = result.current.cancelQueue()
+    })
+    await act(async () => {})
+
+    expect(result.current.state).toBe('canceling')
+    expect(mockLeaveQueue).not.toHaveBeenCalled()
+    await act(async () => {
+      finishRetry({ status: 'queued' })
+      await cancellation
+    })
+
+    expect(order).toEqual(['retry', 'leave'])
+    expect(queued).toBe(false)
+    expect(result.current.state).toBe('idle')
+  })
+
+  it('orders SPA unmount cleanup after a pending join using its captured account and token', async () => {
+    let finishJoin!: (result: { status: 'queued' }) => void
+    let queued = false
+    const order: string[] = []
+    mockMatchmake.mockReturnValue(
+      new Promise<{ status: 'queued' }>((resolve) => {
+        finishJoin = resolve
+      }).then((value) => {
+        queued = true
+        order.push('join')
+        return value
+      })
+    )
+    mockLeaveQueue.mockImplementation(async () => {
+      queued = false
+      order.push('leave')
+      return null
+    })
+    const { result, unmount } = renderHook(() => usePvpMatchmaking(1200))
+    let join!: Promise<void>
+    act(() => {
+      join = result.current.joinQueue()
+    })
+    unmount()
+    auth.user.id = 'next-user'
+    auth.session.access_token = 'next-token'
+    await act(async () => {})
+
+    expect(mockLeaveQueue).not.toHaveBeenCalled()
+    await act(async () => {
+      finishJoin({ status: 'queued' })
+      await join
+    })
+
+    expect(mockLeaveQueue).toHaveBeenCalledExactlyOnceWith(
+      'user-1',
+      'test-token'
+    )
+    expect(order).toEqual(['join', 'leave'])
+    expect(queued).toBe(false)
+  })
+
+  it('blocks a new same-user lobby until the old SPA cleanup has finished deleting', async () => {
+    let finishOldJoin!: (result: { status: 'queued' }) => void
+    let finishLeave!: () => void
+    let queued = false
+    const order: string[] = []
+    mockMatchmake
+      .mockReturnValueOnce(
+        new Promise<{ status: 'queued' }>((resolve) => {
+          finishOldJoin = resolve
+        }).then((value) => {
+          queued = true
+          order.push('old-join')
+          return value
+        })
+      )
+      .mockImplementation(async () => {
+        queued = true
+        order.push('new-join')
+        return { status: 'queued' }
+      })
+    mockLeaveQueue
+      .mockReturnValueOnce(
+        new Promise<void>((resolve) => {
+          finishLeave = resolve
+        }).then(() => {
+          queued = false
+          order.push('leave')
+          return null
+        })
+      )
+      .mockResolvedValue(null)
+    const oldLobby = renderHook(() => usePvpMatchmaking(1200))
+    let oldJoin!: Promise<void>
+    act(() => {
+      oldJoin = oldLobby.result.current.joinQueue()
+    })
+    oldLobby.unmount()
+    const newLobby = renderHook(() => usePvpMatchmaking(1200))
+    let newJoin!: Promise<void>
+    act(() => {
+      newJoin = newLobby.result.current.joinQueue()
+    })
+    await act(async () => {})
+
+    expect(mockMatchmake).toHaveBeenCalledTimes(1)
+    expect(newLobby.result.current.state).toBe('queuing')
+    await act(async () => {
+      finishOldJoin({ status: 'queued' })
+      await oldJoin
+    })
+    expect(mockLeaveQueue).toHaveBeenCalledWith('user-1', 'test-token')
+    expect(mockMatchmake).toHaveBeenCalledTimes(1)
+    await act(async () => {
+      finishLeave()
+      await newJoin
+    })
+
+    expect(order).toEqual(['old-join', 'leave', 'new-join'])
+    expect(queued).toBe(true)
+    expect(newLobby.result.current.state).toBe('searching')
+  })
+
+  it.each(['matched', 'already_in_game'] as const)(
+    'keeps a pending %s outcome when the match wins the cancellation race',
+    async (status) => {
+      let finishJoin!: (value: {
+        status: typeof status
+        game_id: string
+      }) => void
+      mockMatchmake.mockReturnValue(
+        new Promise((resolve) => {
+          finishJoin = resolve
+        })
+      )
+      const { result } = renderHook(() => usePvpMatchmaking(1200))
+      let join!: Promise<void>
+      let cancellation!: Promise<void>
+      act(() => {
+        join = result.current.joinQueue()
+        cancellation = result.current.cancelQueue()
+      })
+      expect(result.current.state).toBe('canceling')
+      await act(async () => {
+        finishJoin({ status, game_id: 'won-race-game' })
+        await join
+        await cancellation
+      })
+
+      expect(result.current.state).toBe('matched')
+      expect(result.current.gameId).toBe('won-race-game')
+      expect(mockLeaveQueue).not.toHaveBeenCalled()
+    }
+  )
+
+  it('recovers a committed match reported by leave after the matchmake response is lost', async () => {
+    let failJoin!: (error: Error) => void
+    mockMatchmake.mockReturnValue(
+      new Promise((_resolve, reject) => {
+        failJoin = reject
+      })
+    )
+    mockLeaveQueue.mockResolvedValue('hidden-game')
+    const { result } = renderHook(() => usePvpMatchmaking(1200))
+    let join!: Promise<void>
+    let cancellation!: Promise<void>
+    act(() => {
+      join = result.current.joinQueue()
+      cancellation = result.current.cancelQueue()
+    })
+    await act(async () => {
+      failJoin(new Error('Failed to fetch'))
+      await join
+      await cancellation
+    })
+
+    expect(mockLeaveQueue).toHaveBeenCalledWith('user-1', 'test-token')
+    expect(result.current.state).toBe('matched')
+    expect(result.current.gameId).toBe('hidden-game')
+    expect(result.current.error).toBeNull()
+  })
+
+  it('stays canceling when a pending initial join finishes before serialized removal', async () => {
+    let finishJoin!: (result: { status: 'queued' }) => void
+    let finishLeave!: () => void
+    mockMatchmake.mockReturnValue(
+      new Promise((resolve) => {
+        finishJoin = resolve
+      })
+    )
+    mockLeaveQueue.mockReturnValue(
+      new Promise<void>((resolve) => {
+        finishLeave = resolve
+      })
+    )
+    const { result } = renderHook(() => usePvpMatchmaking(1200))
+    let join!: Promise<void>
+    let cancellation!: Promise<void>
+    act(() => {
+      join = result.current.joinQueue()
+    })
+    expect(result.current.state).toBe('queuing')
+    act(() => {
+      cancellation = result.current.cancelQueue()
+    })
+
+    await act(async () => {
+      finishJoin({ status: 'queued' })
+      await join
+      vi.advanceTimersByTime(5000)
+      await result.current.joinQueue()
+    })
+
+    expect(result.current.state).toBe('canceling')
+    expect(mockMatchmake).toHaveBeenCalledTimes(1)
+    expect(mockGetLatestMatchNotification).not.toHaveBeenCalled()
+    expect(result.current.queueTime).toBe(0)
+    await act(async () => {
+      finishLeave()
+      await cancellation
+    })
+    expect(result.current.state).toBe('idle')
   })
 
   it('transitions to matched when matchmake returns matched', async () => {
@@ -236,7 +620,7 @@ describe('usePvpMatchmaking', () => {
     expect(result.current.state).toBe('idle')
     expect(result.current.queueTime).toBe(0)
     expect(result.current.error).toBeNull()
-    expect(mockLeaveQueue).toHaveBeenCalledWith('user-1')
+    expect(mockLeaveQueue).toHaveBeenCalledWith('user-1', 'test-token')
   })
 
   it('cancelQueue handles leaveQueue failure gracefully', async () => {
@@ -300,7 +684,7 @@ describe('usePvpMatchmaking', () => {
     expect(result.current.queueTime).toBe(timeAfterMatch)
   })
 
-  it('calls leaveQueueOnUnload on unmount when searching', async () => {
+  it('calls authenticated leaveQueue on SPA unmount when searching', async () => {
     mockMatchmake.mockResolvedValue({ status: 'queued' })
 
     const { result, unmount } = renderHook(() => usePvpMatchmaking(1200))
@@ -313,7 +697,7 @@ describe('usePvpMatchmaking', () => {
 
     unmount()
 
-    expect(mockLeaveQueueOnUnload).toHaveBeenCalledWith('user-1', 'test-token')
+    expect(mockLeaveQueue).toHaveBeenCalledWith('user-1', 'test-token')
   })
 
   it('does not call leaveQueue on unmount when idle', () => {
@@ -327,6 +711,54 @@ describe('usePvpMatchmaking', () => {
   })
 
   describe('beforeunload', () => {
+    it.each(['queuing', 'canceling'] as const)(
+      'sends one authenticated unload cleanup while %s with a pending join',
+      async (state) => {
+        let finishJoin!: (result: { status: 'queued' }) => void
+        let finishLeave!: () => void
+        mockMatchmake.mockReturnValue(
+          new Promise((resolve) => {
+            finishJoin = resolve
+          })
+        )
+        mockLeaveQueue.mockReturnValue(
+          new Promise<void>((resolve) => {
+            finishLeave = resolve
+          })
+        )
+        const { result, unmount } = renderHook(() => usePvpMatchmaking(1200))
+        let join!: Promise<void>
+        let cancellation: Promise<void> | undefined
+        act(() => {
+          join = result.current.joinQueue()
+        })
+        if (state === 'canceling') {
+          act(() => {
+            cancellation = result.current.cancelQueue()
+          })
+        }
+        expect(result.current.state).toBe(state)
+
+        window.dispatchEvent(new Event('beforeunload'))
+        window.dispatchEvent(new Event('beforeunload'))
+        unmount()
+
+        expect(mockLeaveQueueOnUnload).toHaveBeenCalledExactlyOnceWith(
+          'user-1',
+          'test-token'
+        )
+        await act(async () => {
+          finishJoin({ status: 'queued' })
+          finishLeave()
+          await join
+          await cancellation
+          vi.advanceTimersByTime(5000)
+        })
+        expect(mockGetLatestMatchNotification).not.toHaveBeenCalled()
+        expect(mockMatchmake).toHaveBeenCalledTimes(1)
+      }
+    )
+
     it('calls leaveQueueOnUnload on beforeunload when searching', async () => {
       mockMatchmake.mockResolvedValue({ status: 'queued' })
 

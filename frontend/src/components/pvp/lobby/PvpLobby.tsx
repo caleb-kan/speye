@@ -81,7 +81,8 @@ export function PvpLobby() {
     navigate,
   ])
 
-  const isSearching = state === 'queuing' || state === 'searching'
+  const isSearching =
+    state === 'queuing' || state === 'searching' || state === 'canceling'
 
   const handleSelectUser = (entry: PvpLeaderboardEntry) => {
     setHoveredMatchId(null)
@@ -120,6 +121,7 @@ export function PvpLobby() {
       <PvpQueueOverlay
         visible={isSearching}
         queueTime={queueTime}
+        canceling={state === 'canceling'}
         onCancel={cancelQueue}
       />
 

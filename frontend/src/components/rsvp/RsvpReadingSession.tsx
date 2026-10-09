@@ -50,11 +50,12 @@ export function RsvpReadingSession({
     [wpm, readingPosition, onPositionChange]
   )
 
-  const { handlePositionChange } = useReadingActivitySession({
-    currentText,
-    context,
-    readingComplete,
-  })
+  const { handlePositionChange, handleRestart, getActivityId } =
+    useReadingActivitySession({
+      currentText,
+      context,
+      readingComplete,
+    })
 
   return (
     <div className="relative flex-1 flex flex-col w-full min-h-0 overflow-hidden">
@@ -71,6 +72,10 @@ export function RsvpReadingSession({
         onComplete={setReadingComplete}
         initialWordIndex={readingPosition}
         onPositionChange={handlePositionChange}
+        onRestart={() => {
+          setReadingComplete(false)
+          handleRestart()
+        }}
         showMiniQuiz={quizDismissed}
         onStartQuiz={() => setTriggerQuiz(true)}
         isSummary={isSummary}
@@ -80,6 +85,7 @@ export function RsvpReadingSession({
       />
 
       <StartQuizButton
+        getActivityId={getActivityId}
         textId={currentText.id}
         ownerId={currentText.owner_id}
         readingComplete={readingComplete}

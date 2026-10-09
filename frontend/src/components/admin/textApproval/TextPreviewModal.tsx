@@ -4,6 +4,7 @@ import type { AdminReviewText } from '../../../services/adminService.ts'
 import { formatDate } from '../../../utils/formatDate.ts'
 import { getReviewStatus } from '../../../utils/adminReviewStatus.ts'
 import { useEscapeKey } from '../../../hooks/useEscapeKey.ts'
+import { useDialogFocus } from '../../../hooks/useDialogFocus.ts'
 import { StatusBadge } from './StatusBadge.tsx'
 import { UNTITLED_TEXT_FALLBACK } from '../../../constants/admin.ts'
 
@@ -49,6 +50,7 @@ export function TextPreviewModal({
   }, [text, initialShowReject])
 
   useEscapeKey(onClose, !!text)
+  const dialogRef = useDialogFocus(!!text)
 
   if (!text) return null
 
@@ -76,6 +78,8 @@ export function TextPreviewModal({
 
   return (
     <div
+      ref={dialogRef}
+      tabIndex={-1}
       className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
       onClick={handleBackdropClick}
       role="dialog"

@@ -73,6 +73,59 @@ describe('isValidProgressPayload', () => {
       })
     ).toBe(false)
   })
+
+  it.each([Infinity, -Infinity, NaN, 0.5, 11])(
+    'rejects malformed or out-of-range word index %s',
+    (wordIndex) => {
+      expect(
+        isValidProgressPayload({
+          userId: 'u1',
+          wordIndex,
+          totalWords: 10,
+          percent: 10,
+        })
+      ).toBe(false)
+    }
+  )
+
+  it.each([Infinity, -Infinity, NaN, 10.5])(
+    'rejects malformed total word count %s',
+    (totalWords) => {
+      expect(
+        isValidProgressPayload({
+          userId: 'u1',
+          wordIndex: 1,
+          totalWords,
+          percent: 10,
+        })
+      ).toBe(false)
+    }
+  )
+
+  it.each([NaN, Infinity, -Infinity, -0.1, 100.1])(
+    'rejects malformed percentage %s',
+    (percent) => {
+      expect(
+        isValidProgressPayload({
+          userId: 'u1',
+          wordIndex: 1,
+          totalWords: 10,
+          percent,
+        })
+      ).toBe(false)
+    }
+  )
+
+  it.each([
+    { wordIndex: 0, totalWords: 10, percent: 0 },
+    { wordIndex: 10, totalWords: 10, percent: 100 },
+    { wordIndex: 1, totalWords: 10, percent: 10.5 },
+  ])(
+    'accepts valid integer boundaries and fractional percentages',
+    (payload) => {
+      expect(isValidProgressPayload({ userId: 'u1', ...payload })).toBe(true)
+    }
+  )
 })
 
 describe('isValidMilestonePayload', () => {

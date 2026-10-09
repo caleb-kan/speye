@@ -39,6 +39,7 @@ export const useRsvpActivitySession = (
 
       void logUserActivity(
         {
+          id: session.activityId ?? undefined,
           textId: currentText.id,
           wpm: session.wpm ?? fallbackWpm,
           startTime: session.startTime ?? new Date().toISOString(),
@@ -51,20 +52,17 @@ export const useRsvpActivitySession = (
 
       clearReadingActivitySession(ownerId)
 
-      // Only bootstrap a new session for non-standard modes. Standard mode
-      // creates its own session via useReadingActivitySession on mount.
-      if (targetMode !== 'standard') {
-        upsertReadingActivitySession(
-          {
-            textId: currentText.id,
-            startTime: null,
-            started: false,
-            mode: targetMode,
-            progressIndex: effectiveProgress,
-          },
-          ownerId
-        )
-      }
+      upsertReadingActivitySession(
+        {
+          readingSessionId: session.readingSessionId,
+          textId: currentText.id,
+          startTime: null,
+          started: false,
+          mode: targetMode,
+          progressIndex: effectiveProgress,
+        },
+        ownerId
+      )
     },
     [ownerId, currentText, fallbackWpm, readingPosition]
   )

@@ -18,6 +18,7 @@ import { retryProcessing } from '../../../backend/supabase/database/texts/retryP
 import { pwaLogger } from '../utils/pwaLogger'
 import { isOffline } from './networkStatus'
 import { OFFLINE_WRITE_ERROR } from '../constants/offline'
+import { removeCachedText } from './offlineCache'
 
 const TAG = 'adminService'
 
@@ -71,7 +72,7 @@ export const regenerateQuiz = async (
   await regenerateQuizDb(textId, adminId)
 }
 
-export const deleteTosViolation = (
+export const deleteTosViolation = async (
   textId: string,
   adminId: string
 ): Promise<void> => {
@@ -79,7 +80,8 @@ export const deleteTosViolation = (
     pwaLogger.warn(TAG, 'Blocked deleteTosViolation — offline', { textId })
     throw new Error(OFFLINE_WRITE_ERROR)
   }
-  return deleteTosViolationDb(textId, adminId)
+  await deleteTosViolationDb(textId, adminId)
+  await removeCachedText(textId)
 }
 
 export const retryTextProcessing = (textId: string): Promise<void> => {

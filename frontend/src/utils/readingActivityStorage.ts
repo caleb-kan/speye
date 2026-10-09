@@ -2,6 +2,9 @@ import { STORAGE_KEYS } from '../constants/storage'
 import type { Mode } from '../types/reading'
 
 export type ReadingActivitySession = {
+  activityId: string | null
+  readingSessionId: string | null
+  completed: boolean
   userId: string | null
   textId: string
   startTime: string | null
@@ -12,6 +15,9 @@ export type ReadingActivitySession = {
 }
 
 const defaultSession: ReadingActivitySession = {
+  activityId: null,
+  readingSessionId: null,
+  completed: false,
   userId: null,
   textId: '',
   startTime: null,
@@ -82,6 +88,24 @@ export function upsertReadingActivitySession(
     ...existing,
     ...partial,
     userId,
+    activityId:
+      partial.activityId ??
+      (existing?.textId === partial.textId || !partial.textId
+        ? existing?.activityId
+        : null) ??
+      crypto.randomUUID(),
+    readingSessionId:
+      partial.readingSessionId ??
+      (existing?.textId === partial.textId || !partial.textId
+        ? existing?.readingSessionId
+        : null) ??
+      crypto.randomUUID(),
+    completed:
+      partial.completed ??
+      (existing?.textId === partial.textId || !partial.textId
+        ? existing?.completed
+        : false) ??
+      false,
   }
 
   if (!next.textId) return null
@@ -96,4 +120,23 @@ export function clearReadingActivitySession(userId: string | null): void {
   } catch {
     // ignore storage errors
   }
+}
+
+export function rotateReadingActivitySession(
+  userId: string | null
+): ReadingActivitySession | null {
+  const session = loadReadingActivitySession(userId)
+  if (!session) return null
+  return upsertReadingActivitySession(
+    {
+      activityId: crypto.randomUUID(),
+      textId: session.textId,
+      startTime: null,
+      started: false,
+      wpm: session.wpm,
+      mode: session.mode,
+      progressIndex: session.progressIndex,
+    },
+    userId
+  )
 }

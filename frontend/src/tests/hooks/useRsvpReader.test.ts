@@ -451,6 +451,36 @@ describe('useRsvpReader', () => {
   })
 
   describe('keyboard', () => {
+    it.each(['button', 'select', 'a', 'div'])(
+      'preserves Space on a focused %s',
+      (tag) => {
+        const { result } = renderHook(() => useRsvpReader(defaultOpts))
+        const target = document.createElement(tag)
+        if (tag === 'div') target.setAttribute('contenteditable', 'true')
+        document.body.appendChild(target)
+        const event = new KeyboardEvent('keydown', {
+          code: 'Space',
+          bubbles: true,
+          cancelable: true,
+        })
+
+        act(() => target.dispatchEvent(event))
+
+        expect(result.current.isPlaying).toBe(false)
+        expect(event.defaultPrevented).toBe(false)
+        target.remove()
+        act(() => {
+          document.body.dispatchEvent(
+            new KeyboardEvent('keydown', {
+              code: 'Space',
+              bubbles: true,
+            })
+          )
+        })
+        expect(result.current.isPlaying).toBe(true)
+      }
+    )
+
     it('space bar toggles play/pause', () => {
       const { result } = renderHook(() => useRsvpReader(defaultOpts))
       expect(result.current.isPlaying).toBe(false)

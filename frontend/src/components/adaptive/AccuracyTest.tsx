@@ -110,9 +110,6 @@ export function AccuracyTest({
         setState('calculating')
       } else {
         setState('insufficient-samples')
-        setTimeout(() => {
-          onCompleteRef.current(0, false)
-        }, RESULT_DISPLAY_DELAY_MS)
       }
     }, ACCURACY_MAX_WAIT_MS)
 
@@ -130,17 +127,19 @@ export function AccuracyTest({
       )
       setAccuracy(calculatedAccuracy)
       setState('complete')
-
-      setTimeout(() => {
-        onCompleteRef.current(
-          calculatedAccuracy,
-          isAccuracySufficient(calculatedAccuracy)
-        )
-      }, RESULT_DISPLAY_DELAY_MS)
     }, CALCULATION_DISPLAY_DELAY_MS)
 
     return () => clearTimeout(timer)
   }, [state, targetX, targetY])
+
+  useEffect(() => {
+    if (state !== 'complete' && state !== 'insufficient-samples') return
+    const result = accuracy ?? 0
+    const timer = setTimeout(() => {
+      onCompleteRef.current(result, isAccuracySufficient(result))
+    }, RESULT_DISPLAY_DELAY_MS)
+    return () => clearTimeout(timer)
+  }, [state, accuracy])
 
   return (
     <div className="fixed inset-0 bg-bg" style={{ zIndex: Z_INDEX.OVERLAY }}>

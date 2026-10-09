@@ -31,7 +31,10 @@ describe('queued activity account ownership', () => {
   it('records the original account when persisting an offline unload', () => {
     logUserActivityOnUnload(params, 'test-token', 'original-user')
     expect(JSON.parse(localStorage.getItem('speye-unload-queue')!)).toEqual([
-      expect.objectContaining({ userId: 'original-user', payload: params }),
+      expect.objectContaining({
+        userId: 'original-user',
+        payload: expect.objectContaining({ ...params, id: expect.any(String) }),
+      }),
     ])
   })
 

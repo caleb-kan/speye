@@ -26,7 +26,7 @@ export const TYPE_LABELS: Record<QueuedOperation['type'], string> = {
 // 'syncing'        — sync started after being offline; resolves to 'synced'
 // 'syncing-online' — sync started while always online; resolves to 'online' (no banner)
 export type IndicatorState =
-  'online' | 'offline' | 'syncing' | 'syncing-online' | 'synced'
+  'online' | 'offline' | 'syncing' | 'syncing-online' | 'synced' | 'pending'
 
 type IndicatorAction =
   | { type: 'WENT_OFFLINE' }
@@ -65,7 +65,11 @@ export function useOfflineIndicator() {
   const navigate = useNavigate()
   const { isOnline, pendingOperations, isSyncing } = useNetworkStatus()
 
-  const [indicatorState, dispatch] = useReducer(indicatorReducer, 'online')
+  const [syncIndicatorState, dispatch] = useReducer(indicatorReducer, 'online')
+  const indicatorState: IndicatorState =
+    isOnline && !isSyncing && pendingOperations > 0
+      ? 'pending'
+      : syncIndicatorState
   const [hovered, setHovered] = useState(false)
   const [queueItems, setQueueItems] = useState<QueueSummaryItem[]>([])
 
@@ -153,7 +157,7 @@ export function useOfflineIndicator() {
     return () => {
       cancelled = true
     }
-  }, [hovered, indicatorState])
+  }, [hovered, indicatorState, pendingOperations])
 
   const handleClick = () => navigate('/settings#offline-cache')
 

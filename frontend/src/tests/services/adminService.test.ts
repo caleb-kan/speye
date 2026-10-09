@@ -8,6 +8,12 @@ const mockEq = vi.fn()
 const mockOr = vi.fn()
 const mockOrder = vi.fn()
 const mockSingle = vi.fn()
+const { mockRemoveCachedText } = vi.hoisted(() => ({
+  mockRemoveCachedText: vi.fn(),
+}))
+vi.mock('../../services/offlineCache', () => ({
+  removeCachedText: mockRemoveCachedText,
+}))
 
 vi.mock('../../../../lib/supabase', () => ({
   supabase: {
@@ -245,6 +251,7 @@ describe('adminService (frontend)', () => {
 
       const { deleteTosViolation } = await import('../../services/adminService')
       await deleteTosViolation('text-1', 'admin-1')
+      expect(mockRemoveCachedText).toHaveBeenCalledWith('text-1')
 
       expect(mockRpc).toHaveBeenCalledWith('admin_delete_tos_violation', {
         p_text_id: 'text-1',

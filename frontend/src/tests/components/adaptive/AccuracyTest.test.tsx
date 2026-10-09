@@ -1,8 +1,13 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { act, render, screen } from '@testing-library/react'
 import { AccuracyTest } from '../../../components/adaptive/AccuracyTest'
 import '@testing-library/jest-dom'
 import type { GazeData } from '../../../types/webgazer'
+import {
+  ACCURACY_COUNTDOWN_SECONDS,
+  ACCURACY_MAX_WAIT_MS,
+  RESULT_DISPLAY_DELAY_MS,
+} from '../../../constants/calibration'
 
 describe('AccuracyTest', () => {
   const mockGazeData: GazeData = {
@@ -17,6 +22,28 @@ describe('AccuracyTest', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+  })
+
+  afterEach(() => vi.useRealTimers())
+
+  it('cancels a delayed failure when the accuracy test is closed', () => {
+    vi.useFakeTimers()
+    const onComplete = vi.fn()
+    const view = render(
+      <AccuracyTest gazeData={null} onComplete={onComplete} />
+    )
+    act(() => vi.advanceTimersByTime(ACCURACY_COUNTDOWN_SECONDS * 1000))
+    act(() => vi.advanceTimersByTime(ACCURACY_MAX_WAIT_MS))
+    expect(screen.getByText('Insufficient Tracking Data')).toBeInTheDocument()
+    view.unmount()
+    act(() => vi.advanceTimersByTime(RESULT_DISPLAY_DELAY_MS))
+    expect(onComplete).not.toHaveBeenCalled()
+
+    render(<AccuracyTest gazeData={null} onComplete={onComplete} />)
+    act(() => vi.advanceTimersByTime(ACCURACY_COUNTDOWN_SECONDS * 1000))
+    act(() => vi.advanceTimersByTime(ACCURACY_MAX_WAIT_MS))
+    act(() => vi.advanceTimersByTime(RESULT_DISPLAY_DELAY_MS))
+    expect(onComplete).toHaveBeenCalledExactlyOnceWith(0, false)
   })
 
   it('renders without crashing', () => {

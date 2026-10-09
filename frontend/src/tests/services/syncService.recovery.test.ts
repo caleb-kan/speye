@@ -7,6 +7,7 @@ const state = vi.hoisted(() => ({
   failPersistenceFor: '',
   failNextInsert: false,
   latestActivity: 'earlier-session',
+  savedActivityIds: new Set<string>(),
   updated: [] as { id: string; score: unknown }[],
   order: [] as string[],
   afterPersist: undefined as (() => void) | undefined,
@@ -53,6 +54,11 @@ vi.mock('../../../../lib/supabase', () => ({
           payload = value
           return query
         },
+        upsert: (value: Record<string, unknown>) => {
+          action = 'insert'
+          payload = value
+          return query
+        },
         update: (value: Record<string, unknown>) => {
           action = 'update'
           payload = value
@@ -64,8 +70,13 @@ vi.mock('../../../../lib/supabase', () => ({
           return query
         },
         order: () => query,
+        lte: () => query,
         limit: async () => ({
-          data: [{ id: state.latestActivity }],
+          data: activityId
+            ? state.savedActivityIds.has(activityId)
+              ? [{ id: activityId }]
+              : []
+            : [{ id: state.latestActivity }],
           error: null,
         }),
         single: async () => {
@@ -76,6 +87,8 @@ vi.mock('../../../../lib/supabase', () => ({
               return { data: null, error: { message: 'Failed to fetch' } }
             }
             state.latestActivity = 'new-session'
+            if (typeof payload.id === 'string')
+              state.savedActivityIds.add(payload.id)
             return {
               data: { id: state.latestActivity, ...payload },
               error: null,
@@ -88,6 +101,7 @@ vi.mock('../../../../lib/supabase', () => ({
             error: null,
           }
         },
+        maybeSingle: async () => query.single(),
       }
       return query
     },
@@ -127,7 +141,10 @@ const activity = (
     progressIndex: 25,
   },
 })
-const quiz = (id = 'quiz', timestamp = 2): QueuedOperation => ({
+const quiz = (
+  id = 'quiz',
+  timestamp = 2
+): Extract<QueuedOperation, { type: 'saveQuizResult' }> => ({
   id,
   userId: 'reader-a',
   type: 'saveQuizResult',
@@ -141,6 +158,7 @@ beforeEach(() => {
   state.failPersistenceFor = ''
   state.failNextInsert = false
   state.latestActivity = 'earlier-session'
+  state.savedActivityIds.clear()
   state.updated = []
   state.order = []
   state.afterPersist = undefined
@@ -149,6 +167,46 @@ beforeEach(() => {
 afterEach(() => vi.restoreAllMocks())
 
 describe('durable ordered queue replay', () => {
+  it('replays the originating activity before a quiz that was queued first', async () => {
+    const read = activity('reading', 2)
+    read.payload.id = 'originating-activity'
+    const result = quiz('quiz', 1)
+    result.payload.activity_id = 'originating-activity'
+    state.operations.set(result.id, result)
+    state.operations.set(read.id, read)
+    await processQueue()
+    expect(state.order).toEqual(['activity', 'quiz'])
+    expect(state.updated).toEqual([{ id: 'originating-activity', score: 90 }])
+    expect(state.operations.size).toBe(0)
+  })
+
+  it('retains an explicit quiz until its activity arrives in a later replay', async () => {
+    const result = quiz('quiz', 1)
+    result.payload.activity_id = 'originating-activity'
+    state.operations.set(result.id, result)
+    await processQueue()
+    expect(state.operations.get(result.id)?.retryCount).toBe(1)
+    expect(state.updated).toEqual([])
+    const read = activity('reading', 2)
+    read.payload.id = 'originating-activity'
+    state.operations.set(read.id, read)
+    await processQueue()
+    expect(state.updated).toEqual([{ id: 'originating-activity', score: 90 }])
+    expect(state.operations.size).toBe(0)
+  })
+
+  it('does not attach a delayed offline quiz to a newer same-text activity', async () => {
+    state.savedActivityIds.add('original')
+    state.savedActivityIds.add('newer')
+    state.latestActivity = 'newer'
+    const result = quiz()
+    result.payload.activity_id = 'original'
+    state.operations.set(result.id, result)
+    await processQueue()
+    expect(state.updated).toEqual([{ id: 'original', score: 90 }])
+    expect(state.operations.size).toBe(0)
+  })
+
   it('keeps distinct unload records created in the same millisecond', async () => {
     vi.spyOn(Date, 'now').mockReturnValue(1234)
     logUserActivityOnUnload(activity().payload, 'token', 'reader-a')

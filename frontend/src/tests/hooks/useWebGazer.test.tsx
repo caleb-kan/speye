@@ -29,6 +29,10 @@ const { webgazer, camera } = vi.hoisted(() => ({
   },
 }))
 
+vi.mock('localforage', () => ({
+  default: { clear: vi.fn().mockResolvedValue(undefined) },
+}))
+
 function deferredStart() {
   let resolve!: () => void
   const promise = new Promise<void>((done) => {
@@ -102,6 +106,39 @@ afterEach(async () => {
 })
 
 describe('useWebGazer camera ownership', () => {
+  it('migrates obsolete calibration data before opening the camera', async () => {
+    const localforage = await import('localforage')
+    localStorage.setItem(STORAGE_KEYS.WEBGAZER_REGRESSION_VERSION, 'ridge')
+    localStorage.setItem(STORAGE_KEYS.ADAPTIVE_CALIBRATION, 'old calibration')
+    const reader = renderHook(() => useWebGazer({ enabled: true }))
+    await waitFor(() => expect(reader.result.current.isReady).toBe(true))
+    expect(localforage.default.clear).toHaveBeenCalledOnce()
+    expect(localStorage.getItem(STORAGE_KEYS.ADAPTIVE_CALIBRATION)).toBeNull()
+    expect(localStorage.getItem(STORAGE_KEYS.WEBGAZER_REGRESSION_VERSION)).toBe(
+      WEBGAZER_REGRESSION_MODEL
+    )
+    expect(webgazer.begin).toHaveBeenCalledOnce()
+  })
+
+  it.each(['getItem', 'removeItem', 'setItem'] as const)(
+    'reports inaccessible calibration storage during %s instead of getting stuck initializing',
+    async (method) => {
+      localStorage.setItem(STORAGE_KEYS.WEBGAZER_REGRESSION_VERSION, 'ridge')
+      vi.spyOn(Storage.prototype, method).mockImplementation(() => {
+        throw new DOMException('Storage access is denied', 'SecurityError')
+      })
+      const reader = renderHook(() => useWebGazer({ enabled: true }))
+      await waitFor(() => expect(reader.result.current.status).toBe('error'))
+      expect(reader.result.current.errorType).toBe('initialization-failed')
+      expect(reader.result.current.error).toBeTruthy()
+      expect(webgazer.begin).not.toHaveBeenCalled()
+      expect(camera.active).toBe(false)
+      reader.unmount()
+      await act(async () => {})
+      expect(camera.active).toBe(false)
+    }
+  )
+
   it('releases a camera granted after its reader unmounts', async () => {
     const start = deferredStart()
     webgazer.begin.mockReturnValue(start.promise)

@@ -45,6 +45,25 @@ const makeQuizWithQuestion = (
 
 describe('validateQuiz', () => {
   describe('structural validation', () => {
+    it('accepts one 3-question set for each of six sections', () => {
+      expect(
+        validateQuiz(makeValidQuiz(6, 3), { sectional: true, sectionCount: 6 })
+      ).toEqual([])
+    })
+
+    it('rejects missing sectional sets and empty sections', () => {
+      expect(
+        validateQuiz(makeValidQuiz(1, 3), { sectional: true, sectionCount: 2 })
+      ).toEqual([
+        'Sectional quiz must have exactly 2 question sets (one per section)',
+      ])
+      expect(
+        validateQuiz(makeValidQuiz(1, 3), { sectional: true, sectionCount: 0 })
+      ).toEqual([
+        'Sectional quiz must have exactly 0 question sets (one per section)',
+      ])
+    })
+
     it('returns no errors for a structurally valid quiz', () => {
       expect(validateQuiz(makeValidQuiz())).toEqual([])
     })

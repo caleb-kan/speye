@@ -185,7 +185,7 @@ it('still saves an ordinary quiz for the account that completed it', async () =>
     fireEvent.click(screen.getByText('Finish Quiz'))
   })
   expect(state.quizDb).toHaveBeenCalledWith(
-    { text_id: 'public-text', score: 100 },
+    { text_id: 'public-text', score: 100, completed_at: expect.any(String) },
     'account-a'
   )
 })

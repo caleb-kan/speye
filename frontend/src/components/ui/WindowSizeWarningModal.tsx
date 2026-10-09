@@ -1,5 +1,7 @@
 import { X } from 'lucide-react'
 import { WINDOW_SIZE_WARNING_MESSAGE } from '../../constants/ui'
+import { useEscapeKey } from '../../hooks/useEscapeKey'
+import { useDialogFocus } from '../../hooks/useDialogFocus'
 
 type WindowSizeWarningModalProps = {
   isOpen: boolean
@@ -10,10 +12,14 @@ export function WindowSizeWarningModal({
   isOpen,
   onClose,
 }: WindowSizeWarningModalProps) {
+  useEscapeKey(onClose, isOpen)
+  const dialogRef = useDialogFocus(isOpen)
   if (!isOpen) return null
 
   return (
     <div
+      ref={dialogRef}
+      tabIndex={-1}
       role="dialog"
       aria-modal="true"
       aria-labelledby="window-size-warning-title"

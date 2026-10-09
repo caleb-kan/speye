@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Mode, ActivitySessionContext } from '../types/reading'
 import type { Text } from '../types/database'
 import {
@@ -7,9 +7,9 @@ import {
 } from '../services/logUserActivity'
 import { useAuth } from './useAuth'
 import {
-  clearReadingActivitySession,
   isReadingActivityOwner,
   loadReadingActivitySession,
+  rotateReadingActivitySession,
   upsertReadingActivitySession,
 } from '../utils/readingActivityStorage'
 
@@ -21,6 +21,9 @@ export type UseReadingActivitySessionParams = {
 
 export type UseReadingActivitySessionResult = {
   handlePositionChange: (wordIndex: number) => void
+  handleRestart: () => void
+  getActivityId: () => string | undefined
+  readingSessionId: string | null
 }
 
 export const useReadingActivitySession = (
@@ -28,6 +31,9 @@ export const useReadingActivitySession = (
 ): UseReadingActivitySessionResult => {
   const { currentText, context, readingComplete } = params
   const startTimeRef = useRef<string | null>(null)
+  const activityIdRef = useRef<string | null>(null)
+  const readingSessionIdRef = useRef<string | null>(null)
+  const [readingSessionId, setReadingSessionId] = useState<string | null>(null)
   const hasLoggedCompleteRef = useRef(false)
   const hasLoggedLeaveRef = useRef(false)
   const pendingStartIndexRef = useRef<number | null>(null)
@@ -42,6 +48,8 @@ export const useReadingActivitySession = (
   }, [session, user])
 
   useEffect(() => {
+    activityIdRef.current = null
+    readingSessionIdRef.current = null
     hasLoggedCompleteRef.current = false
     hasLoggedLeaveRef.current = false
   }, [ownerId, currentText.id])
@@ -49,6 +57,36 @@ export const useReadingActivitySession = (
   useEffect(() => {
     if (readingComplete && hasLoggedCompleteRef.current) return
     const existing = loadReadingActivitySession(ownerId)
+    if (existing?.textId === currentText.id) {
+      readingSessionIdRef.current =
+        existing.readingSessionId ??
+        readingSessionIdRef.current ??
+        crypto.randomUUID()
+    } else if (!readingSessionIdRef.current || hasLoggedCompleteRef.current) {
+      readingSessionIdRef.current = crypto.randomUUID()
+    }
+    if (readingSessionId !== readingSessionIdRef.current) {
+      // Expose the restored attempt identity to section quiz persistence.
+      setReadingSessionId(readingSessionIdRef.current)
+    }
+    if (
+      existing?.textId === currentText.id &&
+      (existing.mode === context.mode || existing.completed)
+    ) {
+      activityIdRef.current =
+        existing.activityId ?? activityIdRef.current ?? crypto.randomUUID()
+    } else if (
+      !activityIdRef.current ||
+      existing ||
+      hasLoggedCompleteRef.current
+    ) {
+      activityIdRef.current = crypto.randomUUID()
+    }
+    if (existing?.textId === currentText.id && existing.completed) {
+      hasLoggedCompleteRef.current = true
+      startTimeRef.current = null
+      return
+    }
     if (existing?.textId === currentText.id) {
       if (
         context.mode !== 'adaptive' &&
@@ -58,6 +96,8 @@ export const useReadingActivitySession = (
         pendingStartIndexRef.current = context.readingPosition
         upsertReadingActivitySession(
           {
+            activityId: activityIdRef.current,
+            readingSessionId: readingSessionIdRef.current,
             textId: currentText.id,
             startTime: null,
             started: false,
@@ -88,14 +128,27 @@ export const useReadingActivitySession = (
       if (existing.progressIndex !== context.readingPosition) {
         updates.progressIndex = context.readingPosition
       }
-      if (Object.keys(updates).length > 0) {
-        upsertReadingActivitySession(updates, ownerId)
+      if (
+        Object.keys(updates).length > 0 ||
+        existing.activityId !== activityIdRef.current ||
+        existing.readingSessionId !== readingSessionIdRef.current
+      ) {
+        upsertReadingActivitySession(
+          {
+            ...updates,
+            activityId: activityIdRef.current,
+            readingSessionId: readingSessionIdRef.current,
+          },
+          ownerId
+        )
       }
     } else {
       startTimeRef.current = null
       pendingStartIndexRef.current = context.readingPosition
       upsertReadingActivitySession(
         {
+          activityId: activityIdRef.current,
+          readingSessionId: readingSessionIdRef.current,
           textId: currentText.id,
           startTime: null,
           started: false,
@@ -117,6 +170,8 @@ export const useReadingActivitySession = (
       pendingStartIndexRef.current = null
       upsertReadingActivitySession(
         {
+          activityId: activityIdRef.current,
+          readingSessionId: readingSessionIdRef.current,
           textId: currentText.id,
           startTime,
           started: true,
@@ -134,6 +189,7 @@ export const useReadingActivitySession = (
     context.readingPosition,
     context.wpm,
     context.mode,
+    readingSessionId,
   ])
 
   useEffect(() => {
@@ -151,6 +207,7 @@ export const useReadingActivitySession = (
 
       logUserActivityOnUnload(
         {
+          id: activitySession.activityId ?? activityIdRef.current ?? undefined,
           textId: activitySession.textId,
           wpm: activitySession.wpm ?? context.wpm,
           startTime: activitySession.startTime,
@@ -162,30 +219,56 @@ export const useReadingActivitySession = (
         accessTokenRef.current,
         userIdRef.current
       )
+      activityIdRef.current =
+        rotateReadingActivitySession(ownerId)?.activityId ?? null
+      startTimeRef.current = null
+      pendingStartIndexRef.current = activitySession.progressIndex
+    }
+    const handlePageShow = () => {
+      hasLoggedLeaveRef.current = false
     }
 
     window.addEventListener('beforeunload', handlePageLeave)
     window.addEventListener('pagehide', handlePageLeave)
+    window.addEventListener('pageshow', handlePageShow)
 
     return () => {
       window.removeEventListener('beforeunload', handlePageLeave)
       window.removeEventListener('pagehide', handlePageLeave)
+      window.removeEventListener('pageshow', handlePageShow)
     }
   }, [ownerId, context.wpm, context.mode, context.readingPosition])
 
   useEffect(() => {
     if (!readingComplete) {
-      hasLoggedCompleteRef.current = false
+      const existing = loadReadingActivitySession(ownerId)
+      hasLoggedCompleteRef.current =
+        existing?.textId === currentText.id && existing.completed
       return
     }
     if (hasLoggedCompleteRef.current || !isReadingActivityOwner(ownerId)) return
     hasLoggedCompleteRef.current = true
 
     const activitySession = loadReadingActivitySession(ownerId)
-    clearReadingActivitySession(ownerId)
+    upsertReadingActivitySession(
+      {
+        activityId: activitySession?.activityId ?? activityIdRef.current,
+        readingSessionId: readingSessionIdRef.current,
+        textId: currentText.id,
+        completed: true,
+        started: false,
+        startTime: null,
+        progressIndex:
+          activitySession?.progressIndex ?? context.readingPosition,
+        mode: context.mode,
+        wpm: activitySession?.wpm ?? context.wpm,
+      },
+      ownerId
+    )
 
     void logUserActivity(
       {
+        id: activitySession?.activityId ?? activityIdRef.current ?? undefined,
         textId: currentText.id,
         wpm: activitySession?.wpm ?? context.wpm,
         startTime: startTimeRef.current ?? new Date().toISOString(),
@@ -213,6 +296,7 @@ export const useReadingActivitySession = (
     const now = new Date().toISOString()
     void logUserActivity(
       {
+        id: activitySession.activityId ?? activityIdRef.current ?? undefined,
         textId: activitySession.textId,
         wpm: activitySession.wpm ?? context.wpm,
         startTime: activitySession.startTime ?? now,
@@ -223,8 +307,12 @@ export const useReadingActivitySession = (
       ownerId
     )
 
+    activityIdRef.current = crypto.randomUUID()
+    startTimeRef.current = now
     upsertReadingActivitySession(
       {
+        activityId: activityIdRef.current,
+        readingSessionId: readingSessionIdRef.current,
         textId: activitySession.textId,
         startTime: now,
         started: true,
@@ -239,6 +327,14 @@ export const useReadingActivitySession = (
   const handlePositionChange = useCallback(
     (wordIndex: number): void => {
       if (!isReadingActivityOwner(ownerId)) return
+      const existing = loadReadingActivitySession(ownerId)
+      if (existing?.completed) {
+        context.setReadingPosition(wordIndex)
+        return
+      }
+      if (existing?.progressIndex !== wordIndex) {
+        hasLoggedLeaveRef.current = false
+      }
       context.setReadingPosition(wordIndex)
 
       if (
@@ -251,6 +347,8 @@ export const useReadingActivitySession = (
         pendingStartIndexRef.current = null
         upsertReadingActivitySession(
           {
+            activityId: activityIdRef.current,
+            readingSessionId: readingSessionIdRef.current,
             textId: currentText.id,
             startTime,
             started: true,
@@ -265,5 +363,44 @@ export const useReadingActivitySession = (
     [ownerId, context, currentText.id]
   )
 
-  return { handlePositionChange }
+  const handleRestart = useCallback(() => {
+    if (!isReadingActivityOwner(ownerId)) return
+    hasLoggedCompleteRef.current = false
+    hasLoggedLeaveRef.current = false
+    activityIdRef.current = crypto.randomUUID()
+    readingSessionIdRef.current = crypto.randomUUID()
+    setReadingSessionId(readingSessionIdRef.current)
+    startTimeRef.current = null
+    pendingStartIndexRef.current = 0
+    upsertReadingActivitySession(
+      {
+        activityId: activityIdRef.current,
+        readingSessionId: readingSessionIdRef.current,
+        textId: currentText.id,
+        completed: false,
+        started: false,
+        startTime: null,
+        progressIndex: 0,
+        mode: context.mode,
+        wpm: context.wpm,
+      },
+      ownerId
+    )
+    context.setReadingPosition(0)
+  }, [ownerId, currentText.id, context])
+
+  const getActivityId = useCallback(
+    () =>
+      isReadingActivityOwner(ownerId)
+        ? (activityIdRef.current ?? undefined)
+        : undefined,
+    [ownerId]
+  )
+
+  return {
+    handlePositionChange,
+    handleRestart,
+    getActivityId,
+    readingSessionId,
+  }
 }

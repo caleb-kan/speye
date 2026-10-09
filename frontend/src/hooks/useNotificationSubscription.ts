@@ -69,8 +69,9 @@ export function useNotificationSubscription(
   const unsubscribe = useCallback(() => {
     clearRetryTimeout()
     if (channelRef.current) {
-      supabase.removeChannel(channelRef.current)
+      const channel = channelRef.current
       channelRef.current = null
+      supabase.removeChannel(channel)
     }
     setStatus('disconnected')
   }, [clearRetryTimeout])
@@ -79,13 +80,16 @@ export function useNotificationSubscription(
     if (!userId || !mountedRef.current) return
 
     if (channelRef.current) {
-      supabase.removeChannel(channelRef.current)
+      const channel = channelRef.current
+      channelRef.current = null
+      supabase.removeChannel(channel)
     }
 
     setStatus('connecting')
 
-    const channel = supabase
-      .channel(`notifications:${userId}`)
+    const channel = supabase.channel(`notifications:${userId}`)
+    channelRef.current = channel
+    channel
       .on(
         'postgres_changes',
         {
@@ -95,6 +99,7 @@ export function useNotificationSubscription(
           filter: `user_id=eq.${userId}`,
         },
         (payload) => {
+          if (channelRef.current !== channel) return
           const event = payload as unknown as NotificationChangeEvent
 
           switch (payload.eventType) {
@@ -117,7 +122,7 @@ export function useNotificationSubscription(
         }
       )
       .subscribe((subscriptionStatus, err) => {
-        if (!mountedRef.current) return
+        if (!mountedRef.current || channelRef.current !== channel) return
 
         if (subscriptionStatus === 'SUBSCRIBED') {
           setStatus('connected')
@@ -139,8 +144,6 @@ export function useNotificationSubscription(
           }
         }
       })
-
-    channelRef.current = channel
   }, [userId, scheduleRetry])
 
   useEffect(() => {
@@ -149,6 +152,8 @@ export function useNotificationSubscription(
 
   useEffect(() => {
     mountedRef.current = true
+    retryDelayRef.current = INITIAL_RETRY_DELAY_MS
+    retryCountRef.current = 0
     // eslint-disable-next-line react-hooks/set-state-in-effect -- subscription manages its own state
     subscribe()
 

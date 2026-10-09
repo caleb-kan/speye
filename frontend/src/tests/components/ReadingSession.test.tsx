@@ -45,7 +45,11 @@ vi.mock('../../components/StartQuizButton', () => ({
 }))
 
 vi.mock('../../hooks/useReadingActivitySession', () => ({
-  useReadingActivitySession: () => ({ handlePositionChange: vi.fn() }),
+  useReadingActivitySession: () => ({
+    handlePositionChange: vi.fn(),
+    handleRestart: vi.fn(),
+    readingSessionId: 'reading-attempt',
+  }),
 }))
 
 vi.mock('../../services/saveQuizResult', () => ({
@@ -336,7 +340,8 @@ describe('ReadingSession', () => {
         expect(offlineCacheModule.setSectionQuizProgress).toHaveBeenCalledWith(
           'text-1',
           expect.objectContaining({ quizzedSectionIds: [0] }),
-          'owner-1'
+          'owner-1',
+          'reading-attempt'
         )
       })
     })
@@ -442,7 +447,8 @@ describe('ReadingSession', () => {
       await waitFor(() => {
         expect(offlineCacheModule.getSectionQuizProgress).toHaveBeenCalledWith(
           'text-1',
-          'owner-1'
+          'owner-1',
+          'reading-attempt'
         )
       })
     })

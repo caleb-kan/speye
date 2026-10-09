@@ -18,6 +18,7 @@ type QuizModalProps = {
   questionSet: QuestionSet | null
   textId: string
   ownerId: string | null
+  activityId?: string
   /** If provided, called instead of saving to DB — used for section quizzes */
   onFinish?: (correct: number, total: number) => void
 }
@@ -28,6 +29,7 @@ export function QuizModal({
   questionSet,
   textId,
   ownerId,
+  activityId,
   onFinish,
 }: QuizModalProps) {
   const { user } = useAuth()
@@ -39,6 +41,7 @@ export function QuizModal({
   const [isSaving, setIsSaving] = useState(false)
   const [savedWpm, setSavedWpm] = useState<number | null>(null)
   const [saveError, setSaveError] = useState(false)
+  const [openedAt] = useState(() => new Date().toISOString())
 
   if (!questionSet) return null
 
@@ -75,7 +78,13 @@ export function QuizModal({
     setSaveError(false)
     try {
       const result = await saveQuizResult(
-        { text_id: textId, score: finalScore },
+        {
+          text_id: textId,
+          score: finalScore,
+          ...(activityId
+            ? { activity_id: activityId }
+            : { completed_at: openedAt }),
+        },
         user.id
       )
       if (result?.wpm != null) {

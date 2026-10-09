@@ -58,12 +58,16 @@ export function OfflineIndicator() {
           </>
         ) : (
           <>
-            <CloudOff className="h-5 w-5 md:h-3 md:w-3" />
+            {indicatorState === 'pending' ? (
+              <RefreshCw className="h-5 w-5 md:h-3 md:w-3" />
+            ) : (
+              <CloudOff className="h-5 w-5 md:h-3 md:w-3" />
+            )}
             <span
               data-testid="offline-indicator-status"
               className="hidden md:inline"
             >
-              Offline
+              {indicatorState === 'pending' ? 'Pending sync' : 'Offline'}
             </span>
             {pendingOperations > 0 && (
               <span className="hidden md:inline ml-0.5 px-1.5 py-0.5 rounded-full bg-text-secondary/20 text-[10px]">

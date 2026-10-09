@@ -75,6 +75,7 @@ export function ReadingLayout() {
 
       void logUserActivity(
         {
+          id: session.activityId ?? undefined,
           textId: currentText.id,
           wpm: session.wpm ?? preferences.wpm,
           startTime: session.startTime ?? new Date().toISOString(),
@@ -85,19 +86,18 @@ export function ReadingLayout() {
         ownerId
       )
 
-      if (targetMode !== 'standard') {
-        clearReadingActivitySession(ownerId)
-        upsertReadingActivitySession(
-          {
-            textId: currentText.id,
-            startTime: null,
-            started: false,
-            mode: targetMode,
-            progressIndex: effectiveProgress,
-          },
-          ownerId
-        )
-      }
+      clearReadingActivitySession(ownerId)
+      upsertReadingActivitySession(
+        {
+          readingSessionId: session.readingSessionId,
+          textId: currentText.id,
+          startTime: null,
+          started: false,
+          mode: targetMode,
+          progressIndex: effectiveProgress,
+        },
+        ownerId
+      )
     },
     [ownerId, currentText, preferences.wpm, preferences.mode, readingPosition]
   )

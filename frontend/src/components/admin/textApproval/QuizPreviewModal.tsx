@@ -1,6 +1,7 @@
 import { X, Check } from 'lucide-react'
 import type { Quiz } from '../../../types/database.ts'
 import { useEscapeKey } from '../../../hooks/useEscapeKey.ts'
+import { useDialogFocus } from '../../../hooks/useDialogFocus.ts'
 import { UNTITLED_TEXT_FALLBACK } from '../../../constants/admin.ts'
 
 interface QuizPreviewModalProps {
@@ -15,6 +16,7 @@ export function QuizPreviewModal({
   onClose,
 }: QuizPreviewModalProps) {
   useEscapeKey(onClose, !!quiz)
+  const dialogRef = useDialogFocus(!!quiz)
 
   if (!quiz) return null
 
@@ -26,6 +28,8 @@ export function QuizPreviewModal({
 
   return (
     <div
+      ref={dialogRef}
+      tabIndex={-1}
       className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
       onClick={handleBackdropClick}
       role="dialog"

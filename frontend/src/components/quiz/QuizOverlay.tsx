@@ -2,6 +2,7 @@ import { createPortal } from 'react-dom'
 import { useEffect, useState } from 'react'
 import { OVERLAY_EXIT_ANIMATION_MS, Z_INDEX } from '../../constants/ui'
 import { useEscapeKey } from '../../hooks/useEscapeKey'
+import { useDialogFocus } from '../../hooks/useDialogFocus'
 
 type QuizOverlayProps = {
   isOpen: boolean
@@ -46,6 +47,7 @@ export function QuizOverlay({ isOpen, onClose, children }: QuizOverlayProps) {
   }, [isOpen])
 
   useEscapeKey(onClose, isOpen)
+  const dialogRef = useDialogFocus(isOpen && isMounted && !!modalRoot)
 
   if (!isMounted || !modalRoot) return null
 
@@ -64,6 +66,11 @@ export function QuizOverlay({ isOpen, onClose, children }: QuizOverlayProps) {
       />
 
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Reading quiz"
+        tabIndex={-1}
         className={`
           relative w-full max-w-6xl rounded-3xl bg-bg shadow-2xl p-4 sm:p-8
           transform transition-all duration-500 cubic-bezier(0.16, 1, 0.3, 1)

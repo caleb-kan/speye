@@ -62,6 +62,9 @@ export async function enqueueOperation<T extends OperationType>(
     timestamp: Date.now(),
     retryCount: 0,
   } as QueuedOperation
+  if (op.type === 'logUserActivity' && !op.payload.id) {
+    op.payload = { ...op.payload, id: crypto.randomUUID() }
+  }
   pwaLogger.debug(TAG, `Enqueued operation: ${type}`, { id: op.id })
   await queueStore.setItem(op.id, op)
   notifyListeners()

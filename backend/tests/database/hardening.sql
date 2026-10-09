@@ -42,7 +42,7 @@ BEGIN
     RAISE EXCEPTION 'Forbidden: caller must match user' USING ERRCODE = '42501';
   END IF;
 
-  -- Cancellation must wait for pending matchmaking writes before removing them.
+  -- Serialize queue removal with matchmaking.
   PERFORM pg_advisory_xact_lock(hashtextextended('public.matchmake', 0));
   SELECT id INTO v_game_id FROM public.pvp_games
   WHERE p_user_id IN (player1_id, player2_id) AND status IN ('pending', 'active')

@@ -14,6 +14,8 @@ import {
   setCachedLibraryTexts,
   getCachedText,
   setCachedText,
+  replaceCachedText,
+  removeCachedText,
   getCachedBestScores,
   setCachedBestScores,
   getCachedLastReadDates,
@@ -209,6 +211,7 @@ export const deleteLibraryText = async (textId: string): Promise<void> => {
     throw new Error(OFFLINE_WRITE_ERROR)
   }
   await deleteText(textId)
+  await removeCachedText(textId)
 }
 
 export const retryLibraryTextProcessing = async (
@@ -229,7 +232,9 @@ export const updateLibraryText = async (
     pwaLogger.warn(TAG, 'Blocked text update — offline', { textId })
     throw new Error(OFFLINE_WRITE_ERROR)
   }
-  return updateText(textId, payload)
+  const text = await updateText(textId, payload)
+  await replaceCachedText(text)
+  return text
 }
 
 export const updateLibraryTextQuiz = async (
@@ -240,5 +245,7 @@ export const updateLibraryTextQuiz = async (
     pwaLogger.warn(TAG, 'Blocked quiz update — offline', { textId })
     throw new Error(OFFLINE_WRITE_ERROR)
   }
-  return updateTextQuiz(textId, quiz)
+  const text = await updateTextQuiz(textId, quiz)
+  await replaceCachedText(text)
+  return text
 }

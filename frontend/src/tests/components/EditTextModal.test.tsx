@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import '@testing-library/jest-dom'
 import { EditTextModal } from '../../components/EditTextModal'
 import { AuthContext } from '../../context/authContext'
@@ -60,6 +61,43 @@ describe('EditTextModal', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+  })
+
+  it('lets the user cancel and confirm deletion of a filled section without closing the editor', async () => {
+    const user = userEvent.setup()
+    const onClose = vi.fn()
+    renderWithAuth(
+      <EditTextModal
+        {...defaultProps}
+        isOpen
+        text={{
+          ...mockText,
+          sectional: true,
+          section_content: [
+            { title: 'First', content: 'one two' },
+            { title: 'Last', content: 'three four' },
+          ],
+        }}
+        onClose={onClose}
+      />
+    )
+    const deleteSection = screen.getByRole('button', {
+      name: 'Delete section 1',
+    })
+    await user.click(deleteSection)
+    expect(
+      screen.getByRole('alertdialog', { name: 'Delete Section?' })
+    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Cancel' })).toHaveFocus()
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+    expect(deleteSection).toHaveFocus()
+    expect(screen.getByLabelText('Section 1 title')).toHaveValue('First')
+    fireEvent.click(screen.getByRole('button', { name: 'Delete section 1' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Delete', exact: true }))
+    expect(screen.getByLabelText('Section 1 title')).toHaveValue('Last')
+    expect(screen.getByRole('button', { name: 'Close modal' })).toHaveFocus()
+    expect(onClose).not.toHaveBeenCalled()
   })
 
   it('does not render when isOpen is false', () => {

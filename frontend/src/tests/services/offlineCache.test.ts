@@ -4,6 +4,17 @@ const { mockGetSession } = vi.hoisted(() => ({ mockGetSession: vi.fn() }))
 vi.mock('../../../../lib/supabase', () => ({
   supabase: { auth: { getSession: mockGetSession } },
 }))
+const mutations = vi.hoisted(() => ({
+  updateTextQuiz: vi.fn(),
+  deleteText: vi.fn(),
+}))
+vi.mock('../../../../backend/supabase/database/texts/updateTextQuiz', () => ({
+  updateTextQuiz: mutations.updateTextQuiz,
+}))
+vi.mock('../../../../backend/supabase/database/texts/deleteText', () => ({
+  deleteText: mutations.deleteText,
+}))
+vi.mock('../../services/networkStatus', () => ({ isOffline: () => false }))
 
 // Each call to localforage.createInstance() returns a fresh mock store so that
 // reads/writes to the wrong store are detectable (T5 fix).
@@ -62,6 +73,10 @@ import {
   getCachedQuiz,
 } from '../../services/offlineCache'
 import type { Text } from '../../types/database'
+import {
+  deleteLibraryText,
+  updateLibraryTextQuiz,
+} from '../../services/libraryService'
 
 const mockText: Text = {
   id: 'text-1',
@@ -198,6 +213,60 @@ describe('offlineCache', () => {
           timestamp: expect.any(Number),
         })
       )
+    })
+  })
+
+  describe('library mutations', () => {
+    it('replaces edited text content and existing cached previews', async () => {
+      const timestamp = Date.now() - 1000
+      getLibraryStore().iterate.mockImplementation(async (callback) => {
+        callback(
+          {
+            data: [{ id: mockText.id, title: 'Old title' }, { id: 'other' }],
+            timestamp,
+          },
+          'user:user-1'
+        )
+      })
+      const updated = {
+        ...mockText,
+        title: 'Updated title',
+        content: 'Updated content',
+      }
+      mutations.updateTextQuiz.mockResolvedValue(updated)
+      await updateLibraryTextQuiz(mockText.id, { questionSets: [] })
+      expect(getTextsStore().setItem).toHaveBeenCalledWith(
+        mockText.id,
+        expect.objectContaining({ data: updated })
+      )
+      expect(getLibraryStore().setItem).toHaveBeenCalledWith('user:user-1', {
+        timestamp,
+        data: [
+          expect.objectContaining({
+            id: mockText.id,
+            title: 'Updated title',
+            preview: 'Updated content',
+          }),
+          { id: 'other' },
+        ],
+      })
+    })
+
+    it('removes deleted text content and previews without deleting other texts', async () => {
+      const timestamp = Date.now() - 1000
+      getLibraryStore().iterate.mockImplementation(async (callback) => {
+        callback(
+          { data: [{ id: mockText.id }, { id: 'other' }], timestamp },
+          'user:user-1'
+        )
+      })
+      mutations.deleteText.mockResolvedValue(undefined)
+      await deleteLibraryText(mockText.id)
+      expect(getTextsStore().removeItem).toHaveBeenCalledWith(mockText.id)
+      expect(getLibraryStore().setItem).toHaveBeenCalledWith('user:user-1', {
+        timestamp,
+        data: [{ id: 'other' }],
+      })
     })
   })
 

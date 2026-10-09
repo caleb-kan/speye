@@ -1,4 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom'
+import type { Session, User } from '@supabase/supabase-js'
 import { CalibrationProvider } from '../context/CalibrationProvider'
 import { useAuth } from '../hooks/useAuth'
 import { usePvpGameState } from '../hooks/usePvpGameState'
@@ -23,9 +24,39 @@ import { ROUTES } from '../utils/routes'
 
 export function PvpGame() {
   const { gameId } = useParams<{ gameId: string }>()
-  const navigate = useNavigate()
   const { user, session, loading: authLoading } = useAuth()
-  const gameState = usePvpGameState(gameId ?? null)
+  if (authLoading) return <PvpLoadingSpinner />
+  if (!user) return <PvpLoginRequired />
+  if (!gameId) {
+    return (
+      <PvpCenteredMessage>
+        <p className="text-error" role="alert">
+          Invalid game URL.
+        </p>
+      </PvpCenteredMessage>
+    )
+  }
+  return (
+    <PvpGameSession
+      key={`${gameId}:${user.id}`}
+      gameId={gameId}
+      user={user}
+      session={session}
+    />
+  )
+}
+
+function PvpGameSession({
+  gameId,
+  user,
+  session,
+}: {
+  gameId: string
+  user: User
+  session: Session | null
+}) {
+  const navigate = useNavigate()
+  const gameState = usePvpGameState(gameId)
   const {
     phase,
     game,
@@ -37,11 +68,11 @@ export function PvpGame() {
     pendingSubmit,
   } = gameState
 
-  const players = usePvpGamePlayers(game, user?.id ?? null)
+  const players = usePvpGamePlayers(game, user.id)
 
   const callbacks = usePvpGameCallbacks({
-    gameId: gameId ?? null,
-    userId: user?.id ?? null,
+    gameId,
+    userId: user.id,
     phase,
     text,
     pendingSubmit,
@@ -52,17 +83,7 @@ export function PvpGame() {
     setGame: gameState.setGame,
   })
 
-  if (phase === 'loading' || authLoading) return <PvpLoadingSpinner />
-  if (!user) return <PvpLoginRequired />
-  if (!gameId) {
-    return (
-      <PvpCenteredMessage>
-        <p className="text-error" role="alert">
-          Invalid game URL.
-        </p>
-      </PvpCenteredMessage>
-    )
-  }
+  if (phase === 'loading') return <PvpLoadingSpinner />
 
   if (phase === 'error' || !game) {
     return (

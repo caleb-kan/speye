@@ -17,6 +17,7 @@ export async function logUserActivity(
   params: UserActivityLogParams,
   originalUserId?: string | null
 ) {
+  params = { ...params, id: params.id ?? crypto.randomUUID() }
   const {
     data: { session },
   } = await supabase.auth.getSession()
@@ -67,26 +68,25 @@ export function logUserActivityOnUnload(
   userId: string | null | undefined
 ) {
   if (params.progressIndex <= 0 || !accessToken || !userId) return
-  if (isOffline()) {
-    pwaLogger.debug(TAG, 'Offline unload — writing to localStorage queue')
-    // Synchronously write to localStorage (localforage is async, may not complete during unload)
-    try {
-      const raw = localStorage.getItem(SYNC.UNLOAD_QUEUE_KEY)
-      const queue = raw ? JSON.parse(raw) : []
-      queue.push({
-        id: `logUserActivity-unload-${Date.now()}-${crypto.randomUUID()}`,
-        type: 'logUserActivity' as const,
-        userId,
-        payload: params,
-        timestamp: Date.now(),
-        retryCount: 0,
-      })
-      localStorage.setItem(SYNC.UNLOAD_QUEUE_KEY, JSON.stringify(queue))
-    } catch (err) {
-      pwaLogger.warn(TAG, 'Failed to write unload queue to localStorage', err)
-    }
-    return
+  params = { ...params, id: params.id ?? crypto.randomUUID() }
+  // Keepalive can commit without delivering a response. Persist its identity
+  // synchronously first so recovery can safely retry even an online unload.
+  try {
+    const raw = localStorage.getItem(SYNC.UNLOAD_QUEUE_KEY)
+    const queue = raw ? JSON.parse(raw) : []
+    queue.push({
+      id: `logUserActivity-unload-${Date.now()}-${crypto.randomUUID()}`,
+      type: 'logUserActivity' as const,
+      userId,
+      payload: params,
+      timestamp: Date.now(),
+      retryCount: 0,
+    })
+    localStorage.setItem(SYNC.UNLOAD_QUEUE_KEY, JSON.stringify(queue))
+  } catch (err) {
+    pwaLogger.warn(TAG, 'Failed to write unload queue to localStorage', err)
   }
+  if (isOffline()) return
 
   return logUserActivityOnUnloadDb(params, accessToken, userId)
 }

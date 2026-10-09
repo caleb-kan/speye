@@ -4,6 +4,8 @@ import {
   MAX_QUESTION_SETS,
   MIN_QUESTIONS,
   MAX_QUESTIONS,
+  MIN_QUESTIONS_SECTIONAL,
+  MAX_QUESTIONS_SECTIONAL,
   NUM_OPTIONS_PER_QUESTION,
   OPTION_LABELS,
 } from '../constants/quiz'
@@ -12,7 +14,13 @@ const CORRECT_ANSWER_RANGE = OPTION_LABELS.join(', ')
 
 const MALFORMED_ERROR = 'Quiz structure is invalid. Try regenerating the quiz.'
 
-export function validateQuiz(quiz: Quiz): string[] {
+export function validateQuiz(
+  quiz: Quiz,
+  {
+    sectional = false,
+    sectionCount,
+  }: { sectional?: boolean; sectionCount?: number } = {}
+): string[] {
   const errors: string[] = []
 
   if (!quiz?.questionSets || !Array.isArray(quiz.questionSets)) {
@@ -20,14 +28,27 @@ export function validateQuiz(quiz: Quiz): string[] {
   }
 
   if (
+    sectional &&
+    sectionCount !== undefined &&
+    (sectionCount < 1 || quiz.questionSets.length !== sectionCount)
+  ) {
+    return [
+      `Sectional quiz must have exactly ${sectionCount} question sets (one per section)`,
+    ]
+  }
+
+  if (
     quiz.questionSets.length < MIN_QUESTION_SETS ||
-    quiz.questionSets.length > MAX_QUESTION_SETS
+    (!sectional && quiz.questionSets.length > MAX_QUESTION_SETS)
   ) {
     errors.push(
       `Quiz must have between ${MIN_QUESTION_SETS} and ${MAX_QUESTION_SETS} question sets`
     )
     return errors
   }
+
+  const minQuestions = sectional ? MIN_QUESTIONS_SECTIONAL : MIN_QUESTIONS
+  const maxQuestions = sectional ? MAX_QUESTIONS_SECTIONAL : MAX_QUESTIONS
 
   for (let s = 0; s < quiz.questionSets.length; s++) {
     const set = quiz.questionSets[s]
@@ -38,11 +59,11 @@ export function validateQuiz(quiz: Quiz): string[] {
     }
 
     if (
-      set.questions.length < MIN_QUESTIONS ||
-      set.questions.length > MAX_QUESTIONS
+      set.questions.length < minQuestions ||
+      set.questions.length > maxQuestions
     ) {
       errors.push(
-        `Set ${s + 1}: must have between ${MIN_QUESTIONS} and ${MAX_QUESTIONS} questions`
+        `Set ${s + 1}: must have between ${minQuestions} and ${maxQuestions} questions`
       )
       continue
     }

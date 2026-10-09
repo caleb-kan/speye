@@ -89,6 +89,17 @@ export function useHorizontalReader({
   const [horizontalProgress, setHorizontalProgress] = useState(0)
   const [calculatedWpm, setCalculatedWpm] = useState(0)
   const [isSweepDetected, setIsSweepDetected] = useState(false)
+  const [readerText, setReaderText] = useState(text)
+
+  // Reset visible state before a new section can report the old completion.
+  if (readerText !== text) {
+    setReaderText(text)
+    setCurrentChunk(0)
+    setIsComplete(false)
+    setHorizontalProgress(0)
+    setCalculatedWpm(0)
+    setIsSweepDetected(false)
+  }
 
   const chunkStartTimeRef = useRef<number>(0)
   const readingStartTimeRef = useRef<number | null>(null)
@@ -112,6 +123,19 @@ export function useHorizontalReader({
   const canTimeReadingRef = useRefSync(!disabled && isGazeReliable)
 
   const initialPositionAppliedRef = useRef(false)
+
+  const completeReading = useCallback(() => {
+    completionTriggeredRef.current = true
+    setIsSweepDetected(false)
+    setIsComplete(true)
+    if (readingStartTimeRef.current === null) return
+    const elapsedMs = Date.now() - readingStartTimeRef.current
+    if (elapsedMs >= MIN_READING_TIME_FOR_WPM_MS) {
+      const totalWords =
+        chunkWordCounts?.reduce((sum, count) => sum + count, 0) ?? 0
+      setCalculatedWpm(calculateWpmFromReading(totalWords, elapsedMs))
+    }
+  }, [chunkWordCounts])
 
   useEffect(() => {
     if (
@@ -143,16 +167,16 @@ export function useHorizontalReader({
   }, [initialWordIndex, chunkWordCounts, totalChunks])
 
   const wordsRead = useMemo(() => {
-    if (currentChunk === 0) return 0
     if (chunkWordCounts && chunkWordCounts.length > 0) {
       let total = 0
-      for (let i = 0; i < currentChunk && i < chunkWordCounts.length; i++) {
+      const completedChunks = isComplete ? chunkWordCounts.length : currentChunk
+      for (let i = 0; i < completedChunks && i < chunkWordCounts.length; i++) {
         total += chunkWordCounts[i]
       }
-      return total
+      return isComplete ? Math.max(0, total - 1) : total
     }
     return 0
-  }, [currentChunk, chunkWordCounts])
+  }, [currentChunk, chunkWordCounts, isComplete])
 
   const progress = useMemo(
     () => calculateProgressPercentage(currentChunk, totalChunks),
@@ -188,15 +212,16 @@ export function useHorizontalReader({
   }, [disabled, isGazeReliable])
 
   useEffect(() => {
-    if (readingStartTimeRef.current === null || wordsRead === 0) {
+    const wordCount = wordsRead + (isComplete ? 1 : 0)
+    if (readingStartTimeRef.current === null || wordCount === 0) {
       return
     }
     const elapsedMs = Date.now() - readingStartTimeRef.current
     if (elapsedMs < MIN_READING_TIME_FOR_WPM_MS) {
       return
     }
-    setCalculatedWpm(calculateWpmFromReading(wordsRead, elapsedMs))
-  }, [wordsRead])
+    setCalculatedWpm(calculateWpmFromReading(wordCount, elapsedMs))
+  }, [wordsRead, isComplete])
 
   const [prevChunk, setPrevChunk] = useState(currentChunk)
   if (currentChunk !== prevChunk) {
@@ -347,16 +372,13 @@ export function useHorizontalReader({
         shouldAdvance &&
         now - lastAdvanceTimeRef.current > MIN_ADVANCE_DEBOUNCE_MS
 
-      // Guard: Only allow when chunks are calculated (>1)
-      if (shouldTriggerAdvance && chunks > 1) {
+      if (shouldTriggerAdvance && chunks > 0) {
         lastAdvanceTimeRef.current = now
         if (currentChunk < chunks - 1) {
           setIsSweepDetected(true)
           setCurrentChunk((prev) => prev + 1)
         } else {
-          completionTriggeredRef.current = true
-          setIsSweepDetected(false)
-          setIsComplete(true)
+          completeReading()
           return
         }
       } else if (!completionTriggeredRef.current) {
@@ -373,6 +395,7 @@ export function useHorizontalReader({
     containerWidthRef,
     totalChunksRef,
     dynamicThresholds,
+    completeReading,
   ])
 
   /**
@@ -408,18 +431,17 @@ export function useHorizontalReader({
 
   const goForward = useCallback(() => {
     const chunks = totalChunksRef.current
-    if (chunks <= 1) return
+    if (chunks <= 0) return
 
     resetTrackingState()
     setCurrentChunk((prev) => {
       if (prev >= chunks - 1) {
-        completionTriggeredRef.current = true
-        setIsComplete(true)
+        completeReading()
         return prev
       }
       return prev + 1
     })
-  }, [totalChunksRef, resetTrackingState])
+  }, [totalChunksRef, resetTrackingState, completeReading])
 
   const prevText = usePrevious(text)
   useEffect(() => {

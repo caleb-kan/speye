@@ -234,7 +234,7 @@ describe('reading activity across account boundaries', () => {
     })
   })
 
-  it('logs and clears an adaptive session on mode navigation for its owner', () => {
+  it('logs an adaptive record and retains its logical attempt on mode navigation for its owner', () => {
     state.mode = 'adaptive'
     state.position = 10
     render(<App />)
@@ -256,6 +256,13 @@ describe('reading activity across account boundaries', () => {
       }),
       'account-a'
     )
-    expect(loadReadingActivitySession('account-a')).toBeNull()
+    expect(loadReadingActivitySession('account-a')).toEqual(
+      expect.objectContaining({
+        textId: text.id,
+        started: false,
+        startTime: null,
+        progressIndex: 10,
+      })
+    )
   })
 })

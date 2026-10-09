@@ -60,7 +60,10 @@ export function useCalibrationDriftDetection({
   useEffect(() => {
     if (isReadingActive && isCalibrated) {
       if (readingStartRef.current === null) {
-        readingStartRef.current = Date.now()
+        const now = Date.now()
+        readingStartRef.current = now
+        if (isReliableRef.current) reliableStartRef.current = now
+        else unreliableStartRef.current = now
       }
     } else {
       readingStartRef.current = null
@@ -87,6 +90,7 @@ export function useCalibrationDriftDetection({
           now - reliableStart >= DRIFT_RECOVERY_DURATION_MS
         ) {
           setStatus('good')
+          setShouldRecalibrate(false)
         }
       } else {
         const unreliableStart = unreliableStartRef.current

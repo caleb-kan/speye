@@ -210,13 +210,10 @@ Deno.serve(async (req: Request) => {
 
     if (fetchError) {
       console.error('Failed to fetch texts:', fetchError)
-      return new Response(
-        JSON.stringify({ error: 'Failed to fetch texts', details: fetchError }),
-        {
-          status: 500,
-          headers: { 'Content-Type': 'application/json', ...corsHeaders },
-        }
-      )
+      return new Response(JSON.stringify({ error: 'Failed to fetch texts' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      })
     }
 
     const filteredTexts = (texts ?? []).filter((t) => !t.summary)
@@ -289,7 +286,7 @@ Deno.serve(async (req: Request) => {
         results.details.push({
           id: text.id,
           title: text.title,
-          status: `failed - update error: ${updateError.message}`,
+          status: 'failed - update error',
         })
       } else if (!updated || updated.length === 0) {
         results.skipped++
@@ -338,7 +335,6 @@ Deno.serve(async (req: Request) => {
     return new Response(
       JSON.stringify({
         error: 'Unexpected error occurred',
-        details: error instanceof Error ? error.message : String(error),
         results,
       }),
       {

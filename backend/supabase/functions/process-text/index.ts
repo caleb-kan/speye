@@ -710,7 +710,7 @@ Deno.serve(async (req: Request) => {
           {
             error: 'Failed to process text',
             code: 'invalid_llm_json',
-            reason: lastInvalidOutputError.message,
+            reason: 'Structured output returned invalid JSON',
           },
           502,
           {

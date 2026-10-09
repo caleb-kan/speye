@@ -21,6 +21,7 @@ function setup(
     editDuringGeneration?: Row
     fetchError?: boolean
     updateError?: boolean
+    unexpectedFailure?: unknown
   } = {}
 ) {
   const row: Row = {
@@ -35,7 +36,14 @@ function setup(
     ...options.row,
   }
   const writes: Row[] = []
+  const internalError = {
+    message: 'Internal database details: maintenance_secret',
+    details: 'Private query and schema information',
+  }
   const from = vi.fn(() => {
+    if (options.unexpectedFailure !== undefined) {
+      throw options.unexpectedFailure
+    }
     let values: Row | undefined
     const filters: Array<(row: Row) => boolean> = []
     const query = {
@@ -52,7 +60,7 @@ function setup(
         data: filters.every((filter) => filter(row))
           ? [structuredClone(row)]
           : [],
-        error: options.fetchError ? { message: 'Fetch unavailable' } : null,
+        error: options.fetchError ? internalError : null,
       }),
       update: (payload: Row) => {
         values = payload
@@ -62,7 +70,7 @@ function setup(
         if (options.updateError) {
           return Promise.resolve({
             data: null,
-            error: { message: 'Update unavailable' },
+            error: internalError,
           }).then(resolve)
         }
         const matches = filters.every((filter) => filter(row))
@@ -205,6 +213,39 @@ describe.each(['populate-quizzes', 'populate-summaries'] as const)(
       expect(complete).not.toHaveBeenCalled()
     })
 
+    it('keeps database fetch diagnostics out of the client response', async () => {
+      const { run, complete } = setup(name, { fetchError: true })
+      const response = await run()
+      expect(response.status).toBe(500)
+      expect(await response.json()).toEqual({ error: 'Failed to fetch texts' })
+      expect(complete).not.toHaveBeenCalled()
+    })
+
+    it.each([
+      new Error('Internal connection details: maintenance_secret'),
+      'Internal connection details: maintenance_secret',
+    ])(
+      'keeps unexpected failure diagnostics out of the client response (%s)',
+      async (unexpectedFailure) => {
+        const { run, complete } = setup(name, { unexpectedFailure })
+        const response = await run()
+        expect(response.status).toBe(500)
+        const body = await response.json()
+        expect(body).toEqual({
+          error: 'Unexpected error occurred',
+          results: {
+            processed: 0,
+            success: 0,
+            failed: 0,
+            skipped: 0,
+            details: [],
+          },
+        })
+        expect(JSON.stringify(body)).not.toContain('maintenance_secret')
+        expect(complete).not.toHaveBeenCalled()
+      }
+    )
+
     it('reports failed writes without claiming success', async () => {
       const { run, writes } = setup(name, { updateError: true })
       const response = await run()
@@ -213,6 +254,18 @@ describe.each(['populate-quizzes', 'populate-summaries'] as const)(
         success: 0,
         failed: 1,
       })
+      expect(writes).toEqual([])
+    })
+
+    it('keeps database write diagnostics out of per-text failure statuses', async () => {
+      const { run, writes } = setup(name, { updateError: true })
+      const response = await run()
+      expect(response.status).toBe(200)
+      const body = await response.json()
+      expect(body.results.details).toEqual([
+        { id: 'text-1', title: 'Example', status: 'failed - update error' },
+      ])
+      expect(JSON.stringify(body)).not.toContain('maintenance_secret')
       expect(writes).toEqual([])
     })
   }

@@ -85,6 +85,21 @@ describe.each(['process-text', 'validate-quiz'])(
         ],
       }
 
+      it('does not expose raw model content in JSON parse failures', async () => {
+        const { post, complete } = setup()
+        complete.mockResolvedValue({
+          choices: [{ finish_reason: 'stop', message: { content: 'SECRET' } }],
+        })
+        const response = await post({ content: 'Example' })
+        expect(response.status).toBe(502)
+        expect(await response.json()).toEqual({
+          error: 'Failed to process text',
+          code: 'invalid_llm_json',
+          reason: 'Structured output returned invalid JSON',
+        })
+        expect(complete).toHaveBeenCalledTimes(3)
+      })
+
       it.each([
         { sectional: false, skipContentCheck: false },
         { sectional: false, skipContentCheck: true },

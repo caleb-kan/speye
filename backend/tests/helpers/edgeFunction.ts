@@ -11,6 +11,7 @@ export function loadEdgeFunction(
     modules?: Record<string, unknown>
     env?: Record<string, string | undefined>
     fetch?: typeof fetch
+    setTimeout?: (callback: () => void, milliseconds: number) => unknown
   } = {}
 ): EdgeHandler {
   const filename = new URL(
@@ -57,6 +58,7 @@ export function loadEdgeFunction(
       Headers,
       URL,
       console: { log() {}, warn() {}, error() {} },
+      setTimeout: options.setTimeout ?? setTimeout,
       fetch:
         options.fetch ??
         (() => {

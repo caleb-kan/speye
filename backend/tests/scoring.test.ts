@@ -40,6 +40,10 @@ describe('computeOverallScore', () => {
     expect(computeOverallScore(200, 20)).toBe(0)
   })
 
+  it('returns 0 for a quiz percentage above 100', () => {
+    expect(computeOverallScore(400, 101)).toBe(0)
+  })
+
   it('returns positive score for quizScore just above chance level (26%)', () => {
     const score = computeOverallScore(200, 26)
     expect(score).toBeGreaterThan(0)

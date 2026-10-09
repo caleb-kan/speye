@@ -21,7 +21,7 @@ export const SCORE_SCALE = 10
  */
 export function computeOverallScore(wpm: number, quizScore: number): number {
   if (!Number.isFinite(wpm) || !Number.isFinite(quizScore)) return 0
-  if (wpm <= 0 || quizScore <= 0) return 0
+  if (wpm <= 0 || quizScore <= 0 || quizScore > MAX_QUIZ_SCORE) return 0
 
   const rawAccuracy = quizScore / MAX_QUIZ_SCORE
   const adjustedAccuracy = Math.max(

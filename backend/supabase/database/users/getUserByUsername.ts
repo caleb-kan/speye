@@ -11,7 +11,7 @@ export async function getUserByUsername(
   const { data, error } = await supabase
     .from('users')
     .select('id')
-    .ilike('username', username)
+    .ilike('username', username.replace(/[\\%_]/g, '\\$&'))
     .maybeSingle()
 
   logDbQuery({

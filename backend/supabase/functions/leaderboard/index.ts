@@ -25,7 +25,7 @@ const SCORE_SCALE = 10
 
 function computeOverallScore(wpm: number, quizScore: number): number {
   if (!Number.isFinite(wpm) || !Number.isFinite(quizScore)) return 0
-  if (wpm <= 0 || quizScore <= 0) return 0
+  if (wpm <= 0 || quizScore <= 0 || quizScore > MAX_QUIZ_SCORE) return 0
   const rawAccuracy = quizScore / MAX_QUIZ_SCORE
   const adjustedAccuracy = Math.max(
     0,
@@ -189,13 +189,14 @@ async function updateUserEntry(textId: string, userId: string) {
     .eq('user_id', userId)
     .not('score', 'is', null)
 
-  if (error || !rows || rows.length === 0) {
+  if (error) throw error
+  if (!rows || rows.length === 0) {
     return { status: 'no_scored_activity' }
   }
 
   let bestWpm = 0
   let bestQuizScore = 0
-  let bestOverall = 0
+  let bestOverall = -1
 
   for (const row of rows) {
     const overall = computeOverallScore(row.wpm, row.score)

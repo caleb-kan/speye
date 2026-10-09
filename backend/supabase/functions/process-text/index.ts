@@ -3,6 +3,8 @@ import Groq from 'npm:groq-sdk@0.37.0'
 
 // Must match frontend/src/constants/textUpload.ts MAX_CONTENT_CHARACTERS
 const MAX_CONTENT_LENGTH = 8_000
+const MAX_TITLE_LENGTH = 100
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
 // Retries for model outputs that are not valid JSON or don't match the expected
 // response shape. A value of 2 means: initial attempt + 2 retries = 3 attempts.
@@ -372,6 +374,7 @@ function isErrorResponse(data: unknown): data is ErrorResponse {
 
 function isValidQuestion(q: QuizQuestion): boolean {
   return (
+    !!q &&
     typeof q.question === 'string' &&
     q.question.trim().length > 0 &&
     Array.isArray(q.options) &&
@@ -444,6 +447,13 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ error: 'Method not allowed' }, 405)
   }
 
+  if (
+    !supabaseServiceKey ||
+    req.headers.get('Authorization') !== `Bearer ${supabaseServiceKey}`
+  ) {
+    return jsonResponse({ error: 'Unauthorized' }, 401)
+  }
+
   const clientIp = getClientIp(req)
   const rateLimit = checkRateLimit(clientIp)
 
@@ -488,13 +498,14 @@ Deno.serve(async (req: Request) => {
       section_content,
     } = body
 
-    // skipContentCheck can only be used by the worker (service role key)
-    // to prevent external callers from bypassing content moderation
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-    const authHeader = req.headers.get('Authorization')
-    const isServiceRole =
-      !!serviceRoleKey && authHeader === `Bearer ${serviceRoleKey}`
-    const skipContentCheck = body.skipContentCheck === true && isServiceRole
+    if (typeof sectional !== 'boolean' || typeof generateTitle !== 'boolean') {
+      return jsonResponse(
+        { error: 'sectional and generateTitle must be booleans' },
+        400
+      )
+    }
+
+    const skipContentCheck = body.skipContentCheck === true
 
     // Validate sectional data if provided
     const sectionalArray =
@@ -531,13 +542,18 @@ Deno.serve(async (req: Request) => {
     if (sectional && sectionalArray) {
       let totalSectionContent = 0
       for (const section of sectionalArray) {
-        if (!section || !section.title || typeof section.title !== 'string') {
+        if (
+          !section ||
+          typeof section.title !== 'string' ||
+          !section.title.trim() ||
+          section.title.length > MAX_TITLE_LENGTH
+        ) {
           return jsonResponse(
             { error: 'Each section must have a valid title' },
             400
           )
         }
-        if (!section.content || typeof section.content !== 'string') {
+        if (typeof section.content !== 'string' || !section.content.trim()) {
           return jsonResponse(
             { error: 'Each section must have valid content' },
             400
@@ -563,8 +579,15 @@ Deno.serve(async (req: Request) => {
       )
     }
 
+    if (!sectional && content.length > MAX_CONTENT_LENGTH) {
+      return jsonResponse(
+        { error: `Content cannot exceed ${MAX_CONTENT_LENGTH} characters` },
+        400
+      )
+    }
+
     const groqClient = new Groq({ apiKey: groqApiKey })
-    const truncatedContent = content.trim().slice(0, MAX_CONTENT_LENGTH)
+    const textContent = content.trim()
 
     let systemMessage: string
     let userMessage: string
@@ -589,7 +612,7 @@ Deno.serve(async (req: Request) => {
           SECTIONAL_PROCESSING_PROMPT
         )
           .replace('{generate_title}', String(generateTitle))
-          .replace('{sections_text}', sectionsText)
+          .replace('{sections_text}', () => sectionsText)
       } else {
         userMessage = (
           'This text has been reviewed and approved by an administrator. ' +
@@ -598,18 +621,18 @@ Deno.serve(async (req: Request) => {
           PROCESSING_PROMPT
         )
           .replace('{generate_title}', String(generateTitle))
-          .replace('{text_content}', truncatedContent)
+          .replace('{text_content}', () => textContent)
       }
     } else {
       systemMessage = config.system_message
       if (sectional && sectionsText) {
         userMessage = (TOS_CHECK_PROMPT + SECTIONAL_PROCESSING_PROMPT)
           .replace('{generate_title}', String(generateTitle))
-          .replace('{sections_text}', sectionsText)
+          .replace('{sections_text}', () => sectionsText)
       } else {
         userMessage = (TOS_CHECK_PROMPT + PROCESSING_PROMPT)
           .replace('{generate_title}', String(generateTitle))
-          .replace('{text_content}', truncatedContent)
+          .replace('{text_content}', () => textContent)
       }
     }
 

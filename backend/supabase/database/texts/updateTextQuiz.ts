@@ -19,7 +19,7 @@ import type { Quiz, TextRecord } from './types'
  */
 export function assertValidQuiz(
   quiz: Quiz,
-  options?: { sectional?: boolean }
+  options?: { sectional?: boolean; sectionCount?: number }
 ): void {
   const sectional = options?.sectional ?? false
   const minQuestions = sectional ? MIN_QUESTIONS_SECTIONAL : MIN_QUESTIONS
@@ -28,8 +28,19 @@ export function assertValidQuiz(
   if (!quiz?.questionSets || !Array.isArray(quiz.questionSets)) {
     throw new Error('Invalid quiz structure')
   }
-  // Sectional texts have one question set per section (no fixed set count limit)
-  if (!sectional) {
+  if (sectional) {
+    if (quiz.questionSets.length === 0) {
+      throw new Error('Sectional quizzes must have at least one question set')
+    }
+    if (
+      options?.sectionCount !== undefined &&
+      quiz.questionSets.length !== options.sectionCount
+    ) {
+      throw new Error(
+        'Sectional quizzes must have one question set per section'
+      )
+    }
+  } else {
     if (
       quiz.questionSets.length < MIN_QUESTION_SETS ||
       quiz.questionSets.length > MAX_QUESTION_SETS
@@ -90,17 +101,23 @@ export async function updateTextQuiz(
   // Check if the text is sectional to apply the correct quiz constraints
   const { data: textRow, error: fetchError } = await supabase
     .from('texts')
-    .select('sectional')
+    .select('sectional, section_content, worker_revision')
     .eq('id', textId)
     .single()
 
   if (fetchError) throw fetchError
-  assertValidQuiz(quiz, { sectional: textRow?.sectional ?? false })
+  assertValidQuiz(quiz, {
+    sectional: textRow?.sectional ?? false,
+    sectionCount: Array.isArray(textRow?.section_content)
+      ? textRow.section_content.length
+      : 0,
+  })
 
   const { data: result, error } = await supabase
     .from('texts')
     .update({ quiz, quiz_valid: true })
     .eq('id', textId)
+    .eq('worker_revision', textRow.worker_revision)
     .select()
     .single()
 

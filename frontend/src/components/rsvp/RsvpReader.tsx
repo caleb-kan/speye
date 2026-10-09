@@ -17,6 +17,7 @@ type RsvpReaderProps = {
   onComplete?: (isComplete: boolean) => void
   initialWordIndex?: number
   onPositionChange?: (wordIndex: number) => void
+  onRestart?: () => void
   showMiniQuiz?: boolean
   onStartQuiz?: () => void
   isSummary?: boolean
@@ -37,6 +38,7 @@ export function RsvpReader({
   onComplete,
   initialWordIndex = 0,
   onPositionChange,
+  onRestart,
   showMiniQuiz,
   onStartQuiz,
   isSummary,
@@ -142,7 +144,10 @@ export function RsvpReader({
         <ReadingControls
           isPlaying={isPlaying}
           onPlayPause={togglePlayPause}
-          onRestart={restart}
+          onRestart={() => {
+            onRestart?.()
+            restart()
+          }}
           onNewText={onNewText}
           progress={progress}
           currentWord={isComplete ? totalWords : currentWordIndex + 1}

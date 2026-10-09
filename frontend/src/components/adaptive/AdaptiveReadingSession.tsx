@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { AdaptiveReader } from './AdaptiveReader'
 import { StartQuizButton } from '../StartQuizButton'
 import type { Text } from '../../types/database'
@@ -8,9 +8,9 @@ import {
 } from '../../services/logUserActivity'
 import { useAuth } from '../../hooks/useAuth'
 import {
-  clearReadingActivitySession,
   isReadingActivityOwner,
   loadReadingActivitySession,
+  rotateReadingActivitySession,
   upsertReadingActivitySession,
 } from '../../utils/readingActivityStorage'
 import { useSectionQuiz } from '../../hooks/useSectionQuiz'
@@ -44,12 +44,22 @@ export function AdaptiveReadingSession({
   const [triggerSectionQuiz, setTriggerSectionQuiz] = useState(false)
 
   const startTimeRef = useRef<string | null>(null)
+  const activityIdRef = useRef<string | null>(null)
+  const readingSessionIdRef = useRef<string | null>(null)
+  const [readingSessionId, setReadingSessionId] = useState<string | null>(null)
   const hasLoggedCompleteRef = useRef(false)
   const hasLoggedLeaveRef = useRef(false)
   const { session, user } = useAuth()
   const ownerId = user?.id ?? null
   const accessTokenRef = useRef<string | null>(null)
   const userIdRef = useRef<string | null>(null)
+  const getActivityId = useCallback(
+    () =>
+      isReadingActivityOwner(ownerId)
+        ? (activityIdRef.current ?? undefined)
+        : undefined,
+    [ownerId]
+  )
 
   useEffect(() => {
     accessTokenRef.current = session?.access_token ?? null
@@ -57,6 +67,8 @@ export function AdaptiveReadingSession({
   }, [session, user])
 
   useEffect(() => {
+    activityIdRef.current = null
+    readingSessionIdRef.current = null
     hasLoggedCompleteRef.current = false
     hasLoggedLeaveRef.current = false
   }, [ownerId, currentText.id])
@@ -72,16 +84,48 @@ export function AdaptiveReadingSession({
     sectionQuestionSet,
     showSectionMiniQuiz,
     completedSectionQuizzes,
-  } = useSectionQuiz(currentText)
+  } = useSectionQuiz(currentText, getActivityId, readingSessionId)
 
   useEffect(() => {
     if (readingComplete && hasLoggedCompleteRef.current) return
     const existing = loadReadingActivitySession(ownerId)
     if (existing?.textId === currentText.id) {
+      readingSessionIdRef.current =
+        existing.readingSessionId ??
+        readingSessionIdRef.current ??
+        crypto.randomUUID()
+    } else if (!readingSessionIdRef.current || hasLoggedCompleteRef.current) {
+      readingSessionIdRef.current = crypto.randomUUID()
+    }
+    if (readingSessionId !== readingSessionIdRef.current) {
+      // Expose the restored attempt identity to section quiz persistence.
+      setReadingSessionId(readingSessionIdRef.current)
+    }
+    if (
+      existing?.textId === currentText.id &&
+      (existing.mode === 'adaptive' || existing.completed)
+    ) {
+      activityIdRef.current =
+        existing.activityId ?? activityIdRef.current ?? crypto.randomUUID()
+    } else if (
+      !activityIdRef.current ||
+      existing ||
+      hasLoggedCompleteRef.current
+    ) {
+      activityIdRef.current = crypto.randomUUID()
+    }
+    if (existing?.textId === currentText.id && existing.completed) {
+      hasLoggedCompleteRef.current = true
+      startTimeRef.current = null
+      return
+    }
+    if (existing?.textId === currentText.id) {
       if (existing.mode !== 'adaptive') {
         startTimeRef.current = null
         upsertReadingActivitySession(
           {
+            activityId: activityIdRef.current,
+            readingSessionId: readingSessionIdRef.current,
             textId: currentText.id,
             startTime: null,
             started: false,
@@ -97,14 +141,27 @@ export function AdaptiveReadingSession({
         if (existing.wpm !== wpm) updates.wpm = wpm
         if (existing.progressIndex !== initialWordIndex)
           updates.progressIndex = initialWordIndex
-        if (Object.keys(updates).length > 0) {
-          upsertReadingActivitySession(updates, ownerId)
+        if (
+          Object.keys(updates).length > 0 ||
+          existing.activityId !== activityIdRef.current ||
+          existing.readingSessionId !== readingSessionIdRef.current
+        ) {
+          upsertReadingActivitySession(
+            {
+              ...updates,
+              activityId: activityIdRef.current,
+              readingSessionId: readingSessionIdRef.current,
+            },
+            ownerId
+          )
         }
       }
     } else {
       startTimeRef.current = null
       upsertReadingActivitySession(
         {
+          activityId: activityIdRef.current,
+          readingSessionId: readingSessionIdRef.current,
           textId: currentText.id,
           startTime: null,
           started: false,
@@ -121,6 +178,8 @@ export function AdaptiveReadingSession({
       startTimeRef.current = startTime
       upsertReadingActivitySession(
         {
+          activityId: activityIdRef.current,
+          readingSessionId: readingSessionIdRef.current,
           textId: currentText.id,
           startTime,
           started: true,
@@ -131,7 +190,14 @@ export function AdaptiveReadingSession({
         ownerId
       )
     }
-  }, [ownerId, readingComplete, currentText.id, initialWordIndex, wpm])
+  }, [
+    ownerId,
+    readingComplete,
+    currentText.id,
+    initialWordIndex,
+    wpm,
+    readingSessionId,
+  ])
 
   useEffect(() => {
     const handlePageLeave = () => {
@@ -152,6 +218,7 @@ export function AdaptiveReadingSession({
 
       logUserActivityOnUnload(
         {
+          id: activitySession.activityId ?? activityIdRef.current ?? undefined,
           textId: activitySession.textId,
           wpm: logWpm,
           startTime: activitySession.startTime,
@@ -162,28 +229,51 @@ export function AdaptiveReadingSession({
         accessTokenRef.current,
         userIdRef.current
       )
+      activityIdRef.current =
+        rotateReadingActivitySession(ownerId)?.activityId ?? null
+      startTimeRef.current = null
+    }
+    const handlePageShow = () => {
+      hasLoggedLeaveRef.current = false
     }
 
     window.addEventListener('beforeunload', handlePageLeave)
     window.addEventListener('pagehide', handlePageLeave)
+    window.addEventListener('pageshow', handlePageShow)
 
     return () => {
       window.removeEventListener('beforeunload', handlePageLeave)
       window.removeEventListener('pagehide', handlePageLeave)
+      window.removeEventListener('pageshow', handlePageShow)
     }
   }, [ownerId, wpm, adaptiveSessionWpm, initialWordIndex])
 
   useEffect(() => {
     if (!readingComplete) {
-      hasLoggedCompleteRef.current = false
+      const existing = loadReadingActivitySession(ownerId)
+      hasLoggedCompleteRef.current =
+        existing?.textId === currentText.id && existing.completed
       return
     }
     if (hasLoggedCompleteRef.current || !isReadingActivityOwner(ownerId)) return
     hasLoggedCompleteRef.current = true
 
     const activitySession = loadReadingActivitySession(ownerId)
-    // Clear session immediately to prevent double-logging from Navbar
-    clearReadingActivitySession(ownerId)
+    // Retain quiz identity while making the completed record ineligible for logging.
+    upsertReadingActivitySession(
+      {
+        activityId: activitySession?.activityId ?? activityIdRef.current,
+        readingSessionId: readingSessionIdRef.current,
+        textId: currentText.id,
+        completed: true,
+        started: false,
+        startTime: null,
+        progressIndex: activitySession?.progressIndex ?? initialWordIndex,
+        mode: 'adaptive',
+        wpm: activitySession?.wpm ?? wpm,
+      },
+      ownerId
+    )
 
     const logWpm = adaptiveSessionWpm
       ? Math.round(adaptiveSessionWpm)
@@ -191,6 +281,7 @@ export function AdaptiveReadingSession({
 
     void logUserActivity(
       {
+        id: activitySession?.activityId ?? activityIdRef.current ?? undefined,
         textId: currentText.id,
         wpm: logWpm,
         startTime: startTimeRef.current ?? new Date().toISOString(),
@@ -211,6 +302,14 @@ export function AdaptiveReadingSession({
 
   const handlePositionChange = (wordIndex: number) => {
     if (!isReadingActivityOwner(ownerId)) return
+    const existing = loadReadingActivitySession(ownerId)
+    if (existing?.completed) {
+      onPositionChange?.(wordIndex)
+      return
+    }
+    if (existing?.progressIndex !== wordIndex) {
+      hasLoggedLeaveRef.current = false
+    }
     onPositionChange?.(wordIndex)
 
     if (wordIndex > 0 && !startTimeRef.current) {
@@ -218,6 +317,8 @@ export function AdaptiveReadingSession({
       startTimeRef.current = startTime
       upsertReadingActivitySession(
         {
+          activityId: activityIdRef.current,
+          readingSessionId: readingSessionIdRef.current,
           textId: currentText.id,
           startTime,
           started: true,
@@ -230,6 +331,32 @@ export function AdaptiveReadingSession({
     }
   }
 
+  const handleRestart = () => {
+    if (!isReadingActivityOwner(ownerId)) return
+    setReadingComplete(false)
+    hasLoggedCompleteRef.current = false
+    hasLoggedLeaveRef.current = false
+    activityIdRef.current = crypto.randomUUID()
+    readingSessionIdRef.current = crypto.randomUUID()
+    setReadingSessionId(readingSessionIdRef.current)
+    startTimeRef.current = null
+    upsertReadingActivitySession(
+      {
+        activityId: activityIdRef.current,
+        readingSessionId: readingSessionIdRef.current,
+        textId: currentText.id,
+        completed: false,
+        started: false,
+        startTime: null,
+        progressIndex: 0,
+        mode: 'adaptive',
+        wpm,
+      },
+      ownerId
+    )
+    onPositionChange?.(0)
+  }
+
   return (
     <div className="relative flex-1 flex flex-col min-h-0 overflow-hidden pb-20">
       <AdaptiveReader
@@ -240,6 +367,7 @@ export function AdaptiveReadingSession({
         onComplete={setReadingComplete}
         initialWordIndex={initialWordIndex}
         onPositionChange={handlePositionChange}
+        onRestart={handleRestart}
         onCalculatedWpmChange={onCalculatedWpmChange}
         showMiniQuiz={isSectional ? showSectionMiniQuiz : quizDismissed}
         onStartQuiz={
@@ -260,6 +388,7 @@ export function AdaptiveReadingSession({
       {/* Section quiz overlay (sectional texts only) */}
       {isSectional && (
         <StartQuizButton
+          getActivityId={getActivityId}
           textId={currentText.id}
           ownerId={currentText.owner_id}
           readingComplete={isSectionQuizActive}
@@ -276,6 +405,7 @@ export function AdaptiveReadingSession({
       {/* Full text quiz overlay (non-sectional texts only) */}
       {!isSectional && (
         <StartQuizButton
+          getActivityId={getActivityId}
           textId={currentText.id}
           ownerId={currentText.owner_id}
           readingComplete={readingComplete}

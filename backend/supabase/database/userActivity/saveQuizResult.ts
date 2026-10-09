@@ -1,15 +1,28 @@
 import { supabase } from '../../../../lib/supabase'
 import { logDbQuery } from '../logger'
+import { MAX_QUIZ_SCORE } from '../../../../lib/quizConstants'
 
 export type QuizResultParams = {
   text_id: string
   score: number
+  activity_id?: string
+  completed_at?: string
 }
 
 export async function saveQuizResult(
   params: QuizResultParams,
   expectedUserId?: string
 ) {
+  if (
+    !Number.isFinite(params.score) ||
+    params.score < 0 ||
+    params.score > MAX_QUIZ_SCORE
+  ) {
+    throw new Error(
+      `Score must be a finite number between 0 and ${MAX_QUIZ_SCORE}`
+    )
+  }
+
   const {
     data: { user },
     error: authError,
@@ -18,11 +31,19 @@ export async function saveQuizResult(
   if (authError) throw authError
   if (!user || (expectedUserId && user.id !== expectedUserId)) return null
 
-  const { data: latestActivity, error: fetchError } = await supabase
+  let activityQuery = supabase
     .from('user_activity')
     .select('id')
     .eq('user_id', user.id)
     .eq('text_id', params.text_id)
+
+  if (params.activity_id) {
+    activityQuery = activityQuery.eq('id', params.activity_id)
+  } else if (params.completed_at) {
+    activityQuery = activityQuery.lte('end_time', params.completed_at)
+  }
+
+  const { data: latestActivity, error: fetchError } = await activityQuery
     .order('end_time', { ascending: false, nullsFirst: false })
     .order('start_time', { ascending: false })
     .limit(1)
@@ -34,7 +55,7 @@ export async function saveQuizResult(
   })
 
   if (fetchError) {
-    throw new Error('Failed to find latest activity')
+    throw new Error(`Failed to find latest activity: ${fetchError.message}`)
   }
 
   const latestId = latestActivity?.[0]?.id
@@ -45,6 +66,7 @@ export async function saveQuizResult(
     .update({ score: params.score })
     .eq('id', latestId)
     .eq('user_id', user.id)
+    .eq('text_id', params.text_id)
     .select()
     .single()
 
@@ -55,7 +77,7 @@ export async function saveQuizResult(
   })
 
   if (error) {
-    throw new Error('Failed to save quiz result')
+    throw new Error(`Failed to save quiz result: ${error.message}`)
   }
 
   return data

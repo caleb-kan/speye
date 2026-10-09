@@ -1,5 +1,6 @@
 import { AlertTriangle } from 'lucide-react'
 import { useEscapeKey } from '../hooks/useEscapeKey'
+import { useDialogFocus } from '../hooks/useDialogFocus'
 
 interface ConfirmDialogProps {
   isOpen: boolean
@@ -23,6 +24,7 @@ export function ConfirmDialog({
   isDestructive = false,
 }: ConfirmDialogProps) {
   useEscapeKey(onCancel, isOpen)
+  const dialogRef = useDialogFocus(isOpen)
 
   if (!isOpen) return null
 
@@ -34,6 +36,8 @@ export function ConfirmDialog({
 
   return (
     <div
+      ref={dialogRef}
+      tabIndex={-1}
       className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
       onClick={handleBackdropClick}
       role="alertdialog"

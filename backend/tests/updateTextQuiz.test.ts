@@ -14,7 +14,11 @@ vi.mock('../../lib/supabase', () => {
   // Update chain: from().update().eq().select().single()
   const mockUpdateSingle = vi.fn()
   const mockUpdateSelect = vi.fn(() => ({ single: mockUpdateSingle }))
-  const mockUpdateEq = vi.fn(() => ({ select: mockUpdateSelect }))
+  const mockUpdateRevisionEq = vi.fn(() => ({ select: mockUpdateSelect }))
+  const mockUpdateEq = vi.fn(() => ({
+    select: mockUpdateSelect,
+    eq: mockUpdateRevisionEq,
+  }))
   const mockUpdate = vi.fn(() => ({ eq: mockUpdateEq }))
 
   // Select chain: from().select().eq().single()
@@ -33,6 +37,7 @@ vi.mock('../../lib/supabase', () => {
       mockFrom,
       mockUpdate,
       mockUpdateEq,
+      mockUpdateRevisionEq,
       mockUpdateSelect,
       mockUpdateSingle,
       mockSelect,
@@ -233,6 +238,24 @@ describe('assertValidQuiz', () => {
     expect(() => assertValidQuiz(quiz, { sectional: true })).not.toThrow()
   })
 
+  it('rejects an empty sectional quiz', () => {
+    expect(() =>
+      assertValidQuiz({ questionSets: [] }, { sectional: true })
+    ).toThrow('Sectional quizzes must have at least one question set')
+  })
+
+  it('rejects sectional question sets that do not match the section count', () => {
+    expect(() =>
+      assertValidQuiz(
+        { questionSets: [makeSet()] },
+        {
+          sectional: true,
+          sectionCount: 2,
+        }
+      )
+    ).toThrow('Sectional quizzes must have one question set per section')
+  })
+
   it('uses sectional question count bounds for sectional quizzes', () => {
     const tooFew: Quiz = {
       questionSets: [
@@ -254,7 +277,7 @@ describe('updateTextQuiz', () => {
     vi.clearAllMocks()
     // Default: select chain returns non-sectional text
     _mocks.mockSelectSingle.mockResolvedValue({
-      data: { sectional: false },
+      data: { sectional: false, worker_revision: 'revision-1' },
       error: null,
     })
   })
@@ -309,7 +332,14 @@ describe('updateTextQuiz', () => {
 
   it('uses sectional validation for sectional texts', async () => {
     _mocks.mockSelectSingle.mockResolvedValue({
-      data: { sectional: true },
+      data: {
+        sectional: true,
+        worker_revision: 'revision-1',
+        section_content: Array.from({ length: 10 }, () => ({
+          title: 'Example section',
+          content: 'Example content',
+        })),
+      },
       error: null,
     })
 
@@ -329,5 +359,40 @@ describe('updateTextQuiz', () => {
 
     const result = await updateTextQuiz('text-1', quiz)
     expect(result).toEqual(mockResult)
+  })
+
+  it('does not mark a sectional quiz valid when a section has no question set', async () => {
+    _mocks.mockSelectSingle.mockResolvedValue({
+      data: {
+        sectional: true,
+        section_content: [
+          { title: 'First', content: 'First content' },
+          { title: 'Second', content: 'Second content' },
+        ],
+      },
+      error: null,
+    })
+    await expect(
+      updateTextQuiz('text-1', { questionSets: [makeSet()] })
+    ).rejects.toThrow(
+      'Sectional quizzes must have one question set per section'
+    )
+    expect(_mocks.mockUpdate).not.toHaveBeenCalled()
+  })
+
+  it('rejects a quiz save when the text changes after its constraints are read', async () => {
+    const quiz = makeValidQuiz()
+    const conflict = { message: 'Text changed while editing' }
+    _mocks.mockUpdateSingle.mockImplementation(async () => {
+      const revisionFilter = _mocks.mockUpdateRevisionEq.mock.calls[0]
+      return revisionFilter?.[1] === 'revision-1'
+        ? { data: null, error: conflict }
+        : { data: { id: 'text-1', quiz, quiz_valid: true }, error: null }
+    })
+    await expect(updateTextQuiz('text-1', quiz)).rejects.toEqual(conflict)
+    expect(_mocks.mockUpdateRevisionEq).toHaveBeenCalledWith(
+      'worker_revision',
+      'revision-1'
+    )
   })
 })

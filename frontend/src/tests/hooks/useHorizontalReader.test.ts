@@ -20,6 +20,43 @@ beforeEach(() => {
 afterEach(() => vi.useRealTimers())
 
 describe('adaptive reading session timing', () => {
+  it('completes a single chunk through the forward control', () => {
+    const { result } = renderHook(() =>
+      useHorizontalReader({
+        ...options,
+        text: 'one two',
+        totalChunks: 1,
+        chunkWordCounts: [2],
+      })
+    )
+    act(() => vi.advanceTimersByTime(5000))
+    act(() => result.current.goForward())
+    expect(result.current.isComplete).toBe(true)
+    expect(result.current.wordsRead).toBe(1)
+    expect(result.current.calculatedWpm).toBe(24)
+  })
+
+  it('completes a single chunk on a gaze return sweep', () => {
+    const { result, rerender } = renderHook(
+      ({ gazeX }) =>
+        useHorizontalReader({
+          ...options,
+          text: 'one two',
+          totalChunks: 1,
+          chunkWordCounts: [2],
+          gazeX,
+        }),
+      { initialProps: { gazeX: 0 } }
+    )
+    act(() => vi.advanceTimersByTime(5000))
+    rerender({ gazeX: 700 })
+    act(() => vi.advanceTimersByTime(100))
+    rerender({ gazeX: 0 })
+    expect(result.current.isComplete).toBe(true)
+    expect(result.current.wordsRead).toBe(1)
+    expect(result.current.calculatedWpm).toBe(24)
+  })
+
   it('starts a new WPM clock when restarting with reliable gaze', () => {
     const { result } = renderHook(() => useHorizontalReader(options))
     act(() => vi.advanceTimersByTime(4000))

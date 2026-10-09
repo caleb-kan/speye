@@ -156,12 +156,12 @@ export function useReader({
     if (isPlaying) {
       intervalRef.current = window.setInterval(() => {
         setCurrentWordIndex((prev) => {
-          if (prev >= totalWords - 1) {
+          const next = Math.min(prev + 1, totalWords - 1)
+          if (next >= totalWords - 1) {
             setIsPlaying(false)
             setIsComplete(true)
-            return prev
           }
-          return prev + 1
+          return next
         })
       }, msPerWord)
     }
@@ -171,11 +171,15 @@ export function useReader({
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.code === 'Space' && e.target === document.body) {
+      if (
+        e.code === 'Space' &&
+        e.target === document.body &&
+        !disabled &&
+        !e.defaultPrevented &&
+        !e.repeat
+      ) {
         e.preventDefault()
-        if (!disabled) {
-          togglePlayPause()
-        }
+        togglePlayPause()
       }
     }
 

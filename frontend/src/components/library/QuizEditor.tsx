@@ -9,6 +9,8 @@ type QuizEditorProps = {
   onSubmit: (quiz: Quiz) => Promise<void>
   onUnsavedChangesUpdate: (hasChanges: boolean) => void
   textHasUnsavedChanges: boolean
+  sectional?: boolean
+  sectionCount?: number
 }
 
 export function QuizEditor({
@@ -16,6 +18,8 @@ export function QuizEditor({
   onSubmit,
   onUnsavedChangesUpdate,
   textHasUnsavedChanges,
+  sectional = false,
+  sectionCount,
 }: QuizEditorProps) {
   const [editedQuiz, setEditedQuiz] = useState<Quiz>(() =>
     structuredClone(quiz)
@@ -76,7 +80,7 @@ export function QuizEditor({
   const handleSave = async () => {
     setError(null)
 
-    const errors = validateQuiz(editedQuiz)
+    const errors = validateQuiz(editedQuiz, { sectional, sectionCount })
     if (errors.length > 0) {
       setError(errors.join('; '))
       return

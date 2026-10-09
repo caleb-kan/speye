@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { X } from 'lucide-react'
 import { useIsAdmin } from '../hooks/useIsAdmin'
 import { useEscapeKey } from '../hooks/useEscapeKey'
+import { useDialogFocus } from '../hooks/useDialogFocus'
 import type { Text, TextInput, Quiz } from '../types/database'
 import { TextFormModal } from './TextFormModal'
 import { QuizEditor } from './library/QuizEditor'
@@ -112,11 +113,14 @@ export function EditTextModal({
   }
 
   useEscapeKey(handleCloseClick, isOpen && !showUnsavedWarning)
+  const dialogRef = useDialogFocus(isOpen && !!text)
 
   if (!isOpen || !text) return null
 
   return (
     <div
+      ref={dialogRef}
+      tabIndex={-1}
       className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
       onClick={handleBackdropClick}
       role="dialog"
@@ -187,6 +191,7 @@ export function EditTextModal({
           role={showQuizTab ? 'tabpanel' : undefined}
           aria-labelledby={showQuizTab ? 'tab-text' : undefined}
           className={activeTab !== 'text' ? 'hidden' : undefined}
+          hidden={activeTab !== 'text'}
         >
           <TextFormModal
             isOpen
@@ -208,12 +213,15 @@ export function EditTextModal({
             role="tabpanel"
             aria-labelledby="tab-quiz"
             className={activeTab !== 'quiz' ? 'hidden' : undefined}
+            hidden={activeTab !== 'quiz'}
           >
             <QuizEditor
               quiz={text.quiz!}
               onSubmit={handleQuizSubmit}
               onUnsavedChangesUpdate={setQuizHasUnsavedChanges}
               textHasUnsavedChanges={textHasUnsavedChanges}
+              sectional={text.sectional}
+              sectionCount={text.section_content?.length ?? 0}
             />
           </div>
         )}

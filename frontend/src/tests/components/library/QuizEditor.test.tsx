@@ -112,6 +112,45 @@ describe('QuizEditor', () => {
     })
   })
 
+  it('saves a three-question set for each section', async () => {
+    const quiz: Quiz = {
+      questionSets: Array.from({ length: 6 }, (_, i) => ({
+        questions: Array.from({ length: 3 }, (_, j) =>
+          makeQuestion(`Section ${i + 1} Q${j + 1}`)
+        ),
+      })),
+    }
+    const onSubmit = vi.fn().mockResolvedValue(undefined)
+    render(
+      <QuizEditor
+        {...defaultProps}
+        quiz={quiz}
+        sectional
+        sectionCount={6}
+        onSubmit={onSubmit}
+      />
+    )
+    fireEvent.change(screen.getByDisplayValue('Section 1 Q1'), {
+      target: { value: 'Updated section question' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Save Quiz' }))
+    await waitFor(() =>
+      expect(onSubmit).toHaveBeenCalledExactlyOnceWith({
+        questionSets: quiz.questionSets.map((set, index) =>
+          index === 0
+            ? {
+                questions: set.questions.map((question, questionIndex) =>
+                  questionIndex === 0
+                    ? { ...question, question: 'Updated section question' }
+                    : question
+                ),
+              }
+            : set
+        ),
+      })
+    )
+  })
+
   it('shows error when onSubmit rejects', async () => {
     const onSubmit = vi.fn().mockRejectedValue(new Error('Save failed'))
     render(<QuizEditor {...defaultProps} onSubmit={onSubmit} />)

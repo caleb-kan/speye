@@ -233,6 +233,7 @@ describe('usePvpGameCallbacks', () => {
         {
           text_id: 'text-789',
           score: 75,
+          activity_id: expect.any(String),
         },
         USER_ID
       )

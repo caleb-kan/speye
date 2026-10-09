@@ -17,12 +17,20 @@ export async function saveQuizResult(
   params: QuizResultParams,
   originalUserId?: string | null
 ) {
+  params = {
+    ...params,
+    completed_at: params.completed_at ?? new Date().toISOString(),
+  }
   if (!params.text_id) {
     throw new Error('Text ID is required')
   }
 
-  if (Number.isNaN(params.score)) {
-    throw new Error('Score must be a number')
+  if (
+    !Number.isFinite(params.score) ||
+    params.score < 0 ||
+    params.score > 100
+  ) {
+    throw new Error('Score must be a finite number between 0 and 100')
   }
 
   const {
@@ -60,6 +68,12 @@ export async function saveQuizResult(
   try {
     const data = await saveQuizResultDb(params, userId)
     if (!(await isCurrentAccount())) return null
+
+    if (!data && params.activity_id) {
+      await enqueueOperation('saveQuizResult', params, userId)
+      if (!(await isCurrentAccount())) return null
+      return { user_id: userId, text_id: params.text_id, score: params.score }
+    }
 
     // Fire-and-forget: cache update should not block quiz save
     if (data?.user_id) {

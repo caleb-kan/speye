@@ -61,6 +61,9 @@
     "vitest": "^4.1.11"
   },
   "overrides": {
+    "@tensorflow/tfjs": {
+      "argparse": "^2.0.1"
+    },
     "minimatch": "^10.2.1",
     "serialize-javascript": "^7.0.5"
   }

@@ -85,7 +85,9 @@ describe('pending operation ownership', () => {
         type === 'activity' ? logUserActivity(activity) : saveQuizResult(quiz)
       await vi.waitFor(() =>
         expect(db).toHaveBeenCalledWith(
-          type === 'activity' ? activity : quiz,
+          type === 'activity'
+            ? expect.objectContaining({ ...activity, id: expect.any(String) })
+            : { ...quiz, completed_at: expect.any(String) },
           'reader-a'
         )
       )
@@ -101,7 +103,13 @@ describe('pending operation ownership', () => {
     state.log.mockRejectedValue(new Error('Failed to fetch'))
     await logUserActivity(activity)
     expect([...state.entries.values()]).toEqual([
-      expect.objectContaining({ userId: 'reader-a', payload: activity }),
+      expect.objectContaining({
+        userId: 'reader-a',
+        payload: expect.objectContaining({
+          ...activity,
+          id: expect.any(String),
+        }),
+      }),
     ])
   })
 

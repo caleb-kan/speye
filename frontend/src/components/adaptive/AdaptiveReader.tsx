@@ -38,6 +38,7 @@ type AdaptiveReaderProps = {
   initialWordIndex?: number
   /** Called when reading position changes (for saving position) */
   onPositionChange?: (wordIndex: number) => void
+  onRestart?: () => void
   /** Show the mini quiz button in controls */
   showMiniQuiz?: boolean
   /** Called when mini quiz button is clicked */
@@ -71,6 +72,7 @@ export function AdaptiveReader({
   onComplete,
   initialWordIndex = 0,
   onPositionChange,
+  onRestart,
   showMiniQuiz,
   onStartQuiz,
   onCalculatedWpmChange,
@@ -107,11 +109,16 @@ export function AdaptiveReader({
   const webgazerEnabled = showCalibration || isCalibrated
   const showGazeDot = showCalibration
 
-  const { smoothedGaze, confidence, isReliable, addSample } = useGazeSmoothing()
+  const { smoothedGaze, confidence, isReliable, addSample, clearSamples } =
+    useGazeSmoothing()
 
   const handleGaze = useCallback(
     (data: GazeData | null) => {
-      if (!data) return
+      if (!data) {
+        clearSamples()
+        if (showCalibration) setCalibrationGazeData(null)
+        return
+      }
 
       if (showCalibration) {
         // During calibration, AccuracyTest needs state updates
@@ -129,7 +136,7 @@ export function AdaptiveReader({
         addSample(data)
       }
     },
-    [showCalibration, addSample]
+    [showCalibration, addSample, clearSamples]
   )
 
   const {
@@ -251,7 +258,7 @@ export function AdaptiveReader({
     : 0
   const globalProgress = isSectional
     ? totalSectionWords > 0
-      ? (globalWordsRead / totalSectionWords) * 100
+      ? ((globalWordsRead + (isComplete ? 1 : 0)) / totalSectionWords) * 100
       : 0
     : progress
 
@@ -382,9 +389,10 @@ export function AdaptiveReader({
   const handleRetryCalibration = useCallback(async () => {
     await clearWebGazerData()
     calibration.resetCalibration()
+    clearSamples()
     resetDriftDetection()
     setShowCalibration(true)
-  }, [calibration, clearWebGazerData, resetDriftDetection])
+  }, [calibration, clearWebGazerData, clearSamples, resetDriftDetection])
 
   // Navigate to a different section (called by SectionalTextDisplay nav buttons)
   const handleWordIndexChange = useCallback(
@@ -399,10 +407,11 @@ export function AdaptiveReader({
           break
         }
       }
+      restart()
       setCurrentSectionIndex(newSectionIdx)
       setHookInitialWordIndex(0)
     },
-    [sections.length, sectionWordOffsets]
+    [sections.length, sectionWordOffsets, restart]
   )
 
   const trackingStatus = useMemo(
@@ -418,7 +427,12 @@ export function AdaptiveReader({
   // Used in both calibration prompt and main view
   const sharedControlsProps = useMemo(
     () => ({
-      onRestart: restart,
+      onRestart: () => {
+        onRestart?.()
+        setCurrentSectionIndex(0)
+        setHookInitialWordIndex(0)
+        restart()
+      },
       onNewText,
       onGoBack: goBack,
       onGoForward: goForward,
@@ -428,6 +442,7 @@ export function AdaptiveReader({
     }),
     [
       restart,
+      onRestart,
       onNewText,
       goBack,
       goForward,

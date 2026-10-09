@@ -19,8 +19,8 @@ import { getUsername } from '../../utils/getUsername'
 import { DEFAULT_MODE } from '../../constants/modes'
 import { logUserActivity } from '../../services/logUserActivity'
 import {
-  clearReadingActivitySession,
   loadReadingActivitySession,
+  rotateReadingActivitySession,
 } from '../../utils/readingActivityStorage'
 import { useReadingPreferences } from '../../hooks/useReadingPreferences'
 import { useNetworkStatus } from '../../hooks/useNetworkStatus'
@@ -49,10 +49,6 @@ export function Navbar() {
     if (!user || !isInReadingRoute) return
     if (targetPath === location.pathname) return
 
-    // In adaptive mode, skip logging here. The full page reload
-    // triggers beforeunload/pagehide which logs via keepalive fetch.
-    if (isInAdaptiveMode) return
-
     const activitySession = loadReadingActivitySession(ownerId)
     if (
       !activitySession?.started ||
@@ -63,6 +59,7 @@ export function Navbar() {
 
     void logUserActivity(
       {
+        id: activitySession.activityId ?? undefined,
         textId: activitySession.textId,
         wpm: activitySession.wpm ?? 0,
         startTime: activitySession.startTime,
@@ -73,7 +70,7 @@ export function Navbar() {
       ownerId
     )
 
-    clearReadingActivitySession(ownerId)
+    rotateReadingActivitySession(ownerId)
   }
 
   // Handles navigation for the login link (which doesn't use NavItem).

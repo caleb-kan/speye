@@ -101,6 +101,7 @@ export function usePvpGameCallbacks({
   const halfwaySentRef = useRef(false)
   const lastSubmitRef = useRef<PendingSubmit | null>(null)
   const readingStartRef = useRef<string | null>(null)
+  const activityIdRef = useRef<string | null>(null)
   const recordHeartbeatRef = useRef<(ts?: number) => void>(() => {})
   const gameStartRef = useRef<number | null>(null)
 
@@ -119,6 +120,14 @@ export function usePvpGameCallbacks({
     halfwaySentRef.current = false
     lastSubmitRef.current = null
     readingStartRef.current = null
+    const activityKey = `${PVP_SUBMIT_STORAGE_PREFIX}activity:${gameId}:${userId}`
+    try {
+      activityIdRef.current =
+        sessionStorage.getItem(activityKey) ?? crypto.randomUUID()
+      sessionStorage.setItem(activityKey, activityIdRef.current)
+    } catch {
+      activityIdRef.current = crypto.randomUUID()
+    }
     gameStartRef.current = null
     adaptiveWpmRef.current = null
     measuredWpmRef.current = null
@@ -133,7 +142,7 @@ export function usePvpGameCallbacks({
     setSubmitError(null)
     setForfeitError(null)
     setSaveWarning(null)
-  }, [gameId])
+  }, [gameId, userId])
 
   const totalWords = useMemo(
     () => (text ? text.content.trim().split(/\s+/).length : 0),
@@ -295,6 +304,7 @@ export function usePvpGameCallbacks({
           const effectiveWpm = getEffectiveWpm()
           logUserActivity(
             {
+              id: activityIdRef.current ?? undefined,
               textId: text.id,
               wpm: effectiveWpm,
               startTime: readingStartRef.current,
@@ -408,7 +418,14 @@ export function usePvpGameCallbacks({
       finishQuiz()
 
       if (text) {
-        saveQuizResult({ text_id: text.id, score }, userId).catch((err) => {
+        saveQuizResult(
+          {
+            text_id: text.id,
+            score,
+            activity_id: activityIdRef.current ?? undefined,
+          },
+          userId
+        ).catch((err) => {
           console.error('Failed to save quiz result:', err)
           appendSaveWarning(
             'Quiz score could not be saved.',

@@ -7,6 +7,7 @@ import type { QuestionSet } from '../types/database'
 interface StartQuizButtonProps {
   textId: string
   ownerId: string | null
+  getActivityId?: () => string | undefined
   readingComplete: boolean
   onDismiss: () => void
   dismissed: boolean
@@ -23,6 +24,7 @@ interface StartQuizButtonProps {
 export function StartQuizButton({
   textId,
   ownerId,
+  getActivityId,
   readingComplete,
   onDismiss,
   dismissed,
@@ -37,15 +39,18 @@ export function StartQuizButton({
   const [quizSet, setQuizSet] = useState<QuestionSet | null>(null)
   const [quizLoading, setQuizLoading] = useState(false)
   const [quizError, setQuizError] = useState<string | null>(null)
+  const [quizActivityId, setQuizActivityId] = useState<string | undefined>()
 
   const handleLoadQuiz = useCallback(async () => {
     if (quizLoading) return
+    const activityId = getActivityId?.()
     try {
       setQuizLoading(true)
       setQuizError(null)
       const set =
         propQuestionSet != null ? propQuestionSet : await getQuiz(textId)
       setQuizSet(set)
+      setQuizActivityId(activityId)
       setQuizKey((k) => k + 1)
       setQuizOpen(true)
     } catch (err) {
@@ -54,7 +59,7 @@ export function StartQuizButton({
     } finally {
       setQuizLoading(false)
     }
-  }, [textId, quizLoading, propQuestionSet])
+  }, [textId, quizLoading, propQuestionSet, getActivityId])
 
   const handleCloseQuiz = () => {
     setQuizOpen(false)
@@ -159,6 +164,7 @@ export function StartQuizButton({
         questionSet={quizSet}
         textId={textId}
         ownerId={ownerId}
+        activityId={quizActivityId}
         onFinish={onFinish}
       />
     </>

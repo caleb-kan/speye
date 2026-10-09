@@ -61,7 +61,15 @@ export function isValidProgressPayload(p: unknown): p is ProgressPayload {
   )
     return false
   const { percent, wordIndex, totalWords } = p as ProgressPayload
-  return percent >= 0 && percent <= 100 && wordIndex >= 0 && totalWords > 0
+  return (
+    percent >= 0 &&
+    percent <= 100 &&
+    Number.isInteger(wordIndex) &&
+    Number.isInteger(totalWords) &&
+    wordIndex >= 0 &&
+    wordIndex <= totalWords &&
+    totalWords > 0
+  )
 }
 
 export function isValidMilestonePayload(p: unknown): p is MilestonePayload {
@@ -154,25 +162,49 @@ export function usePvpGameChannel(
   }, [clearRetryTimeout])
 
   useEffect(() => {
+    let active = true
+    let initializationId = 0
     mountedRef.current = true
     retryDelayRef.current = PVP_CHANNEL_INITIAL_RETRY_DELAY_MS
     retryCountRef.current = 0
     sendFailCountRef.current = 0
 
     function createChannel() {
-      if (!gameId || !userId || !mountedRef.current) return
-
-      sendFailCountRef.current = 0
+      if (!gameId || !userId || !active) return
+      const initialization = ++initializationId
 
       if (channelRef.current) {
-        supabase.removeChannel(channelRef.current)
+        const channel = channelRef.current
+        channelRef.current = null
+        supabase.removeChannel(channel)
       }
+
+      // Private joins must use the current session before their join payload
+      // is created. Late authentication belongs only to this initialization.
+      void supabase.realtime
+        .setAuth()
+        .then(() => {
+          if (active && initialization === initializationId) {
+            subscribeAuthenticatedChannel()
+          }
+        })
+        .catch((err) => {
+          if (!active || initialization !== initializationId) return
+          console.error('PvP game channel initialization failed:', err)
+          scheduleRetry()
+        })
+    }
+
+    function subscribeAuthenticatedChannel() {
+      if (!gameId || !userId || !active) return
+      sendFailCountRef.current = 0
 
       // ack: true enables server acknowledgment so .send() resolves with
       // 'ok'/'error' status, used by sendBroadcast to detect connection health.
       const channel = supabase.channel(`pvp-game:${gameId}`, {
-        config: { broadcast: { ack: true } },
+        config: { private: true, broadcast: { ack: true } },
       })
+      channelRef.current = channel
 
       function onBroadcast<T>(
         event: BroadcastEventType,
@@ -180,6 +212,7 @@ export function usePvpGameChannel(
         handler: keyof GameChannelCallbacks
       ) {
         channel.on('broadcast', { event }, (msg) => {
+          if (channelRef.current !== channel) return
           if (validate(msg.payload)) {
             ;(callbacksRef.current[handler] as ((p: T) => void) | undefined)?.(
               msg.payload
@@ -199,6 +232,7 @@ export function usePvpGameChannel(
       // column=eq.value per subscription. Requires REPLICA IDENTITY FULL on
       // pvp_games for non-PK column filtering.
       const handleGameChange = (payload: { new: unknown }) => {
+        if (channelRef.current !== channel) return
         if (isValidGamePayload(payload.new)) {
           callbacksRef.current.onGameUpdate?.(payload.new)
         } else {
@@ -225,7 +259,7 @@ export function usePvpGameChannel(
         )
 
       channel.subscribe((status, err) => {
-        if (!mountedRef.current) return
+        if (!mountedRef.current || channelRef.current !== channel) return
 
         if (status === 'SUBSCRIBED') {
           retryDelayRef.current = PVP_CHANNEL_INITIAL_RETRY_DELAY_MS
@@ -244,19 +278,20 @@ export function usePvpGameChannel(
           }
         }
       })
-
-      channelRef.current = channel
     }
 
     subscribeRef.current = createChannel
     createChannel()
 
     return () => {
+      active = false
+      initializationId += 1
       mountedRef.current = false
       clearRetryTimeout()
       if (channelRef.current) {
-        supabase.removeChannel(channelRef.current)
+        const channel = channelRef.current
         channelRef.current = null
+        supabase.removeChannel(channel)
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- callbacksRef is a stable ref (useRefSync)
@@ -270,10 +305,11 @@ export function usePvpGameChannel(
         // skip silently. The recovery mechanism handles actual connection loss.
         return
       }
+      const channel = channelRef.current
 
       function handleSendFailure(detail: unknown) {
         console.error(`${event} send failed:`, detail)
-        if (!mountedRef.current) return
+        if (!mountedRef.current || channelRef.current !== channel) return
         // All send failures are logged, but only heartbeat failures
         // increment the disconnect counter. Progress sends (500ms)
         // are too frequent and would cause false connectionLost on
@@ -286,10 +322,10 @@ export function usePvpGameChannel(
         }
       }
 
-      channelRef.current
+      channel
         .send({ type: 'broadcast', event, payload })
         .then((status) => {
-          if (!mountedRef.current) return
+          if (!mountedRef.current || channelRef.current !== channel) return
           if (status === 'ok') {
             if (event === 'heartbeat') {
               sendFailCountRef.current = 0

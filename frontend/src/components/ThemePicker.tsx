@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useTheme } from '../hooks/useTheme'
 import { useEscapeKey } from '../hooks/useEscapeKey'
+import { getRuntimeBase } from '../utils/getRuntimeBase'
 
 export function ThemePicker() {
   const { theme, themes, setTheme } = useTheme()
@@ -32,7 +33,11 @@ export function ThemePicker() {
         aria-label="Change theme"
         aria-expanded={open}
       >
-        <img src={`/favicons/alt/${theme.id}.png`} alt="" className="h-6" />
+        <img
+          src={`${getRuntimeBase()}favicons/alt/${theme.id}.png`}
+          alt=""
+          className="h-6"
+        />
       </button>
 
       {open && (
@@ -61,7 +66,7 @@ export function ThemePicker() {
                 style={{ backgroundColor: t.colors.bgSecondary }}
               >
                 <img
-                  src={`/favicons/alt/${t.id}.png`}
+                  src={`${getRuntimeBase()}favicons/alt/${t.id}.png`}
                   alt=""
                   className="h-4 mx-auto"
                 />

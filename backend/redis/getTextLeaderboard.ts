@@ -29,8 +29,17 @@ async function redisPipeline<T>(commands: string[][]): Promise<T[]> {
       throw new Error(`Redis request failed: ${res.status}`)
     }
 
-    const data = (await res.json()) as { result: T }[]
-    return data.map((d) => d.result)
+    const data = (await res.json()) as { result: T; error?: string }[]
+    if (!Array.isArray(data) || data.length !== commands.length) {
+      throw new Error('Invalid Redis pipeline response')
+    }
+    return data.map((entry) => {
+      if (entry?.error) throw new Error(entry.error)
+      if (!entry || !Object.hasOwn(entry, 'result')) {
+        throw new Error('Invalid Redis pipeline response')
+      }
+      return entry.result
+    })
   } finally {
     clearTimeout(timeout)
   }

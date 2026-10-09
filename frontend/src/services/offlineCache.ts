@@ -4,6 +4,7 @@ import type { CollapsedActivitySession } from './getUserActivity'
 import { CACHE_TTL, PREFETCH } from '../constants/offline'
 import { pwaLogger } from '../utils/pwaLogger'
 import { supabase } from '../../../lib/supabase'
+import { createPreviewFromText } from '../utils/libraryTextPreview'
 
 const TAG = 'offlineCache'
 
@@ -97,6 +98,49 @@ export async function getCachedText(textId: string): Promise<Text | null> {
 
 export async function setCachedText(text: Text): Promise<void> {
   await setCached(textsStore, text.id, text)
+}
+
+async function updateCachedPreviews(
+  textId: string,
+  preview: TextPreview | null
+): Promise<void> {
+  try {
+    const updates = new Map<string, CacheEntry<TextPreview[]>>()
+    await libraryStore.iterate<CacheEntry<TextPreview[]>, void>(
+      (entry, key) => {
+        if (!entry.data.some((text) => text.id === textId)) return
+        updates.set(key, {
+          ...entry,
+          data: entry.data.flatMap((text) =>
+            text.id !== textId ? [text] : preview ? [preview] : []
+          ),
+        })
+      }
+    )
+    await Promise.all(
+      [...updates].map(([key, entry]) => libraryStore.setItem(key, entry))
+    )
+  } catch (err) {
+    pwaLogger.warn(TAG, 'Failed to update cached library previews', err)
+  }
+}
+
+export async function replaceCachedText(text: Text): Promise<void> {
+  await Promise.all([
+    setCachedText(text),
+    updateCachedPreviews(text.id, createPreviewFromText(text)),
+  ])
+}
+
+export async function removeCachedText(textId: string): Promise<void> {
+  try {
+    await Promise.all([
+      textsStore.removeItem(textId),
+      updateCachedPreviews(textId, null),
+    ])
+  } catch (err) {
+    pwaLogger.warn(TAG, 'Failed to remove cached text', err)
+  }
 }
 
 export async function getAllCachedTexts(): Promise<Text[]> {
@@ -255,12 +299,13 @@ interface SectionQuizProgress {
 
 export async function getSectionQuizProgress(
   textId: string,
-  ownerId?: string | null
+  ownerId?: string | null,
+  readingSessionId?: string
 ): Promise<SectionQuizProgress | null> {
   const userId = ownerId === undefined ? await currentUserId() : ownerId
   return getCached<SectionQuizProgress>(
     sectionQuizStore,
-    `${userId ?? 'anonymous'}:${textId}`,
+    `${userId ?? 'anonymous'}:${textId}${readingSessionId ? `:${readingSessionId}` : ''}`,
     Infinity
   )
 }
@@ -268,23 +313,27 @@ export async function getSectionQuizProgress(
 export async function setSectionQuizProgress(
   textId: string,
   progress: SectionQuizProgress,
-  ownerId?: string | null
+  ownerId?: string | null,
+  readingSessionId?: string
 ): Promise<void> {
   const userId = ownerId === undefined ? await currentUserId() : ownerId
   await setCached(
     sectionQuizStore,
-    `${userId ?? 'anonymous'}:${textId}`,
+    `${userId ?? 'anonymous'}:${textId}${readingSessionId ? `:${readingSessionId}` : ''}`,
     progress
   )
 }
 
 export async function clearSectionQuizProgress(
   textId: string,
-  ownerId?: string | null
+  ownerId?: string | null,
+  readingSessionId?: string
 ): Promise<void> {
   try {
     const userId = ownerId === undefined ? await currentUserId() : ownerId
-    await sectionQuizStore.removeItem(`${userId ?? 'anonymous'}:${textId}`)
+    await sectionQuizStore.removeItem(
+      `${userId ?? 'anonymous'}:${textId}${readingSessionId ? `:${readingSessionId}` : ''}`
+    )
   } catch (err) {
     pwaLogger.warn(
       TAG,

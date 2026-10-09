@@ -16,6 +16,9 @@ describe('leaderboard authorization and request boundaries', () => {
     publicText = true,
     authenticated = true,
     scoredActivity = false,
+    activityRows = undefined as
+      Array<{ wpm: number; score: number }> | undefined,
+    activityError = false,
     textVisibility = {
       admin_decision: 'approved' as string | null,
       llm_decision: 'approved',
@@ -38,13 +41,17 @@ describe('leaderboard authorization and request boundaries', () => {
               : null
             : table === 'users'
               ? { username: 'Reader' }
-              : scoredActivity
-                ? [
-                    { wpm: 400, score: 100 },
-                    { wpm: 500, score: 25 },
-                  ]
-                : [],
-        error: null,
+              : (activityRows ??
+                (scoredActivity
+                  ? [
+                      { wpm: 400, score: 100 },
+                      { wpm: 500, score: 25 },
+                    ]
+                  : [])),
+        error:
+          table === 'user_activity' && activityError
+            ? { message: 'Activity unavailable' }
+            : null,
       }
       const query = {
         select: () => query,
@@ -191,6 +198,35 @@ describe('leaderboard authorization and request boundaries', () => {
       member: 'user-1',
     })
     expect(pipeline.exec).toHaveBeenCalledOnce()
+  })
+
+  it('preserves real attempt statistics when all overall scores are zero', async () => {
+    const { handler, pipeline } = setup({
+      activityRows: [{ wpm: 500, score: 25 }],
+    })
+    const response = await handler(request(update))
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({
+      status: 'updated',
+      overallScore: 0,
+    })
+    expect(pipeline.hset).toHaveBeenCalledWith('lb_stats:text-1:user-1', {
+      username: 'Reader',
+      avatarUrl: 'https://example.invalid/avatar.png',
+      wpm: 500,
+      quizScore: 25,
+      overallScore: 0,
+    })
+  })
+
+  it('reports a database failure instead of claiming there are no scored attempts', async () => {
+    const { handler, pipeline } = setup({ activityError: true })
+    const response = await handler(request(update))
+    expect(response.status).toBe(500)
+    expect(await response.json()).toEqual({
+      error: 'Failed to update leaderboard',
+    })
+    expect(pipeline.exec).not.toHaveBeenCalled()
   })
 
   it.each(

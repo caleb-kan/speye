@@ -20,6 +20,27 @@ describe('ConfirmDialog', () => {
     vi.clearAllMocks()
   })
 
+  it('keeps keyboard focus in the dialog and restores the opener on close', async () => {
+    const user = userEvent.setup()
+    const opener = document.createElement('button')
+    opener.textContent = 'Open dialog'
+    document.body.appendChild(opener)
+    opener.focus()
+    const view = render(<ConfirmDialog {...defaultProps} />)
+    const cancel = screen.getByRole('button', { name: 'Cancel' })
+    const confirm = screen.getByRole('button', { name: 'Confirm' })
+    expect(cancel).toHaveFocus()
+    await user.tab()
+    expect(confirm).toHaveFocus()
+    await user.tab()
+    expect(cancel).toHaveFocus()
+    await user.tab({ shift: true })
+    expect(confirm).toHaveFocus()
+    view.rerender(<ConfirmDialog {...defaultProps} isOpen={false} />)
+    expect(opener).toHaveFocus()
+    opener.remove()
+  })
+
   it('does not render when isOpen is false', () => {
     const { container } = render(
       <ConfirmDialog {...defaultProps} isOpen={false} />

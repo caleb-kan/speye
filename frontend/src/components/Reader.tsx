@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react'
+import { useEffect, useRef, useCallback, useMemo } from 'react'
 import { TextDisplay } from './TextDisplay'
 import { SectionalTextDisplay } from './SectionalTextDisplay'
 import { ReadingControls } from './ReadingControls'
@@ -26,6 +26,7 @@ type ReaderProps = {
   onComplete?: (isComplete: boolean) => void
   initialWordIndex?: number
   onPositionChange?: (wordIndex: number) => void
+  onRestart?: () => void
   showMiniQuiz?: boolean
   onStartQuiz?: () => void
   isSummary?: boolean
@@ -55,6 +56,7 @@ export function Reader({
   onComplete,
   initialWordIndex = 0,
   onPositionChange,
+  onRestart,
   showMiniQuiz,
   onStartQuiz,
   isSummary,
@@ -66,6 +68,13 @@ export function Reader({
   totalSectionQuizCount,
   hideNewText = false,
 }: ReaderProps) {
+  const readingText = useMemo(
+    () =>
+      sectional && section_content?.length
+        ? section_content.map((section) => section.content).join(' ')
+        : text,
+    [sectional, section_content, text]
+  )
   const {
     currentWordIndex,
     isPlaying,
@@ -79,7 +88,7 @@ export function Reader({
     jumpForward,
     jumpBack,
     jumpToIndex,
-  } = useReader({ text, wpm, disabled, initialWordIndex })
+  } = useReader({ text: readingText, wpm, disabled, initialWordIndex })
 
   const handleSectionComplete = useCallback(
     (sectionIndex: number) => {
@@ -195,7 +204,10 @@ export function Reader({
         <ReadingControls
           isPlaying={isPlaying}
           onPlayPause={togglePlayPause}
-          onRestart={restart}
+          onRestart={() => {
+            onRestart?.()
+            restart()
+          }}
           onNewText={onNewText}
           progress={progress}
           currentWord={currentWordIndex + 1}

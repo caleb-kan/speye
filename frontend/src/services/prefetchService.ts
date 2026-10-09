@@ -66,14 +66,13 @@ export async function prefetchAllTexts(): Promise<void> {
     // Ignore localStorage errors
   }
 
-  const user = await getCurrentUser()
-  if (!user) {
-    pwaLogger.debug(TAG, 'Skipping prefetch — not authenticated')
-    return
-  }
-
   isPrefetchingNow = true
   try {
+    const user = await getCurrentUser()
+    if (!user) {
+      pwaLogger.debug(TAG, 'Skipping prefetch - not authenticated')
+      return
+    }
     pwaLogger.info(TAG, 'Starting background prefetch')
 
     // Fetch library listings (these also get cached by the service functions)

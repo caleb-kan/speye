@@ -3,11 +3,16 @@ import type { Theme } from '../lib/themes'
 import { getThemeById, themes } from '../lib/themes'
 import { ThemeContext } from './themeContext'
 import { STORAGE_KEYS } from '../constants/storage'
+import { getRuntimeBase } from '../utils/getRuntimeBase'
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() => {
-    const stored = localStorage.getItem(STORAGE_KEYS.THEME_PREFERENCE)
-    return stored ? getThemeById(stored) : themes[0]
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.THEME_PREFERENCE)
+      return stored ? getThemeById(stored) : themes[0]
+    } catch {
+      return themes[0]
+    }
   })
 
   const [loading, setLoading] = useState(true)
@@ -15,7 +20,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const setTheme = (id: string) => {
     const newTheme = getThemeById(id)
     setThemeState(newTheme)
-    localStorage.setItem(STORAGE_KEYS.THEME_PREFERENCE, id)
+    try {
+      localStorage.setItem(STORAGE_KEYS.THEME_PREFERENCE, id)
+    } catch {
+      // Theme changes still apply when browser storage is unavailable.
+    }
   }
 
   useEffect(() => {
@@ -42,7 +51,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       const newFavicon = document.createElement('link')
       newFavicon.rel = 'icon'
       newFavicon.type = 'image/png'
-      newFavicon.href = `/favicons/${theme.id}.png`
+      newFavicon.href = `${getRuntimeBase()}favicons/${theme.id}.png`
       document.head.appendChild(newFavicon)
 
       document

@@ -19,7 +19,11 @@ import {
  *
  * Used by both ReadingSession and AdaptiveReadingSession.
  */
-export function useSectionQuiz(currentText: Text) {
+export function useSectionQuiz(
+  currentText: Text,
+  getActivityId?: () => string | undefined,
+  readingSessionId?: string | null
+) {
   const { user } = useAuth()
   const userId = user?.id ?? null
   const [pendingSectionQuizIndex, setPendingSectionQuizIndex] = useState<
@@ -40,19 +44,40 @@ export function useSectionQuiz(currentText: Text) {
     () => currentText.quiz?.questionSets ?? [],
     [currentText.quiz]
   )
+  const identity = JSON.stringify([
+    userId,
+    currentText.id,
+    readingSessionId,
+    isSectional,
+  ])
+  const [stateIdentity, setStateIdentity] = useState(identity)
+  if (identity !== stateIdentity) {
+    setStateIdentity(identity)
+    setPendingSectionQuizIndex(null)
+    setCurrentSectionIndex(0)
+    setQuizzedSections(new Set())
+    setCompletedSectionQuizzes(new Set())
+  }
 
   useEffect(() => {
-    if (!isSectional) return
-    getSectionQuizProgress(currentText.id, userId)
+    sectionResultsRef.current = []
+    triggeredSectionsRef.current = new Set()
+    if (!isSectional || readingSessionId === null) return
+    let canceled = false
+    getSectionQuizProgress(currentText.id, userId, readingSessionId)
       .then((progress) => {
-        if (!progress) return
+        if (canceled || !progress || triggeredSectionsRef.current.size > 0)
+          return
         sectionResultsRef.current = progress.results
         const completed = new Set(progress.quizzedSectionIds)
         setQuizzedSections(completed)
         setCompletedSectionQuizzes(completed)
       })
       .catch(console.error)
-  }, [currentText.id, isSectional, userId])
+    return () => {
+      canceled = true
+    }
+  }, [currentText.id, isSectional, userId, readingSessionId])
 
   const persistProgress = (
     results: typeof sectionResultsRef.current,
@@ -64,7 +89,8 @@ export function useSectionQuiz(currentText: Text) {
         results,
         quizzedSectionIds: [...quizzed],
       },
-      userId
+      userId,
+      readingSessionId ?? undefined
     ).catch(console.error)
   }
 
@@ -78,10 +104,22 @@ export function useSectionQuiz(currentText: Text) {
     const totalQuestions = results.reduce((sum, r) => sum + (r?.total ?? 0), 0)
     if (totalQuestions > 0) {
       const aggregateScore = Math.round((totalCorrect / totalQuestions) * 100)
-      saveQuizResult({ text_id: currentText.id, score: aggregateScore }, userId)
+      const activityId = getActivityId?.()
+      saveQuizResult(
+        {
+          text_id: currentText.id,
+          score: aggregateScore,
+          ...(activityId ? { activity_id: activityId } : {}),
+        },
+        userId
+      )
         .then((result) => {
           if (result?.user_id === userId) {
-            return clearSectionQuizProgress(currentText.id, userId)
+            return clearSectionQuizProgress(
+              currentText.id,
+              userId,
+              readingSessionId ?? undefined
+            )
           }
         })
         .catch(console.error)

@@ -22,8 +22,7 @@ import { supabase } from '../../../lib/supabase'
 
 const TAG = 'syncService'
 
-// IndexedDB is shared by every tab. Keep recovery and replay in one origin-wide
-// critical section so reconnecting tabs cannot submit the same operation twice.
+// IndexedDB is shared by every tab; Web Locks serialize recovery and replay.
 export async function syncPendingOperations(): Promise<void> {
   const sync = async () => {
     if (await recoverUnloadQueue()) await processQueue()
@@ -31,6 +30,7 @@ export async function syncPendingOperations(): Promise<void> {
   if (navigator.locks) {
     await navigator.locks.request('speye-operation-sync', sync)
   } else {
+    // shortcut: without Web Locks, tabs can replay concurrently; add a fallback lock if supporting those browsers.
     await sync()
   }
 }
@@ -38,10 +38,26 @@ export async function syncPendingOperations(): Promise<void> {
 async function executeOperation(op: QueuedOperation): Promise<void> {
   switch (op.type) {
     case 'logUserActivity':
-      await logUserActivityDb(op.payload, op.userId)
+      await logUserActivityDb(
+        {
+          ...op.payload,
+          endTime: op.payload.endTime ?? new Date(op.timestamp).toISOString(),
+        },
+        op.userId
+      )
       break
     case 'saveQuizResult': {
-      const data = await saveQuizResultDb(op.payload, op.userId)
+      const data = await saveQuizResultDb(
+        {
+          ...op.payload,
+          completed_at:
+            op.payload.completed_at ?? new Date(op.timestamp).toISOString(),
+        },
+        op.userId
+      )
+      if (!data && op.payload.activity_id) {
+        throw new Error('The originating reading activity is not saved yet')
+      }
       if (data?.user_id) {
         await updateLeaderboardCache(op.payload.text_id, data.user_id)
       }
@@ -60,13 +76,35 @@ async function executeOperation(op: QueuedOperation): Promise<void> {
 }
 
 export async function processQueue(): Promise<void> {
-  const operations = await getQueuedOperations()
+  const queued = await getQueuedOperations()
+  const activities = new Map(
+    queued.flatMap((op) =>
+      op.type === 'logUserActivity' && op.payload.id
+        ? [[op.payload.id, op] as const]
+        : []
+    )
+  )
+  const operations: QueuedOperation[] = []
+  const scheduled = new Set<string>()
+  const schedule = (op: QueuedOperation) => {
+    if (scheduled.has(op.id)) return
+    scheduled.add(op.id)
+    operations.push(op)
+  }
+  for (const op of queued) {
+    if (op.type === 'saveQuizResult' && op.payload.activity_id) {
+      const activity = activities.get(op.payload.activity_id)
+      if (activity && activity.userId === op.userId) schedule(activity)
+    }
+    schedule(op)
+  }
   pwaLogger.info(TAG, `Processing queue: ${operations.length} operations`)
 
   let anySucceeded = false
   const discardedQuizzes = new Set<string>()
 
-  for (const [index, op] of operations.entries()) {
+  for (const [index, queuedOperation] of operations.entries()) {
+    let op = queuedOperation
     if (discardedQuizzes.has(op.id)) continue
     const {
       data: { session },
@@ -86,16 +124,22 @@ export async function processQueue(): Promise<void> {
       if (op.type === 'logUserActivity') {
         // Remove dependent quizzes before abandoning their activity, including
         // when a later operation fails and replay resumes in a different run.
+        let reachedNextReading = false
         for (const next of operations.slice(index + 1)) {
           if (next.userId !== op.userId) continue
           if (
             next.type === 'logUserActivity' &&
             next.payload.textId === op.payload.textId
-          )
-            break
+          ) {
+            reachedNextReading = true
+            continue
+          }
           if (
             next.type === 'saveQuizResult' &&
-            next.payload.text_id === op.payload.textId
+            next.payload.text_id === op.payload.textId &&
+            (next.payload.activity_id
+              ? next.payload.activity_id === op.payload.id
+              : !reachedNextReading)
           ) {
             await removeOperation(next.id)
             discardedQuizzes.add(next.id)
@@ -104,6 +148,12 @@ export async function processQueue(): Promise<void> {
       }
       await removeOperation(op.id)
       continue
+    }
+
+    if (op.type === 'logUserActivity' && !op.payload.id) {
+      op = { ...op, payload: { ...op.payload, id: crypto.randomUUID() } }
+      // Persist legacy identity before a request can commit without a response.
+      await updateOperation(op)
     }
 
     try {

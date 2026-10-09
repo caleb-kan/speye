@@ -6,7 +6,14 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist', 'src/lib/webgazer-local']),
+  globalIgnores([
+    'dist',
+    'src/lib/webgazer-local',
+    'test-results',
+    'playwright-report',
+    'pwa-test-results',
+    'pwa-report',
+  ]),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

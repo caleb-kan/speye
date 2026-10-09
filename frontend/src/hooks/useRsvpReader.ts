@@ -183,12 +183,15 @@ export function useRsvpReader({
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement)?.tagName
-      if (e.code === 'Space' && tag !== 'INPUT' && tag !== 'TEXTAREA') {
+      if (
+        e.code === 'Space' &&
+        (!(e.target instanceof Element) || e.target === document.body) &&
+        !disabled &&
+        !e.defaultPrevented &&
+        !e.repeat
+      ) {
         e.preventDefault()
-        if (!disabled) {
-          togglePlayPause()
-        }
+        togglePlayPause()
       }
     }
 

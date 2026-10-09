@@ -60,7 +60,7 @@ export function Pvp() {
           {checkError}
         </div>
       )}
-      <PvpLobby />
+      <PvpLobby key={user.id} />
     </>
   )
 }

@@ -12,7 +12,11 @@ vi.mock('../../services/libraryService', () => ({
   uploadLibraryText: vi.fn(),
 }))
 
-import { updateLibraryTextQuiz } from '../../services/libraryService'
+import {
+  updateLibraryTextQuiz,
+  updateLibraryText,
+  uploadLibraryText,
+} from '../../services/libraryService'
 
 const mockUpdatedText: Text = {
   id: 'text-1',
@@ -74,6 +78,49 @@ const createParams = (overrides = {}) => ({
 })
 
 describe('useLibraryTextActions - handleQuizSubmit', () => {
+  it('propagates edit failures so the form keeps the unsaved text', async () => {
+    vi.mocked(updateLibraryText).mockRejectedValue(new Error('Write failed'))
+    const params = createParams()
+    const { result } = renderHook(() => useLibraryTextActions(params))
+    await expect(
+      result.current.handleEditSubmit('text-1', {
+        content: 'Keep these edits',
+        title: 'Edited',
+        fiction: true,
+      })
+    ).rejects.toThrow('Write failed')
+    expect(updateLibraryText).toHaveBeenCalledWith('text-1', {
+      content: 'Keep these edits',
+      title: 'Edited',
+      fiction: true,
+      quiz: null,
+      quiz_valid: false,
+      summary: null,
+    })
+    expect(params.setSuccessMessage).not.toHaveBeenCalled()
+  })
+
+  it('propagates public-copy failures so the form stays open', async () => {
+    vi.mocked(uploadLibraryText).mockRejectedValue(new Error('Copy failed'))
+    const params = createParams()
+    const { result } = renderHook(() => useLibraryTextActions(params))
+    await expect(
+      result.current.handleMakePublicCopy('text-1', {
+        content: 'Keep these edits',
+        title: 'Edited',
+        fiction: true,
+      })
+    ).rejects.toThrow('Copy failed')
+    expect(uploadLibraryText).toHaveBeenCalledWith('user-1', {
+      content: 'Keep these edits',
+      title: 'Edited',
+      fiction: true,
+      isPublic: true,
+      processing_status: 'pending',
+    })
+    expect(params.setSuccessMessage).not.toHaveBeenCalled()
+  })
+
   beforeEach(() => {
     vi.clearAllMocks()
   })

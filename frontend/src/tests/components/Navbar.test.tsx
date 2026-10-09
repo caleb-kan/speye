@@ -1,10 +1,30 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import {
+  act,
+  fireEvent,
+  render,
+  renderHook,
+  screen,
+} from '@testing-library/react'
 import { BrowserRouter } from 'react-router-dom'
 import { Navbar } from '../../components/navbar/Navbar'
 import * as useAuthModule from '../../hooks/useAuth'
 import { createMockUser, createMockSession } from '../helpers/mocks'
 import '@testing-library/jest-dom'
+import { useReadingActivitySession } from '../../hooks/useReadingActivitySession'
+import type { Text } from '../../types/database'
+import {
+  loadReadingActivitySession,
+  setReadingActivityOwner,
+  upsertReadingActivitySession,
+} from '../../utils/readingActivityStorage'
+
+const log = vi.hoisted(() => vi.fn())
+const unload = vi.hoisted(() => vi.fn())
+vi.mock('../../services/logUserActivity', () => ({
+  logUserActivity: log,
+  logUserActivityOnUnload: unload,
+}))
 
 vi.mock('../../hooks/useAuth')
 vi.mock('../../hooks/useIsMobile', () => ({
@@ -40,6 +60,8 @@ const renderNavbar = () => {
 describe('Navbar', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    sessionStorage.clear()
+    window.history.replaceState(null, '', '/')
   })
 
   describe('Navigation Items', () => {
@@ -231,5 +253,60 @@ describe('Navbar', () => {
       expect(activityLink).not.toHaveAttribute('aria-disabled', 'true')
       expect(pvpLink).not.toHaveAttribute('aria-disabled', 'true')
     })
+
+    it.each([
+      ['/home', 'standard'],
+      ['/adaptive', 'adaptive'],
+      ['/rsvp', 'rsvp'],
+    ] as const)(
+      'preserves the logical reading attempt after leaving %s',
+      (route, mode) => {
+        setReadingActivityOwner(mockUser.id)
+        window.history.replaceState(null, '', route)
+        const original = upsertReadingActivitySession(
+          {
+            textId: 'sectional-text',
+            startTime: '2026-10-09T10:00:00Z',
+            started: true,
+            progressIndex: 5,
+            wpm: 300,
+            mode,
+          },
+          mockUser.id
+        )!
+        const reader = renderHook(() =>
+          useReadingActivitySession({
+            currentText: { id: original.textId } as Text,
+            context: {
+              mode,
+              wpm: 300,
+              readingPosition: 5,
+              setReadingPosition: vi.fn(),
+            },
+            readingComplete: false,
+          })
+        )
+        renderNavbar()
+        fireEvent.click(screen.getByRole('link', { name: 'Library' }))
+        expect(log).toHaveBeenCalledExactlyOnceWith(
+          expect.objectContaining({
+            id: original.activityId,
+            textId: original.textId,
+            progressIndex: 5,
+            mode,
+          }),
+          mockUser.id
+        )
+        const resumed = loadReadingActivitySession(mockUser.id)!
+        expect(resumed.readingSessionId).toBe(original.readingSessionId)
+        expect(resumed.activityId).not.toBe(original.activityId)
+        expect(resumed.started).toBe(false)
+        expect(resumed.startTime).toBeNull()
+        act(() => window.dispatchEvent(new Event('pagehide')))
+        expect(unload).not.toHaveBeenCalled()
+        expect(log).toHaveBeenCalledTimes(1)
+        reader.unmount()
+      }
+    )
   })
 })

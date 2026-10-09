@@ -8,6 +8,7 @@ import {
 import { formatNumberWithCommas } from '../utils/textUtils'
 import { ConfirmDialog } from './ConfirmDialog'
 import { useEscapeKey } from '../hooks/useEscapeKey'
+import { useDialogFocus } from '../hooks/useDialogFocus'
 import { useTextFormState } from '../hooks/useTextFormState'
 import { SectionEditor } from './textForm/SectionEditor'
 import { SimpleContentEditor } from './textForm/SimpleContentEditor'
@@ -102,6 +103,7 @@ export function TextFormModal({
   // ESC handling disabled in embedded mode (parent handles it)
   // and when unsaved warning is shown (ConfirmDialog handles its own ESC)
   useEscapeKey(handleCloseClick, isOpen && !embedded && !showUnsavedWarning)
+  const dialogRef = useDialogFocus(isOpen && !embedded)
 
   if (!isOpen) return null
 
@@ -328,12 +330,31 @@ export function TextFormModal({
     </form>
   )
 
-  if (embedded) {
-    return formContent
-  }
+  const deleteSectionDialog = (
+    <ConfirmDialog
+      isOpen={showDeleteWarning}
+      title="Delete Section?"
+      message={`Are you sure you want to delete "${sectionToDelete !== null ? sections[sectionToDelete]?.title || `Section ${sectionToDelete + 1}` : 'this section'}"? This action cannot be undone.`}
+      confirmLabel="Delete"
+      cancelLabel="Cancel"
+      onConfirm={confirmDeleteSection}
+      onCancel={cancelDeleteSection}
+      isDestructive
+    />
+  )
+
+  if (embedded)
+    return (
+      <>
+        {formContent}
+        {deleteSectionDialog}
+      </>
+    )
 
   return (
     <div
+      ref={dialogRef}
+      tabIndex={-1}
       className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
       onClick={handleBackdropClick}
       role="dialog"
@@ -368,16 +389,7 @@ export function TextFormModal({
         onCancel={handleCancelDiscard}
         isDestructive
       />
-      <ConfirmDialog
-        isOpen={showDeleteWarning}
-        title="Delete Section?"
-        message={`Are you sure you want to delete "${sectionToDelete !== null ? sections[sectionToDelete]?.title || `Section ${sectionToDelete + 1}` : 'this section'}"? This action cannot be undone.`}
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
-        onConfirm={confirmDeleteSection}
-        onCancel={cancelDeleteSection}
-        isDestructive
-      />
+      {deleteSectionDialog}
     </div>
   )
 }

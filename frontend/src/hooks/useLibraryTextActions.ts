@@ -238,6 +238,7 @@ export const useLibraryTextActions = (
         setSuccess('Text updated! Reprocessing in background...')
       } catch (err) {
         setDeleteError(getErrorMessage(err, 'Failed to update text'))
+        throw err
       }
     },
     [
@@ -251,7 +252,8 @@ export const useLibraryTextActions = (
 
   const handleMakePublicCopy = useCallback(
     async (_textId: string, data: TextInput): Promise<void> => {
-      if (!userId) return
+      if (!userId)
+        throw new Error('You must be logged in to create a public copy')
 
       try {
         await uploadLibraryText(userId, {
@@ -267,6 +269,7 @@ export const useLibraryTextActions = (
         }
       } catch (err) {
         setDeleteError(getErrorMessage(err, 'Failed to create public copy'))
+        throw err
       }
     },
     [userId, setSuccess, setDeleteError, refetchPublicTexts]

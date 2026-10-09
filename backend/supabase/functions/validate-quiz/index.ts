@@ -164,11 +164,12 @@ Deno.serve(async (req: Request) => {
       ? '5. Every question must also be answerable from the summary alone'
       : ''
 
+    // Replace slots from last to first so slot names in user text stay literal.
     const userMessage = config.user_message
-      .replace('{text_content}', truncatedContent)
-      .replace('{quiz_sample}', quizSampleJson)
-      .replace('{summary_section}', summarySection)
-      .replace('{summary_criteria}', summaryCriteria)
+      .replace('{summary_criteria}', () => summaryCriteria)
+      .replace('{quiz_sample}', () => quizSampleJson)
+      .replace('{summary_section}', () => summarySection)
+      .replace('{text_content}', () => truncatedContent)
 
     const response = await groqClient.chat.completions.create({
       model: config.model,

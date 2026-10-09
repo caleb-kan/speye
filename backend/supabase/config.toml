@@ -12,8 +12,8 @@ port = 54322
 port = 54321
 
 [functions.process-text]
-# Disable JWT verification, this function is a public utility
-# that generates titles and quiz questions using Groq LLM and doesn't access user data
+# The handler verifies the service-role key before calling Groq.
+# Text processing is called only by the trusted processing worker.
 verify_jwt = false
 
 [functions.validate-quiz]
@@ -34,4 +34,12 @@ verify_jwt = false
 [functions.leaderboard]
 # Called by the frontend after quiz save to update Redis leaderboard cache.
 # The handler verifies the user token with Supabase Auth before service-role use.
+verify_jwt = false
+
+[functions.populate-quizzes]
+# Maintenance access also requires the exact service-role bearer in the handler.
+verify_jwt = true
+
+[functions.populate-summaries]
+# The handler requires the exact service-role bearer before database access.
 verify_jwt = false

@@ -12,29 +12,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const user = useMemo(() => session?.user ?? null, [session])
 
   useEffect(() => {
+    let active = true
+    let authChanged = false
     supabase.auth
       .getSession()
       .then(({ data: { session } }) => {
-        setSession(session)
+        if (active && !authChanged) setSession(session)
       })
       .catch((err) => {
         console.error('Failed to load auth session:', err)
       })
       .finally(() => {
-        setLoading(false)
+        if (active) setLoading(false)
       })
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!active) return
+      authChanged = true
       setSession(session)
       setLoading(false)
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      active = false
+      subscription.unsubscribe()
+    }
   }, [])
 
   const signOut = useCallback(async () => {
+    const { error } = await supabase.auth.signOut({ scope: 'global' })
+    if (error) throw error
     try {
       await clearQueue()
     } catch (err) {
@@ -45,7 +54,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (err) {
       console.error('Failed to clear caches during sign-out:', err)
     }
-    await supabase.auth.signOut({ scope: 'global' })
   }, [])
 
   const value = useMemo(

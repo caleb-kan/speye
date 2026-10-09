@@ -28,7 +28,12 @@ export function ReadingSession({
   const [quizDismissed, setQuizDismissed] = useState(false)
   const [triggerSectionQuiz, setTriggerSectionQuiz] = useState(false)
 
-  const { handlePositionChange } = useReadingActivitySession({
+  const {
+    handlePositionChange,
+    handleRestart,
+    getActivityId,
+    readingSessionId,
+  } = useReadingActivitySession({
     currentText,
     context,
     readingComplete,
@@ -45,7 +50,7 @@ export function ReadingSession({
     sectionQuestionSet,
     showSectionMiniQuiz,
     completedSectionQuizzes,
-  } = useSectionQuiz(currentText)
+  } = useSectionQuiz(currentText, getActivityId, readingSessionId)
 
   return (
     <div className="relative flex-1 flex flex-col w-full h-full overflow-hidden pb-20">
@@ -68,6 +73,10 @@ export function ReadingSession({
         onComplete={setReadingComplete}
         initialWordIndex={context.readingPosition}
         onPositionChange={handlePositionChange}
+        onRestart={() => {
+          setReadingComplete(false)
+          handleRestart()
+        }}
         showMiniQuiz={isSectional ? showSectionMiniQuiz : quizDismissed}
         onStartQuiz={
           isSectional
@@ -87,6 +96,7 @@ export function ReadingSession({
       {/* Section quiz overlay (sectional texts) */}
       {isSectional && (
         <StartQuizButton
+          getActivityId={getActivityId}
           textId={currentText.id}
           ownerId={currentText.owner_id}
           readingComplete={isSectionQuizActive}
@@ -103,6 +113,7 @@ export function ReadingSession({
       {/* Full text quiz overlay (non-sectional texts only) */}
       {!isSectional && (
         <StartQuizButton
+          getActivityId={getActivityId}
           textId={currentText.id}
           ownerId={currentText.owner_id}
           readingComplete={readingComplete}

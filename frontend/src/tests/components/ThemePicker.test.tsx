@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { ThemePicker } from '../../components/ThemePicker'
 import '@testing-library/jest-dom'
@@ -50,6 +50,7 @@ vi.mock('../../hooks/useEscapeKey', () => ({
 }))
 
 describe('ThemePicker', () => {
+  afterEach(() => window.history.replaceState({}, '', '/'))
   beforeEach(() => {
     vi.clearAllMocks()
   })
@@ -148,5 +149,15 @@ describe('ThemePicker', () => {
 
     const img = screen.getByLabelText('Change theme').querySelector('img')
     expect(img).toHaveAttribute('src', '/favicons/alt/midnight.png')
+  })
+
+  it('loads theme images under the Imperial deployment path', () => {
+    const base = '/project/2025/60021/g256002102/web/'
+    window.history.replaceState({}, '', `${base}settings`)
+    render(<ThemePicker />)
+    fireEvent.click(screen.getByLabelText('Change theme'))
+    for (const img of document.querySelectorAll('img')) {
+      expect(img.getAttribute('src')).toMatch(`${base}favicons/alt/`)
+    }
   })
 })

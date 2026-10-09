@@ -5,6 +5,8 @@ import { AuthProvider } from '../../context/AuthProvider'
 import { useAuth } from '../../hooks/useAuth'
 import * as supabaseModule from '../../../../lib/supabase'
 import { createMockAuthSubscription } from '../helpers/mocks'
+import { clearAllCaches } from '../../services/offlineCache'
+import { clearQueue } from '../../services/operationQueue'
 import '@testing-library/jest-dom'
 
 // Mock Supabase
@@ -129,6 +131,44 @@ describe('AuthProvider', () => {
   })
 
   describe('Auth State Changes', () => {
+    it.each([
+      [
+        'SIGNED_IN',
+        { access_token: 'new-token', user: { id: 'new-user' } },
+        'new-user',
+      ],
+      ['SIGNED_OUT', null, 'null'],
+    ])(
+      'preserves a newer %s event while the initial session is pending',
+      async (event, session, expectedUser) => {
+        let resolveSession!: (result: unknown) => void
+        mockSupabase.auth.getSession.mockImplementation(
+          () =>
+            new Promise((resolve) => {
+              resolveSession = resolve
+            })
+        )
+        render(
+          <AuthProvider>
+            <TestConsumer onRender={() => {}} />
+          </AuthProvider>
+        )
+
+        act(() => authStateCallback?.(event, session))
+        await act(async () =>
+          resolveSession({
+            data: {
+              session: { access_token: 'old-token', user: { id: 'old-user' } },
+            },
+            error: null,
+          })
+        )
+
+        expect(screen.getByTestId('user')).toHaveTextContent(expectedUser)
+        expect(screen.getByTestId('loading')).toHaveTextContent('false')
+      }
+    )
+
     it('subscribes to auth state changes on mount', async () => {
       render(
         <AuthProvider>
@@ -215,6 +255,20 @@ describe('AuthProvider', () => {
   })
 
   describe('Sign Out', () => {
+    it('reports rejected sign-out without deleting unsynced work or cached data', async () => {
+      const error = new Error('Sign-out failed')
+      mockSupabase.auth.signOut.mockResolvedValue({ error })
+      const wrapper = ({ children }: { children: React.ReactNode }) => (
+        <AuthProvider>{children}</AuthProvider>
+      )
+      const { result } = renderHook(() => useAuth(), { wrapper })
+      await waitFor(() => expect(result.current.loading).toBe(false))
+
+      await expect(result.current.signOut()).rejects.toBe(error)
+      expect(clearQueue).not.toHaveBeenCalled()
+      expect(clearAllCaches).not.toHaveBeenCalled()
+    })
+
     it('calls supabase signOut', async () => {
       mockSupabase.auth.signOut.mockResolvedValue({ error: null })
 

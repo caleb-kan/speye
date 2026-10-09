@@ -191,9 +191,18 @@ describe('syncService', () => {
 
       await processQueue()
 
-      expect(logUserActivity).toHaveBeenCalledWith(ops[0].payload, 'user-1')
+      expect(logUserActivity).toHaveBeenCalledWith(
+        expect.objectContaining({ ...ops[0].payload, id: expect.any(String) }),
+        'user-1'
+      )
       expect(mockQueueStore.removeItem).toHaveBeenCalledWith('op-1')
-      expect(saveQuizResult).toHaveBeenCalledWith(ops[1].payload, 'user-1')
+      expect(saveQuizResult).toHaveBeenCalledWith(
+        {
+          ...ops[1].payload,
+          completed_at: new Date(ops[1].timestamp).toISOString(),
+        },
+        'user-1'
+      )
       expect(markNotificationSeen).toHaveBeenCalledWith('notif-1')
       expect(markAllNotificationsSeen).toHaveBeenCalledWith('user-1')
     })

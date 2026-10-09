@@ -55,6 +55,7 @@ export const useAdaptiveActivitySession = (
 
     void logUserActivity(
       {
+        id: session.activityId ?? undefined,
         textId: currentText.id,
         wpm: effectiveWpm,
         startTime: session.startTime ?? new Date().toISOString(),
@@ -66,6 +67,17 @@ export const useAdaptiveActivitySession = (
     )
 
     clearReadingActivitySession(ownerId)
+    upsertReadingActivitySession(
+      {
+        readingSessionId: session.readingSessionId,
+        textId: currentText.id,
+        startTime: null,
+        started: false,
+        wpm: fallbackWpm,
+        progressIndex: effectiveProgress,
+      },
+      ownerId
+    )
   }, [ownerId, adaptiveSessionWpm, currentText, fallbackWpm, readingPosition])
 
   return { handleModeNavigate }

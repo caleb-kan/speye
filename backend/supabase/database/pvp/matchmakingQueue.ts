@@ -49,19 +49,30 @@ function isValidMatchmakeResult(data: unknown): data is MatchmakeResult {
   return false
 }
 
-export async function leaveQueue(userId: string): Promise<void> {
-  const { error } = await supabase
-    .from('matchmaking_queue')
-    .delete()
-    .eq('user_id', userId)
+export async function leaveQueue(
+  userId: string,
+  accessToken?: string
+): Promise<string | null> {
+  // Serialize queue removal with matchmaking.
+  let request = supabase.rpc('leave_matchmaking_queue', {
+    p_user_id: userId,
+  })
+  if (accessToken) {
+    request = request.setHeader('Authorization', `Bearer ${accessToken}`)
+  }
+  const { data, error } = await request
 
   logDbQuery({
     table: 'matchmaking_queue',
-    action: 'DELETE',
+    action: 'RPC:leave_matchmaking_queue',
     errors: error ? error.message : undefined,
   })
 
   if (error) throw error
+  if (data !== null && (typeof data !== 'string' || !data)) {
+    throw new Error('Leave queue RPC returned an invalid game ID')
+  }
+  return data
 }
 
 /**
@@ -89,10 +100,11 @@ export function leaveQueueOnUnload(
   }
 
   keepaliveFetch({
-    url: `${supabaseUrl}/rest/v1/matchmaking_queue?user_id=eq.${encodeURIComponent(userId)}`,
-    method: 'DELETE',
+    url: `${supabaseUrl}/rest/v1/rpc/leave_matchmaking_queue`,
+    method: 'POST',
     accessToken,
     supabaseKey,
+    body: { p_user_id: userId },
     label: 'leaveQueueOnUnload',
   })
 }

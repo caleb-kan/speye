@@ -7,6 +7,7 @@ import {
   mockRealtimeSubscription,
 } from '../utils/mock-helpers'
 import { libraryTexts, pendingApprovals, quizData } from '../utils/mocks'
+import { TEXTS_PER_PAGE } from '../../../constants/library'
 
 async function expectContained(page: Page) {
   const excess = await page
@@ -22,6 +23,155 @@ test.beforeEach(async ({ page }) => {
   })
   await mockRealtimeSubscription(page)
 })
+
+for (const viewport of [
+  { width: 320, height: 844 },
+  { width: 390, height: 844 },
+  { width: 844, height: 390 },
+  { width: 320, height: 240 },
+  { width: 1440, height: 900 },
+]) {
+  test(`library pagination and navigation stay usable at ${viewport.width}x${viewport.height}`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(viewport)
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await mockAuthSession(page)
+    await mockLibraryTexts(
+      page,
+      Array.from({ length: TEXTS_PER_PAGE * 2 + 1 }, (_, index) => ({
+        ...libraryTexts[0],
+        id: `pagination-text-${index}`,
+        title: `Synthetic pagination text ${index}`,
+      }))
+    )
+    await page.goto('/library')
+    const pagination = page.locator('[aria-label="Pagination"]')
+    const navigation = page.getByRole('navigation', {
+      name: 'Main navigation',
+    })
+    await expect(pagination).toContainText('1 / 3')
+    const expectPaginationClear = async () => {
+      await pagination.evaluate((element) =>
+        element.scrollIntoView({ block: 'center', behavior: 'instant' })
+      )
+      await expect(pagination).toBeInViewport()
+      const navigationBox = await navigation.boundingBox()
+      const paginationBox = await pagination.boundingBox()
+      expect(paginationBox!.x).toBeGreaterThanOrEqual(0)
+      expect(paginationBox!.x + paginationBox!.width).toBeLessThanOrEqual(
+        viewport.width
+      )
+      if (viewport.height < 768 || viewport.width < 768) {
+        expect(paginationBox!.y + paginationBox!.height).toBeLessThanOrEqual(
+          navigationBox!.y
+        )
+      }
+      for (const button of await pagination.getByRole('button').all()) {
+        expect(
+          await button.evaluate((element) => {
+            const box = element.getBoundingClientRect()
+            return element.contains(
+              document.elementFromPoint(
+                box.x + box.width / 2,
+                box.y + box.height / 2
+              )
+            )
+          })
+        ).toBe(true)
+        if (viewport.height < 768 || viewport.width < 768) {
+          const box = await button.boundingBox()
+          expect(box!.width).toBeGreaterThanOrEqual(44)
+          expect(box!.height).toBeGreaterThanOrEqual(44)
+        }
+      }
+    }
+    await expectPaginationClear()
+    if (viewport.width === 320 && viewport.height === 844) {
+      await page.evaluate(() =>
+        document.documentElement.style.setProperty(
+          '--mobile-navigation-height',
+          'calc(4rem + 30px)'
+        )
+      )
+      await expect
+        .poll(async () => {
+          const box = await pagination.boundingBox()
+          const navigationBox = await navigation.boundingBox()
+          return box!.y + box!.height <= navigationBox!.y
+        })
+        .toBe(true)
+      await expectPaginationClear()
+    }
+    await page.screenshot({ path: test.info().outputPath('pagination.png') })
+    await expect(
+      pagination.getByRole('button', { name: 'Previous page' })
+    ).toBeDisabled()
+    await pagination.getByRole('button', { name: 'Next page' }).click()
+    await expect(pagination).toContainText('2 / 3')
+    await pagination.getByRole('button', { name: 'Last page' }).click()
+    await expect(pagination).toContainText('3 / 3')
+    await expect(
+      pagination.getByRole('button', { name: 'Next page' })
+    ).toBeDisabled()
+    await pagination.getByRole('button', { name: 'Previous page' }).click()
+    await expect(pagination).toContainText('2 / 3')
+    await pagination.getByRole('button', { name: 'First page' }).click()
+    await pagination.getByRole('button', { name: '1', exact: true }).click()
+    await pagination
+      .getByRole('textbox', { name: 'Jump to page number' })
+      .fill('9'.repeat(40))
+    await expectContained(page)
+    await expectPaginationClear()
+    await pagination
+      .getByRole('textbox', { name: 'Jump to page number' })
+      .fill('3')
+    await pagination
+      .getByRole('textbox', { name: 'Jump to page number' })
+      .press('Enter')
+    await expect(pagination).toContainText('3 / 3')
+    await pagination.getByRole('button', { name: 'First page' }).click()
+    await page.locator('main').evaluate(async (main) => {
+      await new Promise(requestAnimationFrame)
+      main.scrollTo(0, main.scrollHeight)
+    })
+    await expectContained(page)
+    for (const link of await page
+      .getByTestId('footer')
+      .getByRole('link')
+      .all()) {
+      expect(
+        await link.evaluate((element) => {
+          const box = element.getBoundingClientRect()
+          return element.contains(
+            document.elementFromPoint(
+              box.x + box.width / 2,
+              box.y + box.height / 2
+            )
+          )
+        })
+      ).toBe(true)
+    }
+    await expectPaginationClear()
+    for (const link of await navigation.getByRole('link').all()) {
+      expect(
+        await link.evaluate((element) => {
+          const box = element.getBoundingClientRect()
+          return element.contains(
+            document.elementFromPoint(
+              box.x + box.width / 2,
+              box.y + box.height / 2
+            )
+          )
+        })
+      ).toBe(true)
+    }
+    await navigation
+      .getByRole('link', { name: 'Settings', exact: true })
+      .click()
+    await expect(page).toHaveURL(/\/settings$/)
+  })
+}
 
 for (const width of [320, 390]) {
   test.describe(`Mobile parity at ${width}px`, () => {

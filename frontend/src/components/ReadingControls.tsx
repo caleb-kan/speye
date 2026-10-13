@@ -47,7 +47,7 @@ export const ReadingControls = memo(function ReadingControls({
         />
       )}
 
-      <div className="relative w-full max-w-md flex items-center justify-center h-14">
+      <div className="relative w-full max-w-md flex flex-wrap items-center justify-center gap-3 min-h-14">
         <div className="flex items-center gap-4 z-10">
           <IconButton
             onClick={onRestart}
@@ -89,7 +89,7 @@ export const ReadingControls = memo(function ReadingControls({
 
         <div
           className={`
-            absolute right-0 top-1/2 -translate-y-1/2
+            ${isMobile ? (showMiniQuiz ? 'static' : 'hidden') : 'absolute right-0 top-1/2 -translate-y-1/2'}
             flex items-center gap-3
             transition-all duration-500 ease-out
             ${showMiniQuiz ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-4 pointer-events-none'}
@@ -99,6 +99,8 @@ export const ReadingControls = memo(function ReadingControls({
 
           <button
             onClick={onStartQuiz}
+            aria-label="Take quiz"
+            tabIndex={showMiniQuiz ? undefined : -1}
             className="
               h-10 w-10 flex items-center justify-center rounded-xl
               text-primary hover:text-text hover:bg-primary/20

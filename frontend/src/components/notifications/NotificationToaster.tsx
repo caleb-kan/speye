@@ -9,7 +9,7 @@ export function NotificationToaster() {
 
   return (
     <div
-      className="fixed top-16 right-4 flex w-80 flex-col gap-3"
+      className="fixed top-16 left-3 right-3 sm:left-auto sm:right-4 flex sm:w-80 flex-col gap-3"
       style={{ zIndex: Z_INDEX.NOTIFICATION_TOASTER }}
     >
       {toasts.map((notification) => (

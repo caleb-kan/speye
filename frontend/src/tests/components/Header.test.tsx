@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import { BrowserRouter } from 'react-router-dom'
 import { Header } from '../../components/Header'
 import '@testing-library/jest-dom'
@@ -51,10 +51,10 @@ describe('Header', () => {
   })
 
   describe('Mobile', () => {
-    it('returns null when useIsMobile returns true', () => {
+    it('keeps the theme picker available on mobile', () => {
       mockIsMobile = true
-      const { container } = renderHeader()
-      expect(container.firstChild).toBeNull()
+      renderHeader()
+      expect(screen.getByRole('button', { name: 'Change theme' })).toBeVisible()
     })
   })
 })

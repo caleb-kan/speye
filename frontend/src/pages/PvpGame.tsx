@@ -21,6 +21,7 @@ import {
   PvpLoginRequired,
 } from '../components/pvp/shared/PvpCenteredMessage'
 import { ROUTES } from '../utils/routes'
+import { getPlayerData, getPlayerPrefix } from '../utils/pvp'
 
 export function PvpGame() {
   const { gameId } = useParams<{ gameId: string }>()
@@ -101,6 +102,12 @@ function PvpGameSession({
     )
   }
 
+  const myResult = getPlayerData(
+    game,
+    getPlayerPrefix(user.id, game.player1_id).myPrefix
+  )
+  const confirmed = myResult.finished_at !== null
+
   return (
     <CalibrationProvider>
       <PvpErrorBoundary
@@ -159,6 +166,7 @@ function PvpGameSession({
                 <PvpReadingPhase
                   text={text}
                   wpm={callbacks.playerWpm}
+                  initialWordIndex={callbacks.initialWordIndex}
                   onComplete={callbacks.handleReadingComplete}
                   onPositionChange={callbacks.handlePositionChange}
                   onAdaptiveWpmChange={callbacks.handleAdaptiveWpmChange}
@@ -187,9 +195,21 @@ function PvpGameSession({
 
             {phase === 'waiting' && (
               <PvpWaitingScreen
-                myWpm={callbacks.myWpm}
-                myQuizScore={callbacks.myQuizScore}
-                myOverallScore={callbacks.myOverallScore}
+                myWpm={
+                  confirmed
+                    ? (myResult.wpm ?? callbacks.myWpm)
+                    : callbacks.myWpm
+                }
+                myQuizScore={
+                  confirmed
+                    ? (myResult.quiz_score ?? callbacks.myQuizScore)
+                    : callbacks.myQuizScore
+                }
+                myOverallScore={
+                  confirmed
+                    ? (myResult.overall_score ?? callbacks.myOverallScore)
+                    : callbacks.myOverallScore
+                }
                 onLeave={() => navigate(ROUTES.PVP)}
                 hasSubmitError={!!callbacks.submitError}
               />

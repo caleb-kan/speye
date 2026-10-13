@@ -185,7 +185,7 @@ export function Admin() {
       : 'opacity-100 translate-y-0 blur-0 z-10'
 
   return (
-    <div className="p-4 sm:p-6 pb-4 bg-bg flex flex-col h-full min-h-0">
+    <div className="p-4 sm:p-6 pb-4 bg-bg flex flex-col shrink-0 lg:h-full lg:min-h-0">
       <div className="max-w-7xl mx-auto w-full flex flex-col flex-1 min-h-0 gap-3">
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 pt-1 pb-1 shrink-0">
           <div className="mt-1">
@@ -311,8 +311,8 @@ export function Admin() {
           />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-start pt-2 flex-1 min-h-0">
-          <div className="lg:col-span-3 flex flex-col relative z-20 h-full w-full min-h-0 overflow-hidden">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-start pt-2 lg:flex-1 lg:min-h-0">
+          <div className="lg:col-span-3 flex flex-col relative z-20 lg:h-full w-full lg:min-h-0 overflow-hidden">
             {approvals.length === 0 ? (
               <div className="bg-bg-secondary/30 border border-text-secondary/10 rounded-2xl p-8 flex flex-col items-center justify-center text-center flex-1 h-full shadow-sm">
                 <CheckCircle2 className="w-12 h-12 text-success/50 mb-3" />
@@ -339,7 +339,7 @@ export function Admin() {
             )}
           </div>
 
-          <div className="lg:col-span-1 flex flex-col relative z-20 h-full w-full min-h-0 overflow-hidden">
+          <div className="lg:col-span-1 flex flex-col relative z-20 lg:h-full w-full lg:min-h-0 overflow-hidden">
             <AdminActionPanel />
           </div>
         </div>

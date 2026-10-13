@@ -5,7 +5,7 @@ import '@testing-library/jest-dom'
 import { LibraryHeader } from '../../../components/library/LibraryHeader'
 
 vi.mock('../../../hooks/useIsMobile', () => ({
-  useIsMobile: () => false,
+  useIsMobile: () => true,
 }))
 
 describe('LibraryHeader', () => {

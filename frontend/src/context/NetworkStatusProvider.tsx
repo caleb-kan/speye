@@ -5,6 +5,7 @@ import { getQueueLength, onQueueChange } from '../services/operationQueue'
 import { prefetchAllTexts } from '../services/prefetchService'
 import { PREFETCH } from '../constants/offline'
 import { pwaLogger } from '../utils/pwaLogger'
+import { useAuth } from '../hooks/useAuth'
 import {
   getForceOffline,
   isOffline,
@@ -18,6 +19,12 @@ export function NetworkStatusProvider({
 }: {
   children: React.ReactNode
 }) {
+  const { user, session } = useAuth()
+  const authKey =
+    user?.id && session?.access_token
+      ? `${user.id}:${session.access_token}`
+      : null
+  const lastRecoveredAuthRef = useRef<string | null>(null)
   const [isOnline, setIsOnline] = useState(() => !isOffline())
   const [forceOffline, setForceOfflineState] = useState(getForceOffline)
   const [pendingOperations, setPendingOperations] = useState(0)
@@ -89,6 +96,22 @@ export function NetworkStatusProvider({
   useEffect(() => {
     handleNetworkStatus()
   }, [forceOffline, handleNetworkStatus])
+
+  useEffect(() => {
+    if (!authKey) {
+      lastRecoveredAuthRef.current = null
+      return
+    }
+    // Wait for an older sync before replaying the newly authenticated owner.
+    if (
+      isSyncing ||
+      isSyncingRef.current ||
+      lastRecoveredAuthRef.current === authKey
+    )
+      return
+    lastRecoveredAuthRef.current = authKey
+    handleNetworkStatus()
+  }, [authKey, isSyncing, handleNetworkStatus])
 
   // Prefetch on page load and on reconnect. The cooldown in prefetchAllTexts
   // (1 hour) prevents excessive network bursts.

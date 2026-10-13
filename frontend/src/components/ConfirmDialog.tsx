@@ -46,7 +46,7 @@ export function ConfirmDialog({
       aria-describedby="confirm-dialog-message"
       data-testid="confirm-dialog"
     >
-      <div className="bg-bg-secondary rounded-lg shadow-xl w-full max-w-md mx-4 p-6">
+      <div className="bg-bg-secondary rounded-lg shadow-xl w-full max-w-md mx-4 p-6 max-h-[90dvh] overflow-y-auto">
         <div className="flex items-start gap-4">
           {isDestructive && (
             <div
@@ -56,7 +56,7 @@ export function ConfirmDialog({
               <AlertTriangle className="w-5 h-5 text-error" />
             </div>
           )}
-          <div className="flex-1">
+          <div className="min-w-0 flex-1 [overflow-wrap:anywhere]">
             <h2
               id="confirm-dialog-title"
               className="text-lg font-semibold text-text"
@@ -72,7 +72,7 @@ export function ConfirmDialog({
           </div>
         </div>
 
-        <div className="flex justify-end gap-3 mt-6">
+        <div className="flex flex-wrap justify-end gap-3 mt-6">
           <button
             type="button"
             onClick={onCancel}

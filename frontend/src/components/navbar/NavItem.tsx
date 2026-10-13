@@ -60,7 +60,7 @@ export function NavItem({
       className={`
         group relative
         flex justify-center items-center
-        w-full h-9
+        ${isMobile ? 'min-w-0 h-full min-h-12 flex-col gap-1 text-[10px]' : 'w-full h-9'}
         rounded-full transition-colors
         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary
         ${
@@ -73,12 +73,16 @@ export function NavItem({
       `}
     >
       {icon}
-      <NavTooltip
-        label={label}
-        isMobile={isMobile}
-        disabled={disabled}
-        disabledLabel={disabledLabel}
-      />
+      {isMobile ? (
+        <span aria-hidden="true">{label}</span>
+      ) : (
+        <NavTooltip
+          label={label}
+          isMobile={false}
+          disabled={disabled}
+          disabledLabel={disabledLabel}
+        />
+      )}
     </Link>
   )
 }

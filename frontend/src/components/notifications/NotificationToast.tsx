@@ -40,12 +40,12 @@ export const NotificationToast = memo(function NotificationToast({
       <button
         type="button"
         onClick={() => navigate(notification.link ?? '/notifications')}
-        className="flex w-full items-start gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        className="flex w-full items-start gap-3 pr-8 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         aria-label={notification.link ? 'Go to details' : 'Open notifications'}
         data-testid={`notification-toast-button-${notification.id}`}
       >
-        <Icon className="mt-0.5" size={18} />
-        <div className="flex-1 text-left">
+        <Icon className="mt-0.5 shrink-0" size={18} />
+        <div className="flex-1 min-w-0 text-left">
           <div
             className="text-xs uppercase tracking-wide text-text-secondary"
             data-testid={`notification-toast-label-${notification.id}`}
@@ -53,7 +53,7 @@ export const NotificationToast = memo(function NotificationToast({
             {config.label}
           </div>
           <div
-            className="text-sm font-medium text-text"
+            className="text-sm font-medium text-text [overflow-wrap:anywhere]"
             data-testid={`notification-toast-message-${notification.id}`}
           >
             {notification.message}
@@ -63,7 +63,7 @@ export const NotificationToast = memo(function NotificationToast({
       <button
         type="button"
         onClick={onClose}
-        className="absolute right-2 top-2 rounded-full p-1 text-text-secondary opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        className="absolute right-1 top-1 flex min-h-11 min-w-11 items-center justify-center rounded-full p-1 text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         aria-label="Dismiss notification"
         data-testid={`notification-toast-dismiss-${notification.id}`}
       >

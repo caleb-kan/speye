@@ -14,6 +14,7 @@ const NOOP = () => {}
 type PvpReadingPhaseProps = {
   text: PvpTextData
   wpm: number
+  initialWordIndex?: number
   onComplete: (isComplete: boolean) => void
   onPositionChange: (wordIndex: number) => void
   onAdaptiveWpmChange?: (wpm: number) => void
@@ -22,11 +23,12 @@ type PvpReadingPhaseProps = {
 export function PvpReadingPhase({
   text,
   wpm,
+  initialWordIndex = 0,
   onComplete,
   onPositionChange,
   onAdaptiveWpmChange,
 }: PvpReadingPhaseProps) {
-  const [readingPosition, setReadingPosition] = useState(0)
+  const [readingPosition, setReadingPosition] = useState(initialWordIndex)
   const [inputBlocking, setInputBlocking] = useState(false)
 
   const handlePositionChange = useCallback(

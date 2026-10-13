@@ -89,20 +89,20 @@ export function Navbar() {
     <nav
       className={`
         fixed z-50
-        flex items-center
+        items-center
         bg-bg-secondary/80 backdrop-blur-md
         shadow-md
         ${
           isMobile
-            ? 'top-2 left-1/2 -translate-x-1/2 flex-row gap-3 px-3 py-1.5 rounded-full'
-            : 'left-3 top-1/2 -translate-y-1/2 flex-col gap-3 px-2.5 py-4 rounded-2xl'
+            ? `bottom-0 inset-x-0 grid ${user && isAdmin && isOnline ? 'grid-cols-7' : 'grid-cols-6'} h-(--mobile-navigation-height) pt-1 pb-[calc(0.25rem+env(safe-area-inset-bottom,0px))] border-t border-text-secondary/15`
+            : 'left-3 top-1/2 -translate-y-1/2 flex flex-col gap-3 px-2.5 py-4 rounded-2xl'
         }
       `}
       aria-label="Main navigation"
       data-testid="navbar"
     >
       <NavItem
-        to={MODE_ROUTES[preferences.mode]}
+        to={isMobile ? ROUTES.RSVP : MODE_ROUTES[preferences.mode]}
         icon={<Home size={22} />}
         label="Home"
         isMobile={isMobile}
@@ -142,13 +142,7 @@ export function Navbar() {
         onBeforeNavigate={handleBeforeNavigate}
       />
 
-      <div
-        className={
-          isMobile
-            ? 'w-px h-6 shrink-0 bg-text-secondary/30'
-            : 'w-6 h-px bg-text-secondary/30'
-        }
-      />
+      {!isMobile && <div className="w-6 h-px bg-text-secondary/30" />}
 
       {/* Admin-only navigation (hidden offline — entirely server-dependent) */}
       {user && isAdmin && isOnline && (
@@ -173,17 +167,21 @@ export function Navbar() {
           onClick={(e) => handleAuthLinkClick(e, ROUTES.PROFILE)}
           aria-label="Profile"
           aria-current={isProfileActive ? 'page' : undefined}
-          className="group relative flex justify-center items-center w-8 h-8 shrink-0 rounded-full"
+          className={`group relative flex justify-center items-center shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${isMobile ? 'min-w-0 h-full min-h-12 flex-col gap-1 text-[10px]' : 'w-8 h-8'}`}
           data-testid="navbar-profile-avatar"
         >
-          <span className="w-full h-full overflow-hidden rounded-full">
+          <span className="w-8 h-8 overflow-hidden rounded-full">
             <DefaultAvatar
               username={getUsername(user)}
               avatarUrl={getAvatarUrl(user)}
               size="sm"
             />
           </span>
-          <NavTooltip label="Profile" isMobile={isMobile} />
+          {isMobile ? (
+            <span aria-hidden="true">Profile</span>
+          ) : (
+            <NavTooltip label="Profile" isMobile={false} />
+          )}
         </Link>
       ) : (
         <Link
@@ -194,7 +192,7 @@ export function Navbar() {
           className={`
             group relative
             flex justify-center items-center
-            w-8 h-8
+            ${isMobile ? 'min-w-0 h-full min-h-12 flex-col gap-1 text-[10px]' : 'w-8 h-8'}
             rounded-full transition-colors
             focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary
             ${isLoginActive ? 'text-primary' : 'text-text-secondary hover:text-text'}
@@ -202,7 +200,11 @@ export function Navbar() {
           data-testid="navbar-login-link"
         >
           <User size={22} />
-          <NavTooltip label="Log in" isMobile={isMobile} />
+          {isMobile ? (
+            <span aria-hidden="true">Log in</span>
+          ) : (
+            <NavTooltip label="Log in" isMobile={false} />
+          )}
         </Link>
       )}
     </nav>

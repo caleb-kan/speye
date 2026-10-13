@@ -129,6 +129,110 @@ describe('usePvpGameState hook', () => {
     })
   })
 
+  it.each(['player1', 'player2'] as const)(
+    'returns a confirmed %s result to waiting without replaying a backup',
+    async (player) => {
+      const game = makeGame({
+        status: 'active',
+        reading_started_at: new Date(Date.now() - 10000).toISOString(),
+        player1_id: player === 'player1' ? USER_ID : 'other-player',
+        player2_id: player === 'player2' ? USER_ID : 'other-player',
+        [`${player}_finished_at`]: new Date().toISOString(),
+      })
+      setupPendingGame(game)
+      sessionStorage.setItem(
+        'pvp-submit-game-1:user-1',
+        JSON.stringify({
+          gameId: 'game-1',
+          userId: 'user-1',
+          wpm: 300,
+          score: 80,
+        })
+      )
+      const { result } = renderHook(() => usePvpGameState(GAME_ID))
+      await waitFor(() => expect(result.current.phase).toBe('waiting'))
+      expect(result.current.pendingSubmit).toBeNull()
+      expect(sessionStorage.getItem('pvp-submit-game-1:user-1')).toBeNull()
+    }
+  )
+
+  it.each([
+    { key: 'pvp-submit-game-1', data: { wpm: 300, score: 80 } },
+    {
+      key: 'pvp-submit-game-1:user-1',
+      data: { gameId: 'game-1', userId: 'user-2', wpm: 300, score: 80 },
+    },
+  ])(
+    'does not recover unverifiable pending state from $key',
+    async ({ key, data }) => {
+      setupPendingGame(
+        makeGame({
+          status: 'active',
+          reading_started_at: new Date(Date.now() - 10000).toISOString(),
+        })
+      )
+      sessionStorage.setItem(key, JSON.stringify(data))
+      const { result } = renderHook(() => usePvpGameState(GAME_ID))
+      await waitFor(() => expect(result.current.phase).toBe('reading'))
+      expect(result.current.pendingSubmit).toBeNull()
+      expect(sessionStorage.getItem(key)).toBeNull()
+    }
+  )
+
+  it('defers pending recovery until delayed text has been validated', async () => {
+    setupPendingGame(
+      makeGame({
+        status: 'active',
+        reading_started_at: new Date(Date.now() - 10000).toISOString(),
+      })
+    )
+    sessionStorage.setItem(
+      'pvp-submit-game-1:user-1',
+      JSON.stringify({
+        gameId: 'game-1',
+        userId: 'user-1',
+        wpm: 300,
+        score: 80,
+      })
+    )
+    let finishText!: (text: PvpTextData) => void
+    mockGetTextForPvp.mockImplementationOnce(
+      () =>
+        new Promise<PvpTextData>((resolve) => {
+          finishText = resolve
+        })
+    )
+    const { result } = renderHook(() => usePvpGameState(GAME_ID))
+    await waitFor(() =>
+      expect(mockGetTextForPvp).toHaveBeenCalledWith('text-1')
+    )
+    expect(result.current.phase).toBe('loading')
+    expect(result.current.pendingSubmit).toBeNull()
+    await act(async () => finishText(MOCK_TEXT))
+    expect(result.current.phase).toBe('waiting')
+    expect(result.current.pendingSubmit).toEqual({ wpm: 300, score: 80 })
+  })
+
+  it.each(['completed', 'abandoned'] as const)(
+    'does not replay pending submission for a terminal %s game',
+    async (status) => {
+      setupPendingGame(makeGame({ status }))
+      sessionStorage.setItem(
+        'pvp-submit-game-1:user-1',
+        JSON.stringify({
+          gameId: 'game-1',
+          userId: 'user-1',
+          wpm: 300,
+          score: 80,
+        })
+      )
+      const { result } = renderHook(() => usePvpGameState(GAME_ID))
+      await waitFor(() => expect(result.current.phase).toBe('results'))
+      expect(result.current.pendingSubmit).toBeNull()
+      expect(sessionStorage.getItem('pvp-submit-game-1:user-1')).toBeNull()
+    }
+  )
+
   it('transitions to results for completed game', async () => {
     const game = makeGame({ status: 'completed' })
     mockGetServerTime.mockResolvedValue(new Date().toISOString())
@@ -354,22 +458,32 @@ describe('usePvpGameState hook', () => {
 
   it('detects pending submission from sessionStorage', async () => {
     sessionStorage.setItem(
-      'pvp-submit-game-1',
-      JSON.stringify({ wpm: 300, score: 80 })
+      'pvp-submit-game-1:user-1',
+      JSON.stringify({
+        gameId: 'game-1',
+        userId: 'user-1',
+        wpm: 300,
+        score: 80,
+      })
     )
-    setupPendingGame()
+    setupPendingGame(
+      makeGame({
+        status: 'active',
+        reading_started_at: new Date(Date.now() - 10000).toISOString(),
+      })
+    )
 
     const { result } = renderHook(() => usePvpGameState(GAME_ID))
 
     await waitFor(() => {
-      expect(result.current.phase).not.toBe('loading')
+      expect(result.current.phase).toBe('waiting')
     })
 
     expect(result.current.pendingSubmit).toEqual({ wpm: 300, score: 80 })
   })
 
   it('ignores invalid sessionStorage data', async () => {
-    sessionStorage.setItem('pvp-submit-game-1', 'invalid-json')
+    sessionStorage.setItem('pvp-submit-game-1:user-1', 'invalid-json')
     setupPendingGame()
 
     const { result } = renderHook(() => usePvpGameState(GAME_ID))
@@ -467,6 +581,130 @@ describe('usePvpGameState hook', () => {
   })
 
   describe('handleGameUpdate', () => {
+    it.each(['completed', 'abandoned'] as const)(
+      'retains terminal %s state after a stale active Realtime event',
+      async (status) => {
+        const terminal = makeGame({
+          status,
+          player1_finished_at: new Date().toISOString(),
+          player1_wpm: 300,
+        })
+        setupPendingGame(terminal)
+        const { result } = renderHook(() => usePvpGameState(GAME_ID))
+        await waitFor(() => expect(result.current.phase).toBe('results'))
+        act(() =>
+          result.current.handleGameUpdate(
+            makeGame({
+              status: 'active',
+              reading_started_at: new Date(Date.now() - 10000).toISOString(),
+              player1_finished_at: terminal.player1_finished_at,
+              player1_wpm: 100,
+            })
+          )
+        )
+        expect(result.current.phase).toBe('results')
+        expect(result.current.game?.status).toBe(status)
+        expect(result.current.game?.player1_wpm).toBe(300)
+      }
+    )
+
+    it('keeps a terminal update when a stale active event follows before rendering', async () => {
+      const active = makeGame({
+        status: 'active',
+        reading_started_at: new Date(Date.now() - 10000).toISOString(),
+        player1_finished_at: new Date().toISOString(),
+        player1_wpm: 100,
+      })
+      setupPendingGame(active)
+      const { result } = renderHook(() => usePvpGameState(GAME_ID))
+      await waitFor(() => expect(result.current.phase).toBe('waiting'))
+      act(() => {
+        result.current.handleGameUpdate({
+          ...active,
+          status: 'completed',
+          player1_wpm: 300,
+        })
+        result.current.handleGameUpdate(active)
+      })
+      expect(result.current.phase).toBe('results')
+      expect(result.current.game?.status).toBe('completed')
+      expect(result.current.game?.player1_wpm).toBe(300)
+    })
+
+    it('retains a confirmed RPC result when stale Realtime arrives before rendering', async () => {
+      const active = makeGame({
+        status: 'active',
+        reading_started_at: new Date(Date.now() - 10000).toISOString(),
+        player1_finished_at: new Date().toISOString(),
+        player1_wpm: 100,
+      })
+      setupPendingGame(active)
+      const { result } = renderHook(() => usePvpGameState(GAME_ID))
+      await waitFor(() => expect(result.current.phase).toBe('waiting'))
+      act(() => {
+        result.current.setGame({
+          ...active,
+          status: 'completed',
+          player1_wpm: 300,
+        })
+        result.current.showResults()
+        result.current.handleGameUpdate(active)
+      })
+      expect(result.current.phase).toBe('results')
+      expect(result.current.game?.status).toBe('completed')
+      expect(result.current.game?.player1_wpm).toBe(300)
+    })
+
+    it('keeps results when a stale markReady response finishes afterward', async () => {
+      const pending = makeGame()
+      setupPendingGame(pending)
+      let ready!: (game: PvpGame) => void
+      mockMarkReady.mockImplementationOnce(
+        () =>
+          new Promise<PvpGame>((resolve) => {
+            ready = resolve
+          })
+      )
+      const { result } = renderHook(() => usePvpGameState(GAME_ID))
+      await waitFor(() => expect(result.current.phase).toBe('pregame'))
+      act(() =>
+        result.current.handleGameUpdate({ ...pending, status: 'completed' })
+      )
+      expect(result.current.phase).toBe('results')
+      await act(async () =>
+        ready({
+          ...pending,
+          status: 'active',
+          reading_started_at: new Date(Date.now() - 10000).toISOString(),
+        })
+      )
+      expect(result.current.phase).toBe('results')
+      expect(result.current.game?.status).toBe('completed')
+    })
+
+    it('accepts valid opponent completion after the current player has finished', async () => {
+      const active = makeGame({
+        status: 'active',
+        reading_started_at: new Date(Date.now() - 10000).toISOString(),
+        player1_finished_at: new Date().toISOString(),
+        player1_wpm: 300,
+      })
+      setupPendingGame(active)
+      const { result } = renderHook(() => usePvpGameState(GAME_ID))
+      await waitFor(() => expect(result.current.phase).toBe('waiting'))
+      act(() =>
+        result.current.handleGameUpdate({
+          ...active,
+          status: 'completed',
+          player2_finished_at: new Date().toISOString(),
+          player2_wpm: 250,
+        })
+      )
+      expect(result.current.phase).toBe('results')
+      expect(result.current.game?.player1_wpm).toBe(300)
+      expect(result.current.game?.player2_wpm).toBe(250)
+    })
+
     it('transitions phase based on game update', async () => {
       setupPendingGame()
 

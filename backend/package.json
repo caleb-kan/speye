@@ -5,7 +5,6 @@
     "lint": "eslint .",
     "test": "vitest",
     "test:run": "vitest run",
-    "test:db": "node tests/database/run.mjs",
     "test:watch": "vitest"
   },
   "dependencies": {

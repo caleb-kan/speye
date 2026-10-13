@@ -37,23 +37,23 @@ export function QuizPreviewModal({
       aria-labelledby="quiz-preview-title"
     >
       <div className="bg-bg rounded-lg max-w-3xl w-full max-h-[80vh] overflow-auto">
-        <div className="sticky top-0 bg-bg border-b border-text-secondary/20 p-4 flex items-center justify-between">
+        <div className="sticky top-0 bg-bg border-b border-text-secondary/20 p-4 flex items-start justify-between gap-3">
           <h2
             id="quiz-preview-title"
-            className="text-xl font-semibold text-text"
+            className="min-w-0 text-xl font-semibold text-text [overflow-wrap:anywhere]"
           >
             Quiz: {title || UNTITLED_TEXT_FALLBACK}
           </h2>
           <button
             type="button"
             onClick={onClose}
-            className="p-2 hover:bg-bg-secondary rounded-lg transition-colors"
+            className="shrink-0 p-2 hover:bg-bg-secondary rounded-lg transition-colors"
             aria-label="Close modal"
           >
             <X size={20} />
           </button>
         </div>
-        <div className="p-6 space-y-8">
+        <div className="p-6 space-y-8 [overflow-wrap:anywhere]">
           {quiz.questionSets.map((set, setIndex) => (
             <div key={`set-${setIndex}`}>
               <h3 className="text-sm font-medium text-text-secondary mb-4">

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { X, RefreshCw, Trash2 } from 'lucide-react'
 import type { AdminReviewText } from '../../../services/adminService.ts'
 import { formatDate } from '../../../utils/formatDate.ts'
@@ -19,7 +19,19 @@ interface TextPreviewModalProps {
   onRegenerate: (textId: string) => void
 }
 
-export function TextPreviewModal({
+export function TextPreviewModal(props: TextPreviewModalProps) {
+  if (!props.text) return null
+
+  return (
+    <TextPreviewContent
+      key={`${props.text.id}:${!!props.initialShowReject}`}
+      {...props}
+      text={props.text}
+    />
+  )
+}
+
+function TextPreviewContent({
   text,
   processing,
   initialShowReject = false,
@@ -28,31 +40,12 @@ export function TextPreviewModal({
   onReject,
   onDelete,
   onRegenerate,
-}: TextPreviewModalProps) {
-  const [showRejectForm, setShowRejectForm] = useState(false)
+}: TextPreviewModalProps & { text: AdminReviewText }) {
+  const [showRejectForm, setShowRejectForm] = useState(initialShowReject)
   const [rejectionNotes, setRejectionNotes] = useState('')
 
-  useEffect(() => {
-    if (!text) {
-      // Resetting derived form state when modal closes (text prop becomes null)
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setShowRejectForm(false)
-      setRejectionNotes('')
-    } else if (initialShowReject) {
-      // Pre-open rejection form when triggered from card reject button
-      setShowRejectForm(true)
-      setRejectionNotes('')
-    } else {
-      // Reset form state when switching between texts
-      setShowRejectForm(false)
-      setRejectionNotes('')
-    }
-  }, [text, initialShowReject])
-
-  useEscapeKey(onClose, !!text)
-  const dialogRef = useDialogFocus(!!text)
-
-  if (!text) return null
+  useEscapeKey(onClose, true)
+  const dialogRef = useDialogFocus(true)
 
   const reviewStatus = getReviewStatus(text)
   const isProcessing = processing === text.id
@@ -87,11 +80,11 @@ export function TextPreviewModal({
       aria-labelledby="text-preview-title"
     >
       <div className="bg-bg rounded-lg max-w-4xl w-full max-h-[80vh] overflow-auto">
-        <div className="sticky top-0 bg-bg border-b border-text-secondary/20 p-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="sticky top-0 bg-bg border-b border-text-secondary/20 p-4 flex items-start justify-between gap-3">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-3">
             <h2
               id="text-preview-title"
-              className="text-xl font-semibold text-text"
+              className="max-w-full text-xl font-semibold text-text [overflow-wrap:anywhere]"
             >
               {text.title || UNTITLED_TEXT_FALLBACK}
             </h2>
@@ -100,7 +93,7 @@ export function TextPreviewModal({
           <button
             type="button"
             onClick={onClose}
-            className="p-2 hover:bg-bg-secondary rounded-lg transition-colors"
+            className="shrink-0 p-2 hover:bg-bg-secondary rounded-lg transition-colors"
             aria-label="Close modal"
           >
             <X size={20} />
@@ -135,7 +128,7 @@ export function TextPreviewModal({
             {reviewStatus.description}
           </div>
 
-          <pre className="whitespace-pre-wrap font-mono text-sm text-text bg-bg-secondary p-4 rounded-lg overflow-auto max-h-96">
+          <pre className="whitespace-pre-wrap break-words font-mono text-sm text-text bg-bg-secondary p-4 rounded-lg overflow-auto max-h-96">
             {text.content}
           </pre>
 
@@ -155,7 +148,7 @@ export function TextPreviewModal({
                 rows={3}
                 placeholder="Provide a reason for rejection..."
               />
-              <div className="flex justify-end gap-2 mt-3">
+              <div className="flex flex-wrap justify-end gap-2 mt-3">
                 <button
                   type="button"
                   onClick={handleRejectCancel}
@@ -176,7 +169,7 @@ export function TextPreviewModal({
           )}
 
           <div
-            className="mt-6 flex items-center gap-3 justify-end"
+            className="mt-6 flex flex-wrap items-center gap-3 justify-end"
             aria-busy={isProcessing}
           >
             <button

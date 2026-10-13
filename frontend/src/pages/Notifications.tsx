@@ -53,7 +53,7 @@ export function Notifications() {
         </p>
       </div>
 
-      <div className="flex w-full items-center justify-between mt-4">
+      <div className="flex w-full flex-wrap items-center justify-between gap-3 mt-4">
         <NotificationsTabs
           activeTab={activeTab}
           onTabChange={setActiveTab}
@@ -65,7 +65,7 @@ export function Notifications() {
             variant="secondary"
             onClick={markAllAsSeen}
             disabled={unreadNotifications.length === 0}
-            className="text-xs"
+            className="text-xs whitespace-nowrap"
           >
             Mark all as read
           </Button>

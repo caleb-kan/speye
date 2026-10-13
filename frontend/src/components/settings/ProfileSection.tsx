@@ -47,7 +47,9 @@ export function ProfileSection({ user, avatarUrl }: ProfileSectionProps) {
               </button>
             </div>
           )}
-          <p className="text-sm text-text-secondary">{user.email}</p>
+          <p className="w-full break-all text-center text-sm text-text-secondary">
+            {user.email}
+          </p>
         </div>
 
         {isEditingUsername && (

@@ -145,24 +145,31 @@ export function PvpLeaderboard({
       </div>
 
       <div
-        className={`grid ${PVP_LEADERBOARD_GRID_COLS} items-center text-xs uppercase tracking-wide text-text-secondary gap-x-2 pb-2 pl-1 pr-2 border-b border-text-secondary/10 flex-shrink-0`}
+        className="overflow-x-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        role="region"
+        aria-label="Elo leaderboard rankings"
+        tabIndex={0}
       >
-        <div className="text-center">#</div>
-        <div className="col-span-2">Player</div>
-        <div className="text-right">Elo</div>
-        <div className="text-right">W/L</div>
-        <div className="text-right">Win%</div>
-      </div>
+        <div className="min-w-[340px]">
+          <div
+            className={`grid ${PVP_LEADERBOARD_GRID_COLS} items-center text-xs uppercase tracking-wide text-text-secondary gap-x-2 pb-2 pl-1 pr-2 border-b border-text-secondary/10 flex-shrink-0`}
+          >
+            <div className="text-center">#</div>
+            <div className="col-span-2">Player</div>
+            <div className="text-right">Elo</div>
+            <div className="text-right">W/L</div>
+            <div className="text-right">Win%</div>
+          </div>
 
-      <div className="flex-1 min-h-0">
-        <LeaderboardContent
-          top={top}
-          currentUser={currentUser}
-          loading={loading}
-          error={error}
-          currentUserId={currentUserId}
-          onSelectUser={onSelectUser}
-        />
+          <LeaderboardContent
+            top={top}
+            currentUser={currentUser}
+            loading={loading}
+            error={error}
+            currentUserId={currentUserId}
+            onSelectUser={onSelectUser}
+          />
+        </div>
       </div>
     </div>
   )

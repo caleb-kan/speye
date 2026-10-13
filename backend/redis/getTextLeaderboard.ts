@@ -1,4 +1,5 @@
 import { logDbQuery } from '../supabase/database/logger'
+import { MAX_QUIZ_SCORE } from '../../lib/quizConstants'
 import type { LeaderboardEntry } from './types'
 
 const UPSTASH_REST_URL = import.meta.env.VITE_UPSTASH_REDIS_REST_URL as string
@@ -59,21 +60,31 @@ function parseHashArray(arr: string[]): Record<string, string> {
   return result
 }
 
-/**
- * Build a LeaderboardEntry from parsed hash stats.
- */
 function buildEntry(
   userId: string,
   stats: Record<string, string>,
   overallScore: number,
   rank: number
 ): LeaderboardEntry {
+  const wpm = Number(stats.wpm)
+  const quizScore = Number(stats.quizScore)
+  if (
+    !stats.wpm ||
+    !stats.quizScore ||
+    !Number.isFinite(wpm) ||
+    wpm < 0 ||
+    !Number.isFinite(quizScore) ||
+    quizScore < 0 ||
+    quizScore > MAX_QUIZ_SCORE
+  ) {
+    throw new Error('Invalid cached leaderboard stats')
+  }
   return {
     userId,
     username: stats.username || null,
     avatarUrl: stats.avatarUrl || null,
-    wpm: Number(stats.wpm) || 0,
-    quizScore: Number(stats.quizScore) || 0,
+    wpm,
+    quizScore,
     overallScore,
     rank,
   }

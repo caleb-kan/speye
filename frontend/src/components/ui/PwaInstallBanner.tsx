@@ -1,12 +1,6 @@
 import { useState } from 'react'
 import { X, Download, Share, SquarePlus, Check } from 'lucide-react'
 
-/**
- * Tailwind spacing unit for the fixed banner height (11 = 2.75rem).
- * Keep in sync with the `pb-11` bottom padding in RootLayout.
- */
-const BOTTOM_OFFSET_CLASS = 'bottom-11'
-
 interface PwaInstallBannerProps {
   onDismiss: () => void
 }
@@ -25,7 +19,7 @@ export function PwaInstallBanner({ onDismiss }: PwaInstallBannerProps) {
         <div
           id="pwa-install-popup"
           data-testid="pwa-install-popup"
-          className={`fixed ${BOTTOM_OFFSET_CLASS} left-0 right-0 z-50 mx-3 mb-2 rounded-xl bg-bg-secondary border border-text-secondary/20 shadow-xl overflow-hidden`}
+          className="fixed bottom-[calc(var(--mobile-navigation-height)+5rem)] left-0 right-0 z-50 mx-3 mb-2 max-h-[60dvh] overflow-y-auto rounded-xl bg-bg-secondary border border-text-secondary/20 shadow-xl"
         >
           <div className="flex items-center justify-between px-4 pt-3 pb-2">
             <span className="text-sm font-semibold text-text">
@@ -81,7 +75,7 @@ export function PwaInstallBanner({ onDismiss }: PwaInstallBannerProps) {
 
       <div
         data-testid="pwa-install-banner"
-        className="fixed bottom-0 left-0 right-0 z-50 flex items-center gap-4 px-4 py-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom,0px))] bg-bg-secondary/50 backdrop-blur-sm border-t border-text-secondary/20 text-sm shadow-lg"
+        className="fixed bottom-(--mobile-navigation-height) left-0 right-0 z-50 flex items-center gap-4 px-4 py-2.5 bg-bg-secondary/95 backdrop-blur-sm border-t border-text-secondary/20 text-sm shadow-lg"
       >
         <button
           type="button"
@@ -102,7 +96,7 @@ export function PwaInstallBanner({ onDismiss }: PwaInstallBannerProps) {
           type="button"
           onClick={handleDismiss}
           aria-label="Dismiss install banner"
-          className="shrink-0 rounded text-error hover:text-text hover:bg-text-secondary/10 transition-colors"
+          className="shrink-0 min-w-11 min-h-11 flex items-center justify-center rounded text-error hover:text-text hover:bg-text-secondary/10 transition-colors"
         >
           <X className="h-4 w-4" />
         </button>

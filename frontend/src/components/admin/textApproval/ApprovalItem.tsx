@@ -59,13 +59,15 @@ export function ApprovalItem({
           <StatusBadge reviewStatus={reviewStatus} icon={statusIcon} />
         </div>
 
-        <div className="text-xs text-text-secondary mb-1.5 flex items-center gap-2">
-          <span>{formatDate(text.uploaded_at)}</span>
-          <span className="w-1 h-1 rounded-full bg-text-secondary/20"></span>
+        <div className="text-xs text-text-secondary mb-1.5 flex flex-wrap items-center gap-2">
+          <span className="shrink-0">{formatDate(text.uploaded_at)}</span>
+          <span className="w-1 h-1 shrink-0 rounded-full bg-text-secondary/20"></span>
           {text.owner_username && (
             <>
-              <span>{text.owner_username}</span>
-              <span className="w-1 h-1 rounded-full bg-text-secondary/20"></span>
+              <span className="max-w-full [overflow-wrap:anywhere]">
+                {text.owner_username}
+              </span>
+              <span className="w-1 h-1 shrink-0 rounded-full bg-text-secondary/20"></span>
             </>
           )}
           {text.sectional && (
@@ -90,7 +92,7 @@ export function ApprovalItem({
       </div>
 
       <div
-        className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
+        className="flex flex-wrap items-center gap-1"
         aria-busy={isProcessing}
       >
         <button

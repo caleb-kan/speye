@@ -23,11 +23,11 @@ export function TextTitle({ title, source, isSummary }: TextTitleProps) {
       href={source}
       target="_blank"
       rel="noopener noreferrer"
-      className="text-primary underline inline-flex items-center gap-2"
+      className="text-primary underline inline-flex min-w-0 max-w-full items-center gap-2 [overflow-wrap:anywhere]"
       data-testid="text-title-link"
     >
       {title}
-      <ExternalLink />
+      <ExternalLink className="shrink-0" />
     </a>
   ) : (
     <span className="text-text" data-testid="text-title-text">
@@ -36,7 +36,10 @@ export function TextTitle({ title, source, isSummary }: TextTitleProps) {
   )
 
   return (
-    <h2 className="text-2xl font-semibold text-center" data-testid="text-title">
+    <h2
+      className="text-2xl font-semibold text-center [overflow-wrap:anywhere]"
+      data-testid="text-title"
+    >
       {isSummary ? (
         <span className="inline-flex items-center justify-center gap-2">
           {titleContent}

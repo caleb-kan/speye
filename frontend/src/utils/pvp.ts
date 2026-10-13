@@ -1,5 +1,6 @@
 import { MAX_QUIZ_SCORE } from '../../../lib/quizConstants'
-import { RANK_TIERS } from '../constants/pvp'
+import { RANK_TIERS, PVP_SUBMIT_STORAGE_PREFIX } from '../constants/pvp'
+import { MAX_WPM } from '../constants/wpm'
 import type { RankInfo, MatchResult } from '../constants/pvp'
 import type { PvpGame } from '../types/database'
 
@@ -107,37 +108,45 @@ export type PendingSubmit = { wpm: number; score: number }
 
 export function readPendingSubmit(
   gameId: string,
-  prefix: string
+  userId: string
 ): PendingSubmit | null {
   try {
-    const stored = sessionStorage.getItem(`${prefix}${gameId}`)
+    sessionStorage.removeItem(`${PVP_SUBMIT_STORAGE_PREFIX}${gameId}`)
+    const stored = sessionStorage.getItem(
+      `${PVP_SUBMIT_STORAGE_PREFIX}${gameId}:${userId}`
+    )
     if (!stored) return null
     const parsed = JSON.parse(stored)
     if (
-      Number.isFinite(parsed?.wpm) &&
-      Number.isFinite(parsed?.score) &&
+      parsed?.gameId === gameId &&
+      parsed.userId === userId &&
+      Number.isFinite(parsed.wpm) &&
+      Number.isFinite(parsed.score) &&
       parsed.wpm >= 0 &&
       parsed.score >= 0 &&
       parsed.score <= MAX_QUIZ_SCORE
     ) {
-      return parsed
+      return { wpm: parsed.wpm, score: parsed.score }
     }
     console.error('Invalid PvP submit shape in sessionStorage:', parsed)
-    clearPendingSubmit(gameId, prefix)
+    clearPendingSubmit(gameId, userId)
   } catch (err) {
     console.error('Failed to read PvP submit from sessionStorage:', err)
-    clearPendingSubmit(gameId, prefix)
+    clearPendingSubmit(gameId, userId)
   }
   return null
 }
 
 export function writePendingSubmit(
   gameId: string,
-  prefix: string,
+  userId: string,
   data: PendingSubmit
 ): boolean {
   try {
-    sessionStorage.setItem(`${prefix}${gameId}`, JSON.stringify(data))
+    sessionStorage.setItem(
+      `${PVP_SUBMIT_STORAGE_PREFIX}${gameId}:${userId}`,
+      JSON.stringify({ ...data, gameId, userId })
+    )
     return true
   } catch (err) {
     console.error('Failed to persist PvP submit to sessionStorage:', err)
@@ -145,10 +154,85 @@ export function writePendingSubmit(
   }
 }
 
-export function clearPendingSubmit(gameId: string, prefix: string): void {
+export function clearPendingSubmit(gameId: string, userId: string): void {
   try {
-    sessionStorage.removeItem(`${prefix}${gameId}`)
+    sessionStorage.removeItem(`${PVP_SUBMIT_STORAGE_PREFIX}${gameId}:${userId}`)
+    sessionStorage.removeItem(`${PVP_SUBMIT_STORAGE_PREFIX}${gameId}`)
   } catch (err) {
     console.error('Failed to clear PvP submit from sessionStorage:', err)
+  }
+}
+
+export type PvpReadingSession = {
+  wordIndex: number
+  readingStartedAt: string | null
+  gameStartedAt: number | null
+  completedWpm: number | null
+}
+
+export function readPvpReadingSession(
+  gameId: string,
+  userId: string,
+  totalWords: number
+): PvpReadingSession | null {
+  try {
+    const stored = sessionStorage.getItem(
+      `${PVP_SUBMIT_STORAGE_PREFIX}reading:${gameId}:${userId}`
+    )
+    if (!stored) return null
+    const parsed = JSON.parse(stored)
+    const readingStartedAt =
+      typeof parsed?.readingStartedAt === 'string'
+        ? Date.parse(parsed.readingStartedAt)
+        : NaN
+    if (
+      Number.isInteger(parsed?.wordIndex) &&
+      parsed.wordIndex >= 0 &&
+      parsed.wordIndex <= totalWords &&
+      (parsed.readingStartedAt === null ||
+        (Number.isFinite(readingStartedAt) &&
+          readingStartedAt >= 0 &&
+          readingStartedAt <= Date.now())) &&
+      (parsed.gameStartedAt === null ||
+        (Number.isFinite(parsed.gameStartedAt) &&
+          parsed.gameStartedAt >= 0 &&
+          parsed.gameStartedAt <= Date.now())) &&
+      (parsed.completedWpm === null ||
+        (Number.isFinite(parsed.completedWpm) &&
+          parsed.completedWpm > 0 &&
+          parsed.completedWpm <= MAX_WPM &&
+          parsed.wordIndex === totalWords))
+    )
+      return parsed
+    clearPvpReadingSession(gameId, userId)
+  } catch (err) {
+    console.error('Failed to read PvP reading session:', err)
+    clearPvpReadingSession(gameId, userId)
+  }
+  return null
+}
+
+export function writePvpReadingSession(
+  gameId: string,
+  userId: string,
+  data: PvpReadingSession
+): void {
+  try {
+    sessionStorage.setItem(
+      `${PVP_SUBMIT_STORAGE_PREFIX}reading:${gameId}:${userId}`,
+      JSON.stringify(data)
+    )
+  } catch (err) {
+    console.error('Failed to persist PvP reading session:', err)
+  }
+}
+
+export function clearPvpReadingSession(gameId: string, userId: string): void {
+  try {
+    sessionStorage.removeItem(
+      `${PVP_SUBMIT_STORAGE_PREFIX}reading:${gameId}:${userId}`
+    )
+  } catch (err) {
+    console.error('Failed to clear PvP reading session:', err)
   }
 }

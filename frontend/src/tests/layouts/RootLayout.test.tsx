@@ -134,7 +134,9 @@ describe('RootLayout PWA banner integration', () => {
   it('adds bottom padding to main when banner is visible', () => {
     renderLayout()
     const main = screen.getByRole('main')
-    expect(main.className).toContain('pb-11')
+    expect(main.className).toContain(
+      'pb-[calc(var(--mobile-navigation-height)+5rem)]'
+    )
   })
 
   it('does not add bottom padding when banner is hidden', () => {
@@ -142,6 +144,8 @@ describe('RootLayout PWA banner integration', () => {
     mockIsMobileDevice = false
     renderLayout()
     const main = screen.getByRole('main')
-    expect(main.className).not.toContain('pb-11')
+    expect(main.className).not.toContain(
+      'pb-[calc(var(--mobile-navigation-height)+5rem)]'
+    )
   })
 })

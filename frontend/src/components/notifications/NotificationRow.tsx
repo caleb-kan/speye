@@ -28,16 +28,16 @@ export function NotificationRow({
       type="button"
       onClick={handleClick}
       className={`
-        flex w-full items-start justify-between gap-4 rounded-xl border px-4 py-4 text-left transition
+        flex w-full flex-col sm:flex-row items-start justify-between gap-4 rounded-xl border px-4 py-4 text-left transition
         ${hasLink ? 'hover:bg-bg-secondary/80 cursor-pointer hover:border-primary/30' : 'cursor-default'}
         focus-visible:outline-none focus-visible:border-2 focus-visible:border-primary
         ${config.classes} ${notification.seen ? 'opacity-80' : ''}
       `}
       data-testid={`notification-row-${notification.id}`}
     >
-      <div className="flex items-start gap-3">
-        <Icon className="mt-0.5" size={18} />
-        <div>
+      <div className="flex min-w-0 items-start gap-3">
+        <Icon className="mt-0.5 shrink-0" size={18} />
+        <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <span
               className={`rounded-full px-2 py-0.5 text-xs ${config.badge}`}
@@ -54,12 +54,12 @@ export function NotificationRow({
               </span>
             ) : null}
           </div>
-          <p className="mt-2 text-sm font-medium text-text">
+          <p className="mt-2 text-sm font-medium text-text [overflow-wrap:anywhere]">
             {notification.message}
           </p>
         </div>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex shrink-0 self-end sm:self-auto items-center gap-2">
         <span className="text-xs text-text-secondary whitespace-pre-line">
           {formatTimestamp(notification.created_at)}
         </span>

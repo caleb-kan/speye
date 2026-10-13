@@ -1,10 +1,12 @@
 import { CloudOff, RefreshCw, Check } from 'lucide-react'
+import { useIsMobile } from '../../hooks/useIsMobile'
 import {
   useOfflineIndicator,
   TYPE_LABELS,
 } from '../../hooks/useOfflineIndicator'
 
 export function OfflineIndicator() {
+  const isMobile = useIsMobile()
   const {
     indicatorState,
     hovered,
@@ -24,7 +26,7 @@ export function OfflineIndicator() {
     <div
       role="status"
       data-testid="offline-indicator"
-      className="fixed top-2 left-4 md:left-2 z-50 md:top-3 md:left-26"
+      className={`fixed top-2 z-50 ${isMobile ? 'left-1/2 -translate-x-1/2' : 'left-26 md:top-3'}`}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
@@ -87,7 +89,7 @@ export function OfflineIndicator() {
       </button>
 
       <div
-        className="absolute left-0 top-full mt-1 w-48 overflow-hidden rounded-lg shadow-md backdrop-blur-sm bg-bg-secondary/90 text-text-secondary transition-[max-height,opacity] duration-300 ease-in-out pointer-events-none"
+        className={`absolute top-full mt-1 w-48 overflow-hidden rounded-lg shadow-md backdrop-blur-sm bg-bg-secondary/90 text-text-secondary transition-[max-height,opacity] duration-300 ease-in-out pointer-events-none ${isMobile ? 'left-1/2 -translate-x-1/2' : 'left-0'}`}
         style={{
           maxHeight: showExpanded ? 200 : 0,
           opacity: showExpanded ? 1 : 0,

@@ -81,8 +81,9 @@ for (const viewport of [
         ).toBe(true)
         if (viewport.height < 768 || viewport.width < 768) {
           const box = await button.boundingBox()
-          expect(box!.width).toBeGreaterThanOrEqual(44)
-          expect(box!.height).toBeGreaterThanOrEqual(44)
+          // Firefox can report 44px as 43.999996px through float rounding.
+          expect(box!.width).toBeGreaterThanOrEqual(44 - 0.01)
+          expect(box!.height).toBeGreaterThanOrEqual(44 - 0.01)
         }
       }
     }

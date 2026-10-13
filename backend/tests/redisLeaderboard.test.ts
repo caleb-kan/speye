@@ -59,6 +59,62 @@ describe('Redis leaderboard response boundaries', () => {
     await expect(getTextLeaderboard('text-1')).rejects.toThrow('WRONGTYPE')
   })
 
+  it('rejects an expired top entry hash so the caller can load saved results', async () => {
+    request
+      .mockResolvedValueOnce(Response.json(topResponse))
+      .mockResolvedValueOnce(Response.json([{ result: [] }]))
+    await expect(getTextLeaderboard('text-1')).rejects.toThrow(
+      'Invalid cached leaderboard stats'
+    )
+  })
+
+  it('rejects an expired current-user hash so the caller can load saved results', async () => {
+    request
+      .mockResolvedValueOnce(Response.json(topResponse))
+      .mockResolvedValueOnce(Response.json(statsResponse))
+      .mockResolvedValueOnce(Response.json([{ result: 5 }, { result: 420 }]))
+      .mockResolvedValueOnce(Response.json([{ result: [] }]))
+    await expect(getTextLeaderboard('text-1', 'user-2')).rejects.toThrow(
+      'Invalid cached leaderboard stats'
+    )
+  })
+
+  it.each([
+    ['missing score', ['wpm', '400']],
+    ['invalid WPM', ['wpm', 'invalid', 'quizScore', '100']],
+    ['non-finite score', ['wpm', '400', 'quizScore', 'Infinity']],
+    ['out-of-range score', ['wpm', '400', 'quizScore', '101']],
+  ])('rejects cached metrics with %s', async (_label, stats) => {
+    request
+      .mockResolvedValueOnce(Response.json(topResponse))
+      .mockResolvedValueOnce(Response.json([{ result: stats }]))
+    await expect(getTextLeaderboard('text-1')).rejects.toThrow(
+      'Invalid cached leaderboard stats'
+    )
+  })
+
+  it('preserves valid zero metrics instead of treating them as missing', async () => {
+    request
+      .mockResolvedValueOnce(Response.json([{ result: ['user-1', '0'] }]))
+      .mockResolvedValueOnce(
+        Response.json([{ result: ['wpm', '0', 'quizScore', '0'] }])
+      )
+    expect(await getTextLeaderboard('text-1')).toEqual({
+      top: [
+        {
+          userId: 'user-1',
+          username: null,
+          avatarUrl: null,
+          wpm: 0,
+          quizScore: 0,
+          overallScore: 0,
+          rank: 1,
+        },
+      ],
+      currentUser: null,
+    })
+  })
+
   it('rejects a missing command result instead of treating it as an empty cache', async () => {
     request.mockResolvedValueOnce(Response.json([]))
     await expect(getTextLeaderboard('text-1')).rejects.toThrow(

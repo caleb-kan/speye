@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { execFileSync, spawn } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { setTimeout } from 'node:timers/promises'
 
@@ -85,6 +85,17 @@ try {
   assert(ready, 'PostgreSQL did not become ready')
   sql(readFileSync(`${here}schema.sql`, 'utf8'))
   sql(readFileSync(`${here}hardening.sql`, 'utf8'))
+  sql(readFileSync(`${here}text-processing-schema.sql`, 'utf8'))
+  const migrations = `${here}../../supabase/migrations/`
+  for (const filename of readdirSync(migrations)
+    .filter((file) => file.endsWith('.sql'))
+    .sort()) {
+    sql(readFileSync(`${migrations}${filename}`, 'utf8'))
+  }
+  sql(readFileSync(`${here}text-processing-checks.sql`, 'utf8'))
+  console.log(
+    'PASS: text processing ownership, admin editing, source invalidation, queueing, and retry authorization'
+  )
   sql(readFileSync(`${here}realtime.sql`, 'utf8'))
   sql(readFileSync(`${here}checks.sql`, 'utf8'))
   sql(readFileSync(`${here}realtime-checks.sql`, 'utf8'))
@@ -168,6 +179,124 @@ try {
   } finally {
     if (!lockHolder.stdin.writableEnded) lockHolder.stdin.end('ROLLBACK;\n')
   }
+
+  async function waitForActivity(applicationName, event) {
+    for (let attempt = 0; attempt < 50; attempt++) {
+      if (
+        sql(
+          `SELECT count(*) FROM pg_stat_activity WHERE application_name='${applicationName}' AND wait_event='${event}';`
+        ) === '1'
+      )
+        return
+      await setTimeout(20)
+    }
+    throw new Error(`Expected ${applicationName} to wait for ${event}`)
+  }
+  const textId = sql("SELECT id FROM public.texts WHERE title='eligible';")
+  sql(
+    "DELETE FROM public.pvp_match_notifications; DELETE FROM public.pvp_games; DELETE FROM public.matchmaking_queue; INSERT INTO public.matchmaking_queue(user_id,player_elo) VALUES ('00000000-0000-0000-0000-000000000002',1000);"
+  )
+  const matchingText = asyncSql(
+    `SET application_name='match-before-edit'; ${request}`
+  )
+  await waitForActivity('match-before-edit', 'PgSleep')
+  const blockedEdit = asyncSql(
+    `UPDATE public.texts SET content='changed during match' WHERE id='${textId}';`
+  ).then(
+    () => ({ accepted: true, message: '' }),
+    (error) => ({ accepted: false, message: error.message })
+  )
+  const [matchedText, editResult] = await Promise.all([
+    matchingText,
+    blockedEdit,
+  ])
+  assert.equal(JSON.parse(matchedText.split('\n').at(-1)).status, 'matched')
+  assert.equal(editResult.accepted, false)
+  assert.match(
+    editResult.message,
+    /Cannot modify text used in an active PvP game/
+  )
+  assert.equal(
+    sql(`SELECT content FROM public.texts WHERE id='${textId}';`),
+    'one two three four five'
+  )
+  console.log('PASS: matchmaking holds a passage stable until its game commits')
+
+  sql(
+    "DELETE FROM public.pvp_match_notifications; DELETE FROM public.pvp_games; DELETE FROM public.matchmaking_queue; INSERT INTO public.matchmaking_queue(user_id,player_elo) VALUES ('00000000-0000-0000-0000-000000000002',1000);"
+  )
+  const editingText = asyncSql(
+    `SET application_name='edit-before-match'; BEGIN; UPDATE public.texts SET content='revised source' WHERE id='${textId}'; SELECT pg_sleep(3); COMMIT;`
+  )
+  await waitForActivity('edit-before-match', 'PgSleep')
+  const waitingMatch = asyncSql(
+    `SET application_name='match-after-edit'; ${request}`
+  )
+  await waitForActivity('match-after-edit', 'transactionid')
+  const [, afterEdit] = await Promise.all([editingText, waitingMatch])
+  assert.equal(JSON.parse(afterEdit.split('\n').at(-1)).status, 'error')
+  assert.equal(sql('SELECT count(*) FROM public.pvp_games;'), '0')
+  assert.equal(
+    sql(`SELECT processing_status FROM public.texts WHERE id='${textId}';`),
+    'pending'
+  )
+  assert.equal(sql('SELECT count(*) FROM pgmq.sent_messages;'), '1')
+  console.log(
+    'PASS: matchmaking rechecks edited passages and cannot publish a stale version'
+  )
+
+  for (const [suffix, status, stage, violation] of [
+    ['20', 'completed', null, null],
+    ['21', 'failed', 'process_text', 'policy'],
+  ]) {
+    const approvalTextId = `10000000-0000-0000-0000-0000000000${suffix}`
+    sql(
+      `INSERT INTO public.texts(id,content,owner_id,processing_status,quiz,quiz_valid,llm_decision,admin_decision,rejection_stage,llm_violation_type) VALUES ('${approvalTextId}','Original owner source','00000000-0000-0000-0000-000000000001','${status}','{"questionSets":[]}',true,'approved','pending',${stage ? `'${stage}'` : 'NULL'},${violation ? `'${violation}'` : 'NULL'});`
+    )
+    const ownerEdit = asyncSql(
+      `SET application_name='owner-edit-before-approval-${suffix}'; SET request.jwt.claim.sub='00000000-0000-0000-0000-000000000001'; SET ROLE authenticated; BEGIN; UPDATE public.texts SET content='Revised owner source' WHERE id='${approvalTextId}'; SELECT pg_sleep(3); COMMIT;`
+    )
+    await waitForActivity(`owner-edit-before-approval-${suffix}`, 'PgSleep')
+    const approval = asyncSql(
+      `SET application_name='approval-after-owner-edit-${suffix}'; SET request.jwt.claim.sub='00000000-0000-0000-0000-000000000003'; SET request.jwt.claims='{"app_metadata":{"role":"admin"}}'; SET ROLE authenticated; SELECT public.admin_approve_text('${approvalTextId}','00000000-0000-0000-0000-000000000003');`
+    ).then(
+      () => ({ accepted: true, message: '' }),
+      (error) => ({ accepted: false, message: error.message })
+    )
+    await waitForActivity(
+      `approval-after-owner-edit-${suffix}`,
+      'transactionid'
+    )
+    const [, approvalResult] = await Promise.all([ownerEdit, approval])
+    assert.equal(approvalResult.accepted, false)
+    assert.match(
+      approvalResult.message,
+      /Text must finish processing before approval/
+    )
+    assert.deepEqual(
+      JSON.parse(
+        sql(
+          `SELECT json_build_object('content',content,'processing_status',processing_status,'admin_decision',admin_decision,'llm_decision',llm_decision,'quiz',quiz) FROM public.texts WHERE id='${approvalTextId}';`
+        )
+      ),
+      {
+        content: 'Revised owner source',
+        processing_status: 'pending',
+        admin_decision: 'pending',
+        llm_decision: null,
+        quiz: null,
+      }
+    )
+    assert.equal(
+      sql(
+        `SELECT count(*) FROM pgmq.sent_messages WHERE message->>'text_id'='${approvalTextId}';`
+      ),
+      '1'
+    )
+  }
+  console.log(
+    'PASS: approval rereads owner-edited sources and cannot approve an unprocessed revision'
+  )
 } finally {
   execFileSync('docker', ['rm', '-f', name], { stdio: 'pipe' })
 }

@@ -29,7 +29,7 @@ export function ThemePicker() {
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg rounded hover:opacity-80 transition-opacity"
+        className="min-w-11 min-h-11 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg rounded hover:opacity-80 transition-opacity"
         aria-label="Change theme"
         aria-expanded={open}
       >
@@ -58,7 +58,7 @@ export function ThemePicker() {
                   setTheme(t.id)
                   setOpen(false)
                 }}
-                className={`relative px-1 py-1.5 rounded-lg border-2 transition-all ${
+                className={`relative min-h-11 px-1 py-1.5 rounded-lg border-2 transition-all ${
                   theme.id === t.id
                     ? 'border-primary'
                     : 'border-transparent hover:border-text-secondary/30'

@@ -5,7 +5,6 @@ import { ThemeSection } from '../components/settings/ThemeSection'
 import { ShortcutsSection } from '../components/settings/ShortcutsSection'
 import { AboutSection } from '../components/settings/AboutSection'
 import { OfflineCacheSection } from '../components/settings/OfflineCacheSection'
-import { useIsMobile } from '../hooks/useIsMobile'
 import { useAuth } from '../hooks/useAuth'
 
 export function Settings() {
@@ -19,7 +18,6 @@ export function Settings() {
     if (el) el.scrollIntoView({ behavior: 'smooth' })
   }, [hash])
 
-  const isMobile = useIsMobile()
   return (
     <div className="flex-1 flex flex-col items-center px-4 sm:px-8 p-6">
       <div className="w-full max-w-xl">
@@ -27,7 +25,7 @@ export function Settings() {
 
         <AboutSection />
 
-        {!isMobile && <ShortcutsSection />}
+        <ShortcutsSection />
 
         {user && <OfflineCacheSection />}
 

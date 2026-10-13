@@ -6,11 +6,11 @@ export function Footer() {
   const isMobile = useIsMobile()
   const { pathname } = useLocation()
 
-  if (isMobile || pathname === ROUTES.SETTINGS) return null
+  if (pathname === ROUTES.SETTINGS) return null
 
   return (
     <footer
-      className="text-text-secondary fixed bottom-2 left-2 text-xs z-40"
+      className={`text-text-secondary text-xs z-40 ${isMobile ? 'shrink-0 px-3 py-4 text-center' : 'fixed bottom-2 left-2'}`}
       data-testid="footer"
     >
       © 2026 sp(eye). All rights reserved

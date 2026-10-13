@@ -11,6 +11,7 @@ import { usePvpLeaderboard } from '../../../hooks/usePvpLeaderboard'
 import { usePvpMatchHistory } from '../../../hooks/usePvpMatchHistory'
 import { usePvpMatchmaking } from '../../../hooks/usePvpMatchmaking'
 import { useAuth } from '../../../hooks/useAuth'
+import { useIsMobile } from '../../../hooks/useIsMobile'
 import { ROUTES } from '../../../utils/routes'
 import { getRankFromElo } from '../../../utils/pvp'
 import type { PvpLeaderboardEntry } from '../../../types/database'
@@ -19,6 +20,7 @@ export function PvpLobby() {
   const navigate = useNavigate()
   const location = useLocation()
   const { user } = useAuth()
+  const isMobile = useIsMobile()
   const autoQueueTriggered = useRef(false)
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
   const [searchedUser, setSearchedUser] = useState<{
@@ -125,9 +127,11 @@ export function PvpLobby() {
         onCancel={cancelQueue}
       />
 
-      <div className="relative h-full px-6 py-6">
+      <div
+        className={`relative w-full px-4 sm:px-6 py-6 ${isMobile ? '' : 'pl-20 sm:pl-20'}`}
+      >
         {displayError && (
-          <div className="absolute top-6 left-6 right-6 z-10">
+          <div className="mb-6">
             <div
               className="max-w-6xl mx-auto bg-error/10 border border-error/20 rounded-xl p-3 text-sm text-error"
               role="alert"
@@ -137,14 +141,14 @@ export function PvpLobby() {
           </div>
         )}
 
-        <div className="flex h-full items-center justify-between gap-6">
-          <div className="hidden xl:flex flex-col items-start py-6 ml-20 gap-5">
-            <div className="w-[380px]">
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-[minmax(0,380px)_minmax(0,1fr)_minmax(0,380px)] items-start gap-6">
+          <div className="flex min-w-0 flex-col items-start xl:py-6 gap-5">
+            <div className="w-full">
               <UserSearchBar onUserFound={handleSelectUser} />
             </div>
 
             {selectedUserIdOrDefault && (
-              <div className="w-[380px] h-[600px] bg-bg-secondary/50 border border-text-secondary/10 rounded-2xl overflow-hidden flex flex-col">
+              <div className="w-full h-[480px] xl:h-[600px] bg-bg-secondary/50 border border-text-secondary/10 rounded-2xl overflow-hidden flex flex-col">
                 <div className="p-4 pb-0">
                   <EloHistory
                     matches={matches}
@@ -171,7 +175,7 @@ export function PvpLobby() {
             )}
           </div>
 
-          <div className="flex-1 flex items-center justify-center">
+          <div className="order-first lg:col-span-2 xl:order-none xl:col-span-1 flex min-w-0 items-center justify-center xl:self-center">
             <PvpRankCard
               rating={currentUserRating}
               loading={currentUserRatingLoading}
@@ -180,8 +184,8 @@ export function PvpLobby() {
             />
           </div>
 
-          <div className="hidden xl:flex items-start py-6">
-            <div className="w-[380px]">
+          <div className="flex min-w-0 items-start xl:py-6">
+            <div className="w-full">
               <PvpLeaderboard
                 top={lbTop}
                 currentUser={lbCurrentUser}

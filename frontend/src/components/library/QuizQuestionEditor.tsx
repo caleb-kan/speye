@@ -57,7 +57,7 @@ export function QuizQuestionEditor({
               type="text"
               value={option}
               onChange={(e) => onOptionChange(optionIndex, e.target.value)}
-              className={`flex-1 text-sm p-2 bg-bg border rounded-lg text-text placeholder-text-secondary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent ${
+              className={`min-w-0 flex-1 text-sm p-2 bg-bg border rounded-lg text-text placeholder-text-secondary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent ${
                 question.correctAnswer === optionIndex
                   ? 'border-primary/50'
                   : 'border-text-secondary/20'

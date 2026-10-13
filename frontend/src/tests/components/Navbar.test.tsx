@@ -21,6 +21,7 @@ import {
 
 const log = vi.hoisted(() => vi.fn())
 const unload = vi.hoisted(() => vi.fn())
+let mockIsMobile = false
 vi.mock('../../services/logUserActivity', () => ({
   logUserActivity: log,
   logUserActivityOnUnload: unload,
@@ -28,7 +29,7 @@ vi.mock('../../services/logUserActivity', () => ({
 
 vi.mock('../../hooks/useAuth')
 vi.mock('../../hooks/useIsMobile', () => ({
-  useIsMobile: () => false,
+  useIsMobile: () => mockIsMobile,
 }))
 vi.mock('../../hooks/useReadingPreferences', () => ({
   useReadingPreferences: () => ({
@@ -60,6 +61,7 @@ const renderNavbar = () => {
 describe('Navbar', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockIsMobile = false
     sessionStorage.clear()
     window.history.replaceState(null, '', '/')
   })
@@ -94,6 +96,15 @@ describe('Navbar', () => {
       expect(
         screen.getByRole('navigation', { name: 'Main navigation' })
       ).toBeInTheDocument()
+    })
+
+    it('links mobile Home directly to RSVP regardless of the saved desktop mode', () => {
+      mockIsMobile = true
+      renderNavbar()
+      expect(screen.getByRole('link', { name: 'Home' })).toHaveAttribute(
+        'href',
+        '/rsvp'
+      )
     })
   })
 

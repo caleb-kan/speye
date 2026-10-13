@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
+import { StrictMode } from 'react'
 
 // Mock all external dependencies before importing the hook
 const mockNavigate = vi.fn()
@@ -130,12 +131,187 @@ describe('usePvpGameCallbacks', () => {
   beforeEach(() => {
     vi.useFakeTimers()
     vi.clearAllMocks()
+    sessionStorage.clear()
     mockPreferences.wpm = 400
     mockPreferences.mode = 'standard'
   })
 
   afterEach(() => {
     vi.useRealTimers()
+  })
+
+  describe('reading recovery', () => {
+    it('restores the same reading position and elapsed time after a remount', () => {
+      const opts = makeDefaultOptions()
+      const first = renderHook(() => usePvpGameCallbacks(opts))
+      act(() => first.result.current.handlePositionChange(3))
+      act(() => vi.advanceTimersByTime(2000))
+      first.unmount()
+      act(() => vi.advanceTimersByTime(4000))
+      const resumed = renderHook(() => usePvpGameCallbacks(opts))
+      expect(resumed.result.current.initialWordIndex).toBe(3)
+      expect(resumed.result.current.myProgress).toBe(30)
+      expect(resumed.result.current.elapsedSeconds).toBe(6)
+      act(() => resumed.result.current.handleReadingComplete(true))
+      expect(logUserActivity).toHaveBeenCalledWith(
+        expect.objectContaining({ wpm: 100 }),
+        USER_ID
+      )
+      expect(mockForfeitPvpGame).not.toHaveBeenCalled()
+    })
+
+    it('returns completed reading to the quiz without another activity or changing WPM', async () => {
+      const opts = makeDefaultOptions()
+      const first = renderHook(() => usePvpGameCallbacks(opts))
+      act(() => first.result.current.handlePositionChange(1))
+      act(() => vi.advanceTimersByTime(6000))
+      act(() => first.result.current.handleReadingComplete(true))
+      first.unmount()
+      act(() => vi.advanceTimersByTime(10000))
+      const resumed = renderHook(() => usePvpGameCallbacks(opts))
+      expect(resumed.result.current.myProgress).toBe(100)
+      expect(opts.startQuiz).toHaveBeenCalledTimes(2)
+      expect(logUserActivity).toHaveBeenCalledTimes(1)
+      mockSubmitPvpResult.mockResolvedValueOnce(COMPLETED_GAME)
+      await act(async () => resumed.result.current.handleQuizFinish(80))
+      expect(resumed.result.current.myWpm).toBe(100)
+      expect(resumed.result.current.myOverallScore).toBe(180)
+    })
+
+    it('keeps recovered position and WPM during StrictMode effect replay', async () => {
+      const opts = makeDefaultOptions()
+      const first = renderHook(() => usePvpGameCallbacks(opts))
+      act(() => first.result.current.handlePositionChange(4))
+      act(() => vi.advanceTimersByTime(6000))
+      first.unmount()
+      const resumed = renderHook(() => usePvpGameCallbacks(opts), {
+        wrapper: StrictMode,
+      })
+      expect(resumed.result.current.initialWordIndex).toBe(4)
+      act(() => resumed.result.current.handleReadingComplete(true))
+      mockSubmitPvpResult.mockResolvedValueOnce(COMPLETED_GAME)
+      await act(async () => resumed.result.current.handleQuizFinish(80))
+      expect(resumed.result.current.myWpm).toBe(100)
+    })
+
+    it('isolates saved readings by both game and user', () => {
+      const opts = makeDefaultOptions()
+      const first = renderHook(() => usePvpGameCallbacks(opts))
+      act(() => first.result.current.handlePositionChange(4))
+      first.unmount()
+      const otherGame = renderHook(() =>
+        usePvpGameCallbacks({ ...opts, gameId: 'game-other' })
+      )
+      expect(otherGame.result.current.initialWordIndex).toBe(0)
+      otherGame.unmount()
+      const otherUser = renderHook(() =>
+        usePvpGameCallbacks({ ...opts, userId: 'user-other' })
+      )
+      expect(otherUser.result.current.initialWordIndex).toBe(0)
+      otherUser.unmount()
+      const owner = renderHook(() => usePvpGameCallbacks(opts))
+      expect(owner.result.current.initialWordIndex).toBe(4)
+    })
+
+    it('persists restart position while keeping the original reading timing', () => {
+      const opts = makeDefaultOptions()
+      const first = renderHook(() => usePvpGameCallbacks(opts))
+      act(() => first.result.current.handlePositionChange(4))
+      act(() => vi.advanceTimersByTime(3000))
+      act(() => first.result.current.handlePositionChange(0))
+      first.unmount()
+      const resumed = renderHook(() => usePvpGameCallbacks(opts))
+      expect(resumed.result.current.initialWordIndex).toBe(0)
+      act(() => vi.advanceTimersByTime(3000))
+      act(() => resumed.result.current.handlePositionChange(1))
+      act(() => resumed.result.current.handleReadingComplete(true))
+      expect(logUserActivity).toHaveBeenCalledWith(
+        expect.objectContaining({ wpm: 100 }),
+        USER_ID
+      )
+    })
+
+    it('keeps the pending-submit guard when text loads after recovery starts', async () => {
+      let resolveSubmit!: (game: PvpGame) => void
+      mockSubmitPvpResult.mockImplementationOnce(
+        () =>
+          new Promise<PvpGame>((resolve) => {
+            resolveSubmit = resolve
+          })
+      )
+      const opts = makeDefaultOptions({
+        phase: 'waiting',
+        text: null,
+        pendingSubmit: { wpm: 100, score: 80 },
+      })
+      const resumed = renderHook((options) => usePvpGameCallbacks(options), {
+        initialProps: opts,
+      })
+      resumed.rerender({ ...opts, text: MOCK_TEXT })
+      await act(async () => resumed.result.current.handleQuizFinish(70))
+      expect(resumed.result.current.myQuizScore).toBe(80)
+      expect(mockSubmitPvpResult).toHaveBeenCalledTimes(1)
+      await act(async () => resolveSubmit(COMPLETED_GAME))
+      expect(resumed.result.current.submitError).toBeNull()
+    })
+
+    it('clears reading recovery for results and document unload', () => {
+      const opts = makeDefaultOptions()
+      const first = renderHook(() => usePvpGameCallbacks(opts))
+      act(() => first.result.current.handlePositionChange(4))
+      window.dispatchEvent(new Event('beforeunload'))
+      first.unmount()
+      const afterUnload = renderHook(() => usePvpGameCallbacks(opts))
+      expect(afterUnload.result.current.initialWordIndex).toBe(0)
+      act(() => afterUnload.result.current.handlePositionChange(4))
+      afterUnload.unmount()
+      const results = renderHook(() =>
+        usePvpGameCallbacks({ ...opts, phase: 'results' })
+      )
+      results.unmount()
+      const afterResults = renderHook(() => usePvpGameCallbacks(opts))
+      expect(afterResults.result.current.initialWordIndex).toBe(0)
+    })
+
+    it('restores the correct saved state across live game and user changes', () => {
+      const opts = makeDefaultOptions()
+      const hook = renderHook((options) => usePvpGameCallbacks(options), {
+        initialProps: opts,
+      })
+      act(() => hook.result.current.handlePositionChange(4))
+      hook.rerender({ ...opts, gameId: 'game-other' })
+      expect(hook.result.current.initialWordIndex).toBe(0)
+      expect(hook.result.current.myProgress).toBe(0)
+      act(() => hook.result.current.handlePositionChange(2))
+      hook.rerender({ ...opts, userId: 'user-other' })
+      expect(hook.result.current.initialWordIndex).toBe(0)
+      expect(hook.result.current.myProgress).toBe(0)
+      hook.rerender(opts)
+      expect(hook.result.current.initialWordIndex).toBe(4)
+      expect(hook.result.current.myProgress).toBe(40)
+    })
+
+    it('removes recovered reading after a confirmed forfeit', async () => {
+      const opts = makeDefaultOptions()
+      const first = renderHook(() => usePvpGameCallbacks(opts))
+      act(() => first.result.current.handlePositionChange(4))
+      mockForfeitPvpGame.mockResolvedValueOnce(undefined)
+      await act(async () => first.result.current.handleForfeit())
+      first.unmount()
+      const reopened = renderHook(() => usePvpGameCallbacks(opts))
+      expect(reopened.result.current.initialWordIndex).toBe(0)
+    })
+
+    it('removes recovered reading after confirmed result submission', async () => {
+      const opts = makeDefaultOptions()
+      const first = renderHook(() => usePvpGameCallbacks(opts))
+      act(() => first.result.current.handlePositionChange(4))
+      mockSubmitPvpResult.mockResolvedValueOnce(COMPLETED_GAME)
+      await act(async () => first.result.current.handleQuizFinish(80))
+      first.unmount()
+      const reopened = renderHook(() => usePvpGameCallbacks(opts))
+      expect(reopened.result.current.initialWordIndex).toBe(0)
+    })
   })
 
   describe('submitResult retry', () => {
@@ -556,6 +732,50 @@ describe('usePvpGameCallbacks', () => {
   })
 
   describe('pendingSubmit auto-retry', () => {
+    it('submits a pending result only once during StrictMode effect replay', async () => {
+      let finish!: (game: PvpGame) => void
+      mockSubmitPvpResult.mockImplementation(
+        () =>
+          new Promise<PvpGame>((resolve) => {
+            finish = resolve
+          })
+      )
+      const opts = makeDefaultOptions({
+        phase: 'waiting',
+        pendingSubmit: { wpm: 300, score: 90 },
+      })
+      const { result } = renderHook(() => usePvpGameCallbacks(opts), {
+        wrapper: StrictMode,
+      })
+      expect(result.current.myWpm).toBe(300)
+      expect(mockSubmitPvpResult).toHaveBeenCalledTimes(1)
+      await act(async () => finish(COMPLETED_GAME))
+      expect(result.current.submitError).toBeNull()
+    })
+
+    it('keeps a pending result untouched until initialized into waiting', async () => {
+      mockSubmitPvpResult.mockResolvedValueOnce(COMPLETED_GAME)
+      const opts = makeDefaultOptions({
+        phase: 'loading',
+        text: null,
+        pendingSubmit: { wpm: 300, score: 90 },
+      })
+      const hook = renderHook((options) => usePvpGameCallbacks(options), {
+        initialProps: opts,
+      })
+      expect(mockSubmitPvpResult).not.toHaveBeenCalled()
+      expect(hook.result.current.myWpm).toBe(0)
+      hook.rerender({ ...opts, phase: 'waiting', text: MOCK_TEXT })
+      await act(async () => vi.runAllTimersAsync())
+      expect(hook.result.current.myWpm).toBe(300)
+      expect(mockSubmitPvpResult).toHaveBeenCalledWith(
+        GAME_ID,
+        USER_ID,
+        300,
+        90
+      )
+    })
+
     it('auto-submits when pendingSubmit is provided', async () => {
       mockSubmitPvpResult.mockResolvedValueOnce(COMPLETED_GAME)
       const opts = makeDefaultOptions({
@@ -563,7 +783,7 @@ describe('usePvpGameCallbacks', () => {
         pendingSubmit: { wpm: 300, score: 90 },
       })
 
-      renderHook(() => usePvpGameCallbacks(opts))
+      const { result } = renderHook(() => usePvpGameCallbacks(opts))
 
       await act(async () => {
         await vi.runAllTimersAsync()
@@ -575,7 +795,7 @@ describe('usePvpGameCallbacks', () => {
         300,
         90
       )
-      expect(opts.finishQuiz).toHaveBeenCalled()
+      expect(result.current.myWpm).toBe(300)
     })
 
     it('does not auto-submit when pendingSubmit is null', async () => {

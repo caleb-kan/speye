@@ -1,5 +1,6 @@
 import { PvpProgressBar } from '../shared/PvpProgressBar'
 import { formatElapsedTime } from '../../../utils/pvp'
+import { useIsMobile } from '../../../hooks/useIsMobile'
 
 type PvpOpponentBarProps = {
   myProgress: number
@@ -18,14 +19,15 @@ export function PvpOpponentBar({
   elapsedSeconds,
   opponentDisconnected,
 }: PvpOpponentBarProps) {
+  const isMobile = useIsMobile()
   return (
     <div
-      className="fixed bottom-0 left-0 right-0 z-40 bg-bg/80 backdrop-blur-sm px-4 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))]"
+      className={`fixed left-0 right-0 z-40 bg-bg/80 backdrop-blur-sm px-4 py-2 ${isMobile ? 'bottom-(--mobile-navigation-height)' : 'bottom-0 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))]'}`}
       role="region"
       aria-label="Game progress"
     >
       <div className="max-w-4xl mx-auto flex items-center gap-4">
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <PvpProgressBar
             percent={myProgress}
             variant="primary"
@@ -39,7 +41,7 @@ export function PvpOpponentBar({
           </span>
         </div>
 
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <PvpProgressBar
             percent={opponentProgress}
             variant="opponent"

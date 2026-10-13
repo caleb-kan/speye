@@ -15,7 +15,6 @@ import type {
 } from '../types/database'
 import {
   PVP_MAX_POLL_FAILURES,
-  PVP_SUBMIT_STORAGE_PREFIX,
   PVP_POLL_INTERVAL_MS,
   PVP_SLOW_POLL_INTERVAL_MS,
   PVP_CLOCK_SYNC_MAX_RETRIES,
@@ -25,7 +24,12 @@ import {
   POLLABLE_PHASES,
 } from '../constants/pvp'
 import type { PvpPhase } from '../constants/pvp'
-import { readPendingSubmit } from '../utils/pvp'
+import {
+  readPendingSubmit,
+  clearPendingSubmit,
+  clearPvpReadingSession,
+  getPlayerPrefix,
+} from '../utils/pvp'
 import type { PendingSubmit } from '../utils/pvp'
 
 const STATUS_RANK: Record<PvpGameStatus, number> = {
@@ -58,15 +62,22 @@ export function resolvePhaseFromGame(
   gameStatus: PvpGame['status'],
   readingStartedAt: string | null,
   offset: number,
-  currentPhase: PvpPhase
+  currentPhase: PvpPhase,
+  playerFinishedAt: string | null = null
 ): PvpPhase | null {
   if (gameStatus === 'completed' || gameStatus === 'abandoned') {
     // Let the player finish reading/quiz before transitioning to results.
     // The transition happens via the submit callback or a subsequent game
     // update once they reach the waiting phase.
-    if (currentPhase === 'reading' || currentPhase === 'quiz') return null
+    if (
+      !playerFinishedAt &&
+      (currentPhase === 'reading' || currentPhase === 'quiz')
+    )
+      return null
     return 'results'
   }
+
+  if (gameStatus === 'active' && playerFinishedAt) return 'waiting'
 
   if (gameStatus === 'active' && readingStartedAt) {
     const readingPhase = getReadingPhase(readingStartedAt, offset)
@@ -118,7 +129,26 @@ export async function fetchClockOffset(): Promise<number> {
 export function usePvpGameState(gameId: string | null) {
   const { user } = useAuth()
   const [phase, setPhase] = useState<PvpPhase>('loading')
-  const [game, setGame] = useState<PvpGame | null>(null)
+  const [game, setGameState] = useState<PvpGame | null>(null)
+  const gameRef = useRefSync(game)
+  const setGame = useCallback(
+    (updatedGame: PvpGame) => {
+      const current = gameRef.current
+      if (
+        current?.id === updatedGame.id &&
+        (STATUS_RANK[updatedGame.status] < STATUS_RANK[current.status] ||
+          (current.player1_finished_at !== null &&
+            updatedGame.player1_finished_at === null) ||
+          (current.player2_finished_at !== null &&
+            updatedGame.player2_finished_at === null))
+      )
+        return false
+      gameRef.current = updatedGame
+      setGameState(updatedGame)
+      return true
+    },
+    [gameRef]
+  )
   const [text, setText] = useState<PvpTextData | null>(null)
   const [questionSet, setQuestionSet] = useState<QuestionSet | null>(null)
   const [serverTimeOffset, setServerTimeOffset] = useState(0)
@@ -216,11 +246,7 @@ export function usePvpGameState(gameId: string | null) {
           return
         }
 
-        setGame(gameData)
-
-        // Restore any pending submission saved before a page refresh
-        const pending = readPendingSubmit(gameId!, PVP_SUBMIT_STORAGE_PREFIX)
-        if (pending) setPendingSubmit(pending)
+        if (!setGame(gameData)) return
 
         const textData = await getTextForPvp(gameData.text_id)
         if (cancelled) return
@@ -242,11 +268,28 @@ export function usePvpGameState(gameId: string | null) {
           return
         }
 
+        const finishedAt =
+          gameData[
+            `${getPlayerPrefix(user!.id, gameData.player1_id).myPrefix}_finished_at`
+          ]
+        const terminal =
+          gameData.status === 'completed' || gameData.status === 'abandoned'
+        const pending = readPendingSubmit(gameId!, user!.id)
+        if (finishedAt) clearPvpReadingSession(gameId!, user!.id)
+        if (terminal || finishedAt) {
+          clearPendingSubmit(gameId!, user!.id)
+        } else if (pending && gameData.status === 'active') {
+          setPendingSubmit(pending)
+          setPhase('waiting')
+          return
+        }
+
         const resolved = resolvePhaseFromGame(
           gameData.status,
           gameData.reading_started_at,
           serverTimeResult,
-          'pregame'
+          'pregame',
+          finishedAt
         )
         if (resolved) {
           applyResolved(resolved)
@@ -256,7 +299,7 @@ export function usePvpGameState(gameId: string | null) {
           try {
             const updated = await markReady(gameId!, user!.id)
             if (cancelled) return
-            setGame(updated)
+            if (!setGame(updated)) return
             if (updated.status === 'active' && updated.reading_started_at) {
               applyResolved(
                 getReadingPhase(updated.reading_started_at, serverTimeResult)
@@ -288,12 +331,11 @@ export function usePvpGameState(gameId: string | null) {
     // Use user.id (not the user object) to avoid re-running when the auth
     // context produces a new reference on token refresh.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameId, user?.id, applyResolved])
+  }, [gameId, user?.id, applyResolved, setGame])
 
   // Polling fallback: ensures transitions work even if postgres_changes fails.
   // Uses phaseRef instead of phase in deps to avoid restarting the interval on
   // every phase transition, which could cause stale poll responses to race.
-  const gameRef = useRefSync(game)
   const serverTimeOffsetRef = useRefSync(serverTimeOffset)
   const gameIdRef = useRefSync(gameId)
 
@@ -342,20 +384,17 @@ export function usePvpGameState(gameId: string | null) {
         // Only apply poll result if it does not downgrade the game status.
         // A real-time update may have already advanced the game to completed
         // while this poll was in-flight.
-        const currentStatus = gameRef.current?.status ?? 'pending'
-        if (
-          (STATUS_RANK[latest.status] ?? 0) < (STATUS_RANK[currentStatus] ?? 0)
-        )
-          return
-
-        setGame(latest)
+        if (!setGame(latest)) return
 
         applyResolved(
           resolvePhaseFromGame(
             latest.status,
             latest.reading_started_at,
             serverTimeOffsetRef.current,
-            latestPhase
+            latestPhase,
+            latest[
+              `${getPlayerPrefix(user?.id ?? '', latest.player1_id).myPrefix}_finished_at`
+            ]
           )
         )
       } catch (err) {
@@ -377,7 +416,15 @@ export function usePvpGameState(gameId: string | null) {
       cancelled = true
       clearInterval(interval)
     }
-  }, [gameId, applyResolved, gameIdRef, gameRef, phaseRef, serverTimeOffsetRef])
+  }, [
+    gameId,
+    user?.id,
+    applyResolved,
+    gameIdRef,
+    phaseRef,
+    serverTimeOffsetRef,
+    setGame,
+  ])
 
   const handleGameUpdate = useCallback(
     (updatedGame: PvpGame) => {
@@ -385,18 +432,20 @@ export function usePvpGameState(gameId: string | null) {
       // Ignore Realtime updates while still loading: init hasn't populated
       // text/questionSet yet, so jumping to results would render an empty page.
       if (phaseRef.current === 'loading') return
-
-      setGame(updatedGame)
+      if (!setGame(updatedGame)) return
       applyResolved(
         resolvePhaseFromGame(
           updatedGame.status,
           updatedGame.reading_started_at,
           serverTimeOffsetRef.current,
-          phaseRef.current
+          phaseRef.current,
+          updatedGame[
+            `${getPlayerPrefix(user?.id ?? '', updatedGame.player1_id).myPrefix}_finished_at`
+          ]
         )
       )
     },
-    [applyResolved, gameIdRef, phaseRef, serverTimeOffsetRef]
+    [user?.id, applyResolved, gameIdRef, phaseRef, serverTimeOffsetRef, setGame]
   )
 
   const startReading = useCallback(() => {

@@ -11,7 +11,6 @@ import {
 } from 'lucide-react'
 import type { TextPreview } from '../../types/database'
 import { UNTITLED_TEXT_FALLBACK } from '../../constants/admin'
-import { useIsMobile } from '../../hooks/useIsMobile'
 import { useNetworkStatus } from '../../hooks/useNetworkStatus'
 import { TEXT_PREVIEW_LENGTH } from '../../constants/library'
 
@@ -42,7 +41,6 @@ export function LibraryTextList({
   onDeleteText,
   isAdmin = false,
 }: LibraryTextListProps) {
-  const isMobile = useIsMobile()
   const { isOnline } = useNetworkStatus()
   return (
     <div className="space-y-4">
@@ -136,7 +134,7 @@ export function LibraryTextList({
                     >
                       <Play className="w-4 h-4" />
                     </button>
-                    {!isMobile && text.has_summary && (
+                    {text.has_summary && (
                       <button
                         type="button"
                         onClick={() => onReadSummary(text)}

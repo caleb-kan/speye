@@ -29,10 +29,10 @@ export function RsvpDisplay({
 
   return (
     <div
-      className={`relative overflow-hidden flex flex-col ${
+      className={`relative flex flex-col ${
         isMobile
-          ? 'flex-1 w-full min-h-0'
-          : 'h-full shrink-0 rounded-3xl border border-text-secondary/20 bg-bg-secondary shadow-2xl'
+          ? 'flex-1 w-full'
+          : 'h-full overflow-hidden shrink-0 rounded-3xl border border-text-secondary/20 bg-bg-secondary shadow-2xl'
       }`}
       style={isMobile ? undefined : { aspectRatio: '3 / 5' }}
     >
@@ -42,7 +42,9 @@ export function RsvpDisplay({
         </div>
       )}
 
-      <div className="flex-1 flex flex-col items-center justify-center gap-6 px-2 w-full min-h-0 min-w-0 overflow-hidden">
+      <div
+        className={`flex-1 flex flex-col items-center justify-center px-2 w-full min-w-0 ${isMobile ? 'gap-3 py-4 min-h-56' : 'gap-6 min-h-0 overflow-hidden'}`}
+      >
         {Array.from({ length: visibleLines }, (_, i) => {
           const offset = i - half
           const phraseIndex = currentPhraseIndex + offset
@@ -65,8 +67,8 @@ export function RsvpDisplay({
               key={phraseIndex}
               className={`text-center max-w-full break-words shrink-0 ${
                 isCurrent
-                  ? 'text-3xl font-medium text-primary'
-                  : 'text-xl text-text-secondary'
+                  ? `${isMobile ? 'text-2xl' : 'text-3xl'} font-medium text-primary`
+                  : `${isMobile ? 'text-base' : 'text-xl'} text-text-secondary`
               }`}
               style={isCurrent ? undefined : { opacity }}
             >

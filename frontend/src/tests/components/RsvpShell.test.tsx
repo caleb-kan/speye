@@ -111,13 +111,15 @@ describe('RsvpShell', () => {
       mockIsMobile = true
     })
 
-    it('renders MobileRsvpOptionsBar, not OptionsBar', () => {
+    it('keeps mobile options out of the page while collapsed', () => {
       render(
         <RsvpShell optionsBarProps={stubOptionsBarProps}>
           <div>content</div>
         </RsvpShell>
       )
-      expect(screen.getByTestId('mobile-rsvp-options-bar')).toBeInTheDocument()
+      expect(
+        screen.queryByTestId('mobile-rsvp-options-bar')
+      ).not.toBeInTheDocument()
       expect(screen.queryByTestId('options-bar')).not.toBeInTheDocument()
     })
 
@@ -168,18 +170,21 @@ describe('RsvpShell', () => {
       )
     })
 
-    it('collapsed state has max-h-0 and opacity-0 classes', () => {
+    it('marks the collapsed options panel hidden', () => {
       render(
         <RsvpShell optionsBarProps={stubOptionsBarProps}>
           <div>content</div>
         </RsvpShell>
       )
       const wrapper = screen.getByTestId('rsvp-options-wrapper')
-      expect(wrapper).toHaveClass('max-h-0')
-      expect(wrapper).toHaveClass('opacity-0')
+      expect(wrapper).not.toBeVisible()
+      expect(screen.getByTestId('rsvp-options-toggle')).toHaveAttribute(
+        'aria-expanded',
+        'false'
+      )
     })
 
-    it('expanded state has max-h-67 and opacity-100 classes', async () => {
+    it('exposes the expanded options panel and controls', async () => {
       const user = userEvent.setup()
       render(
         <RsvpShell optionsBarProps={stubOptionsBarProps}>
@@ -189,8 +194,12 @@ describe('RsvpShell', () => {
 
       await user.click(screen.getByTestId('rsvp-options-toggle'))
       const wrapper = screen.getByTestId('rsvp-options-wrapper')
-      expect(wrapper).toHaveClass('max-h-67')
-      expect(wrapper).toHaveClass('opacity-100')
+      expect(wrapper).toBeVisible()
+      expect(screen.getByTestId('mobile-rsvp-options-bar')).toBeVisible()
+      expect(screen.getByTestId('rsvp-options-toggle')).toHaveAttribute(
+        'aria-expanded',
+        'true'
+      )
     })
 
     it('respects localStorage initial state on mount', () => {

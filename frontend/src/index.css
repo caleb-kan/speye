@@ -13,6 +13,7 @@
 
   /* Adaptive mode timing - single source of truth for JS and CSS */
   --adaptive-transition-duration: 50ms;
+  --mobile-navigation-height: calc(4rem + env(safe-area-inset-bottom, 0px));
 }
 
 @theme {

@@ -51,14 +51,15 @@ export function RootLayout() {
 
       <div className="flex-1 min-w-0 flex flex-col">
         <main
-          className={`relative flex-1 flex flex-col min-h-0 overflow-y-auto overflow-x-hidden ${
-            isMobile ? 'pt-11' : 'pt-12'
-          } ${showBanner ? 'pb-11' : ''}`}
+          className={`relative flex-1 min-h-0 overflow-y-auto overflow-x-hidden ${
+            isMobile
+              ? `pt-16 ${showBanner ? 'pb-[calc(var(--mobile-navigation-height)+5rem)]' : 'pb-(--mobile-navigation-height)'}`
+              : 'flex flex-col pt-12'
+          }`}
         >
           <Outlet />
+          <Footer />
         </main>
-
-        <Footer />
       </div>
     </div>
   )

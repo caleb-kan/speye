@@ -6,6 +6,10 @@ import { TEXT_PREVIEW_LENGTH } from '../../../constants/library'
 import { UNTITLED_TEXT_FALLBACK } from '../../../constants/admin'
 import type { TextPreview } from '../../../types/database'
 
+vi.mock('../../../hooks/useIsMobile', () => ({
+  useIsMobile: () => true,
+}))
+
 vi.mock('../../../hooks/useNetworkStatus', () => ({
   useNetworkStatus: () => ({
     isOnline: true,
@@ -136,11 +140,20 @@ describe('LibraryTextList', () => {
     expect(onDeleteText).toHaveBeenCalledWith('text-1')
   })
 
-  it('should show Read Summary button when text has summary', () => {
+  it('lets mobile readers open the summary when one is available', async () => {
+    const user = userEvent.setup()
     const texts = [createMockTextPreview({ has_summary: true })]
-    render(<LibraryTextList texts={texts} {...defaultProps} />)
+    const onReadSummary = vi.fn()
+    render(
+      <LibraryTextList
+        texts={texts}
+        {...defaultProps}
+        onReadSummary={onReadSummary}
+      />
+    )
 
-    expect(screen.getByText('Read Summary')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Read summary' }))
+    expect(onReadSummary).toHaveBeenCalledWith(texts[0])
   })
 
   it('should not show Read Summary button when text has no summary', () => {

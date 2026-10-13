@@ -3,6 +3,7 @@ import {
   type ReactNode,
   useState,
   useCallback,
+  useId,
 } from 'react'
 import { SlidersHorizontal, ChevronDown } from 'lucide-react'
 import { OptionsBar } from '../OptionsBar'
@@ -28,6 +29,7 @@ export function RsvpShell({
   onOptionsOpenChange,
 }: RsvpShellProps) {
   const isMobile = useIsMobile()
+  const optionsId = useId()
   const isControlled = controlledOpen !== undefined
 
   const [uncontrolledOpen, setUncontrolledOpen] = useState(() => {
@@ -60,7 +62,9 @@ export function RsvpShell({
   const toggleOptions = () => setOptionsOpen(!optionsOpen)
 
   return (
-    <div className="flex-1 flex flex-col min-h-0">
+    <div
+      className={`flex-1 flex flex-col ${isMobile ? 'min-h-fit' : 'min-h-0'}`}
+    >
       {!isMobile && <OptionsBar {...optionsBarProps} />}
       <div className={contentClassName ?? 'flex-1 min-h-0'}>{children}</div>
       {isMobile && (
@@ -68,7 +72,9 @@ export function RsvpShell({
           <button
             type="button"
             onClick={toggleOptions}
-            className="w-full flex items-center justify-center gap-1.5 py-2 text-xs text-text-secondary"
+            aria-expanded={optionsOpen}
+            aria-controls={optionsId}
+            className="w-full min-h-11 flex items-center justify-center gap-1.5 py-2 text-xs text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             data-testid="rsvp-options-toggle"
           >
             {optionsOpen ? (
@@ -84,13 +90,12 @@ export function RsvpShell({
             )}
           </button>
           <div
-            className={`overflow-x-auto transition-all duration-300 pb-[calc(2rem+env(safe-area-inset-bottom,0px))] ${
-              optionsOpen ? 'max-h-67 opacity-100' : 'max-h-0 opacity-0'
-              // 67 is just a large enough max height to show all options without cutting off, while still allowing the transition to work
-            }`}
+            id={optionsId}
+            hidden={!optionsOpen}
+            className="max-h-[50dvh] overflow-y-auto overscroll-contain pb-4"
             data-testid="rsvp-options-wrapper"
           >
-            <MobileRsvpOptionsBar {...optionsBarProps} />
+            {optionsOpen && <MobileRsvpOptionsBar {...optionsBarProps} />}
           </div>
         </div>
       )}

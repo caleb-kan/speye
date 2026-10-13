@@ -4,6 +4,7 @@ import { StartQuizButton } from '../StartQuizButton'
 import type { ActivitySessionContext } from '../../types/reading'
 import type { Text } from '../../types/database'
 import { useReadingActivitySession } from '../../hooks/useReadingActivitySession'
+import { useIsMobile } from '../../hooks/useIsMobile'
 
 type RsvpReadingSessionProps = {
   currentText: Text
@@ -36,6 +37,7 @@ export function RsvpReadingSession({
   forcePause,
   onPlayingChange,
 }: RsvpReadingSessionProps) {
+  const isMobile = useIsMobile()
   const [readingComplete, setReadingComplete] = useState(false)
   const [triggerQuiz, setTriggerQuiz] = useState(false)
   const [quizDismissed, setQuizDismissed] = useState(false)
@@ -58,7 +60,9 @@ export function RsvpReadingSession({
     })
 
   return (
-    <div className="relative flex-1 flex flex-col w-full min-h-0 overflow-hidden">
+    <div
+      className={`relative flex-1 flex flex-col w-full ${isMobile ? '' : 'min-h-0 overflow-hidden'}`}
+    >
       <RsvpReader
         key={`${currentText.id}-${modeTimestamp ?? ''}`}
         title={currentText.title}

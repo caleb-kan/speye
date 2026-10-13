@@ -7,7 +7,6 @@ import type {
   SortDirection,
 } from '../../hooks/useLibraryFilters'
 import type { SliderElement } from '../../hooks/useComplexitySlider'
-import { useIsMobile } from '../../hooks/useIsMobile'
 
 export type LibraryFiltersProps = {
   searchQuery: string
@@ -44,8 +43,6 @@ export function LibraryFilters({
   resultsCount,
   sliderRef,
 }: LibraryFiltersProps) {
-  const isMobile = useIsMobile()
-
   return (
     <div className="my-6 space-y-4">
       <div className="relative">
@@ -84,7 +81,7 @@ export function LibraryFilters({
               htmlFor="sort-select"
               className="text-sm font-medium text-primary"
             >
-              {!isMobile ? 'Sort by:' : ''}
+              Sort by:
             </label>
             <select
               id="sort-select"

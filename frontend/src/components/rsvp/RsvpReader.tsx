@@ -131,7 +131,7 @@ export function RsvpReader({
 
   return (
     <div
-      className={`flex-1 min-h-0 ${isMobile ? 'flex flex-col my-1' : 'flex items-center justify-center my-4'}`}
+      className={`flex-1 ${isMobile ? 'flex flex-col my-1' : 'min-h-0 flex items-center justify-center my-4'}`}
     >
       <RsvpDisplay
         title={title}

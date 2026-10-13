@@ -169,6 +169,57 @@ describe('TextPreviewModal', () => {
     ).toBeInTheDocument()
   })
 
+  it('resets rejection notes when switching texts or reopening the modal', async () => {
+    const user = userEvent.setup()
+    const props = {
+      processing: null,
+      initialShowReject: true,
+      ...defaultHandlers,
+    }
+    const { rerender } = render(
+      <TextPreviewModal text={createMockAdminText()} {...props} />
+    )
+    const notes = () => screen.getByLabelText('Rejection notes (optional)')
+    await user.type(notes(), 'Notes for the first text')
+    rerender(
+      <TextPreviewModal
+        text={createMockAdminText({ id: 'text-2' })}
+        {...props}
+      />
+    )
+    expect(notes()).toHaveValue('')
+    await user.type(notes(), 'Notes before closing')
+    rerender(<TextPreviewModal text={null} {...props} />)
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    rerender(
+      <TextPreviewModal
+        text={createMockAdminText({ id: 'text-2' })}
+        {...props}
+      />
+    )
+    expect(notes()).toHaveValue('')
+  })
+
+  it('preserves draft rejection notes when the same text refreshes', async () => {
+    const user = userEvent.setup()
+    const props = {
+      processing: null,
+      initialShowReject: true,
+      ...defaultHandlers,
+    }
+    const { rerender } = render(
+      <TextPreviewModal text={createMockAdminText()} {...props} />
+    )
+    await user.type(
+      screen.getByLabelText('Rejection notes (optional)'),
+      'Keep this draft'
+    )
+    rerender(<TextPreviewModal text={createMockAdminText()} {...props} />)
+    expect(screen.getByLabelText('Rejection notes (optional)')).toHaveValue(
+      'Keep this draft'
+    )
+  })
+
   it('should call onReject with notes on confirm', async () => {
     const user = userEvent.setup()
     render(

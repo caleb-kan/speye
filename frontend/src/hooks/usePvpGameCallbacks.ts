@@ -36,8 +36,11 @@ import {
   readPendingSubmit,
   writePendingSubmit,
   clearPendingSubmit,
+  readPvpReadingSession,
+  writePvpReadingSession,
+  clearPvpReadingSession,
 } from '../utils/pvp'
-import type { PendingSubmit } from '../utils/pvp'
+import type { PendingSubmit, PvpReadingSession } from '../utils/pvp'
 import type { MilestoneType, PvpPhase } from '../constants/pvp'
 import type { PvpGame, PvpTextData } from '../types/database'
 
@@ -73,8 +76,31 @@ export function usePvpGameCallbacks({
   const phaseRef = useRefSync(phase)
   const playerWpmRef = useRefSync(preferences.wpm)
   const adaptiveWpmRef = useRef<number | null>(null)
-  const measuredWpmRef = useRef<number | null>(null)
   const playerWpm = preferences.wpm
+  const totalWords = useMemo(
+    () => (text ? text.content.trim().split(/\s+/).length : 0),
+    [text]
+  )
+  const totalWordsRef = useRefSync(totalWords)
+  const textId = text?.id
+  const savedReading = useMemo(
+    () =>
+      gameId && userId && textId
+        ? readPvpReadingSession(gameId, userId, totalWords)
+        : null,
+    [gameId, userId, textId, totalWords]
+  )
+  const readingSessionRef = useRef<PvpReadingSession>({
+    wordIndex: 0,
+    readingStartedAt: null,
+    gameStartedAt: null,
+    completedWpm: null,
+  })
+  const persistReading = useCallback(() => {
+    if (gameId && userId) {
+      writePvpReadingSession(gameId, userId, readingSessionRef.current)
+    }
+  }, [gameId, userId])
 
   const [myProgress, setMyProgress] = useState(0)
   const [opponentProgress, setOpponentProgress] = useState(0)
@@ -97,13 +123,12 @@ export function usePvpGameCallbacks({
   const submittingRef = useRef(false)
   const submittedRef = useRef(false)
   const mountedRef = useRef(true)
+  const initializedSessionRef = useRef<string | null>(null)
   const readingCompletedRef = useRef(false)
   const halfwaySentRef = useRef(false)
   const lastSubmitRef = useRef<PendingSubmit | null>(null)
-  const readingStartRef = useRef<string | null>(null)
   const activityIdRef = useRef<string | null>(null)
   const recordHeartbeatRef = useRef<(ts?: number) => void>(() => {})
-  const gameStartRef = useRef<number | null>(null)
 
   useEffect(() => {
     mountedRef.current = true
@@ -112,14 +137,22 @@ export function usePvpGameCallbacks({
     }
   }, [])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    const key = `${gameId}:${userId}`
+    if (initializedSessionRef.current === key) return
+    initializedSessionRef.current = key
     forfeitingRef.current = false
     submittingRef.current = false
     submittedRef.current = false
     readingCompletedRef.current = false
     halfwaySentRef.current = false
     lastSubmitRef.current = null
-    readingStartRef.current = null
+    readingSessionRef.current = {
+      wordIndex: 0,
+      readingStartedAt: null,
+      gameStartedAt: null,
+      completedWpm: null,
+    }
     const activityKey = `${PVP_SUBMIT_STORAGE_PREFIX}activity:${gameId}:${userId}`
     try {
       activityIdRef.current =
@@ -128,9 +161,7 @@ export function usePvpGameCallbacks({
     } catch {
       activityIdRef.current = crypto.randomUUID()
     }
-    gameStartRef.current = null
     adaptiveWpmRef.current = null
-    measuredWpmRef.current = null
 
     setMyProgress(0)
     setOpponentProgress(0)
@@ -144,21 +175,38 @@ export function usePvpGameCallbacks({
     setSaveWarning(null)
   }, [gameId, userId])
 
-  const totalWords = useMemo(
-    () => (text ? text.content.trim().split(/\s+/).length : 0),
-    [text]
-  )
-  const totalWordsRef = useRefSync(totalWords)
+  useLayoutEffect(() => {
+    if (!savedReading) return
+    readingSessionRef.current = { ...savedReading }
+    readingCompletedRef.current = savedReading.completedWpm !== null
+    const percent =
+      totalWords > 0
+        ? Math.round((savedReading.wordIndex / totalWords) * 100)
+        : 0
+    halfwaySentRef.current = percent >= PVP_HALFWAY_PROGRESS_THRESHOLD
+    setMyProgress(percent)
+  }, [savedReading, totalWords])
 
   useEffect(() => {
     if (phase !== 'reading' && phase !== 'quiz') return
-    if (!gameStartRef.current) gameStartRef.current = Date.now()
-    const start = gameStartRef.current
+    if (readingSessionRef.current.gameStartedAt === null) {
+      readingSessionRef.current.gameStartedAt = Date.now()
+      persistReading()
+    }
+    const start = readingSessionRef.current.gameStartedAt
+    setElapsedSeconds(Math.floor((Date.now() - start) / 1000))
     const interval = setInterval(() => {
       setElapsedSeconds(Math.floor((Date.now() - start) / 1000))
     }, PVP_TICK_INTERVAL_MS)
     return () => clearInterval(interval)
-  }, [phase])
+  }, [phase, persistReading, savedReading])
+
+  useEffect(() => {
+    if (phase === 'reading' && savedReading?.completedWpm != null) startQuiz()
+    if (phase === 'results' && gameId && userId) {
+      clearPvpReadingSession(gameId, userId)
+    }
+  }, [phase, savedReading, startQuiz, gameId, userId])
 
   const attemptForfeit = useCallback(async (): Promise<boolean> => {
     if (!gameId || !userId || forfeitingRef.current || submittedRef.current)
@@ -167,7 +215,8 @@ export function usePvpGameCallbacks({
     setForfeitError(null)
     try {
       await forfeitPvpGame(gameId, userId)
-      clearPendingSubmit(gameId, PVP_SUBMIT_STORAGE_PREFIX)
+      clearPvpReadingSession(gameId, userId)
+      clearPendingSubmit(gameId, userId)
       if (mountedRef.current) navigate(ROUTES.PVP)
       return true
     } catch (err) {
@@ -233,8 +282,8 @@ export function usePvpGameCallbacks({
     if (preferences.mode === 'adaptive' && adaptiveWpmRef.current !== null) {
       return adaptiveWpmRef.current
     }
-    if (measuredWpmRef.current !== null) {
-      return measuredWpmRef.current
+    if (readingSessionRef.current.completedWpm !== null) {
+      return readingSessionRef.current.completedWpm
     }
     return playerWpmRef.current
   }, [preferences.mode, playerWpmRef])
@@ -245,11 +294,13 @@ export function usePvpGameCallbacks({
 
   const handlePositionChange = useCallback(
     (wordIndex: number) => {
+      if (readingCompletedRef.current) return
       recordActivity()
-
-      if (wordIndex > 0 && !readingStartRef.current) {
-        readingStartRef.current = new Date().toISOString()
+      readingSessionRef.current.wordIndex = wordIndex
+      if (wordIndex > 0 && !readingSessionRef.current.readingStartedAt) {
+        readingSessionRef.current.readingStartedAt = new Date().toISOString()
       }
+      persistReading()
 
       const percent =
         totalWordsRef.current > 0
@@ -267,7 +318,14 @@ export function usePvpGameCallbacks({
         sendMilestone({ userId, type: 'halfway' })
       }
     },
-    [recordActivity, updateProgress, userId, sendMilestone, totalWordsRef]
+    [
+      recordActivity,
+      updateProgress,
+      userId,
+      sendMilestone,
+      totalWordsRef,
+      persistReading,
+    ]
   )
 
   const handleReadingComplete = useCallback(
@@ -283,31 +341,39 @@ export function usePvpGameCallbacks({
         // Compute actual WPM from elapsed reading time so the result
         // reflects the true average speed (including pauses and mid-read
         // WPM changes) rather than the last-set preference value.
-        if (readingStartRef.current && totalWordsRef.current > 0) {
+        if (
+          readingSessionRef.current.readingStartedAt &&
+          totalWordsRef.current > 0
+        ) {
           const elapsedMs =
-            Date.now() - new Date(readingStartRef.current).getTime()
+            Date.now() -
+            new Date(readingSessionRef.current.readingStartedAt).getTime()
           const computed = calculateWpmFromReading(
             totalWordsRef.current,
             elapsedMs
           )
           if (computed > 0) {
-            measuredWpmRef.current = Math.min(computed, MAX_WPM)
+            readingSessionRef.current.completedWpm = Math.min(computed, MAX_WPM)
           }
         }
+
+        readingSessionRef.current.wordIndex = totalWordsRef.current
+        readingSessionRef.current.completedWpm = getEffectiveWpm()
+        persistReading()
 
         if (userId) {
           updateProgress(totalWordsRef.current, 100)
           sendMilestone({ userId, type: 'started_quiz' })
         }
 
-        if (text && readingStartRef.current) {
+        if (text && readingSessionRef.current.readingStartedAt) {
           const effectiveWpm = getEffectiveWpm()
           logUserActivity(
             {
               id: activityIdRef.current ?? undefined,
               textId: text.id,
               wpm: effectiveWpm,
-              startTime: readingStartRef.current,
+              startTime: readingSessionRef.current.readingStartedAt,
               endTime: new Date().toISOString(),
               mode: preferences.mode,
               progressIndex: totalWordsRef.current,
@@ -336,6 +402,7 @@ export function usePvpGameCallbacks({
       appendSaveWarning,
       phaseRef,
       totalWordsRef,
+      persistReading,
     ]
   )
 
@@ -356,7 +423,8 @@ export function usePvpGameCallbacks({
             const result = await submitPvpResult(gameId, userId, wpm, score)
             // Clear storage unconditionally so a page refresh won't
             // re-submit, even if the component has unmounted.
-            clearPendingSubmit(gameId, PVP_SUBMIT_STORAGE_PREFIX)
+            clearPendingSubmit(gameId, userId)
+            clearPvpReadingSession(gameId, userId)
             if (!mountedRef.current) return
             if (result) {
               setGame(result)
@@ -385,7 +453,13 @@ export function usePvpGameCallbacks({
 
   // Auto-retry a pending submission saved before a page refresh.
   useEffect(() => {
-    if (!pendingSubmit || submittedRef.current) return
+    if (
+      phase !== 'waiting' ||
+      !textId ||
+      !pendingSubmit ||
+      submittedRef.current
+    )
+      return
     submittedRef.current = true
     lastSubmitRef.current = pendingSubmit
     setMyWpm(pendingSubmit.wpm)
@@ -393,9 +467,8 @@ export function usePvpGameCallbacks({
     setMyOverallScore(
       computeOverallScore(pendingSubmit.wpm, pendingSubmit.score)
     )
-    finishQuiz()
     submitResult(pendingSubmit.wpm, pendingSubmit.score)
-  }, [pendingSubmit, finishQuiz, submitResult])
+  }, [phase, textId, pendingSubmit, submitResult])
 
   const handleQuizFinish = useCallback(
     async (score: number) => {
@@ -435,9 +508,7 @@ export function usePvpGameCallbacks({
       }
 
       lastSubmitRef.current = { wpm, score }
-      if (
-        !writePendingSubmit(gameId, PVP_SUBMIT_STORAGE_PREFIX, { wpm, score })
-      ) {
+      if (!writePendingSubmit(gameId, userId, { wpm, score })) {
         appendSaveWarning(
           'Could not save a backup of your results.',
           'Could not save a backup of your results. Do not close this page until submission succeeds.'
@@ -460,8 +531,8 @@ export function usePvpGameCallbacks({
 
   const retrySubmit = useCallback(async () => {
     let submitData = lastSubmitRef.current
-    if (!submitData && gameId) {
-      submitData = readPendingSubmit(gameId, PVP_SUBMIT_STORAGE_PREFIX)
+    if (!submitData && gameId && userId) {
+      submitData = readPendingSubmit(gameId, userId)
     }
     if (!submitData) {
       setSubmitError('No result to retry. Please refresh the page.')
@@ -469,7 +540,7 @@ export function usePvpGameCallbacks({
     }
     lastSubmitRef.current = submitData
     await submitResult(submitData.wpm, submitData.score)
-  }, [gameId, submitResult])
+  }, [gameId, userId, submitResult])
 
   // Fire-and-forget forfeit on page unload so the opponent gets immediate
   // resolution instead of waiting for the full AFK timeout.
@@ -484,6 +555,7 @@ export function usePvpGameCallbacks({
         !submittedRef.current &&
         !forfeitingRef.current
       ) {
+        clearPvpReadingSession(gameId, userId)
         const token = sessionRef.current?.access_token
         if (token) {
           forfeitOnUnload(gameId, userId, token)
@@ -504,6 +576,7 @@ export function usePvpGameCallbacks({
 
   return {
     playerWpm,
+    initialWordIndex: savedReading?.wordIndex ?? 0,
     myProgress,
     opponentProgress,
     elapsedSeconds,

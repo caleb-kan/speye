@@ -8,9 +8,15 @@ const renderWithRouter = (component: React.ReactElement) => {
   return render(<BrowserRouter>{component}</BrowserRouter>)
 }
 
+let mockIsMobile = false
+vi.mock('../../hooks/useIsMobile', () => ({
+  useIsMobile: () => mockIsMobile,
+}))
+
 describe('Footer', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockIsMobile = false
   })
 
   it('renders without crashing', () => {
@@ -33,6 +39,14 @@ describe('Footer', () => {
     const termsLink = screen.getByTestId('footer-terms-link')
     expect(termsLink).toBeInTheDocument()
     expect(termsLink).toHaveAttribute('href', '/terms')
+  })
+
+  it('keeps legal and license links available on mobile', () => {
+    mockIsMobile = true
+    renderWithRouter(<Footer />)
+    expect(screen.getByRole('link', { name: 'Terms of Service' })).toBeVisible()
+    expect(screen.getByRole('link', { name: 'Privacy Policy' })).toBeVisible()
+    expect(screen.getByRole('link', { name: 'License' })).toBeVisible()
   })
 
   it('renders Privacy Policy link', () => {

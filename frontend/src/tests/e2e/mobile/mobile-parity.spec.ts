@@ -131,7 +131,14 @@ for (const viewport of [
       .getByRole('textbox', { name: 'Jump to page number' })
       .press('Enter')
     await expect(pagination).toContainText('3 / 3')
-    await pagination.getByRole('button', { name: 'First page' }).click()
+    await page.getByRole('button', { name: 'Delete text' }).click()
+    await page
+      .getByRole('alertdialog')
+      .getByRole('button', { name: 'Delete', exact: true })
+      .click()
+    await expect(pagination).toContainText('2 / 2')
+    await pagination.getByRole('button', { name: 'Previous page' }).click()
+    await expect(pagination).toContainText('1 / 2')
     await page.locator('main').evaluate(async (main) => {
       await new Promise(requestAnimationFrame)
       main.scrollTo(0, main.scrollHeight)

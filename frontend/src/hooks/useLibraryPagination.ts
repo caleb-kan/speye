@@ -51,8 +51,8 @@ export const useLibraryPagination = <T>(
   }, [])
 
   const handlePreviousPage = useCallback(() => {
-    setCurrentPage((prev) => Math.max(1, prev - 1))
-  }, [])
+    setCurrentPage((prev) => Math.max(1, Math.min(prev, totalPages) - 1))
+  }, [totalPages])
 
   const handleNextPage = useCallback(() => {
     setCurrentPage((prev) => Math.min(totalPages, prev + 1))

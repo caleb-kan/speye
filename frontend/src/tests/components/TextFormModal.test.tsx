@@ -82,6 +82,10 @@ describe('TextFormModal', () => {
       expect(
         screen.getByRole('button', { name: 'Uploading...' })
       ).toBeInTheDocument()
+      await waitFor(() => {
+        expect(mockOnClose).toHaveBeenCalledOnce()
+        expect(uploadButton).not.toBeDisabled()
+      })
     })
   })
 
@@ -152,6 +156,10 @@ describe('TextFormModal', () => {
       expect(
         screen.getByRole('button', { name: 'Saving...' })
       ).toBeInTheDocument()
+      await waitFor(() => {
+        expect(mockOnClose).toHaveBeenCalledOnce()
+        expect(saveButton).not.toBeDisabled()
+      })
     })
 
     it('should handle null title in initial data', () => {
@@ -582,6 +590,10 @@ describe('TextFormModal', () => {
       expect(
         screen.getByRole('button', { name: 'Creating Public Copy...' })
       ).toBeInTheDocument()
+      await waitFor(() => {
+        expect(mockOnClose).toHaveBeenCalledOnce()
+        expect(makePublicButton).not.toBeDisabled()
+      })
     })
 
     it('should disable other buttons while making public copy', async () => {
@@ -617,6 +629,10 @@ describe('TextFormModal', () => {
 
       expect(cancelButton).toBeDisabled()
       expect(saveButton).toBeDisabled()
+      await waitFor(() => {
+        expect(mockOnClose).toHaveBeenCalledOnce()
+        expect(cancelButton).not.toBeDisabled()
+      })
     })
 
     it('should call onMakePublicCopy with modified content', async () => {

@@ -5,6 +5,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react'
+import { useIsMobile } from '../../hooks/useIsMobile'
 
 export type JumpToPageState = {
   value: string
@@ -40,6 +41,7 @@ export function LibraryPagination({
   onJumpInputFocus,
   onJumpInputBlur,
 }: LibraryPaginationProps) {
+  const isMobile = useIsMobile()
   const [isAtBottom, setIsAtBottom] = useState(false)
 
   useEffect(() => {
@@ -66,21 +68,30 @@ export function LibraryPagination({
   const navigateAndScroll = (navigate: () => void) => {
     navigate()
     requestAnimationFrame(() => {
-      document.querySelector('main')?.scrollTo({ top: 0, behavior: 'smooth' })
+      document.querySelector('main')?.scrollTo({
+        top: 0,
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches
+          ? 'auto'
+          : 'smooth',
+      })
     })
   }
 
   if (totalPages <= 1) return null
 
-  const buttonClass =
-    'p-1.5 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed'
+  const mobileControlClass = isMobile
+    ? 'min-w-11 min-h-11 scroll-mt-16 scroll-mb-(--mobile-navigation-height)'
+    : ''
+  const buttonClass = `p-1.5 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed ${mobileControlClass} ${isMobile ? 'grid place-items-center shrink-0' : ''}`
 
   return (
-    <div
-      className={`fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center px-3 py-1.5 rounded-full whitespace-nowrap transition-all duration-500 ease-in-out ${
-        isAtBottom
-          ? 'bg-transparent shadow-none backdrop-blur-none gap-6'
-          : 'bg-bg backdrop-blur-md shadow-md gap-3'
+    <nav
+      className={`flex items-center py-1.5 rounded-full whitespace-nowrap transition-all duration-500 ease-in-out motion-reduce:transition-none ${
+        isMobile
+          ? 'relative z-0 mt-4 max-w-full flex-wrap justify-center px-1 gap-1 bg-bg backdrop-blur-md shadow-md scroll-mt-16 scroll-mb-(--mobile-navigation-height)'
+          : isAtBottom
+            ? 'fixed bottom-4 left-1/2 -translate-x-1/2 z-50 px-3 bg-transparent shadow-none backdrop-blur-none gap-6'
+            : 'fixed bottom-4 left-1/2 -translate-x-1/2 z-50 px-3 bg-bg backdrop-blur-md shadow-md gap-3'
       }`}
       aria-label="Pagination"
     >
@@ -103,7 +114,10 @@ export function LibraryPagination({
         <ChevronLeft className="w-4 h-4" />
       </button>
 
-      <span className="text-sm text-text-secondary px-2" aria-live="polite">
+      <span
+        className={`text-sm text-text-secondary ${isMobile ? 'px-1' : 'px-2'}`}
+        aria-live="polite"
+      >
         {jumpToPage.isFocused ? (
           <input
             ref={jumpToPageInputRef}
@@ -115,16 +129,18 @@ export function LibraryPagination({
             onBlur={onJumpInputBlur}
             autoFocus
             aria-label="Jump to page number"
-            className="bg-transparent border-b border-primary text-primary focus:outline-none text-center text-sm"
+            className={`bg-transparent border-b border-primary text-primary focus:outline-none text-center text-sm ${mobileControlClass}`}
             style={{
-              width: `${Math.max(String(currentPage).length, jumpToPage.value.length || 1)}ch`,
+              width: isMobile
+                ? '3ch'
+                : `${Math.max(String(currentPage).length, jumpToPage.value.length || 1)}ch`,
             }}
           />
         ) : (
           <button
             type="button"
             onClick={onJumpInputFocus}
-            className="border-b border-current hover:text-primary hover:border-primary transition-colors cursor-text"
+            className={`border-b border-current hover:text-primary hover:border-primary transition-colors cursor-text ${mobileControlClass}`}
           >
             {currentPage}
           </button>
@@ -151,6 +167,6 @@ export function LibraryPagination({
       >
         <ChevronLast className="w-4 h-4" />
       </button>
-    </div>
+    </nav>
   )
 }

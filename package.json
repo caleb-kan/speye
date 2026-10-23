@@ -14,9 +14,9 @@
   },
   "devDependencies": {
     "generate-license-file": "^4.2.5",
-    "prettier": "^3.9.9"
+    "prettier": "^3.9.10"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.117.3"
+    "@supabase/supabase-js": "^2.118.0"
   }
 }

@@ -3,6 +3,8 @@ import {
   getTextLeaderboard,
   updateLeaderboardCache,
 } from '../../services/leaderboardService'
+import { isOffline } from '../../services/networkStatus'
+import { pwaLogger } from '../../utils/pwaLogger'
 
 const {
   mockGetTextLeaderboardDb,
@@ -48,6 +50,8 @@ vi.mock('../../services/networkStatus', () => ({
 describe('leaderboardService', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(isOffline).mockReturnValue(false)
+    mockUpdateLeaderboardCacheDb.mockReset().mockResolvedValue(undefined)
     mockGetTextLeaderboardFallback
       .mockReset()
       .mockResolvedValue({ top: [], currentUser: null })
@@ -138,6 +142,71 @@ describe('leaderboardService', () => {
         'text-1',
         undefined
       )
+      expect(mockUpdateLeaderboardCacheDb).not.toHaveBeenCalled()
+    })
+
+    it('warms an empty cache without delaying saved results and deduplicates pending warms', async () => {
+      mockGetTextLeaderboardDb.mockResolvedValue({ top: [], currentUser: null })
+      const saved = { top: mockTop, currentUser: null }
+      mockGetTextLeaderboardFallback.mockResolvedValue(saved)
+      let finishWarm!: () => void
+      const warming = new Promise<void>((resolve) => {
+        finishWarm = resolve
+      })
+      mockUpdateLeaderboardCacheDb.mockReturnValue(warming)
+
+      expect(
+        await Promise.all([
+          getTextLeaderboard('cold-text', 'reader'),
+          getTextLeaderboard('cold-text', 'reader'),
+        ])
+      ).toEqual([saved, saved])
+      expect(mockUpdateLeaderboardCacheDb).toHaveBeenCalledExactlyOnceWith(
+        'cold-text',
+        'reader'
+      )
+      finishWarm()
+      await warming
+      expect(await getTextLeaderboard('cold-text', 'reader')).toEqual(saved)
+      expect(mockUpdateLeaderboardCacheDb).toHaveBeenCalledTimes(2)
+    })
+
+    it('preserves saved results when asynchronous warming fails and allows retry', async () => {
+      mockGetTextLeaderboardDb.mockResolvedValue({ top: [], currentUser: null })
+      const saved = { top: mockTop, currentUser: null }
+      mockGetTextLeaderboardFallback.mockResolvedValue(saved)
+      mockUpdateLeaderboardCacheDb.mockRejectedValue(new Error('Redis quota'))
+
+      expect(await getTextLeaderboard('failed-warm-text', 'reader')).toEqual(
+        saved
+      )
+      await vi.waitFor(() => expect(pwaLogger.error).toHaveBeenCalled())
+      expect(await getTextLeaderboard('failed-warm-text', 'reader')).toEqual(
+        saved
+      )
+      expect(mockUpdateLeaderboardCacheDb).toHaveBeenCalledTimes(2)
+    })
+
+    it('does not warm a leaderboard without saved entries', async () => {
+      mockGetTextLeaderboardDb.mockResolvedValue({ top: [], currentUser: null })
+
+      expect(await getTextLeaderboard('empty-text', 'reader')).toEqual({
+        top: [],
+        currentUser: null,
+      })
+      expect(mockUpdateLeaderboardCacheDb).not.toHaveBeenCalled()
+    })
+
+    it('does not read or warm leaderboards while offline', async () => {
+      vi.mocked(isOffline).mockReturnValue(true)
+
+      expect(await getTextLeaderboard('text-1', 'reader')).toEqual({
+        top: [],
+        currentUser: null,
+      })
+      expect(mockGetTextLeaderboardDb).not.toHaveBeenCalled()
+      expect(mockGetTextLeaderboardFallback).not.toHaveBeenCalled()
+      expect(mockUpdateLeaderboardCacheDb).not.toHaveBeenCalled()
     })
 
     it('should recover from a Redis DNS failure using saved results', async () => {
@@ -157,6 +226,7 @@ describe('leaderboardService', () => {
         'text-1',
         'reader'
       )
+      expect(mockUpdateLeaderboardCacheDb).not.toHaveBeenCalled()
     })
 
     it('should report a database error if both leaderboard sources fail', async () => {

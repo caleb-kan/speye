@@ -9,9 +9,11 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey)
 const redis = new Redis({
   url: Deno.env.get('UPSTASH_REDIS_REST_URL')!,
   token: Deno.env.get('UPSTASH_REDIS_REST_TOKEN')!,
+  retry: { retries: 0 },
+  signal: () => AbortSignal.timeout(3000),
 })
 
-const LB_TTL = 60 * 60 * 24 * 7 // 7 days
+const LB_TTL = 5 * 60 // Bound public profile and text-visibility staleness.
 
 // Scoring formula duplicated from lib/scoring.ts because Deno edge functions
 // cannot import from the shared lib/ directory. Keep in sync manually.
@@ -61,189 +63,162 @@ type RequestBody = {
 function extractAvatarUrl(user: any): string | null {
   const metadata = user?.user_metadata
   const identityData = user?.identities?.[0]?.identity_data
-  return (
+  const value =
     metadata?.avatar_url ??
     metadata?.picture ??
     identityData?.picture ??
     identityData?.avatar_url ??
     null
-  )
+  return typeof value === 'string' ? value : null
 }
 
-/**
- * For a given text, compute each user's best entry from user_activity.
- * Best = highest computeOverallScore(wpm, score). Returns one entry per user.
- */
-async function computeBestPerUser(textId: string) {
-  const { data: rows, error } = await supabase
-    .from('user_activity')
-    .select('user_id, wpm, score')
-    .eq('text_id', textId)
-    .not('score', 'is', null)
+type LeaderboardEntry = {
+  userId: string
+  username: string | null
+  avatarUrl: string | null
+  wpm: number
+  quizScore: number
+  overallScore: number
+}
 
-  if (error) {
-    throw new Error(
-      `Failed to fetch user_activity for leaderboard: ${error.message}`
-    )
-  }
-  if (!rows) return []
-
-  const bestByUser = new Map<
-    string,
-    { wpm: number; quizScore: number; overallScore: number }
-  >()
-
-  for (const row of rows) {
-    const overallScore = computeOverallScore(row.wpm, row.score)
-    const existing = bestByUser.get(row.user_id)
-    if (!existing || overallScore > existing.overallScore) {
-      bestByUser.set(row.user_id, {
-        wpm: row.wpm,
-        quizScore: row.score,
-        overallScore,
-      })
+/** Match the database's earliest start_time, then id tie breaker. */
+async function computeBestPerUser(textId: string, userId?: string) {
+  const bestByUser = new Map<string, LeaderboardEntry>()
+  const pageSize = 500
+  for (let offset = 0; ; offset += pageSize) {
+    let query = supabase
+      .from('user_activity')
+      .select('id, user_id, start_time, wpm, score')
+      .eq('text_id', textId)
+      .not('score', 'is', null)
+      .order('start_time', { ascending: true, nullsFirst: false })
+      .order('id', { ascending: true })
+      .range(offset, offset + pageSize - 1)
+    if (userId) query = query.eq('user_id', userId)
+    const { data: rows, error } = await query
+    if (error) throw error
+    for (const row of rows ?? []) {
+      if (
+        !Number.isFinite(row.wpm) ||
+        row.wpm < 0 ||
+        !Number.isFinite(row.score) ||
+        row.score < 0 ||
+        row.score > MAX_QUIZ_SCORE
+      ) {
+        throw new Error('Invalid saved leaderboard statistics')
+      }
+      const overallScore = computeOverallScore(row.wpm, row.score)
+      const existing = bestByUser.get(row.user_id)
+      if (!existing || overallScore > existing.overallScore) {
+        bestByUser.set(row.user_id, {
+          userId: row.user_id,
+          username: null,
+          avatarUrl: null,
+          wpm: row.wpm,
+          quizScore: row.score,
+          overallScore,
+        })
+      }
     }
+    if (!rows || rows.length < pageSize) break
   }
 
-  const userIds = Array.from(bestByUser.keys())
-
-  const { data: userData, error: userError } = await supabase
-    .from('users')
-    .select('id, username')
-    .in('id', userIds)
-
-  if (userError) {
-    console.error(
-      'Failed to fetch usernames for leaderboard:',
-      userError.message
+  const entries = Array.from(bestByUser.values())
+  // Bound Auth requests and profile queries independently of leaderboard size.
+  for (let offset = 0; offset < entries.length; offset += 50) {
+    const batch = entries.slice(offset, offset + 50)
+    const { data: users, error } = await supabase
+      .from('users')
+      .select('id, username')
+      .in(
+        'id',
+        batch.map((entry) => entry.userId)
+      )
+      .range(0, batch.length - 1)
+    if (error) throw error
+    const usernames = new Map(
+      (users ?? []).map((user) => [user.id, user.username])
+    )
+    await Promise.all(
+      batch.map(async (entry) => {
+        const { data, error: authError } =
+          await supabase.auth.admin.getUserById(entry.userId)
+        if (authError) throw authError
+        entry.username = usernames.get(entry.userId) ?? null
+        entry.avatarUrl = extractAvatarUrl(data.user)
+      })
     )
   }
-
-  // Fetch avatar URLs per user (avoids listUsers which fetches ALL users)
-  const avatarResults = await Promise.all(
-    userIds.map((id) => supabase.auth.admin.getUserById(id))
-  )
-
-  const usernamesByUserId = new Map(
-    (userData ?? []).map((u) => [u.id, u.username])
-  )
-  const avatarUrlsByUserId = new Map(
-    avatarResults.map((r, i) => [userIds[i], extractAvatarUrl(r.data?.user)])
-  )
-
-  return Array.from(bestByUser.entries()).map(([userId, stats]) => ({
-    userId,
-    username: usernamesByUserId.get(userId) ?? null,
-    avatarUrl: avatarUrlsByUserId.get(userId) ?? null,
-    ...stats,
-  }))
+  return entries
 }
 
-/**
- * Populate the full leaderboard for a text into Redis.
- * Called on cold cache (sorted set doesn't exist).
- */
-async function backfillText(textId: string) {
-  const entries = await computeBestPerUser(textId)
-  if (entries.length === 0) return
+// Publish each generation atomically. Warm writes never extend its expiration.
+// Preserve tied stats until the next canonical rebuild; only refresh matching results.
+const WRITE_LEADERBOARD = `
+local entries = cjson.decode(ARGV[1])
+local ttl = redis.call('PTTL', KEYS[1])
+local cold = ttl <= 0
+if cold and ARGV[3] ~= '1' then return {'missing'} end
+local function write(entry)
+  local statsKey = ARGV[4] .. entry.userId
+  redis.call('ZADD', KEYS[1], entry.overallScore, entry.userId)
+  redis.call('HSET', statsKey,
+    'username', entry.username == cjson.null and '' or entry.username,
+    'avatarUrl', entry.avatarUrl == cjson.null and '' or entry.avatarUrl,
+    'wpm', entry.wpm, 'quizScore', entry.quizScore,
+    'overallScore', entry.overallScore)
+  redis.call('PEXPIRE', statsKey, ttl)
+end
+if cold then
+  redis.call('DEL', KEYS[1])
+  ttl = tonumber(ARGV[5]) * 1000
+  for _, entry in ipairs(entries) do write(entry) end
+  redis.call('PEXPIRE', KEYS[1], ttl)
+  return {'backfilled'}
+end
+for _, entry in ipairs(entries) do
+  if entry.userId == ARGV[2] then
+    local score = redis.call('ZSCORE', KEYS[1], entry.userId)
+    local statsKey = ARGV[4] .. entry.userId
+    local sameResult = tonumber(redis.call('HGET', statsKey, 'wpm')) == entry.wpm
+      and tonumber(redis.call('HGET', statsKey, 'quizScore')) == entry.quizScore
+    if not score or entry.overallScore > tonumber(score)
+      or (entry.overallScore == tonumber(score)
+        and sameResult) then
+      write(entry)
+      score = entry.overallScore
+    end
+    return {'updated', tostring(score)}
+  end
+end
+return {'no_scored_activity'}
+`
 
-  const lbKey = `lb:${textId}`
-  const pipeline = redis.pipeline()
-
-  for (const entry of entries) {
-    pipeline.zadd(lbKey, {
-      score: entry.overallScore,
-      member: entry.userId,
-    })
-    pipeline.hset(`lb_stats:${textId}:${entry.userId}`, {
-      username: entry.username ?? '',
-      avatarUrl: entry.avatarUrl ?? '',
-      wpm: entry.wpm,
-      quizScore: entry.quizScore,
-      overallScore: entry.overallScore,
-    })
-    pipeline.expire(`lb_stats:${textId}:${entry.userId}`, LB_TTL)
-  }
-
-  pipeline.expire(lbKey, LB_TTL)
-  await pipeline.exec()
-}
-
-/**
- * Update a single user's leaderboard entry in Redis.
- * If the sorted set doesn't exist (cold cache), backfill first.
- */
 async function updateUserEntry(textId: string, userId: string) {
   const lbKey = `lb:${textId}`
-
-  const exists = await redis.exists(lbKey)
-  if (!exists) {
-    await backfillText(textId)
-    return { status: 'backfilled' }
-  }
-
-  const { data: rows, error } = await supabase
-    .from('user_activity')
-    .select('wpm, score')
-    .eq('text_id', textId)
-    .eq('user_id', userId)
-    .not('score', 'is', null)
-
-  if (error) throw error
-  if (!rows || rows.length === 0) {
-    return { status: 'no_scored_activity' }
-  }
-
-  let bestWpm = 0
-  let bestQuizScore = 0
-  let bestOverall = -1
-
-  for (const row of rows) {
-    const overall = computeOverallScore(row.wpm, row.score)
-    if (overall > bestOverall) {
-      bestWpm = row.wpm
-      bestQuizScore = row.score
-      bestOverall = overall
+  let cold = !(await redis.exists(lbKey))
+  let entries = await computeBestPerUser(textId, cold ? undefined : userId)
+  for (;;) {
+    const result = await redis.eval<(string | number)[], [string, string?]>(
+      WRITE_LEADERBOARD,
+      [lbKey],
+      [
+        JSON.stringify(entries),
+        userId,
+        cold ? '1' : '0',
+        `lb_stats:${textId}:`,
+        LB_TTL,
+      ]
+    )
+    if (result[0] !== 'missing') {
+      return result[0] === 'updated'
+        ? { status: 'updated', overallScore: Number(result[1]) }
+        : { status: result[0] }
     }
+    // The generation expired while its user's database query was in flight.
+    cold = true
+    entries = await computeBestPerUser(textId)
   }
-
-  const { data: userData, error: userError } = await supabase
-    .from('users')
-    .select('username')
-    .eq('id', userId)
-    .maybeSingle()
-
-  if (userError) {
-    console.error('Failed to fetch username for user:', userError.message)
-  }
-
-  const { data: authData, error: authError } =
-    await supabase.auth.admin.getUserById(userId)
-
-  if (authError) {
-    console.error('Failed to fetch auth data for user:', authError.message)
-  }
-  const username = userData?.username ?? null
-  const avatarUrl = extractAvatarUrl(authData?.user)
-
-  const statsKey = `lb_stats:${textId}:${userId}`
-  const pipeline = redis.pipeline()
-
-  // bestOverall is already the user's highest-scoring attempt from all rows,
-  // so we unconditionally set it (no GT flag needed).
-  pipeline.zadd(lbKey, { score: bestOverall, member: userId })
-  pipeline.hset(statsKey, {
-    username: username ?? '',
-    avatarUrl: avatarUrl ?? '',
-    wpm: bestWpm,
-    quizScore: bestQuizScore,
-    overallScore: bestOverall,
-  })
-  pipeline.expire(lbKey, LB_TTL)
-  pipeline.expire(statsKey, LB_TTL)
-  await pipeline.exec()
-
-  return { status: 'updated', overallScore: bestOverall }
 }
 
 Deno.serve(async (req: Request) => {

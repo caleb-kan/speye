@@ -7,7 +7,7 @@ export async function getTextById(textId: string): Promise<Text | null> {
     .from('texts')
     .select('*')
     .eq('id', textId)
-    .single()
+    .maybeSingle()
 
   logDbQuery({
     table: 'texts',
@@ -15,6 +15,6 @@ export async function getTextById(textId: string): Promise<Text | null> {
     errors: error ? error.message : undefined,
   })
 
-  if (error || !data) return null
-  return data as Text
+  if (error) throw error
+  return data as Text | null
 }

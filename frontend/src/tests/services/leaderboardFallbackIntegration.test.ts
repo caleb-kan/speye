@@ -1,14 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getTextLeaderboard } from '../../services/leaderboardService'
 
-const { databaseRead } = vi.hoisted(() => ({ databaseRead: vi.fn() }))
+const { databaseRead, updateCache } = vi.hoisted(() => ({
+  databaseRead: vi.fn(),
+  updateCache: vi.fn(),
+}))
 vi.mock(
   '../../../../backend/supabase/database/leaderboard/getTextLeaderboard',
   () => ({ getTextLeaderboard: databaseRead })
 )
 vi.mock(
   '../../../../backend/supabase/database/leaderboard/updateLeaderboardCache',
-  () => ({ updateLeaderboardCache: vi.fn() })
+  () => ({ updateLeaderboardCache: updateCache })
 )
 vi.mock('../../utils/pwaLogger', () => ({
   pwaLogger: { debug: vi.fn(), warn: vi.fn(), error: vi.fn() },
@@ -18,6 +21,7 @@ vi.mock('../../services/networkStatus', () => ({ isOffline: () => false }))
 beforeEach(() => {
   vi.useFakeTimers()
   databaseRead.mockReset().mockResolvedValue({ top: [], currentUser: null })
+  updateCache.mockReset()
 })
 afterEach(() => {
   vi.useRealTimers()
@@ -59,7 +63,16 @@ describe('real Redis reader with database fallback', () => {
           ok: true,
           json: async () => [
             {
-              result: ['username', 'Reader', 'wpm', '400', 'quizScore', '100'],
+              result: [
+                'username',
+                'Reader',
+                'wpm',
+                '400',
+                'quizScore',
+                '100',
+                'overallScore',
+                '663',
+              ],
             },
           ],
         })
@@ -71,6 +84,36 @@ describe('real Redis reader with database fallback', () => {
       rank: 1,
     })
     expect(databaseRead).not.toHaveBeenCalled()
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it('loads saved results when a cache update changes metrics after ranks are read', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => [{ result: ['reader-1', 500] }],
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => [
+            {
+              result: ['wpm', '400', 'quizScore', '100', 'overallScore', '663'],
+            },
+          ],
+        })
+    )
+    const saved = {
+      top: [{ userId: 'reader-1', overallScore: 663, wpm: 400 }],
+      currentUser: null,
+    }
+    databaseRead.mockResolvedValue(saved)
+
+    expect(await getTextLeaderboard('text-1', 'reader-1')).toEqual(saved)
+    expect(databaseRead).toHaveBeenCalledWith('text-1', 'reader-1')
+    expect(updateCache).not.toHaveBeenCalled()
     expect(vi.getTimerCount()).toBe(0)
   })
 })

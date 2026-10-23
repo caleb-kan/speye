@@ -36,6 +36,10 @@ verify_jwt = false
 # The handler verifies the user token with Supabase Auth before service-role use.
 verify_jwt = false
 
+[functions.pvp-leaderboard]
+# The handler verifies the user token before reading authenticated PvP data.
+verify_jwt = false
+
 [functions.populate-quizzes]
 # Maintenance access also requires the exact service-role bearer in the handler.
 verify_jwt = true

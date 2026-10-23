@@ -57,6 +57,13 @@ export function loadEdgeFunction(
       Response,
       Headers,
       URL,
+      crypto: globalThis.crypto,
+      TextEncoder,
+      TextDecoder,
+      Uint8Array,
+      btoa,
+      atob,
+      AbortSignal,
       console: { log() {}, warn() {}, error() {} },
       setTimeout: options.setTimeout ?? setTimeout,
       fetch:

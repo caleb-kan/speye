@@ -101,7 +101,7 @@ export async function getPvpLeaderboard(currentUserId?: string): Promise<{
   try {
     const { data, error } = await supabase.functions.invoke<{
       top: PvpLeaderboardEntry[]
-    }>('pvp-leaderboard', { body: {} })
+    }>('pvp-leaderboard', { body: {}, timeout: 8000 })
     if (error || !isLeaderboardTop(data?.top)) {
       throw error ?? new Error('Invalid PvP leaderboard response')
     }

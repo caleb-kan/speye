@@ -58,7 +58,10 @@ describe('PvP cached top-five client and canonical player rank', () => {
       top: [leader],
       currentUser: null,
     })
-    expect(invoke).toHaveBeenCalledWith('pvp-leaderboard', { body: {} })
+    expect(invoke).toHaveBeenCalledWith('pvp-leaderboard', {
+      body: {},
+      timeout: 8000,
+    })
     expect(from).not.toHaveBeenCalled()
   })
 

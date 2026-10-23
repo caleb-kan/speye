@@ -44,7 +44,9 @@ avoid the PostgREST row cap. The writer atomically publishes rankings and
 matching statistics, and an older request cannot replace a higher best
 score. A healthy empty cache can be warmed after a successful database read
 for a signed-in reader; concurrent warms from the same client are deduplicated.
-Cache errors do not trigger additional warm attempts.
+Cache errors do not trigger additional warm attempts. Cache-update Edge
+invocations have an eight-second deadline so queued sync and pending warms
+are released if the function hangs.
 
 Each board generation has a fixed **five-minute** lifetime. Every member's
 statistics expire with that board, and normal updates do not extend its
@@ -74,7 +76,9 @@ metadata are never returned to clients.
 The current player's rating and rank remain database reads. If that player
 appears in the cached top five or their live rank has entered it, the client
 reloads the canonical top five. Shared opponents can be up to 30 seconds
-old. Cache or Edge failures retain the direct database query.
+old. Cache or Edge failures retain the direct database query. The optional Edge
+request has an eight-second deadline before this fallback, independent of
+the subsequent canonical database request.
 
 ### Existing stores retained across the stack
 

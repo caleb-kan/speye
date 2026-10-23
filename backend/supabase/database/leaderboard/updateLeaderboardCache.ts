@@ -11,6 +11,7 @@ export async function updateLeaderboardCache(
 ): Promise<void> {
   const { error } = await supabase.functions.invoke('leaderboard', {
     body: { text_id: textId, user_id: userId, action: 'update' },
+    timeout: 8000,
   })
 
   logDbQuery({

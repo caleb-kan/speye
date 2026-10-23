@@ -125,6 +125,7 @@ export function useNotificationSubscription(
         if (!mountedRef.current || channelRef.current !== channel) return
 
         if (subscriptionStatus === 'SUBSCRIBED') {
+          clearRetryTimeout()
           setStatus('connected')
           retryDelayRef.current = INITIAL_RETRY_DELAY_MS
           retryCountRef.current = 0
@@ -144,7 +145,7 @@ export function useNotificationSubscription(
           }
         }
       })
-  }, [userId, scheduleRetry])
+  }, [userId, scheduleRetry, clearRetryTimeout])
 
   useEffect(() => {
     subscribeRef.current = subscribe

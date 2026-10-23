@@ -5,6 +5,7 @@ import { updatePassword } from '../services/authService'
 import { getErrorMessage } from '../utils/getErrorMessage'
 import { getDefaultReadingRoute } from '../utils/routes'
 import { REDIRECT_DELAY_LOGIN } from '../constants/auth'
+import { useAuth } from './useAuth'
 
 export type UseResetPasswordFormResult = {
   password: string
@@ -25,27 +26,22 @@ export const useResetPasswordForm = (): UseResetPasswordFormResult => {
   const [message, setMessage] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
-
-  // Read hash synchronously during first render, before Supabase
-  // clears window.location.hash after processing the recovery token
-  const [isValidToken] = useState(() => {
-    const hashParams = new URLSearchParams(window.location.hash.substring(1))
-    return (
-      hashParams.get('access_token') !== null &&
-      hashParams.get('type') === 'recovery'
-    )
-  })
+  const { user, loading: authLoading } = useAuth()
+  const isValidToken = !authLoading && user !== null
 
   useEffect(() => {
-    if (!isValidToken) {
+    if (!authLoading && !user) {
       navigate('/login', { replace: true })
     }
-  }, [isValidToken, navigate])
+  }, [authLoading, user, navigate])
 
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const mountedRef = useRef(false)
 
   useEffect(() => {
+    mountedRef.current = true
     return () => {
+      mountedRef.current = false
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current)
       }
@@ -87,6 +83,7 @@ export const useResetPasswordForm = (): UseResetPasswordFormResult => {
 
       try {
         const { error } = await updatePassword(password)
+        if (!mountedRef.current) return
 
         if (error) throw error
 
@@ -97,9 +94,10 @@ export const useResetPasswordForm = (): UseResetPasswordFormResult => {
           REDIRECT_DELAY_LOGIN
         )
       } catch (err: unknown) {
+        if (!mountedRef.current) return
         setError(getErrorMessage(err))
       } finally {
-        setLoading(false)
+        if (mountedRef.current) setLoading(false)
       }
     },
     [clearTimeoutRef, confirmPassword, navigate, password]

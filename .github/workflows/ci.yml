@@ -35,6 +35,11 @@ jobs:
         run: npm ci --prefix backend
       - name: Keep database SQL outside the repository
         run: test -z "$(git ls-files '*.sql')"
+      - name: Audit dependencies
+        run: |
+          npm audit --audit-level=moderate
+          npm audit --prefix frontend --audit-level=moderate
+          npm audit --prefix backend --audit-level=moderate
       - name: Lint
         run: npm run lint
       - name: Format check

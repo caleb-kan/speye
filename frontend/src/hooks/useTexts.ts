@@ -20,9 +20,13 @@ export function useTexts({
   const [randomText, setRandomText] = useState<Text | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const selectedFictionRef = useRef(fiction)
 
-  const prevFictionRef = useRef<boolean | null>(null)
-  const initialFetchDoneRef = useRef(false)
+  const previousFiltersRef = useRef<{
+    fiction: boolean
+    complexityMin: number
+    complexityMax: number
+  } | null>(null)
   // Track fetch request ID to handle race conditions
   const fetchIdRef = useRef(0)
 
@@ -47,6 +51,7 @@ export function useTexts({
 
         // Only update state if this is still the latest request
         if (fetchIdRef.current === requestId) {
+          if (text) selectedFictionRef.current = f
           setRandomText(text ?? null)
           setLoading(false)
         }
@@ -67,26 +72,36 @@ export function useTexts({
   }, [doFetch, fiction, complexityMin, complexityMax, excludeTextIds])
 
   useEffect(() => {
-    const isFirstRun = prevFictionRef.current === null
-    const fictionChanged = !isFirstRun && prevFictionRef.current !== fiction
-    prevFictionRef.current = fiction
-
-    if (fictionChanged) {
-      initialFetchDoneRef.current = false
-    }
+    const previousFilters = previousFiltersRef.current
+    const isFirstRun = previousFilters === null
+    const fictionChanged =
+      previousFilters !== null && previousFilters.fiction !== fiction
+    const complexityChanged =
+      previousFilters !== null &&
+      (previousFilters.complexityMin !== complexityMin ||
+        previousFilters.complexityMax !== complexityMax)
+    previousFiltersRef.current = { fiction, complexityMin, complexityMax }
 
     const isOutOfRange =
       currentTextComplexity !== null &&
       (currentTextComplexity < complexityMin ||
         currentTextComplexity > complexityMax)
-    const needsInitialFetch = isFirstRun && !initialFetchDoneRef.current
-    const needsFetch = needsInitialFetch || fictionChanged || isOutOfRange
+    const needsFetch =
+      isFirstRun ||
+      fictionChanged ||
+      isOutOfRange ||
+      (complexityChanged &&
+        (currentTextComplexity === null ||
+          selectedFictionRef.current !== fiction))
 
     if (needsFetch) {
-      initialFetchDoneRef.current = true
       // Increment fetch ID to invalidate any in-flight requests
       const requestId = ++fetchIdRef.current
       doFetch(requestId, fiction, complexityMin, complexityMax, excludeTextIds)
+    } else if (complexityChanged) {
+      fetchIdRef.current += 1
+      setLoading(false)
+      setError(null)
     }
   }, [
     fiction,

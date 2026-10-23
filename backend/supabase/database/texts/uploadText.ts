@@ -5,27 +5,11 @@ import { logDbQuery } from '../logger'
 
 export type { TextInput }
 
-/**
- * For sectional texts the `content` column stores the first section's content
- * (used for complexity calculation and as fallback display text).
- */
-function getRepresentativeContent(data: TextInput): string {
-  if (
-    data.sectional &&
-    data.section_content &&
-    data.section_content.length > 0
-  ) {
-    return data.section_content[0].content
-  }
-  return data.content
-}
-
 export async function uploadText(
   userId: string,
   data: TextInput
 ): Promise<TextRecord> {
-  const representativeContent = getRepresentativeContent(data)
-  const complexity = calculateComplexity(representativeContent)
+  const complexity = calculateComplexity(data.content)
 
   const { data: result, error } = await supabase
     .from('texts')

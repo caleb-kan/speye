@@ -13,7 +13,9 @@ function isInteractiveTarget(target: EventTarget | null): boolean {
     target instanceof HTMLTextAreaElement ||
     target instanceof HTMLSelectElement ||
     target.isContentEditable ||
-    target.closest('[role="separator"]') !== null
+    target.closest(
+      '[role="separator"], [role="dialog"], [role="alertdialog"]'
+    ) !== null
   )
 }
 
@@ -26,7 +28,7 @@ export function useArrowNavigation({
     if (!enabled) return
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (isInteractiveTarget(event.target)) return
+      if (event.defaultPrevented || isInteractiveTarget(event.target)) return
 
       if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
         event.preventDefault()

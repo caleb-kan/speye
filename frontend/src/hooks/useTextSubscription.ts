@@ -73,8 +73,9 @@ export function useTextSubscription(
   const unsubscribe = useCallback(() => {
     clearRetryTimeout()
     if (channelRef.current) {
-      supabase.removeChannel(channelRef.current)
+      const channel = channelRef.current
       channelRef.current = null
+      supabase.removeChannel(channel)
     }
     setStatus('disconnected')
   }, [clearRetryTimeout])
@@ -83,13 +84,16 @@ export function useTextSubscription(
     if (!userId || !mountedRef.current) return
 
     if (channelRef.current) {
-      supabase.removeChannel(channelRef.current)
+      const channel = channelRef.current
+      channelRef.current = null
+      supabase.removeChannel(channel)
     }
 
     setStatus('connecting')
 
-    const channel = supabase
-      .channel(`texts:${userId}`)
+    const channel = supabase.channel(`texts:${userId}`)
+    channelRef.current = channel
+    channel
       .on(
         'postgres_changes',
         {
@@ -99,6 +103,7 @@ export function useTextSubscription(
           filter: `owner_id=eq.${userId}`,
         },
         (payload) => {
+          if (channelRef.current !== channel) return
           const event = payload as unknown as TextChangeEvent
 
           switch (payload.eventType) {
@@ -121,9 +126,10 @@ export function useTextSubscription(
         }
       )
       .subscribe((subscriptionStatus, err) => {
-        if (!mountedRef.current) return
+        if (!mountedRef.current || channelRef.current !== channel) return
 
         if (subscriptionStatus === 'SUBSCRIBED') {
+          clearRetryTimeout()
           setStatus('connected')
           retryDelayRef.current = INITIAL_RETRY_DELAY_MS
         } else if (
@@ -140,9 +146,7 @@ export function useTextSubscription(
           }
         }
       })
-
-    channelRef.current = channel
-  }, [userId, scheduleRetry])
+  }, [userId, scheduleRetry, clearRetryTimeout])
 
   useEffect(() => {
     subscribeRef.current = subscribe

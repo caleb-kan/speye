@@ -47,6 +47,7 @@ export const useLoginForm = (): UseLoginFormResult => {
   const { user } = useAuth()
 
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const mountedRef = useRef(false)
 
   useEffect(() => {
     if (user) {
@@ -55,7 +56,9 @@ export const useLoginForm = (): UseLoginFormResult => {
   }, [user, navigate])
 
   useEffect(() => {
+    mountedRef.current = true
     return () => {
+      mountedRef.current = false
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current)
       }
@@ -97,12 +100,14 @@ export const useLoginForm = (): UseLoginFormResult => {
 
     try {
       const { error } = await signInWithGoogle(buildRedirectUrl())
+      if (!mountedRef.current) return
 
       if (error) {
         setError(error.message)
         setLoading(false)
       }
     } catch (err) {
+      if (!mountedRef.current) return
       setError(getErrorMessage(err))
       setLoading(false)
     }
@@ -128,6 +133,7 @@ export const useLoginForm = (): UseLoginFormResult => {
           }
 
           const available = await isUsernameAvailable(normalisedUsername)
+          if (!mountedRef.current) return
 
           if (!available) {
             setUsernameError('Username is already taken')
@@ -140,6 +146,7 @@ export const useLoginForm = (): UseLoginFormResult => {
             password,
             username: normalisedUsername,
           })
+          if (!mountedRef.current) return
 
           if (error) throw error
 
@@ -157,6 +164,7 @@ export const useLoginForm = (): UseLoginFormResult => {
           }
         } else {
           const { data, error } = await signInWithEmail({ email, password })
+          if (!mountedRef.current) return
 
           if (error) throw error
 
@@ -170,6 +178,7 @@ export const useLoginForm = (): UseLoginFormResult => {
           }
         }
       } catch (err: unknown) {
+        if (!mountedRef.current) return
         const message = getErrorMessage(err)
         if (message.toLowerCase().includes('username')) {
           setUsernameError('Username is already taken')
@@ -177,7 +186,7 @@ export const useLoginForm = (): UseLoginFormResult => {
           setError(message)
         }
       } finally {
-        setLoading(false)
+        if (mountedRef.current) setLoading(false)
       }
     },
     [

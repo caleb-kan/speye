@@ -2,6 +2,7 @@ import { act, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useNotificationSubscription } from '../../hooks/useNotificationSubscription'
 import { usePvpGameChannel } from '../../hooks/usePvpGameChannel'
+import { useTextSubscription } from '../../hooks/useTextSubscription'
 
 type TestChannel = {
   handlers: Map<string, (payload: never) => void>
@@ -49,6 +50,87 @@ afterEach(() => {
 })
 
 describe('realtime subscription ownership', () => {
+  it.each([
+    ['text', useTextSubscription],
+    ['notification', useNotificationSubscription],
+  ] as const)(
+    'retains a %s channel that recovers before its retry',
+    (_name, useSubscription) => {
+      const log = vi.spyOn(console, 'error').mockImplementation(() => {})
+      const { result } = renderHook(() => useSubscription('reader-a', {}))
+      act(() => {
+        channels[0].status?.('CHANNEL_ERROR')
+        channels[0].status?.('SUBSCRIBED')
+        vi.advanceTimersByTime(60_000)
+      })
+
+      expect(result.current.status).toBe('connected')
+      expect(mocks.channel).toHaveBeenCalledTimes(1)
+      expect(mocks.removeChannel).not.toHaveBeenCalled()
+      log.mockRestore()
+    }
+  )
+
+  it('retains a private game channel that recovers before its retry', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { result } = renderHook(() =>
+      usePvpGameChannel('game-a', 'reader-a', {})
+    )
+    await act(async () => {})
+    await act(async () => {
+      channels[0].status?.('CHANNEL_ERROR')
+      channels[0].status?.('SUBSCRIBED')
+      vi.advanceTimersByTime(60_000)
+    })
+
+    expect(result.current.connectionLost).toBe(false)
+    expect(mocks.channel).toHaveBeenCalledTimes(1)
+    expect(mocks.removeChannel).not.toHaveBeenCalled()
+    log.mockRestore()
+  })
+
+  it('ignores text events and subscription status from the old account', () => {
+    const onDelete = vi.fn()
+    const { result, rerender } = renderHook(
+      ({ userId }) => useTextSubscription(userId, { onDelete }),
+      { initialProps: { userId: 'reader-a' } }
+    )
+    const oldChannel = channels[0]
+    rerender({ userId: 'reader-b' })
+    act(() => channels[1].status?.('SUBSCRIBED'))
+    act(() => {
+      oldChannel.handlers.get('postgres_changes')?.({
+        eventType: 'DELETE',
+        old: { id: 'old-text' },
+      } as never)
+      oldChannel.status?.('CLOSED')
+      vi.advanceTimersByTime(1000)
+    })
+
+    expect(onDelete).not.toHaveBeenCalled()
+    expect(result.current.status).toBe('connected')
+    expect(mocks.channel).toHaveBeenCalledTimes(2)
+  })
+
+  it('retains a healthy text replacement when the old channel closes late', () => {
+    const { result } = renderHook(() => useTextSubscription('reader-a', {}))
+    const oldChannel = channels[0]
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {})
+    act(() => {
+      oldChannel.status?.('CHANNEL_ERROR')
+      vi.advanceTimersByTime(1000)
+    })
+    act(() => channels[1].status?.('SUBSCRIBED'))
+    act(() => {
+      oldChannel.status?.('CLOSED')
+      vi.advanceTimersByTime(60_000)
+    })
+
+    expect(result.current.status).toBe('connected')
+    expect(mocks.channel).toHaveBeenCalledTimes(2)
+    log.mockRestore()
+  })
+
   it('ignores notification events and subscription status from the old account', () => {
     const onDelete = vi.fn()
     const { result, rerender } = renderHook(

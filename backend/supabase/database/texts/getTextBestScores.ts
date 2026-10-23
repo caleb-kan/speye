@@ -15,16 +15,13 @@ export async function getTextBestScores(
     errors: error ? error.message : undefined,
   })
 
-  if (error) {
-    console.error('Error fetching best scores:', error)
-    return {}
-  }
+  if (error) throw error
 
   const bestScores: Record<string, number> = {}
 
   data.forEach((quiz) => {
-    const currentMax = bestScores[quiz.text_id] || 0
-    if (quiz.score > currentMax) {
+    const currentMax = bestScores[quiz.text_id] ?? -1
+    if (quiz.score !== null && quiz.score > currentMax) {
       bestScores[quiz.text_id] = quiz.score
     }
   })

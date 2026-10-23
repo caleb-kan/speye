@@ -51,6 +51,65 @@ async function processOutput(
 }
 
 describe('process-text model response validation', () => {
+  it.each([true, false])(
+    'rejects model output that contradicts an explicit fiction choice of %s',
+    async (fiction) => {
+      const { response, complete } = await processOutput(
+        makeSuccess({ fiction: !fiction }),
+        { fiction }
+      )
+      expect(response.status).toBe(502)
+      expect(await response.json()).toMatchObject({
+        code: 'invalid_llm_output',
+      })
+      expect(complete).toHaveBeenCalledTimes(3)
+    }
+  )
+
+  it.each([true, false])(
+    'accepts model output that matches an explicit fiction choice of %s',
+    async (fiction) => {
+      const { response, complete } = await processOutput(
+        makeSuccess({ fiction }),
+        { fiction }
+      )
+      expect(response.status).toBe(200)
+      expect(await response.json()).toMatchObject({
+        fiction,
+        summary: fiction ? null : 'A valid summary for a non-fiction text.',
+      })
+      expect(complete.mock.calls[0][0].messages[0].content).toContain(
+        `Set fiction to ${fiction}`
+      )
+    }
+  )
+
+  it('retains automatic classification when fiction is null', async () => {
+    const { response } = await processOutput(
+      makeSuccess({ fiction: true, summary: null }),
+      { fiction: null }
+    )
+    expect(response.status).toBe(200)
+    expect(await response.json()).toMatchObject({
+      fiction: true,
+      summary: null,
+    })
+  })
+
+  it.each(['false', 0, [], {}].map((fiction) => ({ fiction })))(
+    'rejects a malformed explicit fiction flag (%j) before calling the model',
+    async ({ fiction }) => {
+      const { response, complete } = await processOutput(makeSuccess(), {
+        fiction,
+      })
+      expect(response.status).toBe(400)
+      expect(await response.json()).toEqual({
+        error: 'fiction must be a boolean or null',
+      })
+      expect(complete).not.toHaveBeenCalled()
+    }
+  )
+
   it.each([
     {
       name: 'non-fiction',

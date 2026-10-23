@@ -392,7 +392,8 @@ function isValidQuestion(q: QuizQuestion): boolean {
 function isValidResponse(
   data: unknown,
   sectional = false,
-  sectionCount = 0
+  sectionCount = 0,
+  expectedFiction?: boolean | null
 ): data is ProcessTextResponse {
   if (!data || typeof data !== 'object') return false
   const response = data as ProcessTextResponse
@@ -416,6 +417,8 @@ function isValidResponse(
   }
 
   if (typeof response.fiction !== 'boolean') return false
+  if (expectedFiction != null && response.fiction !== expectedFiction)
+    return false
 
   // Validate summary: non-fiction non-sectional texts must have a non-empty string summary.
   // Sectional texts always have null summary (enforced at the schema level).
@@ -475,6 +478,7 @@ Deno.serve(async (req: Request) => {
 
     let body: {
       content?: unknown
+      fiction?: unknown
       generateTitle?: unknown
       skipContentCheck?: unknown
       sectional?: unknown
@@ -493,6 +497,7 @@ Deno.serve(async (req: Request) => {
 
     const {
       content,
+      fiction,
       generateTitle = true,
       sectional = false,
       section_content,
@@ -503,6 +508,10 @@ Deno.serve(async (req: Request) => {
         { error: 'sectional and generateTitle must be booleans' },
         400
       )
+    }
+
+    if (fiction != null && typeof fiction !== 'boolean') {
+      return jsonResponse({ error: 'fiction must be a boolean or null' }, 400)
     }
 
     const skipContentCheck = body.skipContentCheck === true
@@ -634,6 +643,10 @@ Deno.serve(async (req: Request) => {
           .replace('{generate_title}', String(generateTitle))
           .replace('{text_content}', () => textContent)
       }
+    }
+
+    if (typeof fiction === 'boolean') {
+      systemMessage += ` Set fiction to ${fiction}, as explicitly selected by the user. Apply the summary requirements for this classification.`
     }
 
     let lastInvalidOutputError: Error | null = null
@@ -773,7 +786,8 @@ Deno.serve(async (req: Request) => {
         !isValidResponse(
           parsed,
           sectional === true,
-          sectionalArray?.length ?? 0
+          sectionalArray?.length ?? 0,
+          fiction
         )
       ) {
         lastInvalidOutputError = new Error(

@@ -27,6 +27,23 @@ function extractUsername(row: {
   return user?.username ?? null
 }
 
+function isLeaderboardTop(value: unknown): value is PvpLeaderboardEntry[] {
+  return (
+    Array.isArray(value) &&
+    value.length <= LEADERBOARD_TOP_N &&
+    value.every(
+      (row) =>
+        row &&
+        typeof row.user_id === 'string' &&
+        (row.username === null || typeof row.username === 'string') &&
+        ['elo_rating', 'games_played', 'wins', 'losses', 'draws'].every(
+          (field) => Number.isSafeInteger(row[field]) && row[field] >= 0
+        ) &&
+        row.games_played > 0
+    )
+  )
+}
+
 export async function getPvpRating(userId: string): Promise<PvpRating | null> {
   const { data, error } = await supabase
     .from('pvp_ratings')
@@ -46,10 +63,7 @@ export async function getPvpRating(userId: string): Promise<PvpRating | null> {
   return data
 }
 
-export async function getPvpLeaderboard(currentUserId?: string): Promise<{
-  top: PvpLeaderboardEntry[]
-  currentUser: PvpLeaderboardEntryWithRank | null
-}> {
+async function getLeaderboardTop(): Promise<PvpLeaderboardEntry[]> {
   const { data, error } = await supabase
     .from('pvp_ratings')
     .select(LEADERBOARD_SELECT)
@@ -67,7 +81,7 @@ export async function getPvpLeaderboard(currentUserId?: string): Promise<{
 
   if (error) throw error
 
-  const top = (data ?? []).map((row) => ({
+  return (data ?? []).map((row) => ({
     user_id: row.user_id,
     username: extractUsername(row),
     elo_rating: row.elo_rating,
@@ -76,6 +90,32 @@ export async function getPvpLeaderboard(currentUserId?: string): Promise<{
     losses: row.losses,
     draws: row.draws,
   }))
+}
+
+export async function getPvpLeaderboard(currentUserId?: string): Promise<{
+  top: PvpLeaderboardEntry[]
+  currentUser: PvpLeaderboardEntryWithRank | null
+}> {
+  let top: PvpLeaderboardEntry[]
+  let cached = false
+  try {
+    const { data, error } = await supabase.functions.invoke<{
+      top: PvpLeaderboardEntry[]
+    }>('pvp-leaderboard', { body: {}, timeout: 8000 })
+    if (error || !isLeaderboardTop(data?.top)) {
+      throw error ?? new Error('Invalid PvP leaderboard response')
+    }
+    top = data.top
+    cached = true
+  } catch {
+    top = await getLeaderboardTop()
+  }
+
+  // A player's own result must stay live, even inside the shared top five.
+  if (cached && currentUserId && top.some((e) => e.user_id === currentUserId)) {
+    top = await getLeaderboardTop()
+    cached = false
+  }
 
   let currentUser: PvpLeaderboardEntryWithRank | null = null
 
@@ -124,6 +164,11 @@ export async function getPvpLeaderboard(currentUserId?: string): Promise<{
         losses: userData.losses,
         draws: userData.draws,
         rank,
+      }
+
+      if (cached && (rank <= LEADERBOARD_TOP_N || top.length === 0)) {
+        top = await getLeaderboardTop()
+        if (top.some((e) => e.user_id === currentUserId)) currentUser = null
       }
     }
   }

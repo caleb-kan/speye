@@ -60,6 +60,19 @@ function parseHashArray(arr: string[]): Record<string, string> {
   return result
 }
 
+function parseOverallScore(value: unknown): number {
+  const score = Number(value)
+  if (
+    (typeof value !== 'string' && typeof value !== 'number') ||
+    value === '' ||
+    !Number.isFinite(score) ||
+    score < 0
+  ) {
+    throw new Error('Invalid cached leaderboard ranking')
+  }
+  return score
+}
+
 function buildEntry(
   userId: string,
   stats: Record<string, string>,
@@ -71,6 +84,8 @@ function buildEntry(
   if (
     !stats.wpm ||
     !stats.quizScore ||
+    !stats.overallScore ||
+    Number(stats.overallScore) !== overallScore ||
     !Number.isFinite(wpm) ||
     wpm < 0 ||
     !Number.isFinite(quizScore) ||
@@ -109,15 +124,22 @@ export async function getTextLeaderboard(
 
   logDbQuery({ table: 'redis:lb', action: 'ZREVRANGE' })
 
-  if (!raw || raw.length === 0) {
+  if (!Array.isArray(raw) || raw.length % 2 !== 0) {
+    throw new Error('Invalid cached leaderboard ranking')
+  }
+  if (raw.length === 0) {
     return { top: [], currentUser: null }
   }
 
   const userIds: string[] = []
   const overallScores: number[] = []
   for (let i = 0; i < raw.length; i += 2) {
-    userIds.push(String(raw[i]))
-    overallScores.push(Number(raw[i + 1]))
+    const userId = raw[i]
+    if (typeof userId !== 'string' || !userId) {
+      throw new Error('Invalid cached leaderboard ranking')
+    }
+    userIds.push(userId)
+    overallScores.push(parseOverallScore(raw[i + 1]))
   }
 
   const statCommands = userIds.map((uid) => [
@@ -135,22 +157,21 @@ export async function getTextLeaderboard(
 
   let currentUser: LeaderboardEntry | null = null
   if (currentUserId && !userIds.includes(currentUserId)) {
-    const [rank, score] = await redisPipeline<number | null>([
+    const [rank, score] = await redisPipeline<number | string | null>([
       ['ZREVRANK', `lb:${textId}`, currentUserId],
       ['ZSCORE', `lb:${textId}`, currentUserId],
     ])
 
-    if (rank !== null && score !== null) {
+    if (rank !== null || score !== null) {
+      if (typeof rank !== 'number' || !Number.isSafeInteger(rank) || rank < 0) {
+        throw new Error('Invalid cached leaderboard ranking')
+      }
+      const overallScore = parseOverallScore(score)
       const [statsArr] = await redisPipeline<string[]>([
         ['HGETALL', `lb_stats:${textId}:${currentUserId}`],
       ])
       const stats = parseHashArray(statsArr)
-      currentUser = buildEntry(
-        currentUserId,
-        stats,
-        Number(score),
-        Number(rank) + 1
-      )
+      currentUser = buildEntry(currentUserId, stats, overallScore, rank + 1)
     }
 
     logDbQuery({

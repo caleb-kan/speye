@@ -7,6 +7,7 @@ import { pwaLogger } from '../utils/pwaLogger'
 import { isOffline } from './networkStatus'
 
 const TAG = 'leaderboardService'
+const pendingCacheWarms = new Set<string>()
 
 export type { LeaderboardEntry }
 
@@ -19,9 +20,11 @@ export async function getTextLeaderboard(
     return { top: [], currentUser: null }
   }
 
+  let cacheIsEmpty = false
   try {
     const cached = await getTextLeaderboardDb(textId, currentUserId)
     if (cached.top.length > 0) return cached
+    cacheIsEmpty = true
   } catch (err) {
     pwaLogger.warn(
       TAG,
@@ -31,7 +34,17 @@ export async function getTextLeaderboard(
   }
 
   try {
-    return await getTextLeaderboardFallback(textId, currentUserId)
+    const saved = await getTextLeaderboardFallback(textId, currentUserId)
+    if (cacheIsEmpty && currentUserId && saved.top.length > 0) {
+      const key = `${textId}:${currentUserId}`
+      if (!pendingCacheWarms.has(key)) {
+        pendingCacheWarms.add(key)
+        void updateLeaderboardCache(textId, currentUserId).finally(() => {
+          pendingCacheWarms.delete(key)
+        })
+      }
+    }
+    return saved
   } catch (err) {
     throw new Error(getErrorMessage(err, 'Failed to load leaderboard'))
   }

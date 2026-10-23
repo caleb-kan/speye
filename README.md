@@ -29,7 +29,18 @@ Create an `.env` file in the **root** directory (Vite reads it via `envDir: '../
 | `VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY` | Your Supabase project's anonymous/public API key |
 | `GROQ_API_KEY` | Your Groq API key |
 | `VITE_UPSTASH_REDIS_REST_URL` | Your Upstash Redis REST API URL |
-| `VITE_UPSTASH_REDIS_REST_READ_TOKEN` | Your Upstash Redis REST API read-only token |
+| `VITE_UPSTASH_REDIS_REST_READ_TOKEN` | Public read-only token for reading leaderboards |
+
+### Hosted cache configuration
+
+Set `UPSTASH_REDIS_REST_URL` and the private
+`UPSTASH_REDIS_REST_TOKEN` in Supabase Edge Function secrets. Keep the
+standard token out of all `VITE_` variables, source files, and browser bundles.
+Set the public URL and read-only token above in both Cloudflare Pages
+production and preview environments, then rebuild each deployment.
+
+See [Upstash operations](docs/upstash.md) for cache scope, consistency,
+free-plan limits, and migration verification.
 
 ### Installation
 

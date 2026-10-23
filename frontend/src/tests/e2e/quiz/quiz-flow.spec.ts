@@ -142,6 +142,100 @@ test.describe('Quiz Flow', () => {
     ).toBeVisible()
   })
 
+  for (const width of [320, 390]) {
+    test(`leaderboard usernames and scores remain reachable at ${width}px`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height: 844 })
+      await page.emulateMedia({ reducedMotion: 'reduce' })
+      await page.addInitScript(() => {
+        Object.defineProperty(navigator, 'maxTouchPoints', { get: () => 1 })
+        localStorage.setItem('pwa-install-banner-dismissed', '1')
+      })
+      await mockRealtimeSubscription(page)
+      await page.route('**/pipeline**', (route) =>
+        route.fulfill({ json: [{ result: [] }] })
+      )
+      await page.route('**/rest/v1/rpc/get_text_leaderboard**', (route) =>
+        route.fulfill({
+          json: {
+            top: [
+              {
+                userId: '00000000-0000-4000-8000-000000000002',
+                username: 'Synthetic Reader',
+                avatarUrl: null,
+                wpm: 425,
+                quizScore: 80,
+                overallScore: 1000000,
+                rank: 1,
+              },
+            ],
+            currentUser: null,
+          },
+        })
+      )
+      await page.route('**/functions/v1/leaderboard', (route) =>
+        route.fulfill({ json: { success: true } })
+      )
+      await mockRandomText(page, textWithQuiz)
+      await page.goto('/rsvp')
+      await page.getByRole('button', { name: 'Play', exact: true }).click()
+      await page
+        .getByRole('button', { name: 'Start Quiz', exact: true })
+        .click()
+
+      const dialog = page.getByRole('dialog', { name: 'Reading quiz' })
+      const answers = ['Science', 'A scientist', 'A city', 'Morning', 'Serious']
+      for (const [index, answer] of answers.entries()) {
+        await dialog.getByText(answer, { exact: true }).click()
+        await dialog
+          .getByRole('button', {
+            name:
+              index === answers.length - 1 ? 'Finish Quiz' : 'Next Question',
+            exact: true,
+          })
+          .click()
+      }
+
+      const username = dialog.getByTitle('Synthetic Reader', { exact: true })
+      await expect(username).toBeVisible({ timeout: 15000 })
+      await expect(username).toBeInViewport()
+      expect((await username.boundingBox())?.width).toBeGreaterThanOrEqual(96)
+
+      const rankings = dialog.getByRole('region', {
+        name: 'Leaderboard rankings',
+        exact: true,
+      })
+      await expect(rankings).toBeVisible()
+      expect(
+        await rankings.evaluate(
+          (element) => element.scrollWidth > element.clientWidth
+        )
+      ).toBe(true)
+      await rankings.focus()
+      await rankings.press('ArrowRight')
+      await expect
+        .poll(() => rankings.evaluate((element) => element.scrollLeft))
+        .toBeGreaterThan(0)
+      await rankings.evaluate((element) => {
+        element.scrollLeft = element.scrollWidth
+      })
+      await expect(
+        username.locator('..').getByText('1000000', { exact: true })
+      ).toBeInViewport()
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth
+        )
+      ).toBe(true)
+      expect(
+        await dialog.evaluate(
+          (element) => element.scrollWidth <= element.clientWidth
+        )
+      ).toBe(true)
+    })
+  }
+
   for (const viewport of [
     { width: 390, height: 844 },
     { width: 844, height: 390 },

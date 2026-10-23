@@ -208,6 +208,7 @@ Deno.serve(async (req: Request) => {
         },
         body: JSON.stringify({
           content: text.content,
+          fiction: text.fiction,
           generateTitle: text.title === null,
           skipContentCheck: text.admin_decision === 'approved',
           sectional: text.sectional,
@@ -343,7 +344,7 @@ Deno.serve(async (req: Request) => {
       .from('texts')
       .update(
         {
-          title: result.title ?? text.title,
+          title: text.title ?? result.title,
           quiz: { questionSets: result.questionSets },
           quiz_valid: null,
           fiction: text.fiction ?? result.fiction,

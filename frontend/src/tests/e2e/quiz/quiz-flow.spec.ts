@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test'
 import { mockAuthSession, mockRandomText } from '../utils/utils'
 import { quizData } from '../utils/mocks'
+import { mockRealtimeSubscription } from '../utils/mock-helpers'
 
 test.describe('Quiz Flow', () => {
   const textWithQuiz = {
@@ -140,4 +141,87 @@ test.describe('Quiz Flow', () => {
       page.getByRole('button', { name: /save & close/i })
     ).toBeVisible()
   })
+
+  for (const viewport of [
+    { width: 390, height: 844 },
+    { width: 844, height: 390 },
+    { width: 320, height: 240 },
+  ]) {
+    test(`long quiz content remains reachable at ${viewport.width}x${viewport.height}`, async ({
+      page,
+    }) => {
+      const longQuiz = {
+        questionSets: quizData.questionSets.map((set) => ({
+          questions: set.questions.map((question) => ({
+            ...question,
+            question: 'Synthetic question: '.concat(
+              'Which explanation best describes the evidence presented in the passage? '.repeat(
+                3
+              )
+            ),
+            options: question.options.map(
+              (_, index) =>
+                `Synthetic answer ${index + 1}: ` +
+                'The passage provides detailed evidence supporting this explanation of the outcome. '.repeat(
+                  3
+                )
+            ),
+          })),
+        })),
+      }
+      await page.addInitScript(() => {
+        Object.defineProperty(navigator, 'maxTouchPoints', { get: () => 1 })
+        localStorage.setItem('pwa-install-banner-dismissed', '1')
+      })
+      await page.setViewportSize({ width: 390, height: 844 })
+      await page.emulateMedia({ reducedMotion: 'reduce' })
+      await mockRealtimeSubscription(page)
+      await page.route(
+        (url) =>
+          url.pathname.includes('/rest/v1/texts') &&
+          url.search.includes('select=quiz'),
+        (route) =>
+          route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({ quiz: longQuiz }),
+          })
+      )
+      await mockRandomText(page, { ...textWithQuiz, quiz: longQuiz })
+      await page.goto('/rsvp')
+      await page.getByRole('button', { name: 'Play', exact: true }).click()
+      await page
+        .getByRole('button', { name: 'Start Quiz', exact: true })
+        .click()
+      const dialog = page.getByRole('dialog', { name: 'Reading quiz' })
+      await expect(dialog).toBeVisible()
+      await page.setViewportSize(viewport)
+
+      await expect
+        .poll(async () => {
+          const dialogBox = await dialog.boundingBox()
+          return (
+            dialogBox !== null &&
+            dialogBox.y >= 0 &&
+            dialogBox.y + dialogBox.height <= viewport.height
+          )
+        })
+        .toBe(true)
+      await expect(dialog.getByRole('heading').first()).toBeInViewport()
+
+      for (let index = 0; index < 5; index++) {
+        await dialog
+          .getByRole('button', { name: /^Synthetic answer 1:/ })
+          .click()
+        const advance = dialog.getByRole('button', {
+          name: index === 4 ? 'Finish Quiz' : 'Next Question',
+          exact: true,
+        })
+        await advance.click()
+      }
+
+      await dialog.getByRole('button', { name: 'Save & Close' }).click()
+      await expect(dialog).not.toBeVisible()
+    })
+  }
 })

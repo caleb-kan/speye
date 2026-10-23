@@ -1,6 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor, act } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { render, screen, waitFor, act, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { StrictMode } from 'react'
 import { BrowserRouter } from 'react-router-dom'
 import { Login } from '../../pages/Login'
 import { ReadingPreferencesProvider } from '../../context/ReadingPreferencesProvider'
@@ -409,6 +410,127 @@ describe('Login Page', () => {
       await waitFor(() => {
         expect(screen.getByText('User already registered')).toBeInTheDocument()
       })
+    })
+  })
+
+  describe('Submission lifecycle', () => {
+    beforeEach(() => {
+      vi.useFakeTimers()
+    })
+
+    afterEach(() => {
+      vi.clearAllTimers()
+      vi.useRealTimers()
+    })
+
+    const submitCredentials = async (mode: string) => {
+      if (mode === 'signup') {
+        fireEvent.click(screen.getByRole('button', { name: /^sign up$/i }))
+        fireEvent.change(screen.getByLabelText(/username/i), {
+          target: { value: 'testuser' },
+        })
+      }
+      fireEvent.change(screen.getByLabelText(/email/i), {
+        target: { value: 'test@example.com' },
+      })
+      fireEvent.change(screen.getByLabelText(/password/i), {
+        target: { value: 'password123' },
+      })
+      await act(async () => {
+        fireEvent.submit(screen.getByLabelText(/email/i).closest('form')!)
+      })
+    }
+
+    it.each(['login', 'signup'])(
+      'does not redirect when a pending %s succeeds after unmount',
+      async (mode) => {
+        const user = createMockUser()
+        const response = {
+          data: { user, session: createMockSession(user) },
+          error: null,
+        }
+        const authRequest =
+          mode === 'signup' ? mockAuthSignUp : mockAuthSignInWithPassword
+        let resolveRequest = () => {}
+        authRequest.mockImplementation(
+          () =>
+            new Promise((resolve) => {
+              resolveRequest = () => resolve(response)
+            })
+        )
+        const { unmount } = renderLogin()
+        await submitCredentials(mode)
+        expect(authRequest).toHaveBeenCalledOnce()
+        unmount()
+
+        await act(async () => resolveRequest())
+        act(() => vi.advanceTimersByTime(2000))
+
+        expect(mockNavigate).not.toHaveBeenCalled()
+      }
+    )
+
+    it.each(['login', 'signup'])(
+      'cancels a successful %s redirect when unmounted',
+      async (mode) => {
+        const user = createMockUser()
+        const authRequest =
+          mode === 'signup' ? mockAuthSignUp : mockAuthSignInWithPassword
+        authRequest.mockResolvedValue({
+          data: { user, session: createMockSession(user) },
+          error: null,
+        })
+        const { unmount } = renderLogin()
+        await submitCredentials(mode)
+        expect(screen.getByRole('status')).toHaveTextContent(/successful/i)
+        unmount()
+
+        act(() => vi.advanceTimersByTime(2000))
+
+        expect(mockNavigate).not.toHaveBeenCalled()
+      }
+    )
+
+    it('does not create an account after unmount during username lookup', async () => {
+      let resolveAvailability = () => {}
+      mockUserService.isUsernameAvailable.mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            resolveAvailability = () => resolve(true)
+          })
+      )
+      const { unmount } = renderLogin()
+      await submitCredentials('signup')
+      expect(mockUserService.isUsernameAvailable).toHaveBeenCalledOnce()
+      unmount()
+
+      await act(async () => resolveAvailability())
+
+      expect(mockAuthSignUp).not.toHaveBeenCalled()
+      expect(mockNavigate).not.toHaveBeenCalled()
+    })
+
+    it('keeps successful login redirects working in StrictMode', async () => {
+      const user = createMockUser()
+      mockAuthSignInWithPassword.mockResolvedValue({
+        data: { user, session: createMockSession(user) },
+        error: null,
+      })
+      render(
+        <StrictMode>
+          <BrowserRouter>
+            <ReadingPreferencesProvider>
+              <Login />
+            </ReadingPreferencesProvider>
+          </BrowserRouter>
+        </StrictMode>
+      )
+      await submitCredentials('login')
+      expect(screen.getByRole('status')).toHaveTextContent('Login successful!')
+
+      act(() => vi.advanceTimersByTime(1000))
+
+      expect(mockNavigate).toHaveBeenCalledWith('/home', { replace: true })
     })
   })
 

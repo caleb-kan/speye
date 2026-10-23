@@ -89,6 +89,51 @@ describe('useArrowNavigation', () => {
     expect(onForward).not.toHaveBeenCalled()
   })
 
+  it('preserves arrow keys handled by another control', () => {
+    const onForward = vi.fn()
+    renderHook(() =>
+      useArrowNavigation({ enabled: true, onBack: vi.fn(), onForward })
+    )
+    const event = new KeyboardEvent('keydown', {
+      key: 'ArrowDown',
+      bubbles: true,
+      cancelable: true,
+    })
+    event.preventDefault()
+    window.dispatchEvent(event)
+
+    expect(onForward).not.toHaveBeenCalled()
+  })
+
+  it.each(['dialog', 'alertdialog'])(
+    'preserves arrow navigation inside a %s',
+    (role) => {
+      const onBack = vi.fn()
+      const onForward = vi.fn()
+      renderHook(() => useArrowNavigation({ enabled: true, onBack, onForward }))
+      const modal = document.createElement('div')
+      modal.setAttribute('role', role)
+      const button = document.createElement('button')
+      modal.append(button)
+      document.body.append(modal)
+      button.focus()
+
+      for (const key of ['ArrowLeft', 'ArrowDown']) {
+        const event = new KeyboardEvent('keydown', {
+          key,
+          bubbles: true,
+          cancelable: true,
+        })
+        button.dispatchEvent(event)
+        expect(event.defaultPrevented).toBe(false)
+      }
+
+      expect(onBack).not.toHaveBeenCalled()
+      expect(onForward).not.toHaveBeenCalled()
+      modal.remove()
+    }
+  )
+
   it('ignores arrow keys when an input element is focused', () => {
     const onBack = vi.fn()
     const onForward = vi.fn()

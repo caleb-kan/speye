@@ -1,10 +1,16 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { render, screen, waitFor, act, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { BrowserRouter } from 'react-router-dom'
+import { StrictMode } from 'react'
 import { ResetPassword } from '../../pages/ResetPassword'
+import { useAuth } from '../../hooks/useAuth'
 import * as supabaseModule from '../../../../lib/supabase'
-import { createMockAuthError } from '../helpers/mocks'
+import {
+  createMockAuthContext,
+  createMockAuthError,
+  createMockUser,
+} from '../helpers/mocks'
 import '@testing-library/jest-dom'
 
 vi.mock('../../../../lib/supabase', () => ({
@@ -14,6 +20,8 @@ vi.mock('../../../../lib/supabase', () => ({
     },
   },
 }))
+
+vi.mock('../../hooks/useAuth', () => ({ useAuth: vi.fn() }))
 
 vi.mock('../../hooks/useNetworkStatus', () => ({
   useNetworkStatus: () => ({
@@ -40,6 +48,7 @@ const mockSupabase = vi.mocked(supabaseModule.supabase)
 const setHashWithRecoveryToken = () => {
   window.location.hash =
     '#access_token=test-token&type=recovery&refresh_token=test-refresh'
+  vi.mocked(useAuth).mockReturnValue(createMockAuthContext(createMockUser()))
 }
 
 const renderResetPassword = () => {
@@ -53,10 +62,74 @@ const renderResetPassword = () => {
 describe('ResetPassword Page', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(useAuth).mockReturnValue(createMockAuthContext())
     window.location.hash = ''
   })
 
   describe('Token Validation', () => {
+    it('accepts a recovery session after the SDK consumes the URL hash', () => {
+      setHashWithRecoveryToken()
+      window.location.hash = ''
+
+      render(
+        <StrictMode>
+          <BrowserRouter>
+            <ResetPassword />
+          </BrowserRouter>
+        </StrictMode>
+      )
+
+      expect(screen.getByLabelText(/new password/i)).toBeInTheDocument()
+      expect(mockNavigate).not.toHaveBeenCalled()
+    })
+
+    it('waits for auth initialization before deciding whether to redirect', () => {
+      vi.mocked(useAuth).mockReturnValue({
+        ...createMockAuthContext(),
+        loading: true,
+      })
+      const { rerender } = renderResetPassword()
+      expect(mockNavigate).not.toHaveBeenCalled()
+
+      vi.mocked(useAuth).mockReturnValue(
+        createMockAuthContext(createMockUser())
+      )
+      rerender(
+        <BrowserRouter>
+          <ResetPassword />
+        </BrowserRouter>
+      )
+
+      expect(screen.getByLabelText(/new password/i)).toBeInTheDocument()
+      expect(mockNavigate).not.toHaveBeenCalled()
+    })
+
+    it('rejects an expired recovery URL without an authenticated session', () => {
+      window.location.hash = '#access_token=expired-token&type=recovery'
+      renderResetPassword()
+
+      expect(mockNavigate).toHaveBeenCalledWith('/login', { replace: true })
+      expect(screen.queryByLabelText(/new password/i)).not.toBeInTheDocument()
+    })
+
+    it('redirects after initialization finishes without a session', () => {
+      vi.mocked(useAuth).mockReturnValue({
+        ...createMockAuthContext(),
+        loading: true,
+      })
+      const { rerender } = renderResetPassword()
+      expect(mockNavigate).not.toHaveBeenCalled()
+
+      vi.mocked(useAuth).mockReturnValue(createMockAuthContext())
+      rerender(
+        <BrowserRouter>
+          <ResetPassword />
+        </BrowserRouter>
+      )
+
+      expect(mockNavigate).toHaveBeenCalledWith('/login', { replace: true })
+    })
+
     it('redirects to login when no access token', () => {
       renderResetPassword()
 
@@ -282,6 +355,89 @@ describe('ResetPassword Page', () => {
         data: { user: null },
         error: null,
       })
+    })
+  })
+
+  describe('Submission lifecycle', () => {
+    beforeEach(() => {
+      setHashWithRecoveryToken()
+      vi.useFakeTimers()
+    })
+
+    afterEach(() => {
+      vi.clearAllTimers()
+      vi.useRealTimers()
+    })
+
+    const submitPassword = () => {
+      fireEvent.change(screen.getByLabelText(/new password/i), {
+        target: { value: 'newpassword123' },
+      })
+      fireEvent.change(screen.getByLabelText(/confirm password/i), {
+        target: { value: 'newpassword123' },
+      })
+      fireEvent.submit(
+        screen.getByRole('button', { name: /reset password/i }).closest('form')!
+      )
+    }
+
+    it('does not redirect when a pending reset succeeds after unmount', async () => {
+      let resolveReset = () => {}
+      mockSupabase.auth.updateUser.mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            resolveReset = () =>
+              resolve({ data: { user: createMockUser() }, error: null })
+          })
+      )
+      const { unmount } = renderResetPassword()
+      submitPassword()
+      expect(mockSupabase.auth.updateUser).toHaveBeenCalledOnce()
+      unmount()
+
+      await act(async () => resolveReset())
+      act(() => vi.advanceTimersByTime(1000))
+
+      expect(mockNavigate).not.toHaveBeenCalled()
+    })
+
+    it('cancels a successful reset redirect when unmounted', async () => {
+      mockSupabase.auth.updateUser.mockResolvedValue({
+        data: { user: createMockUser() },
+        error: null,
+      })
+      const { unmount } = renderResetPassword()
+      await act(async () => submitPassword())
+      expect(screen.getByRole('status')).toHaveTextContent(
+        /password updated successfully/i
+      )
+      unmount()
+
+      act(() => vi.advanceTimersByTime(1000))
+
+      expect(mockNavigate).not.toHaveBeenCalled()
+    })
+
+    it('keeps successful reset redirects working in StrictMode', async () => {
+      mockSupabase.auth.updateUser.mockResolvedValue({
+        data: { user: createMockUser() },
+        error: null,
+      })
+      render(
+        <StrictMode>
+          <BrowserRouter>
+            <ResetPassword />
+          </BrowserRouter>
+        </StrictMode>
+      )
+      await act(async () => submitPassword())
+      expect(screen.getByRole('status')).toHaveTextContent(
+        /password updated successfully/i
+      )
+
+      act(() => vi.advanceTimersByTime(1000))
+
+      expect(mockNavigate).toHaveBeenCalledWith('/home', { replace: true })
     })
   })
 

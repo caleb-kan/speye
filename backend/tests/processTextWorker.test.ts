@@ -13,12 +13,17 @@ function setup({
   failQuizFallback = false,
   changeDuringSend = null as
     'status' | 'owner' | 'validated' | 'revision' | null,
+  initialFiction = false as boolean | null,
+  initialTitle = 'Example' as string | null,
+  processedTitle = 'Example' as string | null,
+  processor = undefined as
+    ((request: Request) => Response | Promise<Response>) | undefined,
 } = {}) {
   const row: Record<string, unknown> = {
     id: 'text-1',
     content: 'Example text',
-    title: 'Example',
-    fiction: false,
+    title: initialTitle,
+    fiction: initialFiction,
     admin_decision: 'approved',
     owner_id: 'user-1',
     sectional: false,
@@ -102,22 +107,25 @@ function setup({
       error: null,
     }
   })
-  const fetch = vi.fn(async () => {
-    if (completeDuringFetch) row.processing_status = 'completed'
-    return new Response(
-      JSON.stringify(
-        processFails
-          ? { error: 'unavailable' }
-          : {
-              title: 'Example',
-              questionSets: [],
-              fiction: false,
-              summary: 'Summary',
-            }
-      ),
-      { status: processFails ? 503 : 200 }
-    )
-  })
+  const fetch = vi.fn(
+    async (url: string | URL | Request, init?: RequestInit) => {
+      if (completeDuringFetch) row.processing_status = 'completed'
+      if (processor) return processor(new Request(url, init))
+      return new Response(
+        JSON.stringify(
+          processFails
+            ? { error: 'unavailable' }
+            : {
+                title: processedTitle,
+                questionSets: [],
+                fiction: false,
+                summary: 'Summary',
+              }
+        ),
+        { status: processFails ? 503 : 200 }
+      )
+    }
+  )
   const handler = loadEdgeFunction('process-text-worker', {
     modules: {
       'jsr:@supabase/supabase-js@2': { createClient: () => ({ from, rpc }) },
@@ -135,6 +143,73 @@ function setup({
 }
 
 describe('process-text worker idempotence', () => {
+  it.each([
+    { initialTitle: 'User title', expectedTitle: 'User title' },
+    { initialTitle: null, expectedTitle: 'Generated title' },
+  ])(
+    'preserves the requested title behavior for $initialTitle',
+    async ({ initialTitle, expectedTitle }) => {
+      const { run, row } = setup({
+        processFails: false,
+        initialTitle,
+        processedTitle: 'Generated title',
+      })
+      expect((await run()).status).toBe(200)
+      expect(row.title).toBe(expectedTitle)
+    }
+  )
+
+  it.each([true, false])(
+    'generates a compatible summary when a user explicitly selects fiction=%s',
+    async (fiction) => {
+      const questionSets = [
+        {
+          questions: Array.from({ length: 5 }, () => ({
+            question: 'What does the text describe?',
+            options: ['A', 'B', 'C', 'D'],
+            correctAnswer: 0,
+          })),
+        },
+      ]
+      const modelResponse = (modelFiction: boolean) => ({
+        choices: [
+          {
+            finish_reason: 'stop',
+            message: {
+              content: JSON.stringify({
+                status: 'success',
+                title: 'Example',
+                questionSets,
+                fiction: modelFiction,
+                summary: modelFiction ? null : 'Summary',
+              }),
+            },
+          },
+        ],
+      })
+      const complete = vi
+        .fn()
+        .mockResolvedValueOnce(modelResponse(!fiction))
+        .mockResolvedValue(modelResponse(fiction))
+      const processor = loadEdgeFunction('process-text', {
+        modules: {
+          'npm:groq-sdk@0.37.0': class {
+            chat = { completions: { create: complete } }
+          },
+        },
+      })
+      const { run, row } = setup({ initialFiction: fiction, processor })
+
+      expect((await run()).status).toBe(200)
+      expect(row).toMatchObject({
+        fiction,
+        summary: fiction ? null : 'Summary',
+        processing_status: 'completed',
+      })
+      expect(complete).toHaveBeenCalledTimes(2)
+    }
+  )
+
   it('skips an already completed job before spending another LLM request', async () => {
     const { run, row, fetch, notifications } = setup({
       initialStatus: 'completed',

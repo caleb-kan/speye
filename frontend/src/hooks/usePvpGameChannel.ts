@@ -262,6 +262,7 @@ export function usePvpGameChannel(
         if (!mountedRef.current || channelRef.current !== channel) return
 
         if (status === 'SUBSCRIBED') {
+          clearRetryTimeout()
           retryDelayRef.current = PVP_CHANNEL_INITIAL_RETRY_DELAY_MS
           retryCountRef.current = 0
           sendFailCountRef.current = 0

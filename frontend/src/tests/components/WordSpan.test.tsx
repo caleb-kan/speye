@@ -38,7 +38,11 @@ describe('WordSpan', () => {
   it('applies transition style', () => {
     render(<WordSpan {...defaultProps} />)
     const span = screen.getByTestId('word-span')
-    expect(span).toHaveStyle('transition: color 200ms ease')
+    expect(getComputedStyle(span)).toMatchObject({
+      transitionProperty: 'color',
+      transitionDuration: '0.2s',
+      transitionTimingFunction: 'ease',
+    })
   })
 
   it('highlights current word with different color', () => {

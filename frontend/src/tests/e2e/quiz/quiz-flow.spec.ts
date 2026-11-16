@@ -213,7 +213,8 @@ test.describe('Quiz Flow', () => {
         )
       ).toBe(true)
       await rankings.focus()
-      await rankings.press('ArrowRight')
+      // macOS WebKit starts native scrolling while the key is held.
+      await rankings.press('ArrowRight', { delay: 50 })
       await expect
         .poll(() => rankings.evaluate((element) => element.scrollLeft))
         .toBeGreaterThan(0)

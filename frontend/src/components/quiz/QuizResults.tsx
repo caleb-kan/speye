@@ -60,7 +60,7 @@ export function QuizResults({
   if (phase === 'score') {
     return (
       <div className="flex items-center justify-center p-8 min-h-100">
-        <div className="animate-in fade-in zoom-in-95 duration-500">
+        <div className="animate-in fade-in zoom-in-95 duration-500 motion-reduce:animate-none motion-reduce:transition-none">
           <CircularProgress percentage={score} size={FULL_SCREEN_SCORE_SIZE} />
         </div>
       </div>
@@ -68,11 +68,11 @@ export function QuizResults({
   }
 
   return (
-    <div className="animate-in fade-in duration-500">
+    <div className="animate-in fade-in duration-500 motion-reduce:animate-none motion-reduce:transition-none">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center p-4">
         <div className="flex flex-col items-center justify-center space-y-6 border-r border-text-secondary/10 pr-6 md:pr-12">
           {canShowLeaderboard ? (
-            <div className="w-full animate-in fade-in zoom-in-95 duration-500">
+            <div className="w-full animate-in fade-in zoom-in-95 duration-500 motion-reduce:animate-none motion-reduce:transition-none">
               <LeaderboardTable
                 topEntries={topEntries}
                 currentUserEntry={currentUserEntry}
@@ -101,7 +101,7 @@ export function QuizResults({
           )}
         </div>
 
-        <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
+        <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500 motion-reduce:animate-none motion-reduce:transition-none">
           <div className="space-y-2">
             <h2 className="text-3xl font-medium tracking-tight text-text">
               Quiz Complete

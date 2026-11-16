@@ -142,7 +142,10 @@ export default defineConfig(({ mode }) => ({
   envDir: '../',
   resolve: {
     alias: {
-      webgazer: path.resolve(__dirname, 'src/lib/webgazer-local/src/index.mjs'),
+      webgazer: path.resolve(
+        import.meta.dirname,
+        'src/lib/webgazer-local/src/index.mjs'
+      ),
     },
   },
   optimizeDeps: {

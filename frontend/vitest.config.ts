@@ -15,7 +15,10 @@ export default defineConfig({
     include: ['src/**/*.{test,spec}.{ts,tsx,js,jsx}'],
     exclude: ['**/node_modules/**', 'e2e/**', '**/e2e/**'],
     alias: {
-      webgazer: path.resolve(__dirname, './src/tests/helpers/webgazer.ts'),
+      webgazer: path.resolve(
+        import.meta.dirname,
+        './src/tests/helpers/webgazer.ts'
+      ),
     },
   },
 })

@@ -24,18 +24,12 @@ interface ValidateQuizResponse {
   isValid: boolean
 }
 
-/**
- * Helper to safely delete a queue message, logging any errors
- */
 async function deleteQueueMessage(msgId: number): Promise<void> {
-  try {
-    await queue.rpc('delete', {
-      queue_name: 'validate_quiz',
-      message_id: msgId,
-    })
-  } catch (err) {
-    console.error('Failed to delete queue message:', err)
-  }
+  const { error } = await queue.rpc('delete', {
+    queue_name: 'validate_quiz',
+    message_id: msgId,
+  })
+  if (error) throw error
 }
 
 const QUIZ_QUALITY_REJECTION_REASON = 'Quiz quality insufficient'

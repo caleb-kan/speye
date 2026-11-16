@@ -38,18 +38,12 @@ interface ProcessTextResponse {
   summary: string | null
 }
 
-/**
- * Helper to safely delete a queue message, logging any errors
- */
 async function deleteQueueMessage(msgId: number): Promise<void> {
-  try {
-    await queue.rpc('delete', {
-      queue_name: 'process_text',
-      message_id: msgId,
-    })
-  } catch (err) {
-    console.error('Failed to delete queue message:', err)
-  }
+  const { error } = await queue.rpc('delete', {
+    queue_name: 'process_text',
+    message_id: msgId,
+  })
+  if (error) throw error
 }
 
 /** Complete the validation handoff or persist the existing manual-retry state. */

@@ -12,6 +12,9 @@ function setup(
     upstreamFails?: boolean
     upstreamThrows?: boolean
     rejectionError?: boolean
+    deleteError?: boolean
+    deleteThrows?: boolean
+    alreadyFinished?: boolean
   } = {}
 ) {
   const text = {
@@ -19,7 +22,11 @@ function setup(
     title: 'Example',
     owner_id: null,
     fiction: false,
-    processing_status: name === 'process-text-worker' ? 'pending' : 'completed',
+    processing_status:
+      options.alreadyFinished || name === 'validate-quiz-worker'
+        ? 'completed'
+        : 'pending',
+    quiz_valid: options.alreadyFinished ? true : null,
     quiz: { questionSets: [] },
     admin_decision: 'pending',
     sectional: false,
@@ -68,13 +75,20 @@ function setup(
     }
     return query
   }
-  const rpc = vi.fn(async (method: string) => ({
-    data:
-      method === 'read'
-        ? [{ msg_id: 7, message: { text_id: 'text-1' } }]
-        : null,
-    error: null,
-  }))
+  const rpc = vi.fn(async (method: string) => {
+    if (method === 'delete' && options.deleteThrows)
+      throw new TypeError('Delete unavailable')
+    return {
+      data:
+        method === 'read'
+          ? [{ msg_id: 7, message: { text_id: 'text-1' } }]
+          : null,
+      error:
+        method === 'delete' && options.deleteError
+          ? { message: 'Delete unavailable' }
+          : null,
+    }
+  })
   const fetch = vi.fn(async () => {
     if (options.upstreamThrows) throw new TypeError('Network unavailable')
     return new Response(
@@ -115,6 +129,24 @@ describe.each(['process-text-worker', 'validate-quiz-worker'])(
       const { run, rpc } = setup(name)
       expect((await run()).status).toBe(200)
       expect(rpc).toHaveBeenCalledWith('delete', expect.anything())
+    })
+
+    it.each([
+      { deleteError: true },
+      { deleteThrows: true },
+      { deleteError: true, alreadyFinished: true },
+      { deleteThrows: true, alreadyFinished: true },
+    ])('reports a failed queue acknowledgment (%j)', async (options) => {
+      const { run, rpc, fetch } = setup(name, options)
+      const response = await run()
+      expect(response.status).toBe(500)
+      expect(await response.json()).toEqual({ error: 'Internal server error' })
+      expect(rpc).toHaveBeenCalledWith('delete', {
+        queue_name:
+          name === 'process-text-worker' ? 'process_text' : 'validate_quiz',
+        message_id: 7,
+      })
+      if (options.alreadyFinished) expect(fetch).not.toHaveBeenCalled()
     })
 
     it.each([

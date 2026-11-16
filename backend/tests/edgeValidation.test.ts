@@ -290,22 +290,35 @@ describe.each(['process-text', 'validate-quiz'])(
         expect(prompt).toContain(summary)
       })
 
-      it('preserves successful quiz validation for a valid service request', async () => {
-        const { post, complete } = setup()
-        complete.mockResolvedValue({
-          choices: [
-            { finish_reason: 'stop', message: { content: '{"isValid":true}' } },
-          ],
-        })
-        const response = await post({
-          content: 'Example',
-          quiz: { questionSets: [{ questions: [{ question: 'Example?' }] }] },
-          summary: 'Example summary',
-        })
-        expect(response.status).toBe(200)
-        expect(await response.json()).toEqual({ isValid: true })
-        expect(complete).toHaveBeenCalledOnce()
-      })
+      it.each([true, false])(
+        'uses Qwen instruct mode for a JSON quiz decision of %s',
+        async (isValid) => {
+          const { post, complete } = setup()
+          complete.mockResolvedValue({
+            choices: [
+              {
+                finish_reason: 'stop',
+                message: { content: JSON.stringify({ isValid }) },
+              },
+            ],
+          })
+          const response = await post({
+            content: 'Example',
+            quiz: { questionSets: [{ questions: [{ question: 'Example?' }] }] },
+            summary: 'Example summary',
+          })
+          expect(response.status).toBe(200)
+          expect(await response.json()).toEqual({ isValid })
+          expect(complete).toHaveBeenCalledExactlyOnceWith(
+            expect.objectContaining({
+              model: 'qwen/qwen3.8-27b',
+              reasoning_effort: 'none',
+              max_tokens: 1_000,
+              response_format: { type: 'json_object' },
+            })
+          )
+        }
+      )
 
       it.each([
         { questions: [] },

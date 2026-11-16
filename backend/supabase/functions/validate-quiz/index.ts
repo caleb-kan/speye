@@ -3,12 +3,6 @@ import Groq from 'npm:groq-sdk@0.37.0'
 
 // Must match frontend/src/constants/textUpload.ts MAX_CONTENT_CHARACTERS
 const MAX_CONTENT_LENGTH = 8_000
-// Truncation limit for summary excerpt sent to the validation LLM.
-// The model below (llama-3.3-70b-versatile) has a 6_000 TPM cap on the
-// Groq on_demand tier. Worst-case prompt: ~2_000 tokens (8k-char content)
-// + ~1_250 tokens (5k-char summary) + ~350 (quiz sample) + ~150 (skeleton)
-// + LLM_MAX_TOKENS (1_000) ~= 4_750 tokens. Do not raise MAX_SUMMARY_LENGTH
-// or MAX_CONTENT_LENGTH without rechecking that budget.
 const MAX_SUMMARY_LENGTH = 5_000
 const LLM_MAX_TOKENS = 1_000
 
@@ -54,13 +48,9 @@ interface ValidationResult {
 }
 
 const config = {
-  // json_object mode (not json_schema): llama model does not support strict
-  // structured output, but json_object guarantees valid JSON syntax.
-  model: 'llama-3.3-70b-versatile',
+  model: 'qwen/qwen3.8-27b',
   temperature: 0.1,
   max_tokens: LLM_MAX_TOKENS,
-  // "Respond with valid JSON" retained as belt-and-suspenders alongside
-  // json_object: ensures the model prioritizes JSON even if the mode fails.
   system_message: `You are a quiz quality validator. Your job is to evaluate if a quiz accurately tests reading comprehension of a given text. You respond with valid JSON only - no markdown code blocks, no explanations.`,
   user_message: `Evaluate if this quiz is a good comprehension test for the given text.
 
@@ -179,6 +169,7 @@ Deno.serve(async (req: Request) => {
       ],
       temperature: config.temperature,
       max_tokens: config.max_tokens,
+      reasoning_effort: 'none',
       response_format: { type: 'json_object' },
     })
 

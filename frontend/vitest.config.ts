@@ -11,6 +11,8 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
+    // Node 25+ defines its own localStorage global, which hides jsdom's.
+    execArgv: ['--no-experimental-webstorage'],
     setupFiles: ['./src/tests/setup.ts'],
     include: ['src/**/*.{test,spec}.{ts,tsx,js,jsx}'],
     exclude: ['**/node_modules/**', 'e2e/**', '**/e2e/**'],
